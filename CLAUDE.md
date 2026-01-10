@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Motor Cost Calculator - a web application for calculating motor repair costs. It consists of:
+This is a Price List Calculator - a web application for calculating service costs. It consists of:
 
 - **Frontend**: Single-page HTML application (`src/index.html`) using vanilla JavaScript and Tailwind CSS
 - **Backend**: Azure Functions (Node.js) API providing data access to SQL Server
