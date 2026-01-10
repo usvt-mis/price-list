@@ -4,20 +4,20 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Motor Cost Calculator</title>
+  <title>Price List Calculator</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 text-slate-900">
   <div class="max-w-6xl mx-auto p-6 space-y-6">
     <header>
-      <h1 class="text-3xl font-bold tracking-tight">Motor Cost Calculator</h1>
+      <h1 class="text-3xl font-bold tracking-tight">Price List Calculator</h1>
       <p class="text-slate-600 mt-1">Labor (DB), Materials (DB), Overhead (rule/manual)</p>
     </header>
 
     <!-- PART 1: Labor -->
     <section class="bg-white rounded-2xl shadow p-5">
       <div class="flex items-center justify-between gap-4 flex-wrap">
-        <h2 class="text-xl font-semibold">Part 1: Labor</h2>
+        <h2 class="text-xl font-semibold">Labor</h2>
         <div class="text-sm text-slate-600">
           Cost per hour: <span id="costPerHour" class="font-semibold">—</span>
         </div>
@@ -59,7 +59,7 @@
     <!-- PART 2: Materials -->
     <section class="bg-white rounded-2xl shadow p-5">
       <div class="flex items-center justify-between gap-4 flex-wrap">
-        <h2 class="text-xl font-semibold">Part 2: Materials</h2>
+        <h2 class="text-xl font-semibold">Materials</h2>
         <button id="addMaterial" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm">
           + Add row
         </button>
@@ -92,7 +92,7 @@
 
     <!-- PART 3: Overhead -->
     <section class="bg-white rounded-2xl shadow p-5">
-      <h2 class="text-xl font-semibold">Part 3: Overhead</h2>
+      <h2 class="text-xl font-semibold">Overhead</h2>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div>
