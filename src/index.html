@@ -1,0 +1,352 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Motor Cost Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="max-w-6xl mx-auto p-6 space-y-6">
+    <header>
+      <h1 class="text-3xl font-bold tracking-tight">Motor Cost Calculator</h1>
+      <p class="text-slate-600 mt-1">Labor (DB), Materials (DB), Overhead (rule/manual)</p>
+    </header>
+
+    <!-- PART 1: Labor -->
+    <section class="bg-white rounded-2xl shadow p-5">
+      <div class="flex items-center justify-between gap-4 flex-wrap">
+        <h2 class="text-xl font-semibold">Part 1: Labor</h2>
+        <div class="text-sm text-slate-600">
+          Cost per hour: <span id="costPerHour" class="font-semibold">—</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Motor Type</label>
+          <select id="motorType" class="mt-1 w-full rounded-lg border-slate-200">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Branch</label>
+          <select id="branch" class="mt-1 w-full rounded-lg border-slate-200">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <div class="rounded-xl border border-slate-200 p-4">
+          <div class="text-sm text-slate-500">Labor subtotal</div>
+          <div id="laborSubtotal" class="text-2xl font-bold">—</div>
+        </div>
+      </div>
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-slate-600">
+            <tr class="border-b">
+              <th class="text-left py-2">Job</th>
+              <th class="text-right py-2">Manhours</th>
+              <th class="text-right py-2">Cost</th>
+            </tr>
+          </thead>
+          <tbody id="laborRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PART 2: Materials -->
+    <section class="bg-white rounded-2xl shadow p-5">
+      <div class="flex items-center justify-between gap-4 flex-wrap">
+        <h2 class="text-xl font-semibold">Part 2: Materials</h2>
+        <button id="addMaterial" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm">
+          + Add row
+        </button>
+      </div>
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-slate-600">
+            <tr class="border-b">
+              <th class="text-left py-2">Material</th>
+              <th class="text-left py-2">Code</th>
+              <th class="text-left py-2">Name</th>
+              <th class="text-right py-2">Unit Cost</th>
+              <th class="text-right py-2">Qty</th>
+              <th class="text-right py-2">Line Total</th>
+              <th class="text-right py-2"></th>
+            </tr>
+          </thead>
+          <tbody id="materialRows"></tbody>
+        </table>
+      </div>
+
+      <div class="mt-4 flex justify-end">
+        <div class="rounded-xl border border-slate-200 p-4 w-full md:w-64">
+          <div class="text-sm text-slate-500">Materials subtotal</div>
+          <div id="materialSubtotal" class="text-2xl font-bold">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PART 3: Overhead -->
+    <section class="bg-white rounded-2xl shadow p-5">
+      <h2 class="text-xl font-semibold">Part 3: Overhead</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Overhead %</label>
+          <input id="overheadPct" type="number" step="0.01" min="0" class="mt-1 w-full rounded-lg border-slate-200"/>
+          <p class="text-xs text-slate-500 mt-1">Default comes from Branch; you can override.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Overhead fixed</label>
+          <input id="overheadFixed" type="number" step="0.01" min="0" class="mt-1 w-full rounded-lg border-slate-200"/>
+        </div>
+        <div class="rounded-xl border border-slate-200 p-4">
+          <div class="text-sm text-slate-500">Overhead total</div>
+          <div id="overheadTotal" class="text-2xl font-bold">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GRAND TOTAL -->
+    <section class="bg-slate-900 text-white rounded-2xl shadow p-5">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <div class="text-sm text-slate-200">Grand total</div>
+          <div id="grandTotal" class="text-4xl font-extrabold">—</div>
+        </div>
+        <div class="text-sm text-slate-200 space-y-1">
+          <div>Labor: <span id="grandLabor" class="font-semibold text-white">—</span></div>
+          <div>Materials: <span id="grandMaterials" class="font-semibold text-white">—</span></div>
+          <div>Overhead: <span id="grandOverhead" class="font-semibold text-white">—</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div id="status" class="text-sm text-slate-600"></div>
+  </div>
+
+<script>
+  // ---------- state ----------
+  let branches = [];
+  let labor = [];
+  let materialLines = []; // {materialId, code, name, unitCost, qty}
+
+  const el = id => document.getElementById(id);
+  const fmt = n => Number.isFinite(n) ? n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}) : "—";
+
+  function setStatus(msg){ el("status").textContent = msg || ""; }
+
+  // ---------- load dropdowns ----------
+  async function loadInit() {
+    setStatus("Loading motor types & branches...");
+    const [motorTypes, b] = await Promise.all([
+      fetch("/api/motor-types").then(r => r.json()),
+      fetch("/api/branches").then(r => r.json())
+    ]);
+    branches = b;
+
+    el("motorType").innerHTML = `<option value="">Select…</option>` + motorTypes
+      .map(x => `<option value="${x.MotorTypeId}">${x.MotorTypeName}</option>`).join("");
+
+    el("branch").innerHTML = `<option value="">Select…</option>` + branches
+      .map(x => `<option value="${x.BranchId}">${x.BranchName}</option>`).join("");
+
+    setStatus("");
+  }
+
+  // ---------- labor ----------
+  async function loadLabor() {
+    const motorTypeId = Number(el("motorType").value);
+    if (!motorTypeId) { labor = []; renderLabor(); calcAll(); return; }
+
+    setStatus("Loading labor (jobs + manhours)...");
+    labor = await fetch(`/api/labor?motorTypeId=${motorTypeId}`).then(r => r.json());
+    setStatus("");
+    renderLabor();
+    calcAll();
+  }
+
+  function getSelectedBranch() {
+    const branchId = Number(el("branch").value);
+    return branches.find(b => b.BranchId === branchId) || null;
+  }
+
+  function renderLabor() {
+    const branch = getSelectedBranch();
+    const cph = branch ? Number(branch.CostPerHour) : NaN;
+    el("costPerHour").textContent = branch ? fmt(cph) : "—";
+
+    const rows = labor.map(j => {
+      const mh = Number(j.ManHours);
+      const cost = Number.isFinite(cph) ? mh * cph : NaN;
+      return `<tr class="border-b">
+        <td class="py-2">${j.JobCode} - ${j.JobName}</td>
+        <td class="py-2 text-right">${fmt(mh)}</td>
+        <td class="py-2 text-right">${fmt(cost)}</td>
+      </tr>`;
+    }).join("");
+
+    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="3">Select Motor Type to load jobs.</td></tr>`;
+  }
+
+  function laborSubtotal() {
+    const branch = getSelectedBranch();
+    const cph = branch ? Number(branch.CostPerHour) : NaN;
+    if (!Number.isFinite(cph)) return NaN;
+    return labor.reduce((sum, j) => sum + Number(j.ManHours) * cph, 0);
+  }
+
+  // ---------- materials ----------
+  function addMaterialRow() {
+    materialLines.push({ materialId: null, code:"", name:"", unitCost: NaN, qty: 1 });
+    renderMaterials();
+    calcAll();
+  }
+
+  function removeMaterialRow(i) {
+    materialLines.splice(i, 1);
+    renderMaterials();
+    calcAll();
+  }
+
+  async function searchMaterials(q) {
+    if (q.trim().length < 2) return [];
+    return fetch(`/api/materials?query=${encodeURIComponent(q)}`).then(r => r.json());
+  }
+
+  function renderMaterials() {
+    el("materialRows").innerHTML = materialLines.map((ln, i) => {
+      const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
+
+      return `<tr class="border-b align-top">
+        <td class="py-2 w-56">
+          <input data-i="${i}" class="matSearch w-full rounded-lg border-slate-200"
+                 placeholder="Type to search (min 2 chars)"/>
+          <div data-sug="${i}" class="mt-1 space-y-1"></div>
+        </td>
+        <td class="py-2">${ln.code || "—"}</td>
+        <td class="py-2">${ln.name || "—"}</td>
+        <td class="py-2 text-right">${fmt(ln.unitCost)}</td>
+        <td class="py-2 text-right">
+          <input data-qty="${i}" type="number" min="0" step="1"
+                 class="w-24 text-right rounded-lg border-slate-200"
+                 value="${ln.qty}"/>
+        </td>
+        <td class="py-2 text-right">${fmt(lineTotal)}</td>
+        <td class="py-2 text-right">
+          <button data-del="${i}" class="text-sm px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-50">Remove</button>
+        </td>
+      </tr>`;
+    }).join("") || `<tr><td class="py-3 text-slate-500" colspan="7">No materials yet. Click “Add row”.</td></tr>`;
+
+    // wire events
+    document.querySelectorAll("[data-del]").forEach(btn => {
+      btn.addEventListener("click", () => removeMaterialRow(Number(btn.dataset.del)));
+    });
+
+    document.querySelectorAll("[data-qty]").forEach(inp => {
+      inp.addEventListener("input", () => {
+        const i = Number(inp.dataset.qty);
+        const v = Math.max(0, Math.trunc(Number(inp.value))); // integer only
+        inp.value = v;
+        materialLines[i].qty = v;
+        calcAll();
+        renderMaterials(); // refresh totals
+      });
+    });
+
+    document.querySelectorAll(".matSearch").forEach(inp => {
+      const i = Number(inp.dataset.i);
+      inp.value = materialLines[i].code ? `${materialLines[i].code} - ${materialLines[i].name}` : "";
+
+      let t;
+      inp.addEventListener("input", () => {
+        clearTimeout(t);
+        t = setTimeout(async () => {
+          const q = inp.value;
+          const sug = await searchMaterials(q);
+          const box = document.querySelector(`[data-sug="${i}"]`);
+          box.innerHTML = sug.map(m => `
+            <button class="block w-full text-left px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50"
+                    data-pick="${i}"
+                    data-id="${m.MaterialId}"
+                    data-code="${m.MaterialCode}"
+                    data-name="${m.MaterialName}"
+                    data-cost="${m.UnitCost}">
+              <div class="font-medium">${m.MaterialCode}</div>
+              <div class="text-xs text-slate-600 truncate">${m.MaterialName}</div>
+              <div class="text-xs text-slate-500">Unit: ${fmt(Number(m.UnitCost))}</div>
+            </button>
+          `).join("");
+          box.querySelectorAll("[data-pick]").forEach(btn => {
+            btn.addEventListener("click", () => {
+              materialLines[i].materialId = Number(btn.dataset.id);
+              materialLines[i].code = btn.dataset.code;
+              materialLines[i].name = btn.dataset.name;
+              materialLines[i].unitCost = Number(btn.dataset.cost);
+              box.innerHTML = "";
+              renderMaterials();
+              calcAll();
+            });
+          });
+        }, 250);
+      });
+    });
+  }
+
+  function materialSubtotal() {
+    return materialLines.reduce((sum, ln) => {
+      if (!Number.isFinite(ln.unitCost)) return sum;
+      return sum + ln.unitCost * ln.qty;
+    }, 0);
+  }
+
+  // ---------- overhead ----------
+  function applyBranchDefaultsToOverhead() {
+    const b = getSelectedBranch();
+    if (!b) return;
+    el("overheadPct").value = Number(b.OverheadPercent || 0);
+    el("overheadFixed").value = Number(b.OverheadFixed || 0);
+  }
+
+  function overheadTotal(laborSub, materialSub) {
+    const pct = Math.max(0, Number(el("overheadPct").value || 0));
+    const fixed = Math.max(0, Number(el("overheadFixed").value || 0));
+    const base = (Number.isFinite(laborSub) ? laborSub : 0) + (Number.isFinite(materialSub) ? materialSub : 0);
+    return fixed + (base * pct / 100);
+  }
+
+  // ---------- calc / render totals ----------
+  function calcAll() {
+    const l = laborSubtotal();
+    const m = materialSubtotal();
+    const o = overheadTotal(l, m);
+    const g = (Number.isFinite(l) ? l : 0) + (Number.isFinite(m) ? m : 0) + (Number.isFinite(o) ? o : 0);
+
+    el("laborSubtotal").textContent = Number.isFinite(l) ? fmt(l) : "—";
+    el("materialSubtotal").textContent = fmt(m);
+    el("overheadTotal").textContent = fmt(o);
+
+    el("grandTotal").textContent = fmt(g);
+    el("grandLabor").textContent = Number.isFinite(l) ? fmt(l) : "—";
+    el("grandMaterials").textContent = fmt(m);
+    el("grandOverhead").textContent = fmt(o);
+  }
+
+  // ---------- init ----------
+  el("motorType").addEventListener("change", loadLabor);
+  el("branch").addEventListener("change", () => { renderLabor(); applyBranchDefaultsToOverhead(); calcAll(); });
+  el("overheadPct").addEventListener("input", calcAll);
+  el("overheadFixed").addEventListener("input", calcAll);
+  el("addMaterial").addEventListener("click", addMaterialRow);
+
+  loadInit()
+    .then(() => { materialLines = []; renderMaterials(); calcAll(); })
+    .catch(e => { console.error(e); setStatus("Init failed. Check console & /api endpoints."); });
+</script>
+</body>
+</html>
