@@ -114,9 +114,11 @@ Each HTTP function file:
 - Dropdown clears immediately when input is emptied
 - Selecting a material immediately updates both mobile and desktop search inputs to show "CODE - NAME" format
 - Selecting a material populates code, name, unit cost fields via `updateMaterialRowDisplay(i)` for targeted updates
+  - Uses `data-i` attribute lookups with `closest()` for reliable element selection (works for all rows)
 - After selection, mobile shows compact material info (name, code + unit cost on one line)
 - Quantity input is full-width and prominent on mobile (48px min-height, centered text)
 - Desktop quantity input is wider (w-32) for easier typing
+- Quantity values are integer-only (decimals are truncated via `Math.trunc()`)
 
 ### Responsive Design
 - The material panel uses a **dual-layout approach**:
@@ -130,6 +132,7 @@ Each HTTP function file:
 - Search dropdown buttons are touch-friendly with `min-h-[44px]` and `text-base`
 - Table headers are hidden on mobile to reduce visual clutter
 - Empty state messages adapt to both layouts
+- Initialization includes error handling that displays a message to check `/api/endpoints` if data loading fails
 
 ## Adding New API Endpoints
 

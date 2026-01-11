@@ -21,14 +21,16 @@ The Price List Calculator computes total cost based on three components:
 - **Labor section**: Displays job names only (JobCode is hidden for cleaner presentation)
 - **Material search**:
   - Type-to-search with debounced API calls (250ms delay, min 2 characters)
+  - Returns top 20 matches searching both MaterialCode and MaterialName
   - Desktop dropdown uses fixed positioning for reliable overlay behavior
   - Global click-away handler closes dropdowns when clicking outside
   - Timeout cleanup prevents stale search results
   - Search input immediately updates to show "CODE - NAME" format on selection (both mobile and desktop)
-  - Partial DOM updates on selection for smoother UX
+  - Partial DOM updates via `updateMaterialRowDisplay()` using data-i attributes for reliable row updates
 - **Mobile materials**:
   - Compact material info display
-  - Full-width quantity input for easy typing (48px min-height)
+  - Full-width quantity input for easy typing (48px min-height, centered text)
+  - Integer-only quantities (decimals are truncated)
   - Prominent line total display
 - **Desktop materials**: Traditional table layout with wider quantity inputs (w-32)
 
@@ -56,7 +58,7 @@ The application expects these SQL Server tables:
 | `/api/motor-types` | GET | Fetch all motor types |
 | `/api/branches` | GET | Fetch all branches |
 | `/api/labor?motorTypeId={id}` | GET | Fetch ALL jobs with motor-type-specific manhours (returns 0 for unmatched jobs) |
-| `/api/materials?query={search}` | GET | Search materials (min 2 chars, searches both code and name) |
+| `/api/materials?query={search}` | GET | Search materials (min 2 chars, searches both code and name, returns top 20) |
 | `/api/ping` | GET | Health check endpoint |
 
 ## Development
