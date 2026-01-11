@@ -386,29 +386,26 @@
     const ln = materialLines[i];
     const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
 
-    // Find and update desktop row cells
-    const desktopRow = el("materialRows").querySelector(`tr.hidden.md\\:table-row:nth-of-type(${i * 2 + 1})`);
-    if (desktopRow) {
-      const cells = desktopRow.querySelectorAll("td");
-      if (cells[1]) cells[1].textContent = ln.code || "—";
-      if (cells[2]) cells[2].textContent = ln.name || "—";
-      if (cells[3]) cells[3].textContent = fmt(ln.unitCost);
-      if (cells[5]) cells[5].textContent = fmt(lineTotal);
-      // Update desktop search input value
-      const desktopInput = desktopRow.querySelector(`.matSearch[data-i="${i}"]`);
-      if (desktopInput) {
-        desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
+    // Find and update desktop row using data-i attribute
+    const desktopInput = el("materialRows").querySelector(`tr.hidden.md\\:table-row .matSearch[data-i="${i}"]`);
+    if (desktopInput) {
+      const desktopRow = desktopInput.closest("tr");
+      if (desktopRow) {
+        const cells = desktopRow.querySelectorAll("td");
+        if (cells[1]) cells[1].textContent = ln.code || "—";
+        if (cells[2]) cells[2].textContent = ln.name || "—";
+        if (cells[3]) cells[3].textContent = fmt(ln.unitCost);
+        if (cells[5]) cells[5].textContent = fmt(lineTotal);
       }
+      desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
     }
 
-    // Find and update mobile card
-    const mobileCard = el("materialRows").querySelector(`div.md\\:hidden:nth-of-type(${i * 2 + 1})`);
-    if (mobileCard) {
+    // Find and update mobile card using data-i attribute
+    const mobileInput = el("materialRows").querySelector(`.md\\:hidden .matSearch[data-i="${i}"]`);
+    if (mobileInput) {
+      const mobileCard = mobileInput.closest(".md\\:hidden");
       // Update the search input value
-      const searchInput = mobileCard.querySelector(`.matSearch[data-i="${i}"]`);
-      if (searchInput) {
-        searchInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
-      }
+      mobileInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
       // Update the material info section
       let infoSection = mobileCard.querySelector(".text-sm");
       if (!infoSection && ln.code) {
