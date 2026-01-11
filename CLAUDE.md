@@ -100,6 +100,7 @@ Each HTTP function file:
 - Minimum 2 characters to trigger search
 - Returns top 20 matches searching both MaterialCode and MaterialName
 - Displays results in a dropdown below each input
+- Dropdown element is found via DOM traversal (`nextElementSibling`) to ensure correct mobile/desktop pairing
 - Desktop dropdown uses absolute positioning (`absolute z-50`) to break out of table cell constraints
 - Mobile and desktop dropdowns have `max-h-60 overflow-y-auto` for scrolling long result lists
 - Dropdown clears immediately when input is emptied
