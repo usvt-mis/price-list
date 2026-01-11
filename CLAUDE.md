@@ -102,6 +102,15 @@ Each HTTP function file:
 - Displays results in a dropdown below each input
 - Selecting a material populates code, name, unit cost fields
 
+### Responsive Design
+- The material panel uses a **dual-layout approach**:
+  - **Mobile (< md breakpoint / 768px)**: Card-based layout with stacked information
+  - **Desktop (md+)**: Traditional table layout with horizontal columns
+- Mobile cards feature 44px minimum touch targets for all interactive elements
+- Search dropdown buttons are touch-friendly with `min-h-[44px]` and `text-base`
+- Table headers are hidden on mobile to reduce visual clutter
+- Empty state messages adapt to both layouts
+
 ## Adding New API Endpoints
 
 1. Create new file in `api/src/functions/`

@@ -15,6 +15,7 @@ The Price List Calculator computes total cost based on three components:
 - Single-page HTML application (`src/index.html`)
 - Vanilla JavaScript with Tailwind CSS (via CDN)
 - No build process required
+- Responsive design with mobile-friendly material panel (card-based layout on screens < 768px)
 
 ### Backend
 - Azure Functions v4 (Node.js)
