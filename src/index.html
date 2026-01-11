@@ -394,6 +394,11 @@
       if (cells[2]) cells[2].textContent = ln.name || "—";
       if (cells[3]) cells[3].textContent = fmt(ln.unitCost);
       if (cells[5]) cells[5].textContent = fmt(lineTotal);
+      // Update desktop search input value
+      const desktopInput = desktopRow.querySelector(`.matSearch[data-i="${i}"]`);
+      if (desktopInput) {
+        desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
+      }
     }
 
     // Find and update mobile card
