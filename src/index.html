@@ -309,7 +309,7 @@
       let t;
       inp.addEventListener("input", () => {
         clearTimeout(t);
-        const box = document.querySelector(`[data-sug="${i}"]`);
+        const box = inp.nextElementSibling;
         // Clear dropdown if input is empty
         if (!inp.value.trim()) {
           box.innerHTML = "";
