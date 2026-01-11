@@ -265,7 +265,7 @@
           <td class="py-2 min-w-[200px] relative">
             <input data-i="${i}" class="matSearch w-full rounded-lg border-slate-200"
                    placeholder="Type to search (min 2 chars)"/>
-            <div data-sug="${i}" class="absolute z-50 mt-1 space-y-1 w-full bg-white shadow-lg rounded-lg border border-slate-200 max-h-60 overflow-y-auto"></div>
+            <div data-sug="${i}" class="fixed z-50 space-y-1 bg-white shadow-lg rounded-lg border border-slate-200 max-h-60 overflow-y-auto hidden"></div>
           </td>
           <td class="py-2">${ln.code || "—"}</td>
           <td class="py-2">${ln.name || "—"}</td>
@@ -306,12 +306,19 @@
       const i = Number(inp.dataset.i);
       inp.value = materialLines[i].code ? `${materialLines[i].code} - ${materialLines[i].name}` : "";
 
+      const box = inp.nextElementSibling;
       let t;
+      // Close dropdown when clicking outside
+      document.addEventListener("click", (e) => {
+        if (!inp.contains(e.target) && !box.contains(e.target)) {
+          box.classList.add("hidden");
+        }
+      });
       inp.addEventListener("input", () => {
         clearTimeout(t);
-        const box = inp.nextElementSibling;
         // Clear dropdown if input is empty
         if (!inp.value.trim()) {
+          box.classList.add("hidden");
           box.innerHTML = "";
           return;
         }
@@ -330,12 +337,23 @@
               <div class="text-xs text-slate-500">Unit: ${fmt(Number(m.UnitCost))}</div>
             </button>
           `).join("");
+          // Position and show dropdown (for desktop fixed positioning)
+          if (sug.length > 0) {
+            const rect = inp.getBoundingClientRect();
+            box.style.top = `${rect.bottom + window.scrollY + 4}px`;
+            box.style.left = `${rect.left}px`;
+            box.style.width = `${rect.width}px`;
+            box.classList.remove("hidden");
+          } else {
+            box.classList.add("hidden");
+          }
           box.querySelectorAll("[data-pick]").forEach(btn => {
             btn.addEventListener("click", () => {
               materialLines[i].materialId = Number(btn.dataset.id);
               materialLines[i].code = btn.dataset.code;
               materialLines[i].name = btn.dataset.name;
               materialLines[i].unitCost = Number(btn.dataset.cost);
+              box.classList.add("hidden");
               box.innerHTML = "";
               renderMaterials();
               calcAll();
