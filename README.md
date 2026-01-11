@@ -30,7 +30,7 @@ The application expects these SQL Server tables:
 | `MotorTypes` | Motor type definitions |
 | `Branches` | Branch locations with CostPerHour, OverheadPercent, OverheadFixed |
 | `Jobs` | Job definitions with JobCode, JobName, SortOrder |
-| `MotorTypeJobManhours` | Junction table linking MotorTypes to Jobs with ManHours |
+| `Jobs2MotorType` | Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours) |
 | `Materials` | Material catalog with MaterialCode, MaterialName, UnitCost, IsActive |
 
 ## API Endpoints
@@ -39,8 +39,9 @@ The application expects these SQL Server tables:
 |----------|--------|-------------|
 | `/api/motor-types` | GET | Fetch all motor types |
 | `/api/branches` | GET | Fetch all branches |
-| `/api/labor?motorTypeId={id}` | GET | Fetch labor jobs for a motor type |
+| `/api/labor?motorTypeId={id}` | GET | Fetch ALL jobs with motor-type-specific manhours (returns 0 for unmatched jobs) |
 | `/api/materials?query={search}` | GET | Search materials |
+| `/api/ping` | GET | Health check endpoint |
 
 ## Development
 
@@ -94,7 +95,8 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │   ├── motorTypes.js
 │   │   │   ├── branches.js
 │   │   │   ├── labor.js
-│   │   │   └── materials.js
+│   │   │   ├── materials.js
+│   │   │   └── ping.js
 │   │   ├── db.js
 │   │   └── index.js
 │   ├── host.json

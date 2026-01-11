@@ -36,6 +36,7 @@ The application expects these SQL Server tables:
   - `branches.js` - GET /api/branches
   - `labor.js` - GET /api/labor?motorTypeId={id}
   - `materials.js` - GET /api/materials?query={search}
+  - `ping.js` - GET /api/ping
 
 ### Frontend Structure (`src/`)
 
