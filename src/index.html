@@ -201,6 +201,20 @@
   }
 
   // ---------- materials ----------
+  // Track search timeouts for cleanup
+  const materialSearchTimeouts = new Map();
+
+  // Global click-away handler for material dropdowns (event delegation)
+  document.addEventListener("click", (e) => {
+    document.querySelectorAll("[data-sug]").forEach(box => {
+      const inputId = box.dataset.sug;
+      const input = document.querySelector(`.matSearch[data-i="${inputId}"]`);
+      if (input && !input.contains(e.target) && !box.contains(e.target)) {
+        box.classList.add("hidden");
+      }
+    });
+  });
+
   function addMaterialRow() {
     materialLines.push({ materialId: null, code:"", name:"", unitCost: NaN, qty: 1 });
     renderMaterials();
@@ -309,22 +323,21 @@
       inp.value = materialLines[i].code ? `${materialLines[i].code} - ${materialLines[i].name}` : "";
 
       const box = inp.nextElementSibling;
-      let t;
-      // Close dropdown when clicking outside
-      document.addEventListener("click", (e) => {
-        if (!inp.contains(e.target) && !box.contains(e.target)) {
-          box.classList.add("hidden");
-        }
-      });
+      // Clear any existing timeout for this input
+      if (materialSearchTimeouts.has(i)) {
+        clearTimeout(materialSearchTimeouts.get(i));
+      }
+
       inp.addEventListener("input", () => {
-        clearTimeout(t);
+        const t = materialSearchTimeouts.get(i);
+        if (t) clearTimeout(t);
         // Clear dropdown if input is empty
         if (!inp.value.trim()) {
           box.classList.add("hidden");
           box.innerHTML = "";
           return;
         }
-        t = setTimeout(async () => {
+        const timeoutId = setTimeout(async () => {
           const q = inp.value;
           const sug = await searchMaterials(q);
           box.innerHTML = sug.map(m => `
@@ -342,7 +355,8 @@
           // Position and show dropdown (for desktop fixed positioning)
           if (sug.length > 0) {
             const rect = inp.getBoundingClientRect();
-            box.style.top = `${rect.bottom + window.scrollY + 4}px`;
+            // Fixed positioning is relative to viewport, NOT document - don't add scrollY
+            box.style.top = `${rect.bottom + 4}px`;
             box.style.left = `${rect.left}px`;
             box.style.width = `${rect.width}px`;
             box.classList.remove("hidden");
@@ -357,13 +371,80 @@
               materialLines[i].unitCost = Number(btn.dataset.cost);
               box.classList.add("hidden");
               box.innerHTML = "";
-              renderMaterials();
+              updateMaterialRowDisplay(i);
               calcAll();
             });
           });
         }, 250);
+        materialSearchTimeouts.set(i, timeoutId);
       });
     });
+  }
+
+  // Update a single material row's display without full re-render
+  function updateMaterialRowDisplay(i) {
+    const ln = materialLines[i];
+    const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
+
+    // Find and update desktop row cells
+    const desktopRow = el("materialRows").querySelector(`tr.hidden.md\\:table-row:nth-of-type(${i * 2 + 1})`);
+    if (desktopRow) {
+      const cells = desktopRow.querySelectorAll("td");
+      if (cells[1]) cells[1].textContent = ln.code || "—";
+      if (cells[2]) cells[2].textContent = ln.name || "—";
+      if (cells[3]) cells[3].textContent = fmt(ln.unitCost);
+      if (cells[5]) cells[5].textContent = fmt(lineTotal);
+    }
+
+    // Find and update mobile card
+    const mobileCard = el("materialRows").querySelector(`div.md\\:hidden:nth-of-type(${i * 2 + 1})`);
+    if (mobileCard) {
+      // Update the search input value
+      const searchInput = mobileCard.querySelector(`.matSearch[data-i="${i}"]`);
+      if (searchInput) {
+        searchInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
+      }
+      // Update the material info section
+      let infoSection = mobileCard.querySelector(".text-sm");
+      if (!infoSection && ln.code) {
+        // Need to create the info section
+        const searchSection = mobileCard.querySelector("div");
+        if (searchSection && searchSection.querySelector(".matSearch")) {
+          infoSection = document.createElement("div");
+          infoSection.className = "text-sm";
+          infoSection.innerHTML = `
+            <div class="font-medium">${ln.name}</div>
+            <div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>
+          `;
+          searchSection.parentNode.insertBefore(infoSection, searchSection.nextSibling);
+        }
+      } else if (infoSection) {
+        infoSection.innerHTML = `
+          <div class="font-medium">${ln.name}</div>
+          <div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>
+        `;
+      }
+      // Update line total section
+      let totalSection = mobileCard.querySelector(".flex.justify-between.items-center");
+      if (!totalSection && ln.code) {
+        // Need to create the line total section
+        totalSection = document.createElement("div");
+        totalSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
+        totalSection.innerHTML = `
+          <span class="text-sm text-slate-600">Line Total</span>
+          <span class="text-xl font-bold">${fmt(lineTotal)}</span>
+        `;
+        const qtySection = mobileCard.querySelector("div"); // Find the quantity section
+        if (qtySection && qtySection.querySelector('label')) {
+          qtySection.parentNode.insertBefore(totalSection, qtySection.nextSibling);
+        }
+      } else if (totalSection) {
+        totalSection.querySelector(".text-xl.font-bold").textContent = fmt(lineTotal);
+      }
+    }
+
+    // Update the material subtotal display
+    el("materialSubtotal").textContent = fmt(materialSubtotal());
   }
 
   function materialSubtotal() {
