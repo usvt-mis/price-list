@@ -92,6 +92,7 @@ Each HTTP function file:
 1. On load: Fetch motor types and branches for dropdowns
 2. User selects motor type → Fetch ALL jobs with motor-type-specific manhours
 3. Labor costs calculated as: sum(job.ManHours × branch.CostPerHour)
+   - Labor table displays JobName only (JobCode is not shown)
 4. User adds materials → Search API with debounce (250ms)
 5. Overhead calculated as: fixed + ((labor + materials) × percentage / 100)
 6. Grand total = labor + materials + overhead
@@ -104,16 +105,26 @@ Each HTTP function file:
 - Desktop dropdown uses **fixed positioning** (`fixed z-50`) to escape the `overflow-x-auto` clipping context and properly overlay other UI elements
   - Dropdown is hidden by default (`hidden` class)
   - JavaScript dynamically positions the dropdown based on the input element's `getBoundingClientRect()`
-  - Click-away handler closes the dropdown when clicking outside
+  - Positioning is relative to viewport (not document) - no `window.scrollY` offset needed
+  - **Global click-away handler** using event delegation closes dropdowns when clicking outside
+  - **Timeout cleanup** via Map prevents old search requests from updating destroyed DOM
+  - **Partial DOM updates** on material selection for smoother UX (no full re-render)
 - Mobile dropdown uses standard block flow positioning (contained within mobile card)
 - Mobile and desktop dropdowns have `max-h-60 overflow-y-auto` for scrolling long result lists
 - Dropdown clears immediately when input is emptied
-- Selecting a material populates code, name, unit cost fields
+- Selecting a material populates code, name, unit cost fields via `updateMaterialRowDisplay(i)` for targeted updates
+- After selection, mobile shows compact material info (name, code + unit cost on one line)
+- Quantity input is full-width and prominent on mobile (48px min-height, centered text)
+- Desktop quantity input is wider (w-32) for easier typing
 
 ### Responsive Design
 - The material panel uses a **dual-layout approach**:
   - **Mobile (< md breakpoint / 768px)**: Card-based layout with stacked information
+    - Compact selected material display (name on one line, code + unit cost on second)
+    - Full-width quantity input (48px min-height) with centered text for easy entry
+    - Line total displayed in white card with prominent styling
   - **Desktop (md+)**: Traditional table layout with horizontal columns
+    - Wider quantity input (w-32) for easier typing
 - Mobile cards feature 44px minimum touch targets for all interactive elements
 - Search dropdown buttons are touch-friendly with `min-h-[44px]` and `text-base`
 - Table headers are hidden on mobile to reduce visual clutter

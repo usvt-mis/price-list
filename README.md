@@ -17,6 +17,20 @@ The Price List Calculator computes total cost based on three components:
 - No build process required
 - Responsive design with mobile-friendly material panel (card-based layout on screens < 768px)
 
+### UI Features
+- **Labor section**: Displays job names only (JobCode is hidden for cleaner presentation)
+- **Material search**:
+  - Type-to-search with debounced API calls (250ms delay, min 2 characters)
+  - Desktop dropdown uses fixed positioning for reliable overlay behavior
+  - Global click-away handler closes dropdowns when clicking outside
+  - Timeout cleanup prevents stale search results
+  - Partial DOM updates on selection for smoother UX
+- **Mobile materials**:
+  - Compact material info display
+  - Full-width quantity input for easy typing (48px min-height)
+  - Prominent line total display
+- **Desktop materials**: Traditional table layout with wider quantity inputs (w-32)
+
 ### Backend
 - Azure Functions v4 (Node.js)
 - SQL Server database
@@ -41,7 +55,7 @@ The application expects these SQL Server tables:
 | `/api/motor-types` | GET | Fetch all motor types |
 | `/api/branches` | GET | Fetch all branches |
 | `/api/labor?motorTypeId={id}` | GET | Fetch ALL jobs with motor-type-specific manhours (returns 0 for unmatched jobs) |
-| `/api/materials?query={search}` | GET | Search materials |
+| `/api/materials?query={search}` | GET | Search materials (min 2 chars, searches both code and name) |
 | `/api/ping` | GET | Health check endpoint |
 
 ## Development
