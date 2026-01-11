@@ -14,10 +14,11 @@ app.http("labor", {
       const r = await pool.request()
         .input("motorTypeId", sql.Int, motorTypeId)
         .query(`
-          SELECT j.JobId, j.JobCode, j.JobName, j.SortOrder, m.ManHours
+          SELECT j.JobId, j.JobCode, j.JobName, j.SortOrder,
+                 COALESCE(m.Manhours, 0) AS ManHours
           FROM dbo.Jobs j
-          JOIN dbo.MotorTypeJobManhours m
-            ON m.JobId = j.JobId AND m.MotorTypeId = @motorTypeId
+          LEFT JOIN dbo.Jobs2MotorType m
+            ON m.JobsId = j.JobId AND m.MotorTypeId = @motorTypeId
           ORDER BY j.SortOrder;
         `);
 

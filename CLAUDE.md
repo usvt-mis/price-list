@@ -22,7 +22,8 @@ The application expects these SQL Server tables:
 - `MotorTypes` - Motor type definitions
 - `Branches` - Branch locations with CostPerHour, OverheadPercent, OverheadFixed
 - `Jobs` - Job definitions with JobCode, JobName, SortOrder
-- `MotorTypeJobManhours` - Junction table linking MotorTypes to Jobs with ManHours
+- `Jobs2MotorType` - Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours)
+  - Uses LEFT JOIN so all Jobs are returned; jobs without matches return 0
 - `Materials` - Material catalog with MaterialCode, MaterialName, UnitCost, IsActive
 
 ### Backend Structure (`api/`)
@@ -88,7 +89,7 @@ Each HTTP function file:
 
 ### Frontend Data Flow
 1. On load: Fetch motor types and branches for dropdowns
-2. User selects motor type → Fetch labor jobs for that motor type
+2. User selects motor type → Fetch ALL jobs with motor-type-specific manhours
 3. Labor costs calculated as: sum(job.ManHours × branch.CostPerHour)
 4. User adds materials → Search API with debounce (250ms)
 5. Overhead calculated as: fixed + ((labor + materials) × percentage / 100)
