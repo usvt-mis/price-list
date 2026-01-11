@@ -101,7 +101,11 @@ Each HTTP function file:
 - Returns top 20 matches searching both MaterialCode and MaterialName
 - Displays results in a dropdown below each input
 - Dropdown element is found via DOM traversal (`nextElementSibling`) to ensure correct mobile/desktop pairing
-- Desktop dropdown uses absolute positioning (`absolute z-50`) to break out of table cell constraints
+- Desktop dropdown uses **fixed positioning** (`fixed z-50`) to escape the `overflow-x-auto` clipping context and properly overlay other UI elements
+  - Dropdown is hidden by default (`hidden` class)
+  - JavaScript dynamically positions the dropdown based on the input element's `getBoundingClientRect()`
+  - Click-away handler closes the dropdown when clicking outside
+- Mobile dropdown uses standard block flow positioning (contained within mobile card)
 - Mobile and desktop dropdowns have `max-h-60 overflow-y-auto` for scrolling long result lists
 - Dropdown clears immediately when input is emptied
 - Selecting a material populates code, name, unit cost fields
