@@ -112,6 +112,7 @@ Each HTTP function file:
 - Mobile dropdown uses standard block flow positioning (contained within mobile card)
 - Mobile and desktop dropdowns have `max-h-60 overflow-y-auto` for scrolling long result lists
 - Dropdown clears immediately when input is emptied
+- Selecting a material immediately updates both mobile and desktop search inputs to show "CODE - NAME" format
 - Selecting a material populates code, name, unit cost fields via `updateMaterialRowDisplay(i)` for targeted updates
 - After selection, mobile shows compact material info (name, code + unit cost on one line)
 - Quantity input is full-width and prominent on mobile (48px min-height, centered text)

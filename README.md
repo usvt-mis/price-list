@@ -24,6 +24,7 @@ The Price List Calculator computes total cost based on three components:
   - Desktop dropdown uses fixed positioning for reliable overlay behavior
   - Global click-away handler closes dropdowns when clicking outside
   - Timeout cleanup prevents stale search results
+  - Search input immediately updates to show "CODE - NAME" format on selection (both mobile and desktop)
   - Partial DOM updates on selection for smoother UX
 - **Mobile materials**:
   - Compact material info display
