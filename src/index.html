@@ -141,6 +141,7 @@
           <div>Materials: <span id="grandMaterials" class="font-semibold text-white">—</span></div>
           <div>Overhead: <span id="grandOverhead" class="font-semibold text-white">—</span></div>
           <div>Travel Sales Profit: <span id="grandTravelSalesProfit" class="font-semibold text-white">—</span></div>
+          <div>Sub Total before Sales Profit: <span id="grandSubTotalBeforeSalesProfit" class="font-semibold text-white">—</span></div>
         </div>
       </div>
     </section>
@@ -730,6 +731,9 @@
     // Grand total = labor + materials + travel cost (with sales profit applied)
     const g = l + m + travelCost;
 
+    // Sub Total before Sales Profit = labor + materials + travel (before sales profit multiplier)
+    const subTotalBeforeSalesProfit = lAfterBranch + mAfterBranch + travelBase;
+
     // Update display elements
     el("laborSubtotal").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("materialSubtotal").textContent = fmt(m);
@@ -740,6 +744,7 @@
     el("grandMaterials").textContent = fmt(m);
     el("grandOverhead").textContent = fmt(overhead + salesProfitAdj); // Combined (labor + materials overhead + sales profit)
     el("grandTravelSalesProfit").textContent = fmt(travelSalesProfit); // Travel sales profit separately
+    el("grandSubTotalBeforeSalesProfit").textContent = fmt(subTotalBeforeSalesProfit);
   }
 
   // ---------- init ----------
