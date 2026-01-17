@@ -60,8 +60,7 @@
               <th class="w-10 py-2"></th>
               <th class="text-left py-2">Job</th>
               <th class="text-right py-2">Manhours</th>
-              <th class="text-right py-2">Cost</th>
-              <th class="text-right py-2">Selling Price</th>
+              <th class="text-right py-2">Cost+Ovh</th>
               <th class="text-right py-2">Final Price</th>
             </tr>
           </thead>
@@ -88,10 +87,8 @@
               <th class="text-left py-2">Name</th>
               <th class="text-right py-2">Unit Cost</th>
               <th class="text-right py-2">Qty</th>
-              <th class="text-right py-2">Cost</th>
-              <th class="text-right py-2">Line Total</th>
+              <th class="text-right py-2">Cost+Ovh</th>
               <th class="text-right py-2">Final Price</th>
-              <th class="text-right py-2">Sales Profit</th>
               <th class="text-right py-2"></th>
             </tr>
           </thead>
@@ -342,12 +339,11 @@
                  value="${j.effectiveManHours}" ${!isChecked ? 'disabled' : ''}>
         </td>
         <td class="py-2 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>
-        <td class="py-2 text-right ${textClass}">${fmt(cost)}</td>
         <td class="py-2 text-right ${textClass}">${fmt(finalPrice)}</td>
       </tr>`;
     }).join("");
 
-    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="6">Select Motor Type to load jobs.</td></tr>`;
+    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="5">Select Motor Type to load jobs.</td></tr>`;
 
     // Attach event listeners to checkboxes
     document.querySelectorAll(".job-checkbox").forEach(cb => {
@@ -478,19 +474,11 @@
                    value="${ln.qty}"/>
           </div>
 
-          <!-- Cost -->
+          <!-- Cost+Ovh -->
           ${ln.code ? `
           <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
-            <span class="text-sm text-slate-600">Cost</span>
+            <span class="text-sm text-slate-600">Cost+Ovh</span>
             <span class="text-xl font-bold">${fmt(costBeforeSalesProfit)}</span>
-          </div>
-          ` : ''}
-
-          <!-- Line Total -->
-          ${ln.code ? `
-          <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
-            <span class="text-sm text-slate-600">Line Total</span>
-            <span class="text-xl font-bold">${fmt(lineTotal)}</span>
           </div>
           ` : ''}
 
@@ -499,14 +487,6 @@
           <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
             <span class="text-sm text-slate-600">Final Price</span>
             <span class="text-xl font-bold">${fmt(finalPrice)}</span>
-          </div>
-          ` : ''}
-
-          <!-- Sales Profit -->
-          ${ln.code ? `
-          <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
-            <span class="text-sm text-slate-600">Sales Profit</span>
-            <span class="text-xl font-bold">${fmt(salesProfitAmount)}</span>
           </div>
           ` : ''}
 
@@ -532,9 +512,7 @@
                    value="${ln.qty}"/>
           </td>
           <td class="py-2 text-right">${fmt(costBeforeSalesProfit)}</td>
-          <td class="py-2 text-right">${fmt(lineTotal)}</td>
           <td class="py-2 text-right">${fmt(finalPrice)}</td>
-          <td class="py-2 text-right">${fmt(salesProfitAmount)}</td>
           <td class="py-2 text-right">
             <button data-del="${i}" class="text-sm px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-50">Remove</button>
           </td>
@@ -542,7 +520,7 @@
       `;
     }).join("") || `
       <div class="md:hidden p-4 text-center text-slate-500">No materials yet. Click "Add row".</div>
-      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="10">No materials yet. Click "Add row".</td></tr>
+      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="8">No materials yet. Click "Add row".</td></tr>
     `;
 
     // wire events
@@ -649,9 +627,7 @@
         if (cells[2]) cells[2].textContent = ln.name || "—";
         if (cells[3]) cells[3].textContent = fmt(ln.unitCost);
         if (cells[5]) cells[5].textContent = fmt(costBeforeSalesProfit);
-        if (cells[6]) cells[6].textContent = fmt(lineTotal);
-        if (cells[7]) cells[7].textContent = fmt(finalPrice);
-        if (cells[8]) cells[8].textContent = fmt(salesProfitAmount);
+        if (cells[6]) cells[6].textContent = fmt(finalPrice);
       }
       desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
     }
@@ -683,14 +659,14 @@
         `;
       }
 
-      // Update or create the Cost card
+      // Update or create the Cost+Ovh card
       let costBeforeSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
-        .find(el => el.querySelector(".text-sm")?.textContent.includes("Cost"));
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Cost+Ovh"));
       if (!costBeforeSection && ln.code) {
         costBeforeSection = document.createElement("div");
         costBeforeSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
         costBeforeSection.innerHTML = `
-          <span class="text-sm text-slate-600">Cost</span>
+          <span class="text-sm text-slate-600">Cost+Ovh</span>
           <span class="text-xl font-bold">${fmt(costBeforeSalesProfit)}</span>
         `;
         const qtySection = mobileCard.querySelector("label")?.closest("div");
@@ -699,23 +675,6 @@
         }
       } else if (costBeforeSection) {
         costBeforeSection.querySelector(".text-xl.font-bold").textContent = fmt(costBeforeSalesProfit);
-      }
-
-      // Update or create the Line Total card
-      let totalSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
-        .find(el => el.querySelector(".text-sm")?.textContent.includes("Line Total"));
-      if (!totalSection && ln.code) {
-        totalSection = document.createElement("div");
-        totalSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
-        totalSection.innerHTML = `
-          <span class="text-sm text-slate-600">Line Total</span>
-          <span class="text-xl font-bold">${fmt(lineTotal)}</span>
-        `;
-        if (costBeforeSection) {
-          costBeforeSection.parentNode.insertBefore(totalSection, costBeforeSection.nextSibling);
-        }
-      } else if (totalSection) {
-        totalSection.querySelector(".text-xl.font-bold").textContent = fmt(lineTotal);
       }
 
       // Update or create the Final Price card
@@ -728,28 +687,11 @@
           <span class="text-sm text-slate-600">Final Price</span>
           <span class="text-xl font-bold">${fmt(finalPrice)}</span>
         `;
-        if (totalSection) {
-          totalSection.parentNode.insertBefore(finalPriceSection, totalSection.nextSibling);
+        if (costBeforeSection) {
+          costBeforeSection.parentNode.insertBefore(finalPriceSection, costBeforeSection.nextSibling);
         }
       } else if (finalPriceSection) {
         finalPriceSection.querySelector(".text-xl.font-bold").textContent = fmt(finalPrice);
-      }
-
-      // Update or create the Sales Profit card
-      let salesProfitSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
-        .find(el => el.querySelector(".text-sm")?.textContent.includes("Sales Profit") && !el.querySelector(".text-sm")?.textContent.includes("Cost") && !el.querySelector(".text-sm")?.textContent.includes("Final"));
-      if (!salesProfitSection && ln.code) {
-        salesProfitSection = document.createElement("div");
-        salesProfitSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
-        salesProfitSection.innerHTML = `
-          <span class="text-sm text-slate-600">Sales Profit</span>
-          <span class="text-xl font-bold">${fmt(salesProfitAmount)}</span>
-        `;
-        if (finalPriceSection) {
-          finalPriceSection.parentNode.insertBefore(salesProfitSection, finalPriceSection.nextSibling);
-        }
-      } else if (salesProfitSection) {
-        salesProfitSection.querySelector(".text-xl.font-bold").textContent = fmt(salesProfitAmount);
       }
     }
 
