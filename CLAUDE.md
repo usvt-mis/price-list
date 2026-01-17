@@ -127,7 +127,7 @@ Each HTTP function file:
    - **Mobile (< md)**: Single column card layout with larger touch targets
    - `renderMaterials()` function handles both mobile and desktop rendering inline
    - `updateMaterialRowDisplay(i)` function updates both mobile card and desktop table row for partial DOM updates
-7. User enters Sales Profit % and Travel/Shipping Distance (Km) in the "Sales Profit & Travel" panel
+7. User enters Sales Profit % in the Grand Total Panel and Travel/Shipping Distance (Km) in the "Travel" panel
    - Sales Profit % can be negative for discounts
    - Travel Cost = Km × 15 baht/km (base cost)
    - Travel Cost includes Sales Profit multiplier applied (e.g., 10% Sales Profit adds 10% to travel cost)
@@ -187,19 +187,31 @@ Each HTTP function file:
 - Quantity input is full-width on mobile (48px min-height, centered text) and standard width on desktop (w-32)
 - Quantity values are integer-only (decimals are truncated via `Math.trunc()`)
 
-### Sales Profit & Travel Panel
-- Contains two user-editable inputs and one calculated display:
-  1. **Sales Profit %** - Number input with `step="0.01"` (allows decimals)
-     - Can be negative for discounts
-     - Applied after branch multipliers (Overhead% and PolicyProfit%)
-     - Applied to labor, materials, and travel costs
-     - Default value: 0
-     - Styling: Bold borders (`border-2 border-slate-400`) for enhanced visibility
-  2. **Travel/Shipping Distance (Km)** - Number input with `step="1"` and `min="0"`
+### Travel Panel
+- Contains one user-editable input and one calculated display:
+  1. **Travel/Shipping Distance (Km)** - Number input with `step="1"` and `min="0"`
      - Integer values only (whole kilometers)
      - Default value: 0
      - Styling: Bold borders (`border-2 border-slate-400`) for enhanced visibility
-  3. **Travel/Shipping Cost** - Display showing calculated value (Km × 15 baht/km × SalesProfitMultiplier)
+  2. **Travel/Shipping Cost** - Display showing calculated value (Km × 15 baht/km × SalesProfitMultiplier)
+- Event listeners:
+  - Travel Km changes trigger `calcAll()` (line ~690)
+
+### Grand Total Panel
+- Side-by-side card layout on desktop (md+), stacked vertically on mobile
+- Uses CSS Grid with `grid grid-cols-1 md:grid-cols-2 gap-6` for responsive layout
+- **Left Card**: Grand Total display + Sales Profit % input
+  - Grand Total: Displayed at `text-5xl font-extrabold` (48px) - largest element for visual hierarchy
+  - Sales Profit %: Number input with `step="0.01"` (allows decimals), can be negative for discounts
+    - Applied after branch multipliers (Overhead% and PolicyProfit%)
+    - Applied to labor, materials, and travel costs
+    - Default value: 0
+    - Larger input with `px-4 py-3 text-lg` for prominence
+- **Right Card**: Cost breakdown items with progressive typography sizing
+  - Labor, Materials, Overhead, Travel Sales Profit: `text-sm` labels with `font-semibold` values
+  - Sub Total Cost: `text-base font-medium` label with `text-xl font-bold` value (20px) - second-largest
+  - Commission Section: `text-base font-medium text-emerald-400` labels with `text-2xl font-bold text-emerald-400` values (24px)
+  - Visual separators using `border-t border-slate-700` between sections
 - Helper functions (`src/index.html`, lines ~206-239):
   - `getBranchMultiplier()` - Returns `(1 + OverheadPercent/100) × (1 + PolicyProfit/100)` from branch defaults
   - `getSalesProfitMultiplier()` - Returns `(1 + SalesProfit%/100)` from user input
@@ -210,13 +222,29 @@ Each HTTP function file:
     - This isolates the Sales Profit portion applied after the branch multipliers
 - Event listeners:
   - Sales Profit % changes trigger `renderLabor()`, `renderMaterials()`, and `calcAll()` for real-time updates (lines ~685-689)
-  - Travel Km changes trigger `calcAll()` (line ~690)
 - Grand total breakdown displays:
   - **Labor**: Final labor cost (after branch + sales profit multipliers)
   - **Materials**: Final materials cost (after branch + sales profit multipliers)
   - **Overhead**: Combined overhead + sales profit adjustment (labor + materials only)
   - **Travel Sales Profit**: Sales profit portion from travel (not the full travel cost)
-  - **Sub Total Cost**: Labor + materials + travel BEFORE sales profit multiplier is applied
+  - **Sub Total Cost**: Labor + materials + travel BEFORE sales profit multiplier is applied (displayed with larger `text-lg font-bold` styling)
+  - **Commission%**: Commission percentage based on GT vs STC ratio (displayed with `text-2xl font-bold text-emerald-400` styling)
+  - **Commission**: Commission amount calculated as Commission% × Grand Total (displayed with `text-2xl font-bold text-emerald-400` styling)
+
+### Commission Calculation
+- The Grand Total Panel (right card) includes a **Commission** section that calculates commission based on the ratio of Grand Total (GT) to Sub Total Cost (STC)
+- Commission percentage is determined by the following tiered structure:
+  | GT vs STC Condition | Commission% |
+  |---------------------|-------------|
+  | GT < 80% of STC | 0% |
+  | 80% ≤ GT < 100% of STC | 1% |
+  | 100% ≤ GT ≤ 105% of STC | 2% |
+  | 105% < GT ≤ 120% of STC | 2.5% |
+  | GT > 120% of STC | 5% |
+- Commission value formula: `Commission = Commission% × Grand Total`
+- The calculation is performed in the `calcAll()` function (lines ~740-759)
+- Commission elements are visually separated with a border (`border-t border-slate-700`) and styled with emerald color (`text-emerald-400`) for prominence
+- Updates in real-time whenever any value affecting GT or STC changes (branch, motor type, jobs, materials, sales profit %, travel distance)
 
 ### Sales Profit Column (Labor Table)
 - The labor table includes a **Sales Profit** column that shows the Sales Profit amount for each job row
@@ -279,6 +307,12 @@ Each HTTP function file:
     - Table headers: Material, Code, Name, Unit Cost, Qty, Cost, Line Total, Sales Profit, Remove
     - Search input uses fixed positioning (`fixed z-50`) for dropdown overlay
     - Table uses `overflow-x-auto` for horizontal scrolling on smaller screens
+- The Grand Total Panel uses a **side-by-side card layout on desktop, stacked on mobile**:
+  - **Mobile (< md)**: Cards stack vertically with `grid-cols-1`
+  - **Desktop (md+)**: Two cards side-by-side with `md:grid-cols-2 gap-6`
+  - Left card: Grand Total + Sales Profit input (centered on mobile, left-aligned on desktop)
+  - Right card: Breakdown items with flex layout for label/value pairs
+  - Progressive typography sizing maintained across all breakpoints
 - Mobile cards use standard block flow positioning
 - Desktop search dropdown uses fixed positioning to overlay other elements
 - Empty state displays as centered message with dashed border
