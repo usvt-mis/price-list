@@ -104,12 +104,16 @@ Each HTTP function file:
 ### Jobs Panel UX
 - Each job row has a checkbox in the first column (default: checked)
 - Checkbox state is stored in the job object as `j.checked` (boolean, defaults to `true`)
+- **Unchecked jobs automatically move to the bottom** of the table, creating clear visual separation between active and inactive jobs
+  - Checked jobs appear at top (sorted by `SortOrder` from database)
+  - Unchecked jobs appear at bottom (also sorted by `SortOrder`)
 - When a job is unchecked:
+  - The row moves to the bottom of the table
   - The row background becomes light grey (`bg-slate-50`)
   - Text is struck through and muted (`line-through text-slate-400`)
   - The job is excluded from labor subtotal calculation via `.filter(j => j.checked !== false)`
 - Toggling a checkbox triggers `renderLabor()` to re-render the table and `calcAll()` to update totals
-- Checkbox uses `data-idx` attribute to map to the job index in the `labor` array
+- Checkbox uses `data-idx` attribute to map to the job index in the original `labor` array (not the display position)
 
 ### Material Search UX
 - Minimum 2 characters to trigger search
