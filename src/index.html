@@ -46,6 +46,7 @@
         <table class="w-full text-sm">
           <thead class="text-slate-600">
             <tr class="border-b">
+              <th class="w-10 py-2"></th>
               <th class="text-left py-2">Job</th>
               <th class="text-right py-2">Manhours</th>
               <th class="text-right py-2">Cost</th>
@@ -180,24 +181,49 @@
     const cph = branch ? Number(branch.CostPerHour) : NaN;
     el("costPerHour").textContent = branch ? fmt(cph) : "—";
 
-    const rows = labor.map(j => {
+    const rows = labor.map((j, idx) => {
+      // Initialize checked state if not present (default: true)
+      if (j.checked === undefined) j.checked = true;
+
+      const isChecked = j.checked;
       const mh = Number(j.ManHours);
       const cost = Number.isFinite(cph) ? mh * cph : NaN;
-      return `<tr class="border-b">
-        <td class="py-2">${j.JobName}</td>
-        <td class="py-2 text-right">${fmt(mh)}</td>
-        <td class="py-2 text-right">${fmt(cost)}</td>
+
+      // Apply disabled styling when unchecked
+      const rowClass = isChecked ? "border-b" : "border-b bg-slate-50";
+      const textClass = isChecked ? "" : "line-through text-slate-400";
+
+      return `<tr class="${rowClass}" data-idx="${idx}">
+        <td class="py-2">
+          <input type="checkbox" class="job-checkbox w-5 h-5 cursor-pointer"
+                 data-idx="${idx}" ${isChecked ? "checked" : ""}>
+        </td>
+        <td class="py-2 ${textClass}">${j.JobName}</td>
+        <td class="py-2 text-right ${textClass}">${fmt(mh)}</td>
+        <td class="py-2 text-right ${textClass}">${fmt(cost)}</td>
       </tr>`;
     }).join("");
 
-    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="3">Select Motor Type to load jobs.</td></tr>`;
+    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="4">Select Motor Type to load jobs.</td></tr>`;
+
+    // Attach event listeners to checkboxes
+    document.querySelectorAll(".job-checkbox").forEach(cb => {
+      cb.addEventListener("click", (e) => {
+        const idx = Number(e.target.dataset.idx);
+        labor[idx].checked = e.target.checked;
+        renderLabor();
+        calcAll();
+      });
+    });
   }
 
   function laborSubtotal() {
     const branch = getSelectedBranch();
     const cph = branch ? Number(branch.CostPerHour) : NaN;
     if (!Number.isFinite(cph)) return NaN;
-    return labor.reduce((sum, j) => sum + Number(j.ManHours) * cph, 0);
+    return labor
+      .filter(j => j.checked !== false)  // Only include checked jobs
+      .reduce((sum, j) => sum + Number(j.ManHours) * cph, 0);
   }
 
   // ---------- materials ----------
