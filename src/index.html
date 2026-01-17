@@ -9,6 +9,17 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 text-slate-900">
+  <!-- Database Connection Loading Modal -->
+  <div id="dbLoadingModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 text-center">
+      <div class="animate-pulse mb-4">
+        <div class="inline-block w-12 h-12 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+      </div>
+      <h2 class="text-xl font-semibold text-slate-900">Connecting to Database</h2>
+      <p class="text-slate-600 mt-2">Please wait while we establish a connection...</p>
+    </div>
+  </div>
+
   <div class="max-w-6xl mx-auto p-6 space-y-6">
     <header>
       <h1 class="text-3xl font-bold tracking-tight">Price List Calculator</h1>
@@ -141,23 +152,37 @@
   const fmt = n => Number.isFinite(n) ? n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}) : "—";
 
   function setStatus(msg){ el("status").textContent = msg || ""; }
+  function setDbLoadingModal(show) {
+    const modal = el("dbLoadingModal");
+    if (show) {
+      modal.classList.remove("hidden");
+    } else {
+      modal.classList.add("hidden");
+    }
+  }
 
   // ---------- load dropdowns ----------
   async function loadInit() {
+    setDbLoadingModal(true);  // Show loading modal
     setStatus("Loading motor types & branches...");
-    const [motorTypes, b] = await Promise.all([
-      fetch("/api/motor-types").then(r => r.json()),
-      fetch("/api/branches").then(r => r.json())
-    ]);
-    branches = b;
+    try {
+      const [motorTypes, b] = await Promise.all([
+        fetch("/api/motor-types").then(r => r.json()),
+        fetch("/api/branches").then(r => r.json())
+      ]);
+      branches = b;
 
-    el("motorType").innerHTML = `<option value="">Select…</option>` + motorTypes
-      .map(x => `<option value="${x.MotorTypeId}">${x.MotorTypeName}</option>`).join("");
+      el("motorType").innerHTML = `<option value="">Select…</option>` + motorTypes
+        .map(x => `<option value="${x.MotorTypeId}">${x.MotorTypeName}</option>`).join("");
 
-    el("branch").innerHTML = `<option value="">Select…</option>` + branches
-      .map(x => `<option value="${x.BranchId}">${x.BranchName}</option>`).join("");
+      el("branch").innerHTML = `<option value="">Select…</option>` + branches
+        .map(x => `<option value="${x.BranchId}">${x.BranchName}</option>`).join("");
 
-    setStatus("");
+      setStatus("");
+    } catch (e) {
+      // Let the outer .catch() handle the error
+      throw e;
+    }
   }
 
   // ---------- labor ----------
@@ -594,8 +619,17 @@
   el("addMaterial").addEventListener("click", addMaterialRow);
 
   loadInit()
-    .then(() => { materialLines = []; renderMaterials(); calcAll(); })
-    .catch(e => { console.error(e); setStatus("Init failed. Check console & /api endpoints."); });
+    .then(() => {
+      setDbLoadingModal(false);  // Hide modal on success
+      materialLines = [];
+      renderMaterials();
+      calcAll();
+    })
+    .catch(e => {
+      console.error(e);
+      setDbLoadingModal(false);  // Hide modal on error
+      setStatus("Init failed. Check console & /api endpoints.");
+    });
 </script>
 </body>
 </html>
