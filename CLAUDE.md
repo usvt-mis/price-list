@@ -117,16 +117,16 @@ Each HTTP function file:
 6. Material costs calculated as: sum(AdjustedUnitCost × Qty)
    - **AdjustedUnitCost = UnitCost × BranchMultiplier × SalesProfitMultiplier**
    - Multipliers are applied to UnitCost first, then multiplied by quantity
-   - Materials use a **card-based layout** (both mobile and desktop):
-     - Each material is displayed as a self-contained card with: search input, material info (code, name, unit cost), quantity input, and cost breakdown
+   - Materials use a **single-row table layout on desktop, card layout on mobile**:
+     - Each material is displayed with: search input, material code/name, unit cost, quantity input, and cost breakdown
      - Cost breakdown includes: Cost before Sales Profit, Line Total, and Sales Profit
-   - **Desktop**: Responsive CSS Grid layout with 1/2/3 columns at different breakpoints (md/lg/xl)
-     - 768px+ (md): 1 column
-     - 1024px+ (lg): 2 columns
-     - 1280px+ (xl): 3 columns
-   - **Mobile**: Single column card layout with larger touch targets
-   - `renderMaterials()` function splits into `renderMobileMaterials()` and `renderDesktopMaterials()` for separate rendering
-   - `updateMaterialRowDisplay(i)` function calls `updateMobileMaterialCard()` and `updateDesktopMaterialCard()` for partial DOM updates
+   - **Desktop (md+)**: Traditional single-row table with 9 columns
+     - Table headers: Material, Code, Name, Unit Cost, Qty, Cost before Sales Profit, Line Total, Sales Profit, Remove
+     - Each material occupies one `<tr>` with all columns inline
+     - Search input uses fixed positioning for dropdown overlay
+   - **Mobile (< md)**: Single column card layout with larger touch targets
+   - `renderMaterials()` function handles both mobile and desktop rendering inline
+   - `updateMaterialRowDisplay(i)` function updates both mobile card and desktop table row for partial DOM updates
 7. User enters Sales Profit % and Travel/Shipping Distance (Km) in the "Sales Profit & Travel" panel
    - Sales Profit % can be negative for discounts
    - Travel Cost = Km × 15 baht/km (base cost)
@@ -183,8 +183,8 @@ Each HTTP function file:
 - Selecting a material populates code, name, unit cost fields via `updateMaterialRowDisplay(i)` for targeted updates
   - Uses `data-i` attribute lookups with `closest()` for reliable element selection (works for all rows)
 - After selection, mobile shows compact material info (name on one line, code + unit cost on second line)
-- Desktop shows material info in a horizontal layout (name/code on left, unit cost on right)
-- Quantity input is full-width on both mobile (48px min-height, centered text) and desktop
+- Desktop shows material info in table columns (Code, Name, Unit Cost)
+- Quantity input is full-width on mobile (48px min-height, centered text) and standard width on desktop (w-32)
 - Quantity values are integer-only (decimals are truncated via `Math.trunc()`)
 
 ### Sales Profit & Travel Panel
@@ -230,8 +230,8 @@ Each HTTP function file:
 - The column uses the same styling as the Cost column (right-aligned, with strikethrough for unchecked jobs)
 - Updates in real-time when the Sales Profit % input changes
 
-### Sales Profit Column (Materials Cards)
-- The materials cards include a **Sales Profit** display that shows the Sales Profit amount for each material line
+### Sales Profit Column (Materials Table)
+- The materials table includes a **Sales Profit** column that shows the Sales Profit amount for each material line
 - Calculation is performed per material line in the `renderMaterials()` function
 - Sales Profit is calculated **after** the Branch Multiplier (Overhead% + PolicyProfit%) is applied
 - Formula breakdown:
@@ -240,7 +240,7 @@ Each HTTP function file:
   - When Sales Profit % = 0: shows 0.00
   - When Sales Profit % > 0: shows positive profit amount
   - When Sales Profit % < 0 (discount): shows negative value
-- The Sales Profit is displayed in both desktop card and mobile card layouts
+- The Sales Profit is displayed in both desktop table column and mobile card layouts
 - Updates in real-time when the Sales Profit % input changes
 
 ### Cost before Sales Profit Column (Labor Table)
@@ -255,34 +255,32 @@ Each HTTP function file:
 - The column uses the same styling as the Cost column (right-aligned, with strikethrough for unchecked jobs)
 - Updates in real-time when the Sales Profit % input changes
 
-### Cost before Sales Profit Column (Materials Cards)
-- The materials cards include a **Cost before Sales Profit** display that shows the cost after the Branch Multiplier but before Sales Profit
-- Displayed in the costs grid alongside Line Total and Sales Profit
+### Cost before Sales Profit Column (Materials Table)
+- The materials table includes a **Cost before Sales Profit** column that shows the cost after the Branch Multiplier but before Sales Profit
+- Displayed between "Qty" and "Line Total" columns
 - Formula breakdown:
   - `Cost_Before_Sales_Profit = unitCost × qty × BranchMultiplier`
   - This is equivalent to: `Line_Total / SalesProfitMultiplier`
   - When Sales Profit % = 0: equals the Line Total
   - When Sales Profit % > 0: shows lower value than Line Total
   - When Sales Profit % < 0 (discount): shows higher value than Line Total
-- The value is displayed in both desktop card and mobile card layouts
+- The value is displayed in both desktop table column and mobile card layouts
 - Updates in real-time when the Sales Profit % input changes
 
 ### Responsive Design
-- The material panel uses a **card-based grid layout** on both mobile and desktop:
+- The material panel uses a **single-row table layout on desktop, card layout on mobile**:
   - **Mobile (< md breakpoint / 768px)**: Single-column card layout with stacked information
     - Compact selected material display (name on one line, code + unit cost on second)
     - Full-width quantity input (48px min-height) with centered text for easy entry
     - Cost before Sales Profit, Line Total, and Sales Profit displayed in white cards with prominent styling
     - Larger touch targets (44px minimum) for all interactive elements
-  - **Desktop (md+)**: Responsive CSS Grid layout
-    - 768px-1023px (md): 1 column
-    - 1024px-1279px (lg): 2 columns
-    - 1280px+ (xl): 3 columns
-    - Each card is self-contained with white background, border, shadow, and hover effect
-    - Card contains: search input, material info (horizontal layout), quantity input, 3-column costs grid, remove button
-    - Costs grid displays Before Sales Profit, Line Total, and Sales Profit in equal-width columns
-- Desktop cards use `data-material-idx` attribute for DOM manipulation
-- Search dropdown uses fixed positioning to escape card boundaries and overlay other elements
+  - **Desktop (md+)**: Traditional single-row table layout with 9 columns
+    - Each material occupies one `<tr>` with all columns inline
+    - Table headers: Material, Code, Name, Unit Cost, Qty, Cost before Sales Profit, Line Total, Sales Profit, Remove
+    - Search input uses fixed positioning (`fixed z-50`) for dropdown overlay
+    - Table uses `overflow-x-auto` for horizontal scrolling on smaller screens
+- Mobile cards use standard block flow positioning
+- Desktop search dropdown uses fixed positioning to overlay other elements
 - Empty state displays as centered message with dashed border
 - Initialization shows a "Connecting to Database" modal while loading; on error, displays a message to check `/api/endpoints`
 
