@@ -62,6 +62,7 @@
               <th class="text-right py-2">Manhours</th>
               <th class="text-right py-2">Cost</th>
               <th class="text-right py-2">Selling Price</th>
+              <th class="text-right py-2">Final Price</th>
               <th class="text-right py-2">Sales Profit</th>
             </tr>
           </thead>
@@ -90,6 +91,7 @@
               <th class="text-right py-2">Qty</th>
               <th class="text-right py-2">Cost</th>
               <th class="text-right py-2">Line Total</th>
+              <th class="text-right py-2">Final Price</th>
               <th class="text-right py-2">Sales Profit</th>
               <th class="text-right py-2"></th>
             </tr>
@@ -125,12 +127,20 @@
 
     <!-- GRAND TOTAL -->
     <section class="space-y-6">
+      <!-- New Grand Total (sum of Final Prices) -->
+      <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl shadow-xl p-6">
+        <div class="text-center md:text-left">
+          <div class="text-sm font-medium text-slate-300 mb-2">Grand Total</div>
+          <div id="newGrandTotal" class="text-6xl font-extrabold text-white">—</div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        <!-- Left Card: Grand Total + Sales Profit -->
+        <!-- Left Card: Sub Grand Total + Sales Profit -->
         <div class="bg-slate-900 text-white rounded-2xl shadow p-6">
           <div class="text-center md:text-left">
-            <div class="text-sm font-medium text-slate-300 mb-2">Grand total</div>
+            <div class="text-sm font-medium text-slate-300 mb-2">Sub Grand Total</div>
             <div id="grandTotal" class="text-5xl font-extrabold text-white mb-6">—</div>
             <div class="space-y-2">
               <label for="salesProfitPct" class="block text-sm font-medium text-slate-300">Sales Profit %</label>
@@ -197,6 +207,7 @@
   let branches = [];
   let labor = [];
   let materialLines = []; // {materialId, code, name, unitCost, qty}
+  let commissionPercent = 0; // Global commission percentage for use in render functions
 
   const el = id => document.getElementById(id);
   const fmt = n => Number.isFinite(n) ? n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}) : "—";
@@ -323,6 +334,9 @@
         ? mh * adjustedCph / salesProfitMultiplier
         : NaN;
 
+      // Calculate Final Price = Selling Price × (1 + commissionPercent / 100)
+      const finalPrice = Number.isFinite(cost) ? cost * (1 + commissionPercent / 100) : NaN;
+
       // Apply disabled styling when unchecked
       const rowClass = isChecked ? "border-b" : "border-b bg-slate-50";
       const textClass = isChecked ? "" : "line-through text-slate-400";
@@ -340,11 +354,12 @@
         </td>
         <td class="py-2 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>
         <td class="py-2 text-right ${textClass}">${fmt(cost)}</td>
+        <td class="py-2 text-right ${textClass}">${fmt(finalPrice)}</td>
         <td class="py-2 text-right ${textClass}">${fmt(salesProfit)}</td>
       </tr>`;
     }).join("");
 
-    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="6">Select Motor Type to load jobs.</td></tr>`;
+    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="7">Select Motor Type to load jobs.</td></tr>`;
 
     // Attach event listeners to checkboxes
     document.querySelectorAll(".job-checkbox").forEach(cb => {
@@ -446,6 +461,8 @@
       const costBeforeSalesProfit = Number.isFinite(ln.unitCost)
         ? ln.unitCost * ln.qty * branchMultiplier
         : NaN;
+      // Calculate Final Price = Line Total × (1 + commissionPercent / 100)
+      const finalPrice = Number.isFinite(lineTotal) ? lineTotal * (1 + commissionPercent / 100) : NaN;
 
       return `
         <!-- Mobile Card (visible < md) -->
@@ -487,6 +504,18 @@
             <span class="text-sm text-slate-600">Line Total</span>
             <span class="text-xl font-bold">${fmt(lineTotal)}</span>
           </div>
+          ` : ''}
+
+          <!-- Final Price -->
+          ${ln.code ? `
+          <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
+            <span class="text-sm text-slate-600">Final Price</span>
+            <span class="text-xl font-bold">${fmt(finalPrice)}</span>
+          </div>
+          ` : ''}
+
+          <!-- Sales Profit -->
+          ${ln.code ? `
           <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
             <span class="text-sm text-slate-600">Sales Profit</span>
             <span class="text-xl font-bold">${fmt(salesProfitAmount)}</span>
@@ -516,6 +545,7 @@
           </td>
           <td class="py-2 text-right">${fmt(costBeforeSalesProfit)}</td>
           <td class="py-2 text-right">${fmt(lineTotal)}</td>
+          <td class="py-2 text-right">${fmt(finalPrice)}</td>
           <td class="py-2 text-right">${fmt(salesProfitAmount)}</td>
           <td class="py-2 text-right">
             <button data-del="${i}" class="text-sm px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-50">Remove</button>
@@ -524,7 +554,7 @@
       `;
     }).join("") || `
       <div class="md:hidden p-4 text-center text-slate-500">No materials yet. Click "Add row".</div>
-      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="9">No materials yet. Click "Add row".</td></tr>
+      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="10">No materials yet. Click "Add row".</td></tr>
     `;
 
     // wire events
@@ -618,6 +648,8 @@
     const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
     const salesProfitAmount = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier * (salesProfitMultiplier - 1) : NaN;
     const costBeforeSalesProfit = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier : NaN;
+    // Calculate Final Price = Line Total × (1 + commissionPercent / 100)
+    const finalPrice = Number.isFinite(lineTotal) ? lineTotal * (1 + commissionPercent / 100) : NaN;
 
     // Find and update desktop row using data-i attribute
     const desktopInput = el("materialRows").querySelector(`tr.hidden.md\\:table-row .matSearch[data-i="${i}"]`);
@@ -630,7 +662,8 @@
         if (cells[3]) cells[3].textContent = fmt(ln.unitCost);
         if (cells[5]) cells[5].textContent = fmt(costBeforeSalesProfit);
         if (cells[6]) cells[6].textContent = fmt(lineTotal);
-        if (cells[7]) cells[7].textContent = fmt(salesProfitAmount);
+        if (cells[7]) cells[7].textContent = fmt(finalPrice);
+        if (cells[8]) cells[8].textContent = fmt(salesProfitAmount);
       }
       desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
     }
@@ -697,9 +730,26 @@
         totalSection.querySelector(".text-xl.font-bold").textContent = fmt(lineTotal);
       }
 
+      // Update or create the Final Price card
+      let finalPriceSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Final Price"));
+      if (!finalPriceSection && ln.code) {
+        finalPriceSection = document.createElement("div");
+        finalPriceSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
+        finalPriceSection.innerHTML = `
+          <span class="text-sm text-slate-600">Final Price</span>
+          <span class="text-xl font-bold">${fmt(finalPrice)}</span>
+        `;
+        if (totalSection) {
+          totalSection.parentNode.insertBefore(finalPriceSection, totalSection.nextSibling);
+        }
+      } else if (finalPriceSection) {
+        finalPriceSection.querySelector(".text-xl.font-bold").textContent = fmt(finalPrice);
+      }
+
       // Update or create the Sales Profit card
       let salesProfitSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
-        .find(el => el.querySelector(".text-sm")?.textContent.includes("Sales Profit") && !el.querySelector(".text-sm")?.textContent.includes("Cost"));
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Sales Profit") && !el.querySelector(".text-sm")?.textContent.includes("Cost") && !el.querySelector(".text-sm")?.textContent.includes("Final"));
       if (!salesProfitSection && ln.code) {
         salesProfitSection = document.createElement("div");
         salesProfitSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
@@ -707,8 +757,8 @@
           <span class="text-sm text-slate-600">Sales Profit</span>
           <span class="text-xl font-bold">${fmt(salesProfitAmount)}</span>
         `;
-        if (totalSection) {
-          totalSection.parentNode.insertBefore(salesProfitSection, totalSection.nextSibling);
+        if (finalPriceSection) {
+          finalPriceSection.parentNode.insertBefore(salesProfitSection, finalPriceSection.nextSibling);
         }
       } else if (salesProfitSection) {
         salesProfitSection.querySelector(".text-xl.font-bold").textContent = fmt(salesProfitAmount);
@@ -771,39 +821,49 @@
     // Calculate sales profit adjustment (labor + materials only)
     const salesProfitAdj = (l + m) - (lAfterBranch + mAfterBranch);
 
-    // Grand total = labor + materials + travel cost (with sales profit applied)
-    const g = l + m + travelCost;
+    // Sub Grand Total = labor + materials + travel cost (with sales profit applied)
+    const subGrandTotal = l + m + travelCost;
 
     // Sub Total Cost = labor + materials + travel (before sales profit multiplier)
     const subTotalBeforeSalesProfit = lAfterBranch + mAfterBranch + travelBase;
 
-    // Calculate commission percentage based on GT vs STC ratio
-    const gtToStcRatio = Number.isFinite(g) && Number.isFinite(subTotalBeforeSalesProfit) && subTotalBeforeSalesProfit > 0
-      ? g / subTotalBeforeSalesProfit
+    // Calculate commission percentage based on Sub Grand Total vs STC ratio
+    const gtToStcRatio = Number.isFinite(subGrandTotal) && Number.isFinite(subTotalBeforeSalesProfit) && subTotalBeforeSalesProfit > 0
+      ? subGrandTotal / subTotalBeforeSalesProfit
       : 0;
 
-    let commissionPercent = 0;
+    let cp = 0;
     if (gtToStcRatio < 0.8) {
-      commissionPercent = 0;
+      cp = 0;
     } else if (gtToStcRatio < 1) {
-      commissionPercent = 1;
+      cp = 1;
     } else if (gtToStcRatio <= 1.05) {
-      commissionPercent = 2;
+      cp = 2;
     } else if (gtToStcRatio <= 1.20) {
-      commissionPercent = 2.5;
+      cp = 2.5;
     } else {
-      commissionPercent = 5;
+      cp = 5;
     }
 
+    // Store commission percent globally for use in render functions
+    commissionPercent = cp;
+
     // Calculate commission value
-    const commission = g * (commissionPercent / 100);
+    const commission = subGrandTotal * (commissionPercent / 100);
+
+    // Calculate new Grand Total = sum of all Final Prices + travel cost
+    // Final Price for each row = Selling Price × (1 + commissionPercent/100)
+    const laborFinalPricesSum = l * (1 + commissionPercent / 100);
+    const materialsFinalPricesSum = m * (1 + commissionPercent / 100);
+    const newGrandTotal = laborFinalPricesSum + materialsFinalPricesSum + travelCost;
 
     // Update display elements
     el("laborSubtotal").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("materialSubtotal").textContent = fmt(m);
     el("travelCost").textContent = fmt(travelCost);
 
-    el("grandTotal").textContent = fmt(g);
+    el("newGrandTotal").textContent = fmt(newGrandTotal);
+    el("grandTotal").textContent = fmt(subGrandTotal);
     el("grandLabor").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("grandMaterials").textContent = fmt(m);
     el("grandOverhead").textContent = fmt(overhead + salesProfitAdj); // Combined (labor + materials overhead + sales profit)
