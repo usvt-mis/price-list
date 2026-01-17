@@ -118,6 +118,11 @@ Each HTTP function file:
    - **AdjustedUnitCost = UnitCost × BranchMultiplier × SalesProfitMultiplier**
    - Multipliers are applied to UnitCost first, then multiplied by quantity
    - Materials table displays: Material (search), Code, Name, Unit Cost, Qty, Cost before Sales Profit (after branch multiplier), Line Total (with all multipliers applied), and Sales Profit (profit amount per line)
+   - **Desktop materials table uses a two-row layout per material** to reduce horizontal crowding:
+     - Row 1: Material identification (Search input spanning 3 columns, Code, Name)
+     - Row 2: Costs & Actions with visual distinction (`bg-slate-50` background + left padding `pl-4`), containing empty colspan (for alignment), Unit Cost, Qty input, Cost before Sales Profit, Line Total, Sales Profit, Remove button
+     - Both rows share a `data-material-idx` attribute for DOM manipulation
+   - `updateMaterialRowDisplay(i)` function updates both rows when a material is selected
 7. User enters Sales Profit % and Travel/Shipping Distance (Km) in the "Sales Profit & Travel" panel
    - Sales Profit % can be negative for discounts
    - Travel Cost = Km × 15 baht/km (base cost)
@@ -264,7 +269,10 @@ Each HTTP function file:
     - Compact selected material display (name on one line, code + unit cost on second)
     - Full-width quantity input (48px min-height) with centered text for easy entry
     - Cost before Sales Profit, Line Total, and Sales Profit displayed in white cards with prominent styling
-  - **Desktop (md+)**: Traditional table layout with horizontal columns
+  - **Desktop (md+)**: Two-row table layout per material to reduce horizontal crowding
+    - Row 1: Material identification (Search input, Code, Name)
+    - Row 2: Costs & Actions with `bg-slate-50` background and left padding for visual distinction (Unit Cost, Qty input, Cost before Sales Profit, Line Total, Sales Profit, Remove button)
+    - Table headers also use a two-row structure with colspans for grouping (Material | Costs & Actions)
     - Wider quantity input (w-32) for easier typing
     - Cost before Sales Profit, Sales Profit columns show profit amount per line
 - Mobile cards feature 44px minimum touch targets for all interactive elements
