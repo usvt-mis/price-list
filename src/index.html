@@ -223,12 +223,14 @@
     const rows = displayJobs.map((j) => {
       // Initialize checked state if not present (default: true)
       if (j.checked === undefined) j.checked = true;
+      // Initialize effectiveManHours if not present (defaults to original ManHours)
+      if (j.effectiveManHours === undefined) j.effectiveManHours = Number(j.ManHours);
 
       // Find original index in labor array for checkbox handler
       const originalIdx = labor.indexOf(j);
 
       const isChecked = j.checked;
-      const mh = Number(j.ManHours);
+      const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
       const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
 
       // Apply disabled styling when unchecked
@@ -241,7 +243,11 @@
                  data-idx="${originalIdx}" ${isChecked ? "checked" : ""}>
         </td>
         <td class="py-2 ${textClass}">${j.JobName}</td>
-        <td class="py-2 text-right ${textClass}">${fmt(mh)}</td>
+        <td class="py-2 text-right ${textClass}">
+          <input type="number" min="0" step="0.25" data-mh="${originalIdx}"
+                 class="w-20 text-right rounded border-slate-200 px-2 py-1 ${!isChecked ? 'bg-slate-100' : ''}"
+                 value="${j.effectiveManHours}" ${!isChecked ? 'disabled' : ''}>
+        </td>
         <td class="py-2 text-right ${textClass}">${fmt(cost)}</td>
       </tr>`;
     }).join("");
@@ -257,6 +263,18 @@
         calcAll();
       });
     });
+
+    // Attach event listeners to manhour inputs
+    document.querySelectorAll("[data-mh]").forEach(inp => {
+      inp.addEventListener("input", () => {
+        const i = Number(inp.dataset.mh);
+        const v = Math.max(0, parseFloat(Number(inp.value).toFixed(2))); // Allow decimals, 2 decimal places
+        inp.value = v;
+        labor[i].effectiveManHours = v;
+        calcAll(); // Update totals
+        renderLabor(); // Refresh display (shows updated costs)
+      });
+    });
   }
 
   function laborSubtotalBase() {
@@ -265,7 +283,10 @@
     if (!Number.isFinite(cph)) return NaN;
     return labor
       .filter(j => j.checked !== false)  // Only include checked jobs
-      .reduce((sum, j) => sum + Number(j.ManHours) * cph, 0);
+      .reduce((sum, j) => {
+        const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
+        return sum + mh * cph;
+      }, 0);
   }
 
   function laborSubtotal() {
@@ -283,7 +304,10 @@
 
     return labor
       .filter(j => j.checked !== false)  // Only include checked jobs
-      .reduce((sum, j) => sum + Number(j.ManHours) * adjustedCph, 0);
+      .reduce((sum, j) => {
+        const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
+        return sum + mh * adjustedCph;
+      }, 0);
   }
 
   // ---------- materials ----------
