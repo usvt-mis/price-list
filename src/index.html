@@ -23,7 +23,7 @@
   <div class="max-w-6xl mx-auto p-6 space-y-6">
     <header>
       <h1 class="text-3xl font-bold tracking-tight">Price List Calculator</h1>
-      <p class="text-slate-600 mt-1">Labor (DB), Materials (DB), Overhead (rule/manual)</p>
+      <p class="text-slate-600 mt-1">Labor (DB), Materials (DB), Sales Profit & Travel (manual)</p>
     </header>
 
     <!-- PART 1: Labor -->
@@ -103,23 +103,24 @@
       </div>
     </section>
 
-    <!-- PART 3: Overhead -->
+    <!-- PART 3: Sales Profit & Travel -->
     <section class="bg-white rounded-2xl shadow p-5">
-      <h2 class="text-xl font-semibold">Overhead</h2>
+      <h2 class="text-xl font-semibold">Sales Profit & Travel</h2>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div>
-          <label class="block text-sm font-medium text-slate-700">Overhead %</label>
-          <input id="overheadPct" type="number" step="0.01" min="0" class="mt-1 w-full rounded-lg border-slate-200"/>
-          <p class="text-xs text-slate-500 mt-1">Default comes from Branch; you can override.</p>
+          <label class="block text-sm font-medium text-slate-700">Sales Profit %</label>
+          <input id="salesProfitPct" type="number" step="0.01" class="mt-1 w-full rounded-lg border-slate-200"/>
+          <p class="text-xs text-slate-500 mt-1">Can be negative for discounts.</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700">Policy profit %</label>
-          <input id="policyProfit" type="number" step="0.01" min="0" class="mt-1 w-full rounded-lg border-slate-200"/>
+          <label class="block text-sm font-medium text-slate-700">Travel/Shipping Distance (Km)</label>
+          <input id="travelKm" type="number" step="1" min="0" class="mt-1 w-full rounded-lg border-slate-200"/>
         </div>
         <div class="rounded-xl border border-slate-200 p-4">
-          <div class="text-sm text-slate-500">Overhead total</div>
-          <div id="overheadTotal" class="text-2xl font-bold">—</div>
+          <div class="text-sm text-slate-500">Travel/Shipping Cost</div>
+          <div id="travelCost" class="text-2xl font-bold">—</div>
+          <div class="text-xs text-slate-500 mt-1">Km × 15 baht/km</div>
         </div>
       </div>
     </section>
@@ -202,14 +203,38 @@
     return branches.find(b => b.BranchId === branchId) || null;
   }
 
+  // Get the combined multiplier from branch defaults (Overhead% and PolicyProfit%)
+  function getBranchMultiplier() {
+    const branch = getSelectedBranch();
+    if (!branch) return 1;
+    const overheadPct = Number(branch.OverheadPercent || 0);
+    const policyProfitPct = Number(branch.PolicyProfit || 0);
+    return (1 + overheadPct / 100) * (1 + policyProfitPct / 100);
+  }
+
+  // Get the user-editable Sales Profit % multiplier
+  function getSalesProfitMultiplier() {
+    const salesProfitPct = Number(el("salesProfitPct").value || 0);
+    return (1 + salesProfitPct / 100);
+  }
+
+  // Get the travel cost (Km × 15)
+  function getTravelCost() {
+    const km = Number(el("travelKm").value || 0);
+    return km * 15;
+  }
+
+  // Get complete multiplier (branch defaults + sales profit)
+  function getCompleteMultiplier() {
+    return getBranchMultiplier() * getSalesProfitMultiplier();
+  }
+
   function renderLabor() {
     const branch = getSelectedBranch();
     const cph = branch ? Number(branch.CostPerHour) : NaN;
 
     // Get multipliers for adjusted cost per hour
-    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
-    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
-    const multiplier = (1 + overheadPct / 100) * (1 + policyProfitPct / 100);
+    const multiplier = getCompleteMultiplier();
     const adjustedCph = Number.isFinite(cph) ? cph * multiplier : NaN;
 
     el("costPerHour").textContent = branch ? fmt(adjustedCph) : "—";
@@ -295,9 +320,7 @@
     if (!Number.isFinite(cph)) return NaN;
 
     // Get multipliers
-    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
-    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
-    const multiplier = (1 + overheadPct / 100) * (1 + policyProfitPct / 100);
+    const multiplier = getCompleteMultiplier();
 
     // Apply multipliers to CostPerHour first, then multiply by manhours
     const adjustedCph = cph * multiplier;
@@ -344,9 +367,7 @@
 
   function renderMaterials() {
     // Get multipliers for adjusted line totals
-    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
-    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
-    const multiplier = (1 + overheadPct / 100) * (1 + policyProfitPct / 100);
+    const multiplier = getCompleteMultiplier();
 
     el("materialRows").innerHTML = materialLines.map((ln, i) => {
       const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
@@ -501,9 +522,7 @@
     const ln = materialLines[i];
 
     // Get multipliers for adjusted line total
-    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
-    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
-    const multiplier = (1 + overheadPct / 100) * (1 + policyProfitPct / 100);
+    const multiplier = getCompleteMultiplier();
 
     const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
 
@@ -579,9 +598,7 @@
 
   function materialSubtotal() {
     // Get multipliers
-    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
-    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
-    const multiplier = (1 + overheadPct / 100) * (1 + policyProfitPct / 100);
+    const multiplier = getCompleteMultiplier();
 
     return materialLines.reduce((sum, ln) => {
       if (!Number.isFinite(ln.unitCost)) return sum;
@@ -591,55 +608,55 @@
     }, 0);
   }
 
-  // ---------- overhead ----------
-  function applyBranchDefaultsToOverhead() {
-    const b = getSelectedBranch();
-    if (!b) return;
-    el("overheadPct").value = Number(b.OverheadPercent || 0);
-    el("policyProfit").value = Number(b.PolicyProfit || 0);
-  }
-
-  function overheadTotal(laborSub, materialSub) {
-    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
-    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
-    const base = (Number.isFinite(laborSub) ? laborSub : 0) + (Number.isFinite(materialSub) ? materialSub : 0);
-    // Apply overhead percent multiplier, then policy profit multiplier
-    const afterOverhead = base * (1 + overheadPct / 100);
-    return afterOverhead * (1 + policyProfitPct / 100);
-  }
-
   // ---------- calc / render totals ----------
   function calcAll() {
     // Get base amounts (without multipliers)
     const lBase = laborSubtotalBase();
     const mBase = materialSubtotalBase();
 
-    // Get adjusted amounts (with multipliers applied)
-    const l = laborSubtotal();
-    const m = materialSubtotal();
+    // Get branch multiplier (Overhead% + PolicyProfit% from branch defaults)
+    const branchMultiplier = getBranchMultiplier();
 
-    // Overhead is the difference between adjusted and base
-    const o = (Number.isFinite(l) ? l : 0) + (Number.isFinite(m) ? m : 0) -
-              ((Number.isFinite(lBase) ? lBase : 0) + (Number.isFinite(mBase) ? mBase : 0));
+    // Get amounts after branch multipliers
+    const lAfterBranch = Number.isFinite(lBase) ? lBase * branchMultiplier : 0;
+    const mAfterBranch = Number.isFinite(mBase) ? mBase * branchMultiplier : 0;
 
-    // Grand total is the sum of adjusted amounts
-    const g = (Number.isFinite(l) ? l : 0) + (Number.isFinite(m) ? m : 0);
+    // Get sales profit multiplier (user-editable)
+    const salesProfitMultiplier = getSalesProfitMultiplier();
 
+    // Get amounts after sales profit multiplier
+    const l = lAfterBranch * salesProfitMultiplier;
+    const m = mAfterBranch * salesProfitMultiplier;
+
+    // Get travel cost
+    const travelCost = getTravelCost();
+
+    // Calculate overhead (difference between base and after-branch amounts)
+    const overhead = (lAfterBranch + mAfterBranch) - (lBase + mBase);
+
+    // Calculate sales profit adjustment
+    const salesProfitAdj = (l + m) - (lAfterBranch + mAfterBranch);
+
+    // Grand total = labor + materials + travel cost
+    const g = l + m + travelCost;
+
+    // Update display elements
     el("laborSubtotal").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("materialSubtotal").textContent = fmt(m);
-    el("overheadTotal").textContent = fmt(o);
+    el("overheadTotal").textContent = fmt(overhead); // Branch overhead only
+    el("travelCost").textContent = fmt(travelCost);
 
     el("grandTotal").textContent = fmt(g);
     el("grandLabor").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("grandMaterials").textContent = fmt(m);
-    el("grandOverhead").textContent = fmt(o);
+    el("grandOverhead").textContent = fmt(overhead + salesProfitAdj); // Combined
   }
 
   // ---------- init ----------
   el("motorType").addEventListener("change", loadLabor);
-  el("branch").addEventListener("change", () => { renderLabor(); applyBranchDefaultsToOverhead(); calcAll(); });
-  el("overheadPct").addEventListener("input", calcAll);
-  el("policyProfit").addEventListener("input", calcAll);
+  el("branch").addEventListener("change", () => { renderLabor(); calcAll(); });
+  el("salesProfitPct").addEventListener("input", calcAll);
+  el("travelKm").addEventListener("input", calcAll);
   el("addMaterial").addEventListener("click", addMaterialRow);
 
   loadInit()
