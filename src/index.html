@@ -62,7 +62,7 @@
               <th class="text-left py-2">Job</th>
               <th class="text-right py-2">Manhours</th>
               <th class="text-right py-2">Cost</th>
-              <th class="text-right py-2">Final Cost</th>
+              <th class="text-right py-2">Sales Profit</th>
             </tr>
           </thead>
           <tbody id="laborRows"></tbody>
@@ -287,7 +287,7 @@
                  value="${j.effectiveManHours}" ${!isChecked ? 'disabled' : ''}>
         </td>
         <td class="py-2 text-right ${textClass}">${fmt(cost)}</td>
-        <td class="py-2 text-right ${textClass}">${fmt(cost)}</td>
+        <td class="py-2 text-right ${textClass}">${fmt(salesProfit)}</td>
       </tr>`;
     }).join("");
 
@@ -682,7 +682,11 @@
   // ---------- init ----------
   el("motorType").addEventListener("change", loadLabor);
   el("branch").addEventListener("change", () => { renderLabor(); calcAll(); });
-  el("salesProfitPct").addEventListener("input", calcAll);
+  el("salesProfitPct").addEventListener("input", () => {
+    renderLabor();
+    renderMaterials();
+    calcAll();
+  });
   el("travelKm").addEventListener("input", calcAll);
   el("addMaterial").addEventListener("click", addMaterialRow);
 
