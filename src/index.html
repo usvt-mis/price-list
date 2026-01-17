@@ -80,11 +80,23 @@
         </button>
       </div>
 
-      <div class="mt-4">
-        <!-- Mobile cards (visible < md) -->
-        <div id="materialRowsMobile" class="md:hidden space-y-3"></div>
-        <!-- Desktop grid (visible md+) -->
-        <div id="materialRowsDesktop" class="hidden md:grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-slate-600 hidden md:table-header-group">
+            <tr class="border-b">
+              <th class="text-left py-2">Material</th>
+              <th class="text-left py-2">Code</th>
+              <th class="text-left py-2">Name</th>
+              <th class="text-right py-2">Unit Cost</th>
+              <th class="text-right py-2">Qty</th>
+              <th class="text-right py-2">Cost before Sales Profit</th>
+              <th class="text-right py-2">Line Total</th>
+              <th class="text-right py-2">Sales Profit</th>
+              <th class="text-right py-2"></th>
+            </tr>
+          </thead>
+          <tbody id="materialRows"></tbody>
+        </table>
       </div>
 
       <div class="mt-4 flex justify-end">
@@ -378,23 +390,23 @@
   }
 
   function renderMaterials() {
-    renderMobileMaterials();
-    renderDesktopMaterials();
-    wireMaterialEvents();
-  }
-
-  function renderMobileMaterials() {
+    // Get multipliers for adjusted line totals
     const multiplier = getCompleteMultiplier();
     const branchMultiplier = getBranchMultiplier();
-    const salesProfitMultiplier = getSalesProfitMultiplier();
 
-    el("materialRowsMobile").innerHTML = materialLines.map((ln, i) => {
+    el("materialRows").innerHTML = materialLines.map((ln, i) => {
       const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
+      // Calculate Sales Profit per material line: base × branchMultiplier × (salesProfitMultiplier - 1)
+      const salesProfitMultiplier = getSalesProfitMultiplier();
       const salesProfitAmount = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier * (salesProfitMultiplier - 1) : NaN;
-      const costBeforeSalesProfit = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier : NaN;
+      // Calculate cost before sales profit (after branch multiplier, before sales profit)
+      const costBeforeSalesProfit = Number.isFinite(ln.unitCost)
+        ? ln.unitCost * ln.qty * branchMultiplier
+        : NaN;
 
       return `
-        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3" data-material-idx="${i}">
+        <!-- Mobile Card (visible < md) -->
+        <div class="md:hidden p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
           <!-- Search Section -->
           <div>
             <input data-i="${i}" class="matSearch w-full text-base p-3 rounded-lg border-slate-200 min-h-[44px]"
@@ -402,7 +414,7 @@
             <div data-sug="${i}" class="mt-2 space-y-1 max-h-60 overflow-y-auto"></div>
           </div>
 
-          <!-- Selected Material Info -->
+          <!-- Selected Material Info (compact, when material selected) -->
           ${ln.code ? `
           <div class="text-sm">
             <div class="font-medium">${ln.name}</div>
@@ -410,7 +422,7 @@
           </div>
           ` : ''}
 
-          <!-- Quantity Input -->
+          <!-- Quantity Input (full width, prominent) -->
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Quantity</label>
             <input data-qty="${i}" type="number" min="0" step="1"
@@ -432,10 +444,6 @@
             <span class="text-sm text-slate-600">Line Total</span>
             <span class="text-xl font-bold">${fmt(lineTotal)}</span>
           </div>
-          ` : ''}
-
-          <!-- Sales Profit -->
-          ${ln.code ? `
           <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
             <span class="text-sm text-slate-600">Sales Profit</span>
             <span class="text-xl font-bold">${fmt(salesProfitAmount)}</span>
@@ -447,94 +455,40 @@
             Remove
           </button>
         </div>
-      `;
-    }).join("") || `
-      <div class="p-4 text-center text-slate-500">No materials yet. Click "Add row".</div>
-    `;
-  }
 
-  function renderDesktopMaterials() {
-    const multiplier = getCompleteMultiplier();
-    const branchMultiplier = getBranchMultiplier();
-    const salesProfitMultiplier = getSalesProfitMultiplier();
-
-    el("materialRowsDesktop").innerHTML = materialLines.map((ln, i) => {
-      const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
-      const salesProfitAmount = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier * (salesProfitMultiplier - 1) : NaN;
-      const costBeforeSalesProfit = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier : NaN;
-
-      return `
-        <div class="material-card bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow" data-material-idx="${i}">
-          <!-- Card Header: Material Identification -->
-          <div class="space-y-3 mb-4">
-            <!-- Search Input -->
-            <div class="relative">
-              <input data-i="${i}" class="matSearch w-full text-sm p-2.5 rounded-lg border-slate-200"
-                     placeholder="Type to search (min 2 chars)..."/>
-              <div data-sug="${i}" class="fixed z-50 mt-1 space-y-1 bg-white shadow-lg rounded-lg border border-slate-200 max-h-60 overflow-y-auto hidden"></div>
-            </div>
-
-            <!-- Material Info (shown when material selected) -->
-            ${ln.code ? `
-            <div class="flex items-start gap-3 text-sm">
-              <div class="flex-1">
-                <div class="font-medium text-slate-900">${ln.name}</div>
-                <div class="text-slate-500 text-xs mt-0.5">${ln.code}</div>
-              </div>
-              <div class="text-right">
-                <div class="text-xs text-slate-500">Unit Cost</div>
-                <div class="font-semibold text-slate-900">${fmt(ln.unitCost)}</div>
-              </div>
-            </div>
-            ` : ''}
-          </div>
-
-          <!-- Quantity Section -->
-          ${ln.code ? `
-          <div class="mb-4">
-            <label class="block text-xs font-medium text-slate-600 mb-1">Quantity</label>
+        <!-- Desktop Table Row (visible md+) -->
+        <tr class="hidden md:table-row border-b">
+          <td class="py-2 min-w-[200px] relative">
+            <input data-i="${i}" class="matSearch w-full rounded-lg border-slate-200"
+                   placeholder="Type to search (min 2 chars)"/>
+            <div data-sug="${i}" class="fixed z-50 space-y-1 bg-white shadow-lg rounded-lg border border-slate-200 max-h-60 overflow-y-auto hidden"></div>
+          </td>
+          <td class="py-2">${ln.code || "—"}</td>
+          <td class="py-2">${ln.name || "—"}</td>
+          <td class="py-2 text-right">${fmt(ln.unitCost)}</td>
+          <td class="py-2 text-right">
             <input data-qty="${i}" type="number" min="0" step="1"
-                   class="w-full text-right text-sm p-2 rounded-lg border-slate-200 font-semibold"
+                   class="w-32 text-right rounded-lg border-slate-200 px-2 py-1"
                    value="${ln.qty}"/>
-          </div>
-
-          <!-- Costs Grid -->
-          <div class="grid grid-cols-3 gap-2 mb-4">
-            <div class="bg-slate-50 rounded-lg p-2 text-center">
-              <div class="text-xs text-slate-500 mb-1">Before Sales Profit</div>
-              <div class="font-bold text-slate-900 text-sm cost-before-sales-profit">${fmt(costBeforeSalesProfit)}</div>
-            </div>
-            <div class="bg-slate-50 rounded-lg p-2 text-center">
-              <div class="text-xs text-slate-500 mb-1">Line Total</div>
-              <div class="font-bold text-slate-900 text-sm line-total">${fmt(lineTotal)}</div>
-            </div>
-            <div class="bg-slate-50 rounded-lg p-2 text-center">
-              <div class="text-xs text-slate-500 mb-1">Sales Profit</div>
-              <div class="font-bold text-slate-900 text-sm sales-profit">${fmt(salesProfitAmount)}</div>
-            </div>
-          </div>
-          ` : ''}
-
-          <!-- Remove Button -->
-          <button data-del="${i}" class="w-full py-2 text-sm rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
-            Remove Material
-          </button>
-        </div>
+          </td>
+          <td class="py-2 text-right">${fmt(costBeforeSalesProfit)}</td>
+          <td class="py-2 text-right">${fmt(lineTotal)}</td>
+          <td class="py-2 text-right">${fmt(salesProfitAmount)}</td>
+          <td class="py-2 text-right">
+            <button data-del="${i}" class="text-sm px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-50">Remove</button>
+          </td>
+        </tr>
       `;
     }).join("") || `
-      <div class="col-span-full p-8 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-xl">
-        No materials yet. Click "Add row" to get started.
-      </div>
+      <div class="md:hidden p-4 text-center text-slate-500">No materials yet. Click "Add row".</div>
+      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="9">No materials yet. Click "Add row".</td></tr>
     `;
-  }
 
-  function wireMaterialEvents() {
-    // Remove buttons
+    // wire events
     document.querySelectorAll("[data-del]").forEach(btn => {
       btn.addEventListener("click", () => removeMaterialRow(Number(btn.dataset.del)));
     });
 
-    // Quantity inputs
     document.querySelectorAll("[data-qty]").forEach(inp => {
       inp.addEventListener("input", () => {
         const i = Number(inp.dataset.qty);
@@ -546,14 +500,11 @@
       });
     });
 
-    // Search inputs
     document.querySelectorAll(".matSearch").forEach(inp => {
       const i = Number(inp.dataset.i);
-      const box = inp.nextElementSibling;
-
-      // Set initial value
       inp.value = materialLines[i].code ? `${materialLines[i].code} - ${materialLines[i].name}` : "";
 
+      const box = inp.nextElementSibling;
       // Clear any existing timeout for this input
       if (materialSearchTimeouts.has(i)) {
         clearTimeout(materialSearchTimeouts.get(i));
@@ -583,10 +534,10 @@
               <div class="text-xs text-slate-500">Unit: ${fmt(Number(m.UnitCost))}</div>
             </button>
           `).join("");
-          // Position and show dropdown
+          // Position and show dropdown (for desktop fixed positioning)
           if (sug.length > 0) {
             const rect = inp.getBoundingClientRect();
-            // Fixed positioning is relative to viewport
+            // Fixed positioning is relative to viewport, NOT document - don't add scrollY
             box.style.top = `${rect.bottom + 4}px`;
             box.style.left = `${rect.left}px`;
             box.style.width = `${rect.width}px`;
@@ -594,7 +545,6 @@
           } else {
             box.classList.add("hidden");
           }
-          // Attach click handlers to suggestion buttons
           box.querySelectorAll("[data-pick]").forEach(btn => {
             btn.addEventListener("click", () => {
               materialLines[i].materialId = Number(btn.dataset.id);
@@ -626,182 +576,104 @@
     const salesProfitAmount = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier * (salesProfitMultiplier - 1) : NaN;
     const costBeforeSalesProfit = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier : NaN;
 
-    // Update mobile card
-    updateMobileMaterialCard(i, ln, lineTotal, salesProfitAmount, costBeforeSalesProfit);
-
-    // Update desktop card
-    updateDesktopMaterialCard(i, ln, lineTotal, salesProfitAmount, costBeforeSalesProfit);
-
-    // Update the material subtotal display
-    el("materialSubtotal").textContent = fmt(materialSubtotal());
-  }
-
-  function updateMobileMaterialCard(i, ln, lineTotal, salesProfitAmount, costBeforeSalesProfit) {
-    const mobileCard = el("materialRowsMobile").querySelector(`[data-material-idx="${i}"]`);
-    if (!mobileCard) return;
-
-    // Update search input
-    const mobileInput = mobileCard.querySelector(".matSearch[data-i=\"" + i + "\"]");
-    if (mobileInput) {
-      mobileInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
+    // Find and update desktop row using data-i attribute
+    const desktopInput = el("materialRows").querySelector(`tr.hidden.md\\:table-row .matSearch[data-i="${i}"]`);
+    if (desktopInput) {
+      const desktopRow = desktopInput.closest("tr");
+      if (desktopRow) {
+        const cells = desktopRow.querySelectorAll("td");
+        if (cells[1]) cells[1].textContent = ln.code || "—";
+        if (cells[2]) cells[2].textContent = ln.name || "—";
+        if (cells[3]) cells[3].textContent = fmt(ln.unitCost);
+        if (cells[5]) cells[5].textContent = fmt(costBeforeSalesProfit);
+        if (cells[6]) cells[6].textContent = fmt(lineTotal);
+        if (cells[7]) cells[7].textContent = fmt(salesProfitAmount);
+      }
+      desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
     }
 
-    // Update or create material info section
-    let infoSection = mobileCard.querySelector(".text-sm");
-    if (!infoSection && ln.code) {
-      const searchSection = mobileCard.querySelector("div");
-      if (searchSection && searchSection.querySelector(".matSearch")) {
-        infoSection = document.createElement("div");
-        infoSection.className = "text-sm";
+    // Find and update mobile card using data-i attribute
+    const mobileInput = el("materialRows").querySelector(`.md\\:hidden .matSearch[data-i="${i}"]`);
+    if (mobileInput) {
+      const mobileCard = mobileInput.closest(".md\\:hidden");
+      // Update the search input value
+      mobileInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
+      // Update the material info section
+      let infoSection = mobileCard.querySelector(".text-sm");
+      if (!infoSection && ln.code) {
+        // Need to create the info section
+        const searchSection = mobileCard.querySelector("div");
+        if (searchSection && searchSection.querySelector(".matSearch")) {
+          infoSection = document.createElement("div");
+          infoSection.className = "text-sm";
+          infoSection.innerHTML = `
+            <div class="font-medium">${ln.name}</div>
+            <div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>
+          `;
+          searchSection.parentNode.insertBefore(infoSection, searchSection.nextSibling);
+        }
+      } else if (infoSection) {
         infoSection.innerHTML = `
           <div class="font-medium">${ln.name}</div>
           <div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>
         `;
-        searchSection.parentNode.insertBefore(infoSection, searchSection.nextSibling);
       }
-    } else if (infoSection) {
-      infoSection.innerHTML = `
-        <div class="font-medium">${ln.name}</div>
-        <div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>
-      `;
-    }
 
-    // Update or create the Cost before Sales Profit card
-    let costBeforeSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
-      .find(el => el.querySelector(".text-sm")?.textContent.includes("Cost before Sales Profit"));
-    if (!costBeforeSection && ln.code) {
-      costBeforeSection = document.createElement("div");
-      costBeforeSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
-      costBeforeSection.innerHTML = `
-        <span class="text-sm text-slate-600">Cost before Sales Profit</span>
-        <span class="text-xl font-bold">${fmt(costBeforeSalesProfit)}</span>
-      `;
-      const qtySection = mobileCard.querySelector("label")?.closest("div");
-      if (qtySection) {
-        qtySection.parentNode.insertBefore(costBeforeSection, qtySection.nextSibling);
-      }
-    } else if (costBeforeSection) {
-      costBeforeSection.querySelector(".text-xl.font-bold").textContent = fmt(costBeforeSalesProfit);
-    }
-
-    // Update or create the Line Total card
-    let totalSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
-      .find(el => el.querySelector(".text-sm")?.textContent.includes("Line Total"));
-    if (!totalSection && ln.code) {
-      totalSection = document.createElement("div");
-      totalSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
-      totalSection.innerHTML = `
-        <span class="text-sm text-slate-600">Line Total</span>
-        <span class="text-xl font-bold">${fmt(lineTotal)}</span>
-      `;
-      if (costBeforeSection) {
-        costBeforeSection.parentNode.insertBefore(totalSection, costBeforeSection.nextSibling);
-      }
-    } else if (totalSection) {
-      totalSection.querySelector(".text-xl.font-bold").textContent = fmt(lineTotal);
-    }
-
-    // Update or create the Sales Profit card
-    let salesProfitSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
-      .find(el => el.querySelector(".text-sm")?.textContent.includes("Sales Profit") && !el.querySelector(".text-sm")?.textContent.includes("Cost before"));
-    if (!salesProfitSection && ln.code) {
-      salesProfitSection = document.createElement("div");
-      salesProfitSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
-      salesProfitSection.innerHTML = `
-        <span class="text-sm text-slate-600">Sales Profit</span>
-        <span class="text-xl font-bold">${fmt(salesProfitAmount)}</span>
-      `;
-      if (totalSection) {
-        totalSection.parentNode.insertBefore(salesProfitSection, totalSection.nextSibling);
-      }
-    } else if (salesProfitSection) {
-      salesProfitSection.querySelector(".text-xl.font-bold").textContent = fmt(salesProfitAmount);
-    }
-  }
-
-  function updateDesktopMaterialCard(i, ln, lineTotal, salesProfitAmount, costBeforeSalesProfit) {
-    const desktopCard = el("materialRowsDesktop").querySelector(`[data-material-idx="${i}"]`);
-    if (!desktopCard) return;
-
-    // Update search input
-    const desktopInput = desktopCard.querySelector(".matSearch[data-i=\"" + i + "\"]");
-    if (desktopInput) {
-      desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
-    }
-
-    // Update or create material info section
-    let infoSection = desktopCard.querySelector(".flex.items-start.gap-3");
-    if (!infoSection && ln.code) {
-      const headerSection = desktopCard.querySelector(".space-y-3.mb-4");
-      if (headerSection) {
-        infoSection = document.createElement("div");
-        infoSection.className = "flex items-start gap-3 text-sm";
-        infoSection.innerHTML = `
-          <div class="flex-1">
-            <div class="font-medium text-slate-900">${ln.name}</div>
-            <div class="text-slate-500 text-xs mt-0.5">${ln.code}</div>
-          </div>
-          <div class="text-right">
-            <div class="text-xs text-slate-500">Unit Cost</div>
-            <div class="font-semibold text-slate-900">${fmt(ln.unitCost)}</div>
-          </div>
+      // Update or create the Cost before Sales Profit card
+      let costBeforeSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Cost before Sales Profit"));
+      if (!costBeforeSection && ln.code) {
+        costBeforeSection = document.createElement("div");
+        costBeforeSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
+        costBeforeSection.innerHTML = `
+          <span class="text-sm text-slate-600">Cost before Sales Profit</span>
+          <span class="text-xl font-bold">${fmt(costBeforeSalesProfit)}</span>
         `;
-        headerSection.appendChild(infoSection);
+        const qtySection = mobileCard.querySelector("label")?.closest("div");
+        if (qtySection) {
+          qtySection.parentNode.insertBefore(costBeforeSection, qtySection.nextSibling);
+        }
+      } else if (costBeforeSection) {
+        costBeforeSection.querySelector(".text-xl.font-bold").textContent = fmt(costBeforeSalesProfit);
       }
-    } else if (infoSection) {
-      infoSection.querySelector(".font-medium").textContent = ln.name;
-      infoSection.querySelector(".text-slate-500.text-xs").textContent = ln.code;
-      infoSection.querySelector(".font-semibold").textContent = fmt(ln.unitCost);
+
+      // Update or create the Line Total card
+      let totalSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Line Total"));
+      if (!totalSection && ln.code) {
+        totalSection = document.createElement("div");
+        totalSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
+        totalSection.innerHTML = `
+          <span class="text-sm text-slate-600">Line Total</span>
+          <span class="text-xl font-bold">${fmt(lineTotal)}</span>
+        `;
+        if (costBeforeSection) {
+          costBeforeSection.parentNode.insertBefore(totalSection, costBeforeSection.nextSibling);
+        }
+      } else if (totalSection) {
+        totalSection.querySelector(".text-xl.font-bold").textContent = fmt(lineTotal);
+      }
+
+      // Update or create the Sales Profit card
+      let salesProfitSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Sales Profit") && !el.querySelector(".text-sm")?.textContent.includes("Cost before"));
+      if (!salesProfitSection && ln.code) {
+        salesProfitSection = document.createElement("div");
+        salesProfitSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
+        salesProfitSection.innerHTML = `
+          <span class="text-sm text-slate-600">Sales Profit</span>
+          <span class="text-xl font-bold">${fmt(salesProfitAmount)}</span>
+        `;
+        if (totalSection) {
+          totalSection.parentNode.insertBefore(salesProfitSection, totalSection.nextSibling);
+        }
+      } else if (salesProfitSection) {
+        salesProfitSection.querySelector(".text-xl.font-bold").textContent = fmt(salesProfitAmount);
+      }
     }
 
-    // Update quantity section
-    let qtySection = desktopCard.querySelector("label")?.closest("div");
-    if (!qtySection && ln.code) {
-      qtySection = document.createElement("div");
-      qtySection.className = "mb-4";
-      qtySection.innerHTML = `
-        <label class="block text-xs font-medium text-slate-600 mb-1">Quantity</label>
-        <input data-qty="${i}" type="number" min="0" step="1"
-               class="w-full text-right text-sm p-2 rounded-lg border-slate-200 font-semibold"
-               value="${ln.qty}"/>
-      `;
-      // Re-attach event listener to new input
-      const newInput = qtySection.querySelector("input");
-      newInput.addEventListener("input", () => {
-        const v = Math.max(0, Math.trunc(Number(newInput.value)));
-        newInput.value = v;
-        materialLines[i].qty = v;
-        calcAll();
-        renderMaterials();
-      });
-      desktopCard.appendChild(qtySection);
-    }
-
-    // Update costs grid
-    let costsGrid = desktopCard.querySelector(".grid.grid-cols-3.gap-2");
-    if (!costsGrid && ln.code) {
-      costsGrid = document.createElement("div");
-      costsGrid.className = "grid grid-cols-3 gap-2 mb-4";
-      costsGrid.innerHTML = `
-        <div class="bg-slate-50 rounded-lg p-2 text-center">
-          <div class="text-xs text-slate-500 mb-1">Before Sales Profit</div>
-          <div class="font-bold text-slate-900 text-sm cost-before-sales-profit">${fmt(costBeforeSalesProfit)}</div>
-        </div>
-        <div class="bg-slate-50 rounded-lg p-2 text-center">
-          <div class="text-xs text-slate-500 mb-1">Line Total</div>
-          <div class="font-bold text-slate-900 text-sm line-total">${fmt(lineTotal)}</div>
-        </div>
-        <div class="bg-slate-50 rounded-lg p-2 text-center">
-          <div class="text-xs text-slate-500 mb-1">Sales Profit</div>
-          <div class="font-bold text-slate-900 text-sm sales-profit">${fmt(salesProfitAmount)}</div>
-        </div>
-      `;
-      desktopCard.appendChild(costsGrid);
-    } else if (costsGrid) {
-      costsGrid.querySelector(".cost-before-sales-profit").textContent = fmt(costBeforeSalesProfit);
-      costsGrid.querySelector(".line-total").textContent = fmt(lineTotal);
-      costsGrid.querySelector(".sales-profit").textContent = fmt(salesProfitAmount);
-    }
+    // Update the material subtotal display
+    el("materialSubtotal").textContent = fmt(materialSubtotal());
   }
 
   function materialSubtotalBase() {
