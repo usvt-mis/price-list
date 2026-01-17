@@ -108,7 +108,7 @@ Each HTTP function file:
      - `BranchMultiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)` (from branch defaults, silent)
      - `SalesProfitMultiplier = (1 + SalesProfit%/100)` (user input, can be negative)
    - Multipliers are applied to CostPerHour first, then multiplied by effectiveManHours
-   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (base cost with all multipliers applied), and Final Cost (adjusted cost with all multipliers applied)
+   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (base cost with all multipliers applied), and Sales Profit (profit amount per job)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
@@ -196,19 +196,23 @@ Each HTTP function file:
   - `getJobSalesProfit(job, costPerHour, branchMultiplier)` - Calculates Sales Profit for a single job
     - Formula: `effectiveManHours × CostPerHour × BranchMultiplier × (SalesProfitMultiplier - 1)`
     - This isolates the Sales Profit portion applied after the branch multipliers
-- Event listeners trigger `calcAll()` on input changes (lines ~657-658)
+- Event listeners:
+  - Sales Profit % changes trigger `renderLabor()`, `renderMaterials()`, and `calcAll()` for real-time updates (lines ~685-689)
+  - Travel Km changes trigger `calcAll()` (line ~690)
 - Footer grand overhead shows combined overhead + sales profit adjustment (labor + materials only)
 - Travel Sales Profit is displayed separately in the grand total breakdown
 
-### Final Cost Column (Labor Table)
-- The labor table includes a **Final Cost** column that shows the final adjusted cost for each job row
-- The Final Cost includes all multipliers: BranchMultiplier (Overhead% + PolicyProfit%) and SalesProfitMultiplier
-- Formula breakdown:
-  - `Final_Cost = effectiveManHours × CostPerHour × BranchMultiplier × SalesProfitMultiplier`
-  - When Sales Profit % = 0: shows cost after branch multipliers only
-  - When Sales Profit % > 0: shows increased cost with profit added
-  - When Sales Profit % < 0 (discount): shows decreased cost with discount applied
+### Sales Profit Column (Labor Table)
+- The labor table includes a **Sales Profit** column that shows the Sales Profit amount for each job row
+- Sales Profit is calculated **after** the Branch Multiplier (Overhead% + PolicyProfit%) is applied
+- Formula breakdown (via `getJobSalesProfit()` function):
+  - `Cost_After_Branch = effectiveManHours × CostPerHour × BranchMultiplier`
+  - `Sales_Profit = Cost_After_Branch × (SalesProfitMultiplier - 1)`
+  - When Sales Profit % = 0: shows 0.00
+  - When Sales Profit % > 0: shows positive profit amount
+  - When Sales Profit % < 0 (discount): shows negative value
 - The column uses the same styling as the Cost column (right-aligned, with strikethrough for unchecked jobs)
+- Updates in real-time when the Sales Profit % input changes
 
 ### Sales Profit Column (Materials Table)
 - The materials table includes a **Sales Profit** column that shows the Sales Profit amount for each material line
@@ -221,6 +225,7 @@ Each HTTP function file:
   - When Sales Profit % > 0: shows positive profit amount
   - When Sales Profit % < 0 (discount): shows negative value
 - The Sales Profit is displayed in both desktop table row and mobile card layouts
+- Updates in real-time when the Sales Profit % input changes
 
 ### Responsive Design
 - The material panel uses a **dual-layout approach**:
