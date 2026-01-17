@@ -99,10 +99,11 @@ Each HTTP function file:
    - Only appears during initial load, not for subsequent API calls
 2. On load: Fetch motor types and branches for dropdowns
 3. User selects motor type → Fetch ALL jobs with motor-type-specific manhours
-4. Labor costs calculated as: sum(job.ManHours × AdjustedCostPerHour) for **checked jobs only**
+4. Labor costs calculated as: sum(job.effectiveManHours × AdjustedCostPerHour) for **checked jobs only**
+   - **effectiveManHours** stores the user-editable manhour value (defaults to original ManHours from database)
    - **AdjustedCostPerHour = CostPerHour × (1 + OverheadPercent/100) × (1 + PolicyProfit/100)**
-   - Multipliers are applied to CostPerHour first, then multiplied by manhours
-   - Labor table displays a checkbox, JobName, Manhours, and Cost (with multipliers applied)
+   - Multipliers are applied to CostPerHour first, then multiplied by effectiveManHours
+   - Labor table displays a checkbox, JobName, Manhours (editable), and Cost (with multipliers applied)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
@@ -127,6 +128,20 @@ Each HTTP function file:
   - The job is excluded from labor subtotal calculation via `.filter(j => j.checked !== false)`
 - Toggling a checkbox triggers `renderLabor()` to re-render the table and `calcAll()` to update totals
 - Checkbox uses `data-idx` attribute to map to the job index in the original `labor` array (not the display position)
+
+### Editable Manhours
+- **Manhours are editable** via number input field (similar to material quantity inputs)
+- Each job's manhour value is stored in `j.effectiveManHours` (defaults to original `ManHours` from database)
+- Input field attributes:
+  - `type="number"` with `min="0"` and `step="0.25"` (allows quarter-hour increments)
+  - `data-mh` attribute maps to the job index in the `labor` array
+  - `disabled` when job is unchecked (grey background `bg-slate-100`)
+- Event handler on input:
+  - Updates `labor[i].effectiveManHours` with the new value
+  - Allows decimal values with 2 decimal places precision
+  - Triggers `calcAll()` to update totals and `renderLabor()` to refresh display
+- Cost calculations use `effectiveManHours` if set, otherwise fall back to original `ManHours`
+- Edited values persist during the session (stored in memory, not persisted to database)
 
 ### Material Search UX
 - Minimum 2 characters to trigger search
