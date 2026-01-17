@@ -62,6 +62,7 @@
               <th class="text-left py-2">Job</th>
               <th class="text-right py-2">Manhours</th>
               <th class="text-right py-2">Cost</th>
+              <th class="text-right py-2">Sales Profit</th>
             </tr>
           </thead>
           <tbody id="laborRows"></tbody>
@@ -229,12 +230,21 @@
     return getBranchMultiplier() * getSalesProfitMultiplier();
   }
 
+  // Calculate Sales Profit for a single job
+  function getJobSalesProfit(job, costPerHour, branchMultiplier) {
+    const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
+    const salesProfitMultiplier = getSalesProfitMultiplier();
+    const costAfterBranch = mh * costPerHour * branchMultiplier;
+    return costAfterBranch * (salesProfitMultiplier - 1);
+  }
+
   function renderLabor() {
     const branch = getSelectedBranch();
     const cph = branch ? Number(branch.CostPerHour) : NaN;
 
     // Get multipliers for adjusted cost per hour
     const multiplier = getCompleteMultiplier();
+    const branchMultiplier = getBranchMultiplier();
     const adjustedCph = Number.isFinite(cph) ? cph * multiplier : NaN;
 
     el("costPerHour").textContent = branch ? fmt(adjustedCph) : "—";
@@ -257,6 +267,7 @@
       const isChecked = j.checked;
       const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
       const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
+      const salesProfit = Number.isFinite(cph) ? getJobSalesProfit(j, cph, branchMultiplier) : NaN;
 
       // Apply disabled styling when unchecked
       const rowClass = isChecked ? "border-b" : "border-b bg-slate-50";
@@ -274,10 +285,11 @@
                  value="${j.effectiveManHours}" ${!isChecked ? 'disabled' : ''}>
         </td>
         <td class="py-2 text-right ${textClass}">${fmt(cost)}</td>
+        <td class="py-2 text-right ${textClass}">${fmt(salesProfit)}</td>
       </tr>`;
     }).join("");
 
-    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="4">Select Motor Type to load jobs.</td></tr>`;
+    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="5">Select Motor Type to load jobs.</td></tr>`;
 
     // Attach event listeners to checkboxes
     document.querySelectorAll(".job-checkbox").forEach(cb => {
