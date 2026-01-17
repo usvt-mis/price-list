@@ -84,7 +84,11 @@
         <table class="w-full text-sm">
           <thead class="text-slate-600 hidden md:table-header-group">
             <tr class="border-b">
-              <th class="text-left py-2">Material</th>
+              <th class="text-left py-2" colspan="3">Material</th>
+              <th class="text-right py-2" colspan="6">Costs &amp; Actions</th>
+            </tr>
+            <tr class="border-b bg-slate-50">
+              <th class="text-left py-2 pl-4">Search</th>
               <th class="text-left py-2">Code</th>
               <th class="text-left py-2">Name</th>
               <th class="text-right py-2">Unit Cost</th>
@@ -457,15 +461,20 @@
         </div>
 
         <!-- Desktop Table Row (visible md+) -->
-        <tr class="hidden md:table-row border-b">
-          <td class="py-2 min-w-[200px] relative">
+        <!-- Row 1: Material identification -->
+        <tr class="hidden md:table-row border-b" data-material-idx="${i}">
+          <td class="py-2 min-w-[200px] relative" colspan="3">
             <input data-i="${i}" class="matSearch w-full rounded-lg border-slate-200"
                    placeholder="Type to search (min 2 chars)"/>
             <div data-sug="${i}" class="fixed z-50 space-y-1 bg-white shadow-lg rounded-lg border border-slate-200 max-h-60 overflow-y-auto hidden"></div>
           </td>
           <td class="py-2">${ln.code || "—"}</td>
           <td class="py-2">${ln.name || "—"}</td>
-          <td class="py-2 text-right">${fmt(ln.unitCost)}</td>
+        </tr>
+        <!-- Row 2: Costs & Actions -->
+        <tr class="hidden md:table-row border-b bg-slate-50" data-material-idx="${i}">
+          <td class="py-2" colspan="3"></td>
+          <td class="py-2 text-right pl-4">${fmt(ln.unitCost)}</td>
           <td class="py-2 text-right">
             <input data-qty="${i}" type="number" min="0" step="1"
                    class="w-32 text-right rounded-lg border-slate-200 px-2 py-1"
@@ -576,20 +585,32 @@
     const salesProfitAmount = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier * (salesProfitMultiplier - 1) : NaN;
     const costBeforeSalesProfit = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier : NaN;
 
-    // Find and update desktop row using data-i attribute
-    const desktopInput = el("materialRows").querySelector(`tr.hidden.md\\:table-row .matSearch[data-i="${i}"]`);
+    // Find and update desktop rows using data-material-idx attribute
+    // Row 1: Identification (Search, Code, Name)
+    const desktopInput = el("materialRows").querySelector(`tr.hidden.md\\:table-row[data-material-idx="${i}"] .matSearch[data-i="${i}"]`);
     if (desktopInput) {
-      const desktopRow = desktopInput.closest("tr");
-      if (desktopRow) {
-        const cells = desktopRow.querySelectorAll("td");
+      desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
+      const firstRow = desktopInput.closest("tr");
+      if (firstRow) {
+        const cells = firstRow.querySelectorAll("td");
+        // Row 1 has: Search (colspan 3), Code, Name
         if (cells[1]) cells[1].textContent = ln.code || "—";
         if (cells[2]) cells[2].textContent = ln.name || "—";
-        if (cells[3]) cells[3].textContent = fmt(ln.unitCost);
-        if (cells[5]) cells[5].textContent = fmt(costBeforeSalesProfit);
-        if (cells[6]) cells[6].textContent = fmt(lineTotal);
-        if (cells[7]) cells[7].textContent = fmt(salesProfitAmount);
       }
-      desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
+    }
+
+    // Row 2: Costs & Actions (empty colspan, Unit Cost, Qty, Cost before Sales Profit, Line Total, Sales Profit, Remove)
+    const secondRow = el("materialRows").querySelector(`tr.hidden.md\\:table-row[data-material-idx="${i}"]:nth-of-type(2)`);
+    // Actually, nth-of-type won't work reliably. Let's use a different approach:
+    const allDesktopRows = el("materialRows").querySelectorAll(`tr.hidden.md\\:table-row[data-material-idx="${i}"]`);
+    if (allDesktopRows.length >= 2) {
+      const costsRow = allDesktopRows[1]; // Second row
+      const cells = costsRow.querySelectorAll("td");
+      // Row 2 has: empty (colspan 3), Unit Cost, Qty input, Cost before Sales Profit, Line Total, Sales Profit, Remove
+      if (cells[1]) cells[1].textContent = fmt(ln.unitCost);
+      if (cells[3]) cells[3].textContent = fmt(costBeforeSalesProfit);
+      if (cells[4]) cells[4].textContent = fmt(lineTotal);
+      if (cells[5]) cells[5].textContent = fmt(salesProfitAmount);
     }
 
     // Find and update mobile card using data-i attribute
