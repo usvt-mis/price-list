@@ -181,9 +181,18 @@
     const cph = branch ? Number(branch.CostPerHour) : NaN;
     el("costPerHour").textContent = branch ? fmt(cph) : "—";
 
-    const rows = labor.map((j, idx) => {
+    // Create sorted display array with checked jobs first, unchecked last
+    const displayJobs = [
+      ...labor.filter(j => j.checked !== false),  // Checked jobs (top)
+      ...labor.filter(j => j.checked === false)   // Unchecked jobs (bottom)
+    ];
+
+    const rows = displayJobs.map((j) => {
       // Initialize checked state if not present (default: true)
       if (j.checked === undefined) j.checked = true;
+
+      // Find original index in labor array for checkbox handler
+      const originalIdx = labor.indexOf(j);
 
       const isChecked = j.checked;
       const mh = Number(j.ManHours);
@@ -193,10 +202,10 @@
       const rowClass = isChecked ? "border-b" : "border-b bg-slate-50";
       const textClass = isChecked ? "" : "line-through text-slate-400";
 
-      return `<tr class="${rowClass}" data-idx="${idx}">
+      return `<tr class="${rowClass}" data-idx="${originalIdx}">
         <td class="py-2">
           <input type="checkbox" class="job-checkbox w-5 h-5 cursor-pointer"
-                 data-idx="${idx}" ${isChecked ? "checked" : ""}>
+                 data-idx="${originalIdx}" ${isChecked ? "checked" : ""}>
         </td>
         <td class="py-2 ${textClass}">${j.JobName}</td>
         <td class="py-2 text-right ${textClass}">${fmt(mh)}</td>
