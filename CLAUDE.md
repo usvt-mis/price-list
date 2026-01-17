@@ -123,6 +123,7 @@ Each HTTP function file:
    - Travel Cost = Km × 15 baht/km (base cost)
    - Travel Cost includes Sales Profit multiplier applied (e.g., 10% Sales Profit adds 10% to travel cost)
 8. Grand total = labor (adjusted) + materials (adjusted) + travel cost (with sales profit applied)
+   - Sub Total before Sales Profit in footer shows labor + materials + travel BEFORE sales profit multiplier
    - Grand Overhead in footer shows combined overhead + sales profit adjustment (labor + materials only)
    - Travel Sales Profit is displayed separately in the grand total breakdown
 
@@ -201,8 +202,12 @@ Each HTTP function file:
 - Event listeners:
   - Sales Profit % changes trigger `renderLabor()`, `renderMaterials()`, and `calcAll()` for real-time updates (lines ~685-689)
   - Travel Km changes trigger `calcAll()` (line ~690)
-- Footer grand overhead shows combined overhead + sales profit adjustment (labor + materials only)
-- Travel Sales Profit is displayed separately in the grand total breakdown
+- Grand total breakdown displays:
+  - **Labor**: Final labor cost (after branch + sales profit multipliers)
+  - **Materials**: Final materials cost (after branch + sales profit multipliers)
+  - **Overhead**: Combined overhead + sales profit adjustment (labor + materials only)
+  - **Travel Sales Profit**: Sales profit portion from travel (not the full travel cost)
+  - **Sub Total before Sales Profit**: Labor + materials + travel BEFORE sales profit multiplier is applied
 
 ### Sales Profit Column (Labor Table)
 - The labor table includes a **Sales Profit** column that shows the Sales Profit amount for each job row
