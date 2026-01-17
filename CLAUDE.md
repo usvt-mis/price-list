@@ -12,7 +12,7 @@ This is a Price List Calculator - a web application for calculating service cost
 The calculator computes total cost based on three components:
 1. **Labor**: Job manhours × branch-specific cost per hour
 2. **Materials**: User-selected materials with quantities
-3. **Overhead**: Percentage-based and fixed amounts (with branch defaults)
+3. **Overhead**: Sequential percentage-based multipliers (with branch defaults)
 
 ## Architecture
 
@@ -20,7 +20,7 @@ The calculator computes total cost based on three components:
 
 The application expects these SQL Server tables:
 - `MotorTypes` - Motor type definitions
-- `Branches` - Branch locations with CostPerHour, OverheadPercent, OverheadFixed
+- `Branches` - Branch locations with CostPerHour, OverheadPercent, PolicyProfit
 - `Jobs` - Job definitions with JobCode, JobName, SortOrder
 - `Jobs2MotorType` - Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours)
   - Uses LEFT JOIN so all Jobs are returned; jobs without matches return 0
@@ -44,6 +44,7 @@ The application expects these SQL Server tables:
 - No build process - uses CDN for Tailwind CSS
 - State managed in global variables (`branches`, `labor`, `materialLines`)
 - API communication via `fetch()`
+- **Favicon**: Calculator emoji (🧮) using SVG data URI for scalability
 
 ## Development Commands
 
@@ -91,15 +92,20 @@ Each HTTP function file:
 ### Frontend Data Flow
 1. On load: Fetch motor types and branches for dropdowns
 2. User selects motor type → Fetch ALL jobs with motor-type-specific manhours
-3. Labor costs calculated as: sum(job.ManHours × branch.CostPerHour) for **checked jobs only**
-   - Labor table displays a checkbox, JobName, Manhours, and Cost
+3. Labor costs calculated as: sum(job.ManHours × AdjustedCostPerHour) for **checked jobs only**
+   - **AdjustedCostPerHour = CostPerHour × (1 + OverheadPercent/100) × (1 + PolicyProfit/100)**
+   - Multipliers are applied to CostPerHour first, then multiplied by manhours
+   - Labor table displays a checkbox, JobName, Manhours, and Cost (with multipliers applied)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
    - Unchecked rows are visually disabled (strikethrough text, grey background)
 4. User adds materials → Search API with debounce (250ms)
-5. Overhead calculated as: fixed + ((labor + materials) × percentage / 100)
-6. Grand total = labor + materials + overhead
+5. Material costs calculated as: sum(AdjustedUnitCost × Qty)
+   - **AdjustedUnitCost = UnitCost × (1 + OverheadPercent/100) × (1 + PolicyProfit/100)**
+   - Multipliers are applied to UnitCost first, then multiplied by quantity
+6. Grand total = labor (adjusted) + materials (adjusted)
+   - Overhead displayed is the difference between adjusted and base totals
 
 ### Jobs Panel UX
 - Each job row has a checkbox in the first column (default: checked)

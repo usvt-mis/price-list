@@ -9,7 +9,7 @@ app.http("branches", {
     try {
       const pool = await getPool();
       const r = await pool.request().query(`
-        SELECT BranchId, BranchName, CostPerHour, OverheadPercent, OverheadFixed
+        SELECT BranchId, BranchName, CostPerHour, OverheadPercent, PolicyProfit
         FROM dbo.Branches
         ORDER BY BranchName;
       `);

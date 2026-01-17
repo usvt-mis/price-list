@@ -103,8 +103,8 @@
           <p class="text-xs text-slate-500 mt-1">Default comes from Branch; you can override.</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700">Overhead fixed</label>
-          <input id="overheadFixed" type="number" step="0.01" min="0" class="mt-1 w-full rounded-lg border-slate-200"/>
+          <label class="block text-sm font-medium text-slate-700">Policy profit %</label>
+          <input id="policyProfit" type="number" step="0.01" min="0" class="mt-1 w-full rounded-lg border-slate-200"/>
         </div>
         <div class="rounded-xl border border-slate-200 p-4">
           <div class="text-sm text-slate-500">Overhead total</div>
@@ -180,7 +180,14 @@
   function renderLabor() {
     const branch = getSelectedBranch();
     const cph = branch ? Number(branch.CostPerHour) : NaN;
-    el("costPerHour").textContent = branch ? fmt(cph) : "—";
+
+    // Get multipliers for adjusted cost per hour
+    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
+    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
+    const multiplier = (1 + overheadPct / 100) * (1 + policyProfitPct / 100);
+    const adjustedCph = Number.isFinite(cph) ? cph * multiplier : NaN;
+
+    el("costPerHour").textContent = branch ? fmt(adjustedCph) : "—";
 
     // Create sorted display array with checked jobs first, unchecked last
     const displayJobs = [
@@ -197,7 +204,7 @@
 
       const isChecked = j.checked;
       const mh = Number(j.ManHours);
-      const cost = Number.isFinite(cph) ? mh * cph : NaN;
+      const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
 
       // Apply disabled styling when unchecked
       const rowClass = isChecked ? "border-b" : "border-b bg-slate-50";
@@ -227,13 +234,31 @@
     });
   }
 
-  function laborSubtotal() {
+  function laborSubtotalBase() {
     const branch = getSelectedBranch();
     const cph = branch ? Number(branch.CostPerHour) : NaN;
     if (!Number.isFinite(cph)) return NaN;
     return labor
       .filter(j => j.checked !== false)  // Only include checked jobs
       .reduce((sum, j) => sum + Number(j.ManHours) * cph, 0);
+  }
+
+  function laborSubtotal() {
+    const branch = getSelectedBranch();
+    const cph = branch ? Number(branch.CostPerHour) : NaN;
+    if (!Number.isFinite(cph)) return NaN;
+
+    // Get multipliers
+    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
+    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
+    const multiplier = (1 + overheadPct / 100) * (1 + policyProfitPct / 100);
+
+    // Apply multipliers to CostPerHour first, then multiply by manhours
+    const adjustedCph = cph * multiplier;
+
+    return labor
+      .filter(j => j.checked !== false)  // Only include checked jobs
+      .reduce((sum, j) => sum + Number(j.ManHours) * adjustedCph, 0);
   }
 
   // ---------- materials ----------
@@ -269,8 +294,13 @@
   }
 
   function renderMaterials() {
+    // Get multipliers for adjusted line totals
+    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
+    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
+    const multiplier = (1 + overheadPct / 100) * (1 + policyProfitPct / 100);
+
     el("materialRows").innerHTML = materialLines.map((ln, i) => {
-      const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
+      const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
 
       return `
         <!-- Mobile Card (visible < md) -->
@@ -420,7 +450,13 @@
   // Update a single material row's display without full re-render
   function updateMaterialRowDisplay(i) {
     const ln = materialLines[i];
-    const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
+
+    // Get multipliers for adjusted line total
+    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
+    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
+    const multiplier = (1 + overheadPct / 100) * (1 + policyProfitPct / 100);
+
+    const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
 
     // Find and update desktop row using data-i attribute
     const desktopInput = el("materialRows").querySelector(`tr.hidden.md\\:table-row .matSearch[data-i="${i}"]`);
@@ -485,10 +521,24 @@
     el("materialSubtotal").textContent = fmt(materialSubtotal());
   }
 
-  function materialSubtotal() {
+  function materialSubtotalBase() {
     return materialLines.reduce((sum, ln) => {
       if (!Number.isFinite(ln.unitCost)) return sum;
       return sum + ln.unitCost * ln.qty;
+    }, 0);
+  }
+
+  function materialSubtotal() {
+    // Get multipliers
+    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
+    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
+    const multiplier = (1 + overheadPct / 100) * (1 + policyProfitPct / 100);
+
+    return materialLines.reduce((sum, ln) => {
+      if (!Number.isFinite(ln.unitCost)) return sum;
+      // Apply multipliers to UnitCost first, then multiply by quantity
+      const adjustedUnitCost = ln.unitCost * multiplier;
+      return sum + adjustedUnitCost * ln.qty;
     }, 0);
   }
 
@@ -497,22 +547,34 @@
     const b = getSelectedBranch();
     if (!b) return;
     el("overheadPct").value = Number(b.OverheadPercent || 0);
-    el("overheadFixed").value = Number(b.OverheadFixed || 0);
+    el("policyProfit").value = Number(b.PolicyProfit || 0);
   }
 
   function overheadTotal(laborSub, materialSub) {
-    const pct = Math.max(0, Number(el("overheadPct").value || 0));
-    const fixed = Math.max(0, Number(el("overheadFixed").value || 0));
+    const overheadPct = Math.max(0, Number(el("overheadPct").value || 0));
+    const policyProfitPct = Math.max(0, Number(el("policyProfit").value || 0));
     const base = (Number.isFinite(laborSub) ? laborSub : 0) + (Number.isFinite(materialSub) ? materialSub : 0);
-    return fixed + (base * pct / 100);
+    // Apply overhead percent multiplier, then policy profit multiplier
+    const afterOverhead = base * (1 + overheadPct / 100);
+    return afterOverhead * (1 + policyProfitPct / 100);
   }
 
   // ---------- calc / render totals ----------
   function calcAll() {
+    // Get base amounts (without multipliers)
+    const lBase = laborSubtotalBase();
+    const mBase = materialSubtotalBase();
+
+    // Get adjusted amounts (with multipliers applied)
     const l = laborSubtotal();
     const m = materialSubtotal();
-    const o = overheadTotal(l, m);
-    const g = (Number.isFinite(l) ? l : 0) + (Number.isFinite(m) ? m : 0) + (Number.isFinite(o) ? o : 0);
+
+    // Overhead is the difference between adjusted and base
+    const o = (Number.isFinite(l) ? l : 0) + (Number.isFinite(m) ? m : 0) -
+              ((Number.isFinite(lBase) ? lBase : 0) + (Number.isFinite(mBase) ? mBase : 0));
+
+    // Grand total is the sum of adjusted amounts
+    const g = (Number.isFinite(l) ? l : 0) + (Number.isFinite(m) ? m : 0);
 
     el("laborSubtotal").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("materialSubtotal").textContent = fmt(m);
@@ -528,7 +590,7 @@
   el("motorType").addEventListener("change", loadLabor);
   el("branch").addEventListener("change", () => { renderLabor(); applyBranchDefaultsToOverhead(); calcAll(); });
   el("overheadPct").addEventListener("input", calcAll);
-  el("overheadFixed").addEventListener("input", calcAll);
+  el("policyProfit").addEventListener("input", calcAll);
   el("addMaterial").addEventListener("click", addMaterialRow);
 
   loadInit()
