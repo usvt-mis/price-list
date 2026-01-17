@@ -108,7 +108,7 @@ Each HTTP function file:
      - `BranchMultiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)` (from branch defaults, silent)
      - `SalesProfitMultiplier = (1 + SalesProfit%/100)` (user input, can be negative)
    - Multipliers are applied to CostPerHour first, then multiplied by effectiveManHours
-   - Labor table displays a checkbox, JobName, Manhours (editable), and Cost (with all multipliers applied)
+   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (with all multipliers applied), and Sales Profit (per job)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
@@ -184,13 +184,28 @@ Each HTTP function file:
      - Integer values only (whole kilometers)
      - Default value: 0
   3. **Travel/Shipping Cost** - Display showing calculated value (Km × 15 baht/km)
-- Helper functions (`src/index.html`, lines ~206-229):
+- Helper functions (`src/index.html`, lines ~206-239):
   - `getBranchMultiplier()` - Returns `(1 + OverheadPercent/100) × (1 + PolicyProfit/100)` from branch defaults
   - `getSalesProfitMultiplier()` - Returns `(1 + SalesProfit%/100)` from user input
   - `getTravelCost()` - Returns `Km × 15`
   - `getCompleteMultiplier()` - Returns branch multiplier × sales profit multiplier
-- Event listeners trigger `calcAll()` on input changes (lines 657-658)
+  - `getJobSalesProfit(job, costPerHour, branchMultiplier)` - Calculates Sales Profit for a single job
+    - Formula: `effectiveManHours × CostPerHour × BranchMultiplier × (SalesProfitMultiplier - 1)`
+    - This isolates the Sales Profit portion applied after the branch multipliers
+- Event listeners trigger `calcAll()` on input changes (lines ~657-658)
 - Footer grand overhead shows combined overhead + sales profit adjustment
+
+### Sales Profit Column (Labor Table)
+- The labor table includes a **Sales Profit** column that shows the Sales Profit amount for each job row
+- Calculation is performed per job using `getJobSalesProfit()` helper function
+- Sales Profit is calculated **after** the Branch Multiplier (Overhead% + PolicyProfit%) is applied
+- Formula breakdown:
+  - `Cost_After_Branch = effectiveManHours × CostPerHour × BranchMultiplier`
+  - `Sales_Profit = Cost_After_Branch × (SalesProfitMultiplier - 1)`
+  - When Sales Profit % = 0: shows 0.00
+  - When Sales Profit % > 0: shows positive profit amount
+  - When Sales Profit % < 0 (discount): shows negative value
+- The column uses the same styling as the Cost column (right-aligned, with strikethrough for unchecked jobs)
 
 ### Responsive Design
 - The material panel uses a **dual-layout approach**:
