@@ -108,7 +108,7 @@ Each HTTP function file:
      - `BranchMultiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)` (from branch defaults, silent)
      - `SalesProfitMultiplier = (1 + SalesProfit%/100)` (user input, can be negative)
    - Multipliers are applied to CostPerHour first, then multiplied by effectiveManHours
-   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (after branch multiplier), Selling Price (with all multipliers applied), **Final Price** (with commission), and Sales Profit (profit amount per job)
+   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (after branch multiplier), Selling Price (with all multipliers applied), **Final Price** (with commission)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
@@ -131,7 +131,8 @@ Each HTTP function file:
    - Sales Profit % can be negative for discounts
    - Travel Cost = Km × 15 baht/km (base cost)
    - Travel Cost includes Sales Profit multiplier applied (e.g., 10% Sales Profit adds 10% to travel cost)
-8. **Grand Total** = sum of all Final Prices (labor + materials) + travel cost
+   - **Travel Final Price** includes commission multiplier applied (e.g., 2% commission adds 2% to travel cost)
+8. **Grand Total** = sum of all Final Prices (labor + materials + travel)
    - **Sub Grand Total** = labor (adjusted) + materials (adjusted) + travel cost (used for commission calculation)
    - Sub Total Cost in footer shows labor + materials + travel BEFORE sales profit multiplier
    - Grand Overhead in footer shows combined overhead + sales profit adjustment (labor + materials only)
@@ -194,18 +195,14 @@ Each HTTP function file:
      - Integer values only (whole kilometers)
      - Default value: 0
      - Styling: Bold borders (`border-2 border-slate-400`) for enhanced visibility
-  2. **Travel/Shipping Cost** - Display showing calculated value (Km × 15 baht/km × SalesProfitMultiplier)
+  2. **Travel/Shipping Final Price** - Display showing calculated value with commission (Km × 15 baht/km × SalesProfitMultiplier × CommissionMultiplier)
 - Event listeners:
   - Travel Km changes trigger `calcAll()` (line ~690)
 
 ### Grand Total Panel
-- Three-tier layout: prominent Grand Total at top, followed by side-by-side cards on desktop (stacked on mobile)
+- Three-tier layout: side-by-side cards on top (Sub Grand Total + Breakdown), with Grand Total at bottom (stacked on mobile)
 - Uses CSS Grid with `grid grid-cols-1 md:grid-cols-2 gap-6` for responsive layout
-- **Top Card (New Grand Total)**: Sum of all Final Prices including commission
-  - Displayed at `text-6xl font-extrabold` (60px) with gradient background - largest element for visual hierarchy
-  - Formula: `Grand Total = sum(labor Final Prices) + sum(materials Final Prices) + travel cost`
-  - Uses `bg-gradient-to-r from-slate-900 to-slate-800` for visual distinction
-- **Left Card (Sub Grand Total)**: Sub Grand Total display + Sales Profit % input
+- **Top Row: Left Card (Sub Grand Total)**: Sub Grand Total display + Sales Profit % input
   - Sub Grand Total: Displayed at `text-5xl font-extrabold` (48px)
   - Used for commission calculation (formerly called "Grand Total")
   - Sales Profit %: Number input with `step="0.01"` (allows decimals), can be negative for discounts
@@ -213,23 +210,24 @@ Each HTTP function file:
     - Applied to labor, materials, and travel costs
     - Default value: 0
     - Larger input with `px-4 py-3 text-lg` for prominence
-- **Right Card**: Cost breakdown items with progressive typography sizing
+- **Top Row: Right Card**: Cost breakdown items with progressive typography sizing
   - Labor, Materials, Overhead, Travel Sales Profit: `text-sm` labels with `font-semibold` values
   - Sub Total Cost: `text-base font-medium` label with `text-xl font-bold` value (20px) - second-largest
   - Commission Section: `text-base font-medium text-emerald-400` labels with `text-2xl font-bold text-emerald-400` values (24px)
   - Visual separators using `border-t border-slate-700` between sections
+- **Bottom Card (New Grand Total)**: Sum of all Final Prices including commission
+  - Displayed at `text-6xl font-extrabold` (60px) with gradient background - largest element for visual hierarchy
+  - Formula: `Grand Total = sum(labor Final Prices) + sum(materials Final Prices) + travel Final Price`
+  - Uses `bg-gradient-to-r from-slate-900 to-slate-800` for visual distinction
 - Helper functions (`src/index.html`, lines ~206-239):
   - `getBranchMultiplier()` - Returns `(1 + OverheadPercent/100) × (1 + PolicyProfit/100)` from branch defaults
   - `getSalesProfitMultiplier()` - Returns `(1 + SalesProfit%/100)` from user input
   - `getTravelCost()` - Returns `Km × 15`
   - `getCompleteMultiplier()` - Returns branch multiplier × sales profit multiplier
-  - `getJobSalesProfit(job, costPerHour, branchMultiplier)` - Calculates Sales Profit for a single job
-    - Formula: `effectiveManHours × CostPerHour × BranchMultiplier × (SalesProfitMultiplier - 1)`
-    - This isolates the Sales Profit portion applied after the branch multipliers
 - Event listeners:
   - Sales Profit % changes trigger `renderLabor()`, `renderMaterials()`, and `calcAll()` for real-time updates (lines ~685-689)
 - Grand total breakdown displays:
-  - **Grand Total**: Sum of all Final Prices (labor + materials) + travel cost (displayed prominently at top)
+  - **Grand Total**: Sum of all Final Prices (labor + materials + travel) displayed prominently at bottom
   - **Sub Grand Total**: Labor + materials + travel cost with all multipliers applied (used for commission calculation)
   - **Labor**: Final labor cost (after branch + sales profit multipliers)
   - **Materials**: Final materials cost (after branch + sales profit multipliers)
@@ -254,18 +252,6 @@ Each HTTP function file:
 - Commission percent is stored globally (`commissionPercent`) for use in render functions to calculate Final Prices
 - Commission elements are visually separated with a border (`border-t border-slate-700`) and styled with emerald color (`text-emerald-400`) for prominence
 - Updates in real-time whenever any value affecting SGT or STC changes (branch, motor type, jobs, materials, sales profit %, travel distance)
-
-### Sales Profit Column (Labor Table)
-- The labor table includes a **Sales Profit** column that shows the Sales Profit amount for each job row
-- Sales Profit is calculated **after** the Branch Multiplier (Overhead% + PolicyProfit%) is applied
-- Formula breakdown (via `getJobSalesProfit()` function):
-  - `Cost_After_Branch = effectiveManHours × CostPerHour × BranchMultiplier`
-  - `Sales_Profit = Cost_After_Branch × (SalesProfitMultiplier - 1)`
-  - When Sales Profit % = 0: shows 0.00
-  - When Sales Profit % > 0: shows positive profit amount
-  - When Sales Profit % < 0 (discount): shows negative value
-- The column uses the same styling as the Selling Price column (right-aligned, with strikethrough for unchecked jobs)
-- Updates in real-time when the Sales Profit % input changes
 
 ### Sales Profit Column (Materials Table)
 - The materials table includes a **Sales Profit** column that shows the Sales Profit amount for each material line
@@ -306,7 +292,7 @@ Each HTTP function file:
 
 ### Final Price Column (Labor Table)
 - The labor table includes a **Final Price** column that shows the price including commission for each job row
-- Positioned between "Selling Price" and "Sales Profit" columns
+- Positioned after "Selling Price" column (last column)
 - Formula breakdown:
   - `Final_Price = Selling_Price × (1 + commissionPercent / 100)`
   - The commission percent is calculated based on the ratio of Sub Grand Total to Sub Total Cost
@@ -338,15 +324,15 @@ Each HTTP function file:
     - Table headers: Material, Code, Name, Unit Cost, Qty, Cost, Line Total, Final Price, Sales Profit, Remove
     - Search input uses fixed positioning (`fixed z-50`) for dropdown overlay
     - Table uses `overflow-x-auto` for horizontal scrolling on smaller screens
-- The labor table uses a **single-row table layout** with 7 columns:
-  - Table headers: (checkbox), Job, Manhours, Cost, Selling Price, Final Price, Sales Profit
+- The labor table uses a **single-row table layout** with 6 columns:
+  - Table headers: (checkbox), Job, Manhours, Cost, Selling Price, Final Price
 - The Grand Total Panel uses a **three-tier layout**:
-  - Top: Grand Total display (prominent, full width on all screen sizes)
-  - Bottom: Side-by-side cards on desktop (stacked on mobile)
+  - Top: Side-by-side cards on desktop (Sub Grand Total + Breakdown)
+  - Bottom: Grand Total display (prominent, full width on all screen sizes)
   - **Mobile (< md)**: All cards stack vertically with `grid-cols-1`
-  - **Desktop (md+)**: Top card full width, bottom two cards side-by-side with `md:grid-cols-2 gap-6`
-  - Left bottom card: Sub Grand Total + Sales Profit input (centered on mobile, left-aligned on desktop)
-  - Right bottom card: Breakdown items with flex layout for label/value pairs
+  - **Desktop (md+)**: Top two cards side-by-side with `md:grid-cols-2 gap-6`, bottom card full width
+  - Left top card: Sub Grand Total + Sales Profit input (centered on mobile, left-aligned on desktop)
+  - Right top card: Breakdown items with flex layout for label/value pairs
   - Progressive typography sizing maintained across all breakpoints
 - Mobile cards use standard block flow positioning
 - Desktop search dropdown uses fixed positioning to overlay other elements
