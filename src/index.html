@@ -23,7 +23,6 @@
   <div class="max-w-6xl mx-auto p-6 space-y-6">
     <header>
       <h1 class="text-3xl font-bold tracking-tight">Price List Calculator</h1>
-      <p class="text-slate-600 mt-1">Labor (DB), Materials (DB), Sales Profit & Travel (manual)</p>
     </header>
 
     <!-- PART 1: Labor -->
@@ -61,8 +60,8 @@
               <th class="w-10 py-2"></th>
               <th class="text-left py-2">Job</th>
               <th class="text-right py-2">Manhours</th>
-              <th class="text-right py-2">Cost before Sales Profit</th>
               <th class="text-right py-2">Cost</th>
+              <th class="text-right py-2">Selling Price</th>
               <th class="text-right py-2">Sales Profit</th>
             </tr>
           </thead>
@@ -89,7 +88,7 @@
               <th class="text-left py-2">Name</th>
               <th class="text-right py-2">Unit Cost</th>
               <th class="text-right py-2">Qty</th>
-              <th class="text-right py-2">Cost before Sales Profit</th>
+              <th class="text-right py-2">Cost</th>
               <th class="text-right py-2">Line Total</th>
               <th class="text-right py-2">Sales Profit</th>
               <th class="text-right py-2"></th>
@@ -141,7 +140,7 @@
           <div>Materials: <span id="grandMaterials" class="font-semibold text-white">—</span></div>
           <div>Overhead: <span id="grandOverhead" class="font-semibold text-white">—</span></div>
           <div>Travel Sales Profit: <span id="grandTravelSalesProfit" class="font-semibold text-white">—</span></div>
-          <div>Sub Total before Sales Profit: <span id="grandSubTotalBeforeSalesProfit" class="font-semibold text-white">—</span></div>
+          <div>Sub Total Cost: <span id="grandSubTotalBeforeSalesProfit" class="font-semibold text-white">—</span></div>
         </div>
       </div>
     </section>
@@ -433,7 +432,7 @@
           <!-- Cost before Sales Profit -->
           ${ln.code ? `
           <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
-            <span class="text-sm text-slate-600">Cost before Sales Profit</span>
+            <span class="text-sm text-slate-600">Cost</span>
             <span class="text-xl font-bold">${fmt(costBeforeSalesProfit)}</span>
           </div>
           ` : ''}
@@ -621,12 +620,12 @@
 
       // Update or create the Cost before Sales Profit card
       let costBeforeSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
-        .find(el => el.querySelector(".text-sm")?.textContent.includes("Cost before Sales Profit"));
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Cost"));
       if (!costBeforeSection && ln.code) {
         costBeforeSection = document.createElement("div");
         costBeforeSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
         costBeforeSection.innerHTML = `
-          <span class="text-sm text-slate-600">Cost before Sales Profit</span>
+          <span class="text-sm text-slate-600">Cost</span>
           <span class="text-xl font-bold">${fmt(costBeforeSalesProfit)}</span>
         `;
         const qtySection = mobileCard.querySelector("label")?.closest("div");
@@ -656,7 +655,7 @@
 
       // Update or create the Sales Profit card
       let salesProfitSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
-        .find(el => el.querySelector(".text-sm")?.textContent.includes("Sales Profit") && !el.querySelector(".text-sm")?.textContent.includes("Cost before"));
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Sales Profit") && !el.querySelector(".text-sm")?.textContent.includes("Cost"));
       if (!salesProfitSection && ln.code) {
         salesProfitSection = document.createElement("div");
         salesProfitSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
@@ -731,7 +730,7 @@
     // Grand total = labor + materials + travel cost (with sales profit applied)
     const g = l + m + travelCost;
 
-    // Sub Total before Sales Profit = labor + materials + travel (before sales profit multiplier)
+    // Sub Total Cost = labor + materials + travel (before sales profit multiplier)
     const subTotalBeforeSalesProfit = lAfterBranch + mAfterBranch + travelBase;
 
     // Update display elements
