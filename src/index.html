@@ -318,7 +318,7 @@
     el("costPerHour").textContent = branch ? fmt(adjustedCph) : "—";
 
     // Update table header based on mode
-    const laborTableHead = el("laborRows").previousElementSibling.querySelector("thead");
+    const laborTableHead = el("laborRows").previousElementSibling;
     laborTableHead.innerHTML = `
       <tr class="border-b">
         <th class="w-10 py-2"></th>
@@ -471,7 +471,7 @@
     const branchMultiplier = getBranchMultiplier();
 
     // Update table header based on mode
-    const materialsTableHead = el("materialRows").previousElementSibling.querySelector("thead");
+    const materialsTableHead = el("materialRows").previousElementSibling;
     materialsTableHead.innerHTML = `
       <tr class="border-b">
         <th class="text-left py-2">Material</th>

@@ -346,6 +346,7 @@ Each HTTP function file:
 - Responsive behavior: Mode switcher works identically on mobile and desktop
 - Accessibility: Uses `role="group"`, `aria-label`, and `aria-pressed` attributes for screen readers
 - Mode changes trigger `renderLabor()` and `renderMaterials()` for immediate UI updates
+- **Note**: When updating table headers dynamically, use `el("id").previousElementSibling` directly (not `.querySelector("thead")`) since the `<thead>` element IS the previous sibling of `<tbody>`
 
 ## Adding New API Endpoints
 
