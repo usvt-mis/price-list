@@ -108,7 +108,7 @@ Each HTTP function file:
      - `BranchMultiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)` (from branch defaults, silent)
      - `SalesProfitMultiplier = (1 + SalesProfit%/100)` (user input, can be negative)
    - Multipliers are applied to CostPerHour first, then multiplied by effectiveManHours
-   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (after branch multiplier), Selling Price (with all multipliers applied), **Final Price** (with commission)
+   - Labor table displays: checkbox, JobName, Manhours (editable), Cost+Ovh (after branch multiplier), **Final Price** (with commission)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
@@ -119,9 +119,9 @@ Each HTTP function file:
    - Multipliers are applied to UnitCost first, then multiplied by quantity
    - Materials use a **single-row table layout on desktop, card layout on mobile**:
      - Each material is displayed with: search input, material code/name, unit cost, quantity input, and cost breakdown
-     - Cost breakdown includes: Cost, Line Total, **Final Price**, and Sales Profit
-   - **Desktop (md+)**: Traditional single-row table with 10 columns
-     - Table headers: Material, Code, Name, Unit Cost, Qty, Cost, Line Total, Final Price, Sales Profit, Remove
+     - Cost breakdown includes: Cost+Ovh, **Final Price**
+   - **Desktop (md+)**: Traditional single-row table with 8 columns
+     - Table headers: Material, Code, Name, Unit Cost, Qty, Cost+Ovh, Final Price, Remove
      - Each material occupies one `<tr>` with all columns inline
      - Search input uses fixed positioning for dropdown overlay
    - **Mobile (< md)**: Single column card layout with larger touch targets
@@ -253,61 +253,47 @@ Each HTTP function file:
 - Commission elements are visually separated with a border (`border-t border-slate-700`) and styled with emerald color (`text-emerald-400`) for prominence
 - Updates in real-time whenever any value affecting SGT or STC changes (branch, motor type, jobs, materials, sales profit %, travel distance)
 
-### Sales Profit Column (Materials Table)
-- The materials table includes a **Sales Profit** column that shows the Sales Profit amount for each material line
-- Calculation is performed per material line in the `renderMaterials()` function
-- Sales Profit is calculated **after** the Branch Multiplier (Overhead% + PolicyProfit%) is applied
-- Formula breakdown:
-  - `Cost_After_Branch = unitCost × qty × BranchMultiplier`
-  - `Sales_Profit = Cost_After_Branch × (SalesProfitMultiplier - 1)`
-  - When Sales Profit % = 0: shows 0.00
-  - When Sales Profit % > 0: shows positive profit amount
-  - When Sales Profit % < 0 (discount): shows negative value
-- The Sales Profit is displayed in both desktop table column and mobile card layouts
-- Updates in real-time when the Sales Profit % input changes
-
-### Cost Column (Labor Table)
-- The labor table includes a **Cost** column that shows the cost after the Branch Multiplier but before Sales Profit
-- Positioned between "Manhours" and "Selling Price" columns
+### Cost+Ovh Column (Labor Table)
+- The labor table includes a **Cost+Ovh** column that shows the cost after the Branch Multiplier but before Sales Profit
+- Positioned between "Manhours" and "Final Price" columns
 - Formula breakdown:
   - `Cost_Before_Sales_Profit = effectiveManHours × CostPerHour × BranchMultiplier`
   - This is equivalent to: `Final_Selling_Price / SalesProfitMultiplier`
-  - When Sales Profit % = 0: equals the Selling Price
-  - When Sales Profit % > 0: shows lower value than Selling Price
-  - When Sales Profit % < 0 (discount): shows higher value than Selling Price
-- The column uses the same styling as the Selling Price column (right-aligned, with strikethrough for unchecked jobs)
+  - When Sales Profit % = 0: equals the Final Selling Price
+  - When Sales Profit % > 0: shows lower value than Final Price
+  - When Sales Profit % < 0 (discount): shows higher value than Final Price
+- The column uses the same styling as the Final Price column (right-aligned, with strikethrough for unchecked jobs)
 - Updates in real-time when the Sales Profit % input changes
 
-### Cost Column (Materials Table)
-- The materials table includes a **Cost** column that shows the cost after the Branch Multiplier but before Sales Profit
-- Displayed between "Qty" and "Line Total" columns
+### Cost+Ovh Column (Materials Table)
+- The materials table includes a **Cost+Ovh** column that shows the cost after the Branch Multiplier but before Sales Profit
+- Displayed between "Qty" and "Final Price" columns
 - Formula breakdown:
   - `Cost_Before_Sales_Profit = unitCost × qty × BranchMultiplier`
-  - This is equivalent to: `Line_Total / SalesProfitMultiplier`
-  - When Sales Profit % = 0: equals the Line Total
-  - When Sales Profit % > 0: shows lower value than Line Total
-  - When Sales Profit % < 0 (discount): shows higher value than Line Total
+  - When Sales Profit % = 0: equals the Final Price (before commission)
+  - When Sales Profit % > 0: shows lower value than Final Price
+  - When Sales Profit % < 0 (discount): shows higher value than Final Price
 - The value is displayed in both desktop table column and mobile card layouts
 - Updates in real-time when the Sales Profit % input changes
 
 ### Final Price Column (Labor Table)
 - The labor table includes a **Final Price** column that shows the price including commission for each job row
-- Positioned after "Selling Price" column (last column)
+- Positioned after "Cost+Ovh" column (last column)
 - Formula breakdown:
   - `Final_Price = Selling_Price × (1 + commissionPercent / 100)`
   - The commission percent is calculated based on the ratio of Sub Grand Total to Sub Total Cost
   - When Commission% = 0: equals the Selling Price
   - When Commission% > 0: shows higher value than Selling Price
-- The column uses the same styling as the Selling Price column (right-aligned, with strikethrough for unchecked jobs)
+- The column uses the same styling as other price columns (right-aligned, with strikethrough for unchecked jobs)
 - Updates in real-time when the commission percentage changes (triggered by changes affecting Sub Grand Total)
 
 ### Final Price Column (Materials Table)
 - The materials table includes a **Final Price** column that shows the price including commission for each material line
-- Positioned between "Line Total" and "Sales Profit" columns
+- Positioned after "Cost+Ovh" column
 - Formula breakdown:
   - `Final_Price = Line_Total × (1 + commissionPercent / 100)`
   - The commission percent is calculated based on the ratio of Sub Grand Total to Sub Total Cost
-  - When Commission% = 0: equals the Line Total
+  - When Commission% = 0: equals the Line Total (with sales profit applied)
   - When Commission% > 0: shows higher value than Line Total
 - The value is displayed in both desktop table column and mobile card layouts
 - Updates in real-time when the commission percentage changes (triggered by changes affecting Sub Grand Total)
@@ -317,15 +303,15 @@ Each HTTP function file:
   - **Mobile (< md breakpoint / 768px)**: Single-column card layout with stacked information
     - Compact selected material display (name on one line, code + unit cost on second)
     - Full-width quantity input (48px min-height) with centered text for easy entry
-    - Cost, Line Total, Final Price, and Sales Profit displayed in white cards with prominent styling
+    - Cost+Ovh and Final Price displayed in white cards with prominent styling
     - Larger touch targets (44px minimum) for all interactive elements
-  - **Desktop (md+)**: Traditional single-row table layout with 10 columns
+  - **Desktop (md+)**: Traditional single-row table layout with 8 columns
     - Each material occupies one `<tr>` with all columns inline
-    - Table headers: Material, Code, Name, Unit Cost, Qty, Cost, Line Total, Final Price, Sales Profit, Remove
+    - Table headers: Material, Code, Name, Unit Cost, Qty, Cost+Ovh, Final Price, Remove
     - Search input uses fixed positioning (`fixed z-50`) for dropdown overlay
     - Table uses `overflow-x-auto` for horizontal scrolling on smaller screens
-- The labor table uses a **single-row table layout** with 6 columns:
-  - Table headers: (checkbox), Job, Manhours, Cost, Selling Price, Final Price
+- The labor table uses a **single-row table layout** with 5 columns:
+  - Table headers: (checkbox), Job, Manhours, Cost+Ovh, Final Price
 - The Grand Total Panel uses a **three-tier layout**:
   - Top: Side-by-side cards on desktop (Sub Grand Total + Breakdown)
   - Bottom: Grand Total display (prominent, full width on all screen sizes)
