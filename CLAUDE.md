@@ -9,10 +9,13 @@ This is a Price List Calculator - a web application for calculating service cost
 - **Frontend**: Single-page HTML application (`src/index.html`) using vanilla JavaScript and Tailwind CSS
 - **Backend**: Azure Functions (Node.js) API providing data access to SQL Server
 
-The calculator computes total cost based on three components:
+The calculator computes total cost based on four components:
 1. **Labor**: Job manhours × branch-specific cost per hour
 2. **Materials**: User-selected materials with quantities
-3. **Overhead**: Sequential percentage-based multipliers (with branch defaults)
+3. **Sales Profit**: User-editable percentage applied after branch multipliers (can be negative for discounts)
+4. **Travel/Shipping**: Distance in Km multiplied by 15 baht/km rate
+
+**Note**: Branch defaults (OverheadPercent and PolicyProfit) are applied silently in the calculation and are not user-editable.
 
 ## Architecture
 
@@ -101,19 +104,25 @@ Each HTTP function file:
 3. User selects motor type → Fetch ALL jobs with motor-type-specific manhours
 4. Labor costs calculated as: sum(job.effectiveManHours × AdjustedCostPerHour) for **checked jobs only**
    - **effectiveManHours** stores the user-editable manhour value (defaults to original ManHours from database)
-   - **AdjustedCostPerHour = CostPerHour × (1 + OverheadPercent/100) × (1 + PolicyProfit/100)**
+   - **AdjustedCostPerHour = CostPerHour × BranchMultiplier × SalesProfitMultiplier**
+     - `BranchMultiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)` (from branch defaults, silent)
+     - `SalesProfitMultiplier = (1 + SalesProfit%/100)` (user input, can be negative)
    - Multipliers are applied to CostPerHour first, then multiplied by effectiveManHours
-   - Labor table displays a checkbox, JobName, Manhours (editable), and Cost (with multipliers applied)
+   - Labor table displays a checkbox, JobName, Manhours (editable), and Cost (with all multipliers applied)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
    - Unchecked rows are visually disabled (strikethrough text, grey background)
 5. User adds materials → Search API with debounce (250ms)
 6. Material costs calculated as: sum(AdjustedUnitCost × Qty)
-   - **AdjustedUnitCost = UnitCost × (1 + OverheadPercent/100) × (1 + PolicyProfit/100)**
+   - **AdjustedUnitCost = UnitCost × BranchMultiplier × SalesProfitMultiplier**
    - Multipliers are applied to UnitCost first, then multiplied by quantity
-7. Grand total = labor (adjusted) + materials (adjusted)
-   - Overhead displayed is the difference between adjusted and base totals
+7. User enters Sales Profit % and Travel/Shipping Distance (Km) in the "Sales Profit & Travel" panel
+   - Sales Profit % can be negative for discounts
+   - Travel Cost = Km × 15 baht/km
+8. Grand total = labor (adjusted) + materials (adjusted) + travel cost
+   - Overhead displayed in the panel shows only the branch overhead (difference between base and after-branch amounts)
+   - Grand Overhead in footer shows combined overhead + sales profit adjustment
 
 ### Jobs Panel UX
 - Each job row has a checkbox in the first column (default: checked)
@@ -165,6 +174,25 @@ Each HTTP function file:
 - Quantity input is full-width and prominent on mobile (48px min-height, centered text)
 - Desktop quantity input is wider (w-32) for easier typing
 - Quantity values are integer-only (decimals are truncated via `Math.trunc()`)
+
+### Sales Profit & Travel Panel
+- Contains two user-editable inputs and one calculated display:
+  1. **Sales Profit %** - Number input with `step="0.01"` (allows decimals)
+     - Can be negative for discounts
+     - Applied after branch multipliers (Overhead% and PolicyProfit%)
+     - Default value: 0
+  2. **Travel/Shipping Distance (Km)** - Number input with `step="1"` and `min="0"`
+     - Integer values only (whole kilometers)
+     - Default value: 0
+  3. **Travel/Shipping Cost** - Display showing calculated value (Km × 15 baht/km)
+- Helper functions (`src/index.html`, lines ~206-229):
+  - `getBranchMultiplier()` - Returns `(1 + OverheadPercent/100) × (1 + PolicyProfit/100)` from branch defaults
+  - `getSalesProfitMultiplier()` - Returns `(1 + SalesProfit%/100)` from user input
+  - `getTravelCost()` - Returns `Km × 15`
+  - `getCompleteMultiplier()` - Returns branch multiplier × sales profit multiplier
+- Event listeners trigger `calcAll()` on input changes (lines 657-658)
+- Panel overhead display shows only branch overhead (before sales profit)
+- Footer grand overhead shows combined overhead + sales profit adjustment
 
 ### Responsive Design
 - The material panel uses a **dual-layout approach**:
