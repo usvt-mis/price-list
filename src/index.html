@@ -140,7 +140,11 @@
           <div>Materials: <span id="grandMaterials" class="font-semibold text-white">—</span></div>
           <div>Overhead: <span id="grandOverhead" class="font-semibold text-white">—</span></div>
           <div>Travel Sales Profit: <span id="grandTravelSalesProfit" class="font-semibold text-white">—</span></div>
-          <div>Sub Total Cost: <span id="grandSubTotalBeforeSalesProfit" class="font-semibold text-white">—</span></div>
+          <div>Sub Total Cost: <span id="grandSubTotalBeforeSalesProfit" class="text-lg font-bold text-white">—</span></div>
+          <div class="border-t border-slate-700 pt-2 mt-2">
+            <div class="text-2xl font-bold text-emerald-400">Commission%: <span id="grandCommissionPercent">—</span></div>
+            <div class="text-2xl font-bold text-emerald-400">Commission: <span id="grandCommission">—</span></div>
+          </div>
         </div>
       </div>
     </section>
@@ -429,7 +433,7 @@
                    value="${ln.qty}"/>
           </div>
 
-          <!-- Cost before Sales Profit -->
+          <!-- Cost -->
           ${ln.code ? `
           <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
             <span class="text-sm text-slate-600">Cost</span>
@@ -618,7 +622,7 @@
         `;
       }
 
-      // Update or create the Cost before Sales Profit card
+      // Update or create the Cost card
       let costBeforeSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
         .find(el => el.querySelector(".text-sm")?.textContent.includes("Cost"));
       if (!costBeforeSection && ln.code) {
@@ -733,6 +737,27 @@
     // Sub Total Cost = labor + materials + travel (before sales profit multiplier)
     const subTotalBeforeSalesProfit = lAfterBranch + mAfterBranch + travelBase;
 
+    // Calculate commission percentage based on GT vs STC ratio
+    const gtToStcRatio = Number.isFinite(g) && Number.isFinite(subTotalBeforeSalesProfit) && subTotalBeforeSalesProfit > 0
+      ? g / subTotalBeforeSalesProfit
+      : 0;
+
+    let commissionPercent = 0;
+    if (gtToStcRatio < 0.8) {
+      commissionPercent = 0;
+    } else if (gtToStcRatio < 1) {
+      commissionPercent = 1;
+    } else if (gtToStcRatio <= 1.05) {
+      commissionPercent = 2;
+    } else if (gtToStcRatio <= 1.20) {
+      commissionPercent = 2.5;
+    } else {
+      commissionPercent = 5;
+    }
+
+    // Calculate commission value
+    const commission = g * (commissionPercent / 100);
+
     // Update display elements
     el("laborSubtotal").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("materialSubtotal").textContent = fmt(m);
@@ -744,6 +769,8 @@
     el("grandOverhead").textContent = fmt(overhead + salesProfitAdj); // Combined (labor + materials overhead + sales profit)
     el("grandTravelSalesProfit").textContent = fmt(travelSalesProfit); // Travel sales profit separately
     el("grandSubTotalBeforeSalesProfit").textContent = fmt(subTotalBeforeSalesProfit);
+    el("grandCommissionPercent").textContent = commissionPercent + "%";
+    el("grandCommission").textContent = fmt(commission);
   }
 
   // ---------- init ----------
