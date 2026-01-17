@@ -121,7 +121,6 @@ Each HTTP function file:
    - Sales Profit % can be negative for discounts
    - Travel Cost = Km × 15 baht/km
 8. Grand total = labor (adjusted) + materials (adjusted) + travel cost
-   - Overhead displayed in the panel shows only the branch overhead (difference between base and after-branch amounts)
    - Grand Overhead in footer shows combined overhead + sales profit adjustment
 
 ### Jobs Panel UX
@@ -191,7 +190,6 @@ Each HTTP function file:
   - `getTravelCost()` - Returns `Km × 15`
   - `getCompleteMultiplier()` - Returns branch multiplier × sales profit multiplier
 - Event listeners trigger `calcAll()` on input changes (lines 657-658)
-- Panel overhead display shows only branch overhead (before sales profit)
 - Footer grand overhead shows combined overhead + sales profit adjustment
 
 ### Responsive Design
