@@ -108,7 +108,7 @@ Each HTTP function file:
      - `BranchMultiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)` (from branch defaults, silent)
      - `SalesProfitMultiplier = (1 + SalesProfit%/100)` (user input, can be negative)
    - Multipliers are applied to CostPerHour first, then multiplied by effectiveManHours
-   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (base cost with all multipliers applied), and Sales Profit (profit amount per job)
+   - Labor table displays: checkbox, JobName, Manhours (editable), Cost before Sales Profit (after branch multiplier), Cost (with all multipliers applied), and Sales Profit (profit amount per job)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
@@ -117,7 +117,7 @@ Each HTTP function file:
 6. Material costs calculated as: sum(AdjustedUnitCost × Qty)
    - **AdjustedUnitCost = UnitCost × BranchMultiplier × SalesProfitMultiplier**
    - Multipliers are applied to UnitCost first, then multiplied by quantity
-   - Materials table displays: Material (search), Code, Name, Unit Cost, Qty, Line Total (with all multipliers applied), and Sales Profit (profit amount per line)
+   - Materials table displays: Material (search), Code, Name, Unit Cost, Qty, Cost before Sales Profit (after branch multiplier), Line Total (with all multipliers applied), and Sales Profit (profit amount per line)
 7. User enters Sales Profit % and Travel/Shipping Distance (Km) in the "Sales Profit & Travel" panel
    - Sales Profit % can be negative for discounts
    - Travel Cost = Km × 15 baht/km (base cost)
@@ -184,9 +184,11 @@ Each HTTP function file:
      - Applied after branch multipliers (Overhead% and PolicyProfit%)
      - Applied to labor, materials, and travel costs
      - Default value: 0
+     - Styling: Bold borders (`border-2 border-slate-400`) for enhanced visibility
   2. **Travel/Shipping Distance (Km)** - Number input with `step="1"` and `min="0"`
      - Integer values only (whole kilometers)
      - Default value: 0
+     - Styling: Bold borders (`border-2 border-slate-400`) for enhanced visibility
   3. **Travel/Shipping Cost** - Display showing calculated value (Km × 15 baht/km × SalesProfitMultiplier)
 - Helper functions (`src/index.html`, lines ~206-239):
   - `getBranchMultiplier()` - Returns `(1 + OverheadPercent/100) × (1 + PolicyProfit/100)` from branch defaults
@@ -227,15 +229,39 @@ Each HTTP function file:
 - The Sales Profit is displayed in both desktop table row and mobile card layouts
 - Updates in real-time when the Sales Profit % input changes
 
+### Cost before Sales Profit Column (Labor Table)
+- The labor table includes a **Cost before Sales Profit** column that shows the cost after the Branch Multiplier but before Sales Profit
+- Positioned between "Manhours" and "Cost" columns
+- Formula breakdown:
+  - `Cost_Before_Sales_Profit = effectiveManHours × CostPerHour × BranchMultiplier`
+  - This is equivalent to: `Final_Cost / SalesProfitMultiplier`
+  - When Sales Profit % = 0: equals the Final Cost
+  - When Sales Profit % > 0: shows lower value than Final Cost
+  - When Sales Profit % < 0 (discount): shows higher value than Final Cost
+- The column uses the same styling as the Cost column (right-aligned, with strikethrough for unchecked jobs)
+- Updates in real-time when the Sales Profit % input changes
+
+### Cost before Sales Profit Column (Materials Table)
+- The materials table includes a **Cost before Sales Profit** column that shows the cost after the Branch Multiplier but before Sales Profit
+- Positioned between "Qty" and "Line Total" columns
+- Formula breakdown:
+  - `Cost_Before_Sales_Profit = unitCost × qty × BranchMultiplier`
+  - This is equivalent to: `Line_Total / SalesProfitMultiplier`
+  - When Sales Profit % = 0: equals the Line Total
+  - When Sales Profit % > 0: shows lower value than Line Total
+  - When Sales Profit % < 0 (discount): shows higher value than Line Total
+- The value is displayed in both desktop table row and mobile card layouts
+- Updates in real-time when the Sales Profit % input changes
+
 ### Responsive Design
 - The material panel uses a **dual-layout approach**:
   - **Mobile (< md breakpoint / 768px)**: Card-based layout with stacked information
     - Compact selected material display (name on one line, code + unit cost on second)
     - Full-width quantity input (48px min-height) with centered text for easy entry
-    - Line total and Sales Profit displayed in white cards with prominent styling
+    - Cost before Sales Profit, Line Total, and Sales Profit displayed in white cards with prominent styling
   - **Desktop (md+)**: Traditional table layout with horizontal columns
     - Wider quantity input (w-32) for easier typing
-    - Sales Profit column shows profit amount per line
+    - Cost before Sales Profit, Sales Profit columns show profit amount per line
 - Mobile cards feature 44px minimum touch targets for all interactive elements
 - Search dropdown buttons are touch-friendly with `min-h-[44px]` and `text-base`
 - Table headers are hidden on mobile to reduce visual clutter
