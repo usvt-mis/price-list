@@ -108,7 +108,7 @@ Each HTTP function file:
      - `BranchMultiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)` (from branch defaults, silent)
      - `SalesProfitMultiplier = (1 + SalesProfit%/100)` (user input, can be negative)
    - Multipliers are applied to CostPerHour first, then multiplied by effectiveManHours
-   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (after branch multiplier), Selling Price (with all multipliers applied), and Sales Profit (profit amount per job)
+   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (after branch multiplier), Selling Price (with all multipliers applied), **Final Price** (with commission), and Sales Profit (profit amount per job)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
@@ -119,9 +119,9 @@ Each HTTP function file:
    - Multipliers are applied to UnitCost first, then multiplied by quantity
    - Materials use a **single-row table layout on desktop, card layout on mobile**:
      - Each material is displayed with: search input, material code/name, unit cost, quantity input, and cost breakdown
-     - Cost breakdown includes: Cost, Line Total, and Sales Profit
-   - **Desktop (md+)**: Traditional single-row table with 9 columns
-     - Table headers: Material, Code, Name, Unit Cost, Qty, Cost, Line Total, Sales Profit, Remove
+     - Cost breakdown includes: Cost, Line Total, **Final Price**, and Sales Profit
+   - **Desktop (md+)**: Traditional single-row table with 10 columns
+     - Table headers: Material, Code, Name, Unit Cost, Qty, Cost, Line Total, Final Price, Sales Profit, Remove
      - Each material occupies one `<tr>` with all columns inline
      - Search input uses fixed positioning for dropdown overlay
    - **Mobile (< md)**: Single column card layout with larger touch targets
@@ -131,7 +131,8 @@ Each HTTP function file:
    - Sales Profit % can be negative for discounts
    - Travel Cost = Km × 15 baht/km (base cost)
    - Travel Cost includes Sales Profit multiplier applied (e.g., 10% Sales Profit adds 10% to travel cost)
-8. Grand total = labor (adjusted) + materials (adjusted) + travel cost (with sales profit applied)
+8. **Grand Total** = sum of all Final Prices (labor + materials) + travel cost
+   - **Sub Grand Total** = labor (adjusted) + materials (adjusted) + travel cost (used for commission calculation)
    - Sub Total Cost in footer shows labor + materials + travel BEFORE sales profit multiplier
    - Grand Overhead in footer shows combined overhead + sales profit adjustment (labor + materials only)
    - Travel Sales Profit is displayed separately in the grand total breakdown
@@ -198,10 +199,15 @@ Each HTTP function file:
   - Travel Km changes trigger `calcAll()` (line ~690)
 
 ### Grand Total Panel
-- Side-by-side card layout on desktop (md+), stacked vertically on mobile
+- Three-tier layout: prominent Grand Total at top, followed by side-by-side cards on desktop (stacked on mobile)
 - Uses CSS Grid with `grid grid-cols-1 md:grid-cols-2 gap-6` for responsive layout
-- **Left Card**: Grand Total display + Sales Profit % input
-  - Grand Total: Displayed at `text-5xl font-extrabold` (48px) - largest element for visual hierarchy
+- **Top Card (New Grand Total)**: Sum of all Final Prices including commission
+  - Displayed at `text-6xl font-extrabold` (60px) with gradient background - largest element for visual hierarchy
+  - Formula: `Grand Total = sum(labor Final Prices) + sum(materials Final Prices) + travel cost`
+  - Uses `bg-gradient-to-r from-slate-900 to-slate-800` for visual distinction
+- **Left Card (Sub Grand Total)**: Sub Grand Total display + Sales Profit % input
+  - Sub Grand Total: Displayed at `text-5xl font-extrabold` (48px)
+  - Used for commission calculation (formerly called "Grand Total")
   - Sales Profit %: Number input with `step="0.01"` (allows decimals), can be negative for discounts
     - Applied after branch multipliers (Overhead% and PolicyProfit%)
     - Applied to labor, materials, and travel costs
@@ -223,28 +229,31 @@ Each HTTP function file:
 - Event listeners:
   - Sales Profit % changes trigger `renderLabor()`, `renderMaterials()`, and `calcAll()` for real-time updates (lines ~685-689)
 - Grand total breakdown displays:
+  - **Grand Total**: Sum of all Final Prices (labor + materials) + travel cost (displayed prominently at top)
+  - **Sub Grand Total**: Labor + materials + travel cost with all multipliers applied (used for commission calculation)
   - **Labor**: Final labor cost (after branch + sales profit multipliers)
   - **Materials**: Final materials cost (after branch + sales profit multipliers)
   - **Overhead**: Combined overhead + sales profit adjustment (labor + materials only)
   - **Travel Sales Profit**: Sales profit portion from travel (not the full travel cost)
   - **Sub Total Cost**: Labor + materials + travel BEFORE sales profit multiplier is applied (displayed with larger `text-lg font-bold` styling)
-  - **Commission%**: Commission percentage based on GT vs STC ratio (displayed with `text-2xl font-bold text-emerald-400` styling)
-  - **Commission**: Commission amount calculated as Commission% × Grand Total (displayed with `text-2xl font-bold text-emerald-400` styling)
+  - **Commission%**: Commission percentage based on Sub Grand Total vs STC ratio (displayed with `text-2xl font-bold text-emerald-400` styling)
+  - **Commission**: Commission amount calculated as Commission% × Sub Grand Total (displayed with `text-2xl font-bold text-emerald-400` styling)
 
 ### Commission Calculation
-- The Grand Total Panel (right card) includes a **Commission** section that calculates commission based on the ratio of Grand Total (GT) to Sub Total Cost (STC)
+- The Grand Total Panel (right card) includes a **Commission** section that calculates commission based on the ratio of Sub Grand Total (SGT) to Sub Total Cost (STC)
 - Commission percentage is determined by the following tiered structure:
-  | GT vs STC Condition | Commission% |
+  | SGT vs STC Condition | Commission% |
   |---------------------|-------------|
-  | GT < 80% of STC | 0% |
-  | 80% ≤ GT < 100% of STC | 1% |
-  | 100% ≤ GT ≤ 105% of STC | 2% |
-  | 105% < GT ≤ 120% of STC | 2.5% |
-  | GT > 120% of STC | 5% |
-- Commission value formula: `Commission = Commission% × Grand Total`
-- The calculation is performed in the `calcAll()` function (lines ~740-759)
+  | SGT < 80% of STC | 0% |
+  | 80% ≤ SGT < 100% of STC | 1% |
+  | 100% ≤ SGT ≤ 105% of STC | 2% |
+  | 105% < SGT ≤ 120% of STC | 2.5% |
+  | SGT > 120% of STC | 5% |
+- Commission value formula: `Commission = Commission% × Sub Grand Total`
+- The calculation is performed in the `calcAll()` function (lines ~820-850)
+- Commission percent is stored globally (`commissionPercent`) for use in render functions to calculate Final Prices
 - Commission elements are visually separated with a border (`border-t border-slate-700`) and styled with emerald color (`text-emerald-400`) for prominence
-- Updates in real-time whenever any value affecting GT or STC changes (branch, motor type, jobs, materials, sales profit %, travel distance)
+- Updates in real-time whenever any value affecting SGT or STC changes (branch, motor type, jobs, materials, sales profit %, travel distance)
 
 ### Sales Profit Column (Labor Table)
 - The labor table includes a **Sales Profit** column that shows the Sales Profit amount for each job row
@@ -295,23 +304,49 @@ Each HTTP function file:
 - The value is displayed in both desktop table column and mobile card layouts
 - Updates in real-time when the Sales Profit % input changes
 
+### Final Price Column (Labor Table)
+- The labor table includes a **Final Price** column that shows the price including commission for each job row
+- Positioned between "Selling Price" and "Sales Profit" columns
+- Formula breakdown:
+  - `Final_Price = Selling_Price × (1 + commissionPercent / 100)`
+  - The commission percent is calculated based on the ratio of Sub Grand Total to Sub Total Cost
+  - When Commission% = 0: equals the Selling Price
+  - When Commission% > 0: shows higher value than Selling Price
+- The column uses the same styling as the Selling Price column (right-aligned, with strikethrough for unchecked jobs)
+- Updates in real-time when the commission percentage changes (triggered by changes affecting Sub Grand Total)
+
+### Final Price Column (Materials Table)
+- The materials table includes a **Final Price** column that shows the price including commission for each material line
+- Positioned between "Line Total" and "Sales Profit" columns
+- Formula breakdown:
+  - `Final_Price = Line_Total × (1 + commissionPercent / 100)`
+  - The commission percent is calculated based on the ratio of Sub Grand Total to Sub Total Cost
+  - When Commission% = 0: equals the Line Total
+  - When Commission% > 0: shows higher value than Line Total
+- The value is displayed in both desktop table column and mobile card layouts
+- Updates in real-time when the commission percentage changes (triggered by changes affecting Sub Grand Total)
+
 ### Responsive Design
 - The material panel uses a **single-row table layout on desktop, card layout on mobile**:
   - **Mobile (< md breakpoint / 768px)**: Single-column card layout with stacked information
     - Compact selected material display (name on one line, code + unit cost on second)
     - Full-width quantity input (48px min-height) with centered text for easy entry
-    - Cost, Line Total, and Sales Profit displayed in white cards with prominent styling
+    - Cost, Line Total, Final Price, and Sales Profit displayed in white cards with prominent styling
     - Larger touch targets (44px minimum) for all interactive elements
-  - **Desktop (md+)**: Traditional single-row table layout with 9 columns
+  - **Desktop (md+)**: Traditional single-row table layout with 10 columns
     - Each material occupies one `<tr>` with all columns inline
-    - Table headers: Material, Code, Name, Unit Cost, Qty, Cost, Line Total, Sales Profit, Remove
+    - Table headers: Material, Code, Name, Unit Cost, Qty, Cost, Line Total, Final Price, Sales Profit, Remove
     - Search input uses fixed positioning (`fixed z-50`) for dropdown overlay
     - Table uses `overflow-x-auto` for horizontal scrolling on smaller screens
-- The Grand Total Panel uses a **side-by-side card layout on desktop, stacked on mobile**:
-  - **Mobile (< md)**: Cards stack vertically with `grid-cols-1`
-  - **Desktop (md+)**: Two cards side-by-side with `md:grid-cols-2 gap-6`
-  - Left card: Grand Total + Sales Profit input (centered on mobile, left-aligned on desktop)
-  - Right card: Breakdown items with flex layout for label/value pairs
+- The labor table uses a **single-row table layout** with 7 columns:
+  - Table headers: (checkbox), Job, Manhours, Cost, Selling Price, Final Price, Sales Profit
+- The Grand Total Panel uses a **three-tier layout**:
+  - Top: Grand Total display (prominent, full width on all screen sizes)
+  - Bottom: Side-by-side cards on desktop (stacked on mobile)
+  - **Mobile (< md)**: All cards stack vertically with `grid-cols-1`
+  - **Desktop (md+)**: Top card full width, bottom two cards side-by-side with `md:grid-cols-2 gap-6`
+  - Left bottom card: Sub Grand Total + Sales Profit input (centered on mobile, left-aligned on desktop)
+  - Right bottom card: Breakdown items with flex layout for label/value pairs
   - Progressive typography sizing maintained across all breakpoints
 - Mobile cards use standard block flow positioning
 - Desktop search dropdown uses fixed positioning to overlay other elements
