@@ -63,7 +63,6 @@
               <th class="text-right py-2">Cost</th>
               <th class="text-right py-2">Selling Price</th>
               <th class="text-right py-2">Final Price</th>
-              <th class="text-right py-2">Sales Profit</th>
             </tr>
           </thead>
           <tbody id="laborRows"></tbody>
@@ -118,23 +117,15 @@
           <input id="travelKm" type="number" step="1" min="0" class="mt-1 w-full rounded-lg border-2 border-slate-400"/>
         </div>
         <div class="rounded-xl border border-slate-200 p-4">
-          <div class="text-sm text-slate-500">Travel/Shipping Cost</div>
+          <div class="text-sm text-slate-500">Travel/Shipping Final Price</div>
           <div id="travelCost" class="text-2xl font-bold">—</div>
-          <div class="text-xs text-slate-500 mt-1">Km × 15 baht/km</div>
+          <div class="text-xs text-slate-500 mt-1">Km × 15 baht/km (with commission)</div>
         </div>
       </div>
     </section>
 
     <!-- GRAND TOTAL -->
     <section class="space-y-6">
-      <!-- New Grand Total (sum of Final Prices) -->
-      <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl shadow-xl p-6">
-        <div class="text-center md:text-left">
-          <div class="text-sm font-medium text-slate-300 mb-2">Grand Total</div>
-          <div id="newGrandTotal" class="text-6xl font-extrabold text-white">—</div>
-        </div>
-      </div>
-
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         <!-- Left Card: Sub Grand Total + Sales Profit -->
@@ -196,6 +187,14 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- New Grand Total (sum of Final Prices) -->
+      <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl shadow-xl p-6">
+        <div class="text-center md:text-left">
+          <div class="text-sm font-medium text-slate-300 mb-2">Grand Total</div>
+          <div id="newGrandTotal" class="text-6xl font-extrabold text-white">—</div>
+        </div>
       </div>
     </section>
 
@@ -289,14 +288,6 @@
     return getBranchMultiplier() * getSalesProfitMultiplier();
   }
 
-  // Calculate Sales Profit for a single job
-  function getJobSalesProfit(job, costPerHour, branchMultiplier) {
-    const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
-    const salesProfitMultiplier = getSalesProfitMultiplier();
-    const costAfterBranch = mh * costPerHour * branchMultiplier;
-    return costAfterBranch * (salesProfitMultiplier - 1);
-  }
-
   function renderLabor() {
     const branch = getSelectedBranch();
     const cph = branch ? Number(branch.CostPerHour) : NaN;
@@ -326,8 +317,6 @@
       const isChecked = j.checked;
       const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
       const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
-      const salesProfit = Number.isFinite(cph) ? getJobSalesProfit(j, cph, branchMultiplier) : NaN;
-
       // Calculate cost before sales profit (after branch multiplier, before sales profit)
       const salesProfitMultiplier = getSalesProfitMultiplier();
       const costBeforeSalesProfit = (salesProfitMultiplier !== 0 && Number.isFinite(adjustedCph))
@@ -355,11 +344,10 @@
         <td class="py-2 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>
         <td class="py-2 text-right ${textClass}">${fmt(cost)}</td>
         <td class="py-2 text-right ${textClass}">${fmt(finalPrice)}</td>
-        <td class="py-2 text-right ${textClass}">${fmt(salesProfit)}</td>
       </tr>`;
     }).join("");
 
-    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="7">Select Motor Type to load jobs.</td></tr>`;
+    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="6">Select Motor Type to load jobs.</td></tr>`;
 
     // Attach event listeners to checkboxes
     document.querySelectorAll(".job-checkbox").forEach(cb => {
@@ -851,16 +839,17 @@
     // Calculate commission value
     const commission = subGrandTotal * (commissionPercent / 100);
 
-    // Calculate new Grand Total = sum of all Final Prices + travel cost
+    // Calculate new Grand Total = sum of all Final Prices + travel Final Price
     // Final Price for each row = Selling Price × (1 + commissionPercent/100)
     const laborFinalPricesSum = l * (1 + commissionPercent / 100);
     const materialsFinalPricesSum = m * (1 + commissionPercent / 100);
-    const newGrandTotal = laborFinalPricesSum + materialsFinalPricesSum + travelCost;
+    const travelFinalPrice = travelCost * (1 + commissionPercent / 100);
+    const newGrandTotal = laborFinalPricesSum + materialsFinalPricesSum + travelFinalPrice;
 
     // Update display elements
     el("laborSubtotal").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("materialSubtotal").textContent = fmt(m);
-    el("travelCost").textContent = fmt(travelCost);
+    el("travelCost").textContent = fmt(travelFinalPrice);
 
     el("newGrandTotal").textContent = fmt(newGrandTotal);
     el("grandTotal").textContent = fmt(subGrandTotal);
