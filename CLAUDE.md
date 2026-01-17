@@ -108,7 +108,7 @@ Each HTTP function file:
      - `BranchMultiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)` (from branch defaults, silent)
      - `SalesProfitMultiplier = (1 + SalesProfit%/100)` (user input, can be negative)
    - Multipliers are applied to CostPerHour first, then multiplied by effectiveManHours
-   - Labor table displays: checkbox, JobName, Manhours (editable), Cost before Sales Profit (after branch multiplier), Cost (with all multipliers applied), and Sales Profit (profit amount per job)
+   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (after branch multiplier), Selling Price (with all multipliers applied), and Sales Profit (profit amount per job)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
@@ -119,9 +119,9 @@ Each HTTP function file:
    - Multipliers are applied to UnitCost first, then multiplied by quantity
    - Materials use a **single-row table layout on desktop, card layout on mobile**:
      - Each material is displayed with: search input, material code/name, unit cost, quantity input, and cost breakdown
-     - Cost breakdown includes: Cost before Sales Profit, Line Total, and Sales Profit
+     - Cost breakdown includes: Cost, Line Total, and Sales Profit
    - **Desktop (md+)**: Traditional single-row table with 9 columns
-     - Table headers: Material, Code, Name, Unit Cost, Qty, Cost before Sales Profit, Line Total, Sales Profit, Remove
+     - Table headers: Material, Code, Name, Unit Cost, Qty, Cost, Line Total, Sales Profit, Remove
      - Each material occupies one `<tr>` with all columns inline
      - Search input uses fixed positioning for dropdown overlay
    - **Mobile (< md)**: Single column card layout with larger touch targets
@@ -132,7 +132,7 @@ Each HTTP function file:
    - Travel Cost = Km × 15 baht/km (base cost)
    - Travel Cost includes Sales Profit multiplier applied (e.g., 10% Sales Profit adds 10% to travel cost)
 8. Grand total = labor (adjusted) + materials (adjusted) + travel cost (with sales profit applied)
-   - Sub Total before Sales Profit in footer shows labor + materials + travel BEFORE sales profit multiplier
+   - Sub Total Cost in footer shows labor + materials + travel BEFORE sales profit multiplier
    - Grand Overhead in footer shows combined overhead + sales profit adjustment (labor + materials only)
    - Travel Sales Profit is displayed separately in the grand total breakdown
 
@@ -216,7 +216,7 @@ Each HTTP function file:
   - **Materials**: Final materials cost (after branch + sales profit multipliers)
   - **Overhead**: Combined overhead + sales profit adjustment (labor + materials only)
   - **Travel Sales Profit**: Sales profit portion from travel (not the full travel cost)
-  - **Sub Total before Sales Profit**: Labor + materials + travel BEFORE sales profit multiplier is applied
+  - **Sub Total Cost**: Labor + materials + travel BEFORE sales profit multiplier is applied
 
 ### Sales Profit Column (Labor Table)
 - The labor table includes a **Sales Profit** column that shows the Sales Profit amount for each job row
@@ -227,7 +227,7 @@ Each HTTP function file:
   - When Sales Profit % = 0: shows 0.00
   - When Sales Profit % > 0: shows positive profit amount
   - When Sales Profit % < 0 (discount): shows negative value
-- The column uses the same styling as the Cost column (right-aligned, with strikethrough for unchecked jobs)
+- The column uses the same styling as the Selling Price column (right-aligned, with strikethrough for unchecked jobs)
 - Updates in real-time when the Sales Profit % input changes
 
 ### Sales Profit Column (Materials Table)
@@ -243,20 +243,20 @@ Each HTTP function file:
 - The Sales Profit is displayed in both desktop table column and mobile card layouts
 - Updates in real-time when the Sales Profit % input changes
 
-### Cost before Sales Profit Column (Labor Table)
-- The labor table includes a **Cost before Sales Profit** column that shows the cost after the Branch Multiplier but before Sales Profit
-- Positioned between "Manhours" and "Cost" columns
+### Cost Column (Labor Table)
+- The labor table includes a **Cost** column that shows the cost after the Branch Multiplier but before Sales Profit
+- Positioned between "Manhours" and "Selling Price" columns
 - Formula breakdown:
   - `Cost_Before_Sales_Profit = effectiveManHours × CostPerHour × BranchMultiplier`
-  - This is equivalent to: `Final_Cost / SalesProfitMultiplier`
-  - When Sales Profit % = 0: equals the Final Cost
-  - When Sales Profit % > 0: shows lower value than Final Cost
-  - When Sales Profit % < 0 (discount): shows higher value than Final Cost
-- The column uses the same styling as the Cost column (right-aligned, with strikethrough for unchecked jobs)
+  - This is equivalent to: `Final_Selling_Price / SalesProfitMultiplier`
+  - When Sales Profit % = 0: equals the Selling Price
+  - When Sales Profit % > 0: shows lower value than Selling Price
+  - When Sales Profit % < 0 (discount): shows higher value than Selling Price
+- The column uses the same styling as the Selling Price column (right-aligned, with strikethrough for unchecked jobs)
 - Updates in real-time when the Sales Profit % input changes
 
-### Cost before Sales Profit Column (Materials Table)
-- The materials table includes a **Cost before Sales Profit** column that shows the cost after the Branch Multiplier but before Sales Profit
+### Cost Column (Materials Table)
+- The materials table includes a **Cost** column that shows the cost after the Branch Multiplier but before Sales Profit
 - Displayed between "Qty" and "Line Total" columns
 - Formula breakdown:
   - `Cost_Before_Sales_Profit = unitCost × qty × BranchMultiplier`
@@ -272,11 +272,11 @@ Each HTTP function file:
   - **Mobile (< md breakpoint / 768px)**: Single-column card layout with stacked information
     - Compact selected material display (name on one line, code + unit cost on second)
     - Full-width quantity input (48px min-height) with centered text for easy entry
-    - Cost before Sales Profit, Line Total, and Sales Profit displayed in white cards with prominent styling
+    - Cost, Line Total, and Sales Profit displayed in white cards with prominent styling
     - Larger touch targets (44px minimum) for all interactive elements
   - **Desktop (md+)**: Traditional single-row table layout with 9 columns
     - Each material occupies one `<tr>` with all columns inline
-    - Table headers: Material, Code, Name, Unit Cost, Qty, Cost before Sales Profit, Line Total, Sales Profit, Remove
+    - Table headers: Material, Code, Name, Unit Cost, Qty, Cost, Line Total, Sales Profit, Remove
     - Search input uses fixed positioning (`fixed z-50`) for dropdown overlay
     - Table uses `overflow-x-auto` for horizontal scrolling on smaller screens
 - Mobile cards use standard block flow positioning
