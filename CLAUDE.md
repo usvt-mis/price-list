@@ -91,11 +91,25 @@ Each HTTP function file:
 ### Frontend Data Flow
 1. On load: Fetch motor types and branches for dropdowns
 2. User selects motor type → Fetch ALL jobs with motor-type-specific manhours
-3. Labor costs calculated as: sum(job.ManHours × branch.CostPerHour)
-   - Labor table displays JobName only (JobCode is not shown)
+3. Labor costs calculated as: sum(job.ManHours × branch.CostPerHour) for **checked jobs only**
+   - Labor table displays a checkbox, JobName, Manhours, and Cost
+   - JobCode is not shown to the user
+   - Each job row has a checkbox (default: checked)
+   - Unchecked jobs are excluded from labor subtotal calculation
+   - Unchecked rows are visually disabled (strikethrough text, grey background)
 4. User adds materials → Search API with debounce (250ms)
 5. Overhead calculated as: fixed + ((labor + materials) × percentage / 100)
 6. Grand total = labor + materials + overhead
+
+### Jobs Panel UX
+- Each job row has a checkbox in the first column (default: checked)
+- Checkbox state is stored in the job object as `j.checked` (boolean, defaults to `true`)
+- When a job is unchecked:
+  - The row background becomes light grey (`bg-slate-50`)
+  - Text is struck through and muted (`line-through text-slate-400`)
+  - The job is excluded from labor subtotal calculation via `.filter(j => j.checked !== false)`
+- Toggling a checkbox triggers `renderLabor()` to re-render the table and `calcAll()` to update totals
+- Checkbox uses `data-idx` attribute to map to the job index in the `labor` array
 
 ### Material Search UX
 - Minimum 2 characters to trigger search
