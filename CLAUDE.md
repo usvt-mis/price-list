@@ -90,9 +90,16 @@ Each HTTP function file:
 4. The main `index.js` requires all functions to register them
 
 ### Frontend Data Flow
-1. On load: Fetch motor types and branches for dropdowns
-2. User selects motor type → Fetch ALL jobs with motor-type-specific manhours
-3. Labor costs calculated as: sum(job.ManHours × AdjustedCostPerHour) for **checked jobs only**
+1. **Database Connection Loading Modal** - Displays on initial page load while connecting to database
+   - Shows "Connecting to Database" message with animated spinner and backdrop blur
+   - Modal appears automatically when page loads and is visible by default (catches immediate loading state)
+   - Controlled via `setDbLoadingModal(show)` function (toggles `hidden` class)
+   - `loadInit()` shows modal before fetching motor-types and branches
+   - Modal auto-hides on successful connection or error (via promise `.then()` and `.catch()`)
+   - Only appears during initial load, not for subsequent API calls
+2. On load: Fetch motor types and branches for dropdowns
+3. User selects motor type → Fetch ALL jobs with motor-type-specific manhours
+4. Labor costs calculated as: sum(job.ManHours × AdjustedCostPerHour) for **checked jobs only**
    - **AdjustedCostPerHour = CostPerHour × (1 + OverheadPercent/100) × (1 + PolicyProfit/100)**
    - Multipliers are applied to CostPerHour first, then multiplied by manhours
    - Labor table displays a checkbox, JobName, Manhours, and Cost (with multipliers applied)
@@ -100,11 +107,11 @@ Each HTTP function file:
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
    - Unchecked rows are visually disabled (strikethrough text, grey background)
-4. User adds materials → Search API with debounce (250ms)
-5. Material costs calculated as: sum(AdjustedUnitCost × Qty)
+5. User adds materials → Search API with debounce (250ms)
+6. Material costs calculated as: sum(AdjustedUnitCost × Qty)
    - **AdjustedUnitCost = UnitCost × (1 + OverheadPercent/100) × (1 + PolicyProfit/100)**
    - Multipliers are applied to UnitCost first, then multiplied by quantity
-6. Grand total = labor (adjusted) + materials (adjusted)
+7. Grand total = labor (adjusted) + materials (adjusted)
    - Overhead displayed is the difference between adjusted and base totals
 
 ### Jobs Panel UX
@@ -139,7 +146,7 @@ Each HTTP function file:
 - Selecting a material immediately updates both mobile and desktop search inputs to show "CODE - NAME" format
 - Selecting a material populates code, name, unit cost fields via `updateMaterialRowDisplay(i)` for targeted updates
   - Uses `data-i` attribute lookups with `closest()` for reliable element selection (works for all rows)
-- After selection, mobile shows compact material info (name, code + unit cost on one line)
+- After selection, mobile shows compact material info (name on one line, code + unit cost on second line)
 - Quantity input is full-width and prominent on mobile (48px min-height, centered text)
 - Desktop quantity input is wider (w-32) for easier typing
 - Quantity values are integer-only (decimals are truncated via `Math.trunc()`)
@@ -156,7 +163,7 @@ Each HTTP function file:
 - Search dropdown buttons are touch-friendly with `min-h-[44px]` and `text-base`
 - Table headers are hidden on mobile to reduce visual clutter
 - Empty state messages adapt to both layouts
-- Initialization includes error handling that displays a message to check `/api/endpoints` if data loading fails
+- Initialization shows a "Connecting to Database" modal while loading; on error, displays a message to check `/api/endpoints`
 
 ## Adding New API Endpoints
 
