@@ -113,6 +113,7 @@ Each HTTP function file:
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
    - Unchecked rows are visually disabled (strikethrough text, grey background)
+   - **Labor Subtotal** displays sum of all Final Prices (including commission)
 5. User adds materials → Search API with debounce (250ms)
 6. Material costs calculated as: sum(AdjustedUnitCost × Qty)
    - **AdjustedUnitCost = UnitCost × BranchMultiplier × SalesProfitMultiplier**
@@ -120,6 +121,7 @@ Each HTTP function file:
    - Materials use a **single-row table layout on desktop, card layout on mobile**:
      - Each material is displayed with: search input, material code/name, unit cost, quantity input, and cost breakdown
      - Cost breakdown includes: Cost+Ovh, **Final Price**
+   - **Materials Subtotal** displays sum of all Final Prices (including commission)
    - **Desktop (md+)**: Traditional single-row table with 8 columns
      - Table headers: Material, Code, Name, Unit Cost, Qty, Cost+Ovh, Final Price, Remove
      - Each material occupies one `<tr>` with all columns inline
@@ -228,12 +230,12 @@ Each HTTP function file:
   - Sales Profit % changes trigger `renderLabor()`, `renderMaterials()`, and `calcAll()` for real-time updates (lines ~685-689)
 - Grand total breakdown displays:
   - **Grand Total**: Sum of all Final Prices (labor + materials + travel) displayed prominently at bottom
-  - **Sub Grand Total**: Labor + materials + travel cost with all multipliers applied (used for commission calculation)
+  - **Sub Grand Total**: Labor + materials + travel cost with all multipliers applied (used for commission calculation, shown in BOTH Executive and Sales modes)
   - **Labor**: Final labor cost (after branch + sales profit multipliers)
   - **Materials**: Final materials cost (after branch + sales profit multipliers)
-  - **Overhead**: Combined overhead + sales profit adjustment (labor + materials only)
+  - **Overhead + Policy Profit**: Combined overhead + policy profit + sales profit adjustment (labor + materials only)
   - **Travel Sales Profit**: Sales profit portion from travel (not the full travel cost)
-  - **Sub Total Cost**: Labor + materials + travel BEFORE sales profit multiplier is applied (displayed with larger `text-lg font-bold` styling)
+  - **Sub Total Cost**: Labor + materials + travel BEFORE sales profit multiplier is applied (displayed with larger `text-lg font-bold` styling, hidden in Sales mode)
   - **Commission%**: Commission percentage based on Sub Grand Total vs STC ratio (displayed with `text-2xl font-bold text-emerald-400` styling)
   - **Commission**: Commission amount calculated as Commission% × Sub Grand Total (displayed with `text-2xl font-bold text-emerald-400` styling)
 
@@ -301,24 +303,26 @@ Each HTTP function file:
 ### Responsive Design
 - The material panel uses a **single-row table layout on desktop, card layout on mobile**:
   - **Mobile (< md breakpoint / 768px)**: Single-column card layout with stacked information
-    - Compact selected material display (name on one line, code + unit cost on second)
+    - Compact selected material display (name on one line, code + unit cost on second in Executive mode, code only in Sales mode)
     - Full-width quantity input (48px min-height) with centered text for easy entry
-    - Cost+Ovh and Final Price displayed in white cards with prominent styling
+    - Cost+Ovh and Final Price displayed in white cards with prominent styling (Executive mode only)
     - Larger touch targets (44px minimum) for all interactive elements
-  - **Desktop (md+)**: Traditional single-row table layout with 8 columns
+  - **Desktop (md+)**: Traditional single-row table layout with 8 columns (Executive mode) or 6 columns (Sales mode)
     - Each material occupies one `<tr>` with all columns inline
-    - Table headers: Material, Code, Name, Unit Cost, Qty, Cost+Ovh, Final Price, Remove
+    - Executive mode headers: Material, Code, Name, Unit Cost, Qty, Cost+Ovh, Final Price, Remove
+    - Sales mode headers: Material, Code, Name, Qty, Final Price, Remove (Unit Cost and Cost+Ovh hidden)
     - Search input uses fixed positioning (`fixed z-50`) for dropdown overlay
     - Table uses `overflow-x-auto` for horizontal scrolling on smaller screens
-- The labor table uses a **single-row table layout** with 5 columns:
-  - Table headers: (checkbox), Job, Manhours, Cost+Ovh, Final Price
+- The labor table uses a **single-row table layout** with 5 columns (Executive mode) or 4 columns (Sales mode):
+  - Executive mode headers: (checkbox), Job, Manhours, Cost+Ovh, Final Price
+  - Sales mode headers: (checkbox), Job, Manhours, Final Price (Cost+Ovh hidden)
 - The Grand Total Panel uses a **three-tier layout**:
   - Top: Side-by-side cards on desktop (Sub Grand Total + Breakdown)
   - Bottom: Grand Total display (prominent, full width on all screen sizes)
   - **Mobile (< md)**: All cards stack vertically with `grid-cols-1`
   - **Desktop (md+)**: Top two cards side-by-side with `md:grid-cols-2 gap-6`, bottom card full width
   - Left top card: Sub Grand Total + Sales Profit input (centered on mobile, left-aligned on desktop)
-  - Right top card: Breakdown items with flex layout for label/value pairs
+  - Right top card: Breakdown items with flex layout for label/value pairs (some rows hidden in Sales mode)
   - Progressive typography sizing maintained across all breakpoints
 - Mobile cards use standard block flow positioning
 - Desktop search dropdown uses fixed positioning to overlay other elements
@@ -327,8 +331,8 @@ Each HTTP function file:
 
 ### Mode Switcher (Executive vs Sales)
 - A segmented control in the header allows switching between two display modes:
-  - **Executive Mode** (default): Shows all cost details including Cost+Ovh columns, Overhead, and Sub Grand Total
-  - **Sales Mode**: Hides sensitive cost information - Cost+Ovh columns, Overhead, and Sub Grand Total label
+  - **Executive Mode** (default): Shows all cost details including Cost+Ovh columns, Unit Cost, Overhead + Policy Profit, Sub Grand Total, and Sub Total Cost
+  - **Sales Mode**: Hides sensitive cost information - Cost+Ovh columns, Unit Cost column, Overhead + Policy Profit, and Sub Total Cost
 - Mode switcher implementation details:
   - **Location**: Header (top-right corner) with flex layout
   - **UI**: Segmented control with two buttons (Executive | Sales) using Tailwind CSS
@@ -340,9 +344,10 @@ Each HTTP function file:
     - `updateModeButtons()` - Updates button styling and Grand Total Panel visibility
 - Elements hidden in Sales Mode:
   - **Labor Table**: Cost+Ovh column (header and cells)
-  - **Materials Table**: Cost+Ovh column (header and cells in both desktop and mobile layouts)
-  - **Grand Total Panel**: Sub Grand Total label and Overhead row
-  - Grand Total text size increases (text-5xl → text-6xl) when Sub Grand Total is hidden for better visual balance
+  - **Materials Table**: Cost+Ovh column (header and cells in both desktop and mobile layouts), Unit Cost column (header, cells, and mobile info)
+  - **Grand Total Panel**: Overhead + Policy Profit row, Sub Total Cost row
+  - Sub Grand Total label remains VISIBLE in both modes
+  - Grand Total text size increases (text-5xl → text-6xl) in Sales mode for better visual balance
 - Responsive behavior: Mode switcher works identically on mobile and desktop
 - Accessibility: Uses `role="group"`, `aria-label`, and `aria-pressed` attributes for screen readers
 - Mode changes trigger `renderLabor()` and `renderMaterials()` for immediate UI updates

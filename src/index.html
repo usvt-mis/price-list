@@ -161,7 +161,7 @@
             </div>
             <!-- Overhead -->
             <div class="flex justify-between items-center">
-              <span class="text-sm text-slate-300">Overhead</span>
+              <span class="text-sm text-slate-300">Overhead + Policy Profit</span>
               <span id="grandOverhead" class="font-semibold text-white">—</span>
             </div>
             <!-- Travel Sales Profit -->
@@ -172,7 +172,7 @@
             <!-- Separator -->
             <div class="border-t border-slate-700 pt-4 mt-4"></div>
             <!-- Sub Total Cost -->
-            <div class="flex justify-between items-center">
+            <div id="subTotalCostSection" class="flex justify-between items-center">
               <span class="text-base font-medium text-slate-200">Sub Total Cost</span>
               <span id="grandSubTotalBeforeSalesProfit" class="text-xl font-bold text-white">—</span>
             </div>
@@ -477,7 +477,7 @@
         <th class="text-left py-2">Material</th>
         <th class="text-left py-2">Code</th>
         <th class="text-left py-2">Name</th>
-        <th class="text-right py-2">Unit Cost</th>
+        ${isExecutiveMode() ? '<th class="text-right py-2">Unit Cost</th>' : ''}
         <th class="text-right py-2">Qty</th>
         ${isExecutiveMode() ? '<th class="text-right py-2">Cost+Ovh</th>' : ''}
         <th class="text-right py-2">Final Price</th>
@@ -511,7 +511,7 @@
           ${ln.code ? `
           <div class="text-sm">
             <div class="font-medium">${ln.name}</div>
-            <div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>
+            ${isExecutiveMode() ? `<div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>` : `<div class="text-slate-500">${ln.code}</div>`}
           </div>
           ` : ''}
 
@@ -554,7 +554,7 @@
           </td>
           <td class="py-2">${ln.code || "—"}</td>
           <td class="py-2">${ln.name || "—"}</td>
-          <td class="py-2 text-right">${fmt(ln.unitCost)}</td>
+          ${isExecutiveMode() ? `<td class="py-2 text-right">${fmt(ln.unitCost)}</td>` : ''}
           <td class="py-2 text-right">
             <input data-qty="${i}" type="number" min="0" step="1"
                    class="w-32 text-right rounded-lg border-slate-200 px-2 py-1"
@@ -569,7 +569,7 @@
       `;
     }).join("") || `
       <div class="md:hidden p-4 text-center text-slate-500">No materials yet. Click "Add row".</div>
-      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="${isExecutiveMode() ? 8 : 7}">No materials yet. Click "Add row".</td></tr>
+      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="${isExecutiveMode() ? 8 : 6}">No materials yet. Click "Add row".</td></tr>
     `;
 
     // wire events
@@ -674,12 +674,14 @@
         const cells = desktopRow.querySelectorAll("td");
         if (cells[1]) cells[1].textContent = ln.code || "—";
         if (cells[2]) cells[2].textContent = ln.name || "—";
-        if (cells[3]) cells[3].textContent = fmt(ln.unitCost);
+        // Unit Cost cell index shifts based on mode
+        const unitCostCell = isExecutiveMode() ? cells[3] : null;
+        if (unitCostCell) unitCostCell.textContent = fmt(ln.unitCost);
         // Cost+Ovh cell index shifts based on mode
         const costBeforeCell = isExecutiveMode() ? cells[5] : null;
         if (costBeforeCell) costBeforeCell.textContent = fmt(costBeforeSalesProfit);
         // Final Price cell index shifts based on mode
-        const finalPriceCellIndex = isExecutiveMode() ? 6 : 5;
+        const finalPriceCellIndex = isExecutiveMode() ? 6 : 4;
         if (cells[finalPriceCellIndex]) cells[finalPriceCellIndex].textContent = fmt(finalPrice);
       }
       desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
@@ -699,16 +701,18 @@
         if (searchSection && searchSection.querySelector(".matSearch")) {
           infoSection = document.createElement("div");
           infoSection.className = "text-sm";
+          const unitCostHtml = isExecutiveMode() ? `<div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>` : `<div class="text-slate-500">${ln.code}</div>`;
           infoSection.innerHTML = `
             <div class="font-medium">${ln.name}</div>
-            <div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>
+            ${unitCostHtml}
           `;
           searchSection.parentNode.insertBefore(infoSection, searchSection.nextSibling);
         }
       } else if (infoSection) {
+        const unitCostHtml = isExecutiveMode() ? `<div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>` : `<div class="text-slate-500">${ln.code}</div>`;
         infoSection.innerHTML = `
           <div class="font-medium">${ln.name}</div>
-          <div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>
+          ${unitCostHtml}
         `;
       }
 
@@ -850,8 +854,8 @@
     const newGrandTotal = laborFinalPricesSum + materialsFinalPricesSum + travelFinalPrice;
 
     // Update display elements
-    el("laborSubtotal").textContent = Number.isFinite(l) ? fmt(l) : "—";
-    el("materialSubtotal").textContent = fmt(m);
+    el("laborSubtotal").textContent = fmt(laborFinalPricesSum);
+    el("materialSubtotal").textContent = fmt(materialsFinalPricesSum);
     el("travelCost").textContent = fmt(travelFinalPrice);
 
     el("newGrandTotal").textContent = fmt(newGrandTotal);
@@ -882,6 +886,7 @@
     const subGrandTotalLabel = el("grandTotal").previousElementSibling;
     const grandTotalEl = el("grandTotal");
     const overheadSection = el("grandOverhead").parentElement;
+    const subTotalCostSection = el("subTotalCostSection");
 
     if (isExecutiveMode()) {
       executiveBtn.classList.add("bg-slate-900", "text-white", "shadow-sm");
@@ -894,6 +899,7 @@
       grandTotalEl.classList.remove("text-6xl");
       grandTotalEl.classList.add("text-5xl", "mb-6");
       overheadSection.classList.remove("hidden");
+      subTotalCostSection.classList.remove("hidden");
     } else {
       salesBtn.classList.add("bg-slate-900", "text-white", "shadow-sm");
       salesBtn.classList.remove("text-slate-600", "hover:text-slate-900", "hover:bg-slate-50");
@@ -901,10 +907,11 @@
       executiveBtn.classList.remove("bg-slate-900", "text-white", "shadow-sm");
       executiveBtn.classList.add("text-slate-600", "hover:text-slate-900", "hover:bg-slate-50");
       executiveBtn.setAttribute("aria-pressed", "false");
-      subGrandTotalLabel.classList.add("hidden");
+      // Sub Grand Total is shown in BOTH modes
       grandTotalEl.classList.remove("text-5xl", "mb-6");
       grandTotalEl.classList.add("text-6xl");
       overheadSection.classList.add("hidden");
+      subTotalCostSection.classList.add("hidden");
     }
   }
 
