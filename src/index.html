@@ -22,7 +22,13 @@
 
   <div class="max-w-6xl mx-auto p-6 space-y-6">
     <header>
-      <h1 class="text-3xl font-bold tracking-tight">Price List Calculator</h1>
+      <div class="flex items-center justify-between gap-4">
+        <h1 class="text-3xl font-bold tracking-tight">Price List Calculator</h1>
+        <div class="inline-flex rounded-lg border border-slate-300 bg-white p-1" role="group" aria-label="View mode">
+          <button id="modeExecutive" class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200" data-mode="executive" aria-pressed="true">Executive</button>
+          <button id="modeSales" class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200" data-mode="sales" aria-pressed="false">Sales</button>
+        </div>
+      </div>
     </header>
 
     <!-- PART 1: Labor -->
@@ -205,8 +211,23 @@
   let materialLines = []; // {materialId, code, name, unitCost, qty}
   let commissionPercent = 0; // Global commission percentage for use in render functions
 
+  // Mode management: "executive" (show all) or "sales" (hide cost details)
+  let currentMode = localStorage.getItem("pricelist-calculator-mode") || "executive";
+
   const el = id => document.getElementById(id);
   const fmt = n => Number.isFinite(n) ? n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}) : "—";
+
+  function isExecutiveMode() {
+    return currentMode === "executive";
+  }
+
+  function setMode(mode) {
+    currentMode = mode;
+    localStorage.setItem("pricelist-calculator-mode", mode);
+    renderLabor();
+    renderMaterials();
+    updateModeButtons();
+  }
 
   function setStatus(msg){ el("status").textContent = msg || ""; }
   function setDbLoadingModal(show) {
@@ -296,6 +317,18 @@
 
     el("costPerHour").textContent = branch ? fmt(adjustedCph) : "—";
 
+    // Update table header based on mode
+    const laborTableHead = el("laborRows").previousElementSibling.querySelector("thead");
+    laborTableHead.innerHTML = `
+      <tr class="border-b">
+        <th class="w-10 py-2"></th>
+        <th class="text-left py-2">Job</th>
+        <th class="text-right py-2">Manhours</th>
+        ${isExecutiveMode() ? '<th class="text-right py-2">Cost+Ovh</th>' : ''}
+        <th class="text-right py-2">Final Price</th>
+      </tr>
+    `;
+
     // Create sorted display array with checked jobs first, unchecked last
     const displayJobs = [
       ...labor.filter(j => j.checked !== false),  // Checked jobs (top)
@@ -338,12 +371,13 @@
                  class="w-20 text-right rounded border-slate-200 px-2 py-1 ${!isChecked ? 'bg-slate-100' : ''}"
                  value="${j.effectiveManHours}" ${!isChecked ? 'disabled' : ''}>
         </td>
-        <td class="py-2 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>
+        ${isExecutiveMode() ? `<td class="py-2 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>` : ''}
         <td class="py-2 text-right ${textClass}">${fmt(finalPrice)}</td>
       </tr>`;
     }).join("");
 
-    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="5">Select Motor Type to load jobs.</td></tr>`;
+    const colspan = isExecutiveMode() ? 5 : 4;
+    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="${colspan}">Select Motor Type to load jobs.</td></tr>`;
 
     // Attach event listeners to checkboxes
     document.querySelectorAll(".job-checkbox").forEach(cb => {
@@ -436,6 +470,21 @@
     const multiplier = getCompleteMultiplier();
     const branchMultiplier = getBranchMultiplier();
 
+    // Update table header based on mode
+    const materialsTableHead = el("materialRows").previousElementSibling.querySelector("thead");
+    materialsTableHead.innerHTML = `
+      <tr class="border-b">
+        <th class="text-left py-2">Material</th>
+        <th class="text-left py-2">Code</th>
+        <th class="text-left py-2">Name</th>
+        <th class="text-right py-2">Unit Cost</th>
+        <th class="text-right py-2">Qty</th>
+        ${isExecutiveMode() ? '<th class="text-right py-2">Cost+Ovh</th>' : ''}
+        <th class="text-right py-2">Final Price</th>
+        <th class="text-right py-2"></th>
+      </tr>
+    `;
+
     el("materialRows").innerHTML = materialLines.map((ln, i) => {
       const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
       // Calculate Sales Profit per material line: base × branchMultiplier × (salesProfitMultiplier - 1)
@@ -475,7 +524,7 @@
           </div>
 
           <!-- Cost+Ovh -->
-          ${ln.code ? `
+          ${isExecutiveMode() && ln.code ? `
           <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
             <span class="text-sm text-slate-600">Cost+Ovh</span>
             <span class="text-xl font-bold">${fmt(costBeforeSalesProfit)}</span>
@@ -511,7 +560,7 @@
                    class="w-32 text-right rounded-lg border-slate-200 px-2 py-1"
                    value="${ln.qty}"/>
           </td>
-          <td class="py-2 text-right">${fmt(costBeforeSalesProfit)}</td>
+          ${isExecutiveMode() ? `<td class="py-2 text-right">${fmt(costBeforeSalesProfit)}</td>` : ''}
           <td class="py-2 text-right">${fmt(finalPrice)}</td>
           <td class="py-2 text-right">
             <button data-del="${i}" class="text-sm px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-50">Remove</button>
@@ -520,7 +569,7 @@
       `;
     }).join("") || `
       <div class="md:hidden p-4 text-center text-slate-500">No materials yet. Click "Add row".</div>
-      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="8">No materials yet. Click "Add row".</td></tr>
+      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="${isExecutiveMode() ? 8 : 7}">No materials yet. Click "Add row".</td></tr>
     `;
 
     // wire events
@@ -626,8 +675,12 @@
         if (cells[1]) cells[1].textContent = ln.code || "—";
         if (cells[2]) cells[2].textContent = ln.name || "—";
         if (cells[3]) cells[3].textContent = fmt(ln.unitCost);
-        if (cells[5]) cells[5].textContent = fmt(costBeforeSalesProfit);
-        if (cells[6]) cells[6].textContent = fmt(finalPrice);
+        // Cost+Ovh cell index shifts based on mode
+        const costBeforeCell = isExecutiveMode() ? cells[5] : null;
+        if (costBeforeCell) costBeforeCell.textContent = fmt(costBeforeSalesProfit);
+        // Final Price cell index shifts based on mode
+        const finalPriceCellIndex = isExecutiveMode() ? 6 : 5;
+        if (cells[finalPriceCellIndex]) cells[finalPriceCellIndex].textContent = fmt(finalPrice);
       }
       desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
     }
@@ -659,10 +712,12 @@
         `;
       }
 
-      // Update or create the Cost+Ovh card
+      // Update or create the Cost+Ovh card (only in Executive mode)
       let costBeforeSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
         .find(el => el.querySelector(".text-sm")?.textContent.includes("Cost+Ovh"));
-      if (!costBeforeSection && ln.code) {
+
+      if (isExecutiveMode() && !costBeforeSection && ln.code) {
+        // Create Cost+Ovh section
         costBeforeSection = document.createElement("div");
         costBeforeSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
         costBeforeSection.innerHTML = `
@@ -674,7 +729,13 @@
           qtySection.parentNode.insertBefore(costBeforeSection, qtySection.nextSibling);
         }
       } else if (costBeforeSection) {
-        costBeforeSection.querySelector(".text-xl.font-bold").textContent = fmt(costBeforeSalesProfit);
+        if (isExecutiveMode()) {
+          // Update existing Cost+Ovh section
+          costBeforeSection.querySelector(".text-xl.font-bold").textContent = fmt(costBeforeSalesProfit);
+        } else {
+          // Remove Cost+Ovh section when switching to Sales mode
+          costBeforeSection.remove();
+        }
       }
 
       // Update or create the Final Price card
@@ -814,6 +875,43 @@
   });
   el("travelKm").addEventListener("input", calcAll);
   el("addMaterial").addEventListener("click", addMaterialRow);
+
+  function updateModeButtons() {
+    const executiveBtn = el("modeExecutive");
+    const salesBtn = el("modeSales");
+    const subGrandTotalLabel = el("grandTotal").previousElementSibling;
+    const grandTotalEl = el("grandTotal");
+    const overheadSection = el("grandOverhead").parentElement;
+
+    if (isExecutiveMode()) {
+      executiveBtn.classList.add("bg-slate-900", "text-white", "shadow-sm");
+      executiveBtn.classList.remove("text-slate-600", "hover:text-slate-900", "hover:bg-slate-50");
+      executiveBtn.setAttribute("aria-pressed", "true");
+      salesBtn.classList.remove("bg-slate-900", "text-white", "shadow-sm");
+      salesBtn.classList.add("text-slate-600", "hover:text-slate-900", "hover:bg-slate-50");
+      salesBtn.setAttribute("aria-pressed", "false");
+      subGrandTotalLabel.classList.remove("hidden");
+      grandTotalEl.classList.remove("text-6xl");
+      grandTotalEl.classList.add("text-5xl", "mb-6");
+      overheadSection.classList.remove("hidden");
+    } else {
+      salesBtn.classList.add("bg-slate-900", "text-white", "shadow-sm");
+      salesBtn.classList.remove("text-slate-600", "hover:text-slate-900", "hover:bg-slate-50");
+      salesBtn.setAttribute("aria-pressed", "true");
+      executiveBtn.classList.remove("bg-slate-900", "text-white", "shadow-sm");
+      executiveBtn.classList.add("text-slate-600", "hover:text-slate-900", "hover:bg-slate-50");
+      executiveBtn.setAttribute("aria-pressed", "false");
+      subGrandTotalLabel.classList.add("hidden");
+      grandTotalEl.classList.remove("text-5xl", "mb-6");
+      grandTotalEl.classList.add("text-6xl");
+      overheadSection.classList.add("hidden");
+    }
+  }
+
+  document.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.addEventListener("click", () => setMode(btn.dataset.mode));
+  });
+  updateModeButtons();
 
   loadInit()
     .then(() => {

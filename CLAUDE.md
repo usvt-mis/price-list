@@ -325,6 +325,28 @@ Each HTTP function file:
 - Empty state displays as centered message with dashed border
 - Initialization shows a "Connecting to Database" modal while loading; on error, displays a message to check `/api/endpoints`
 
+### Mode Switcher (Executive vs Sales)
+- A segmented control in the header allows switching between two display modes:
+  - **Executive Mode** (default): Shows all cost details including Cost+Ovh columns, Overhead, and Sub Grand Total
+  - **Sales Mode**: Hides sensitive cost information - Cost+Ovh columns, Overhead, and Sub Grand Total label
+- Mode switcher implementation details:
+  - **Location**: Header (top-right corner) with flex layout
+  - **UI**: Segmented control with two buttons (Executive | Sales) using Tailwind CSS
+  - **State**: Managed via `currentMode` global variable (values: "executive" or "sales")
+  - **Persistence**: Mode preference saved to localStorage (`pricelist-calculator-mode` key)
+  - **Helper functions** (`src/index.html`, lines ~214-224):
+    - `isExecutiveMode()` - Returns true if current mode is "executive"
+    - `setMode(mode)` - Updates mode, saves to localStorage, triggers re-renders
+    - `updateModeButtons()` - Updates button styling and Grand Total Panel visibility
+- Elements hidden in Sales Mode:
+  - **Labor Table**: Cost+Ovh column (header and cells)
+  - **Materials Table**: Cost+Ovh column (header and cells in both desktop and mobile layouts)
+  - **Grand Total Panel**: Sub Grand Total label and Overhead row
+  - Grand Total text size increases (text-5xl → text-6xl) when Sub Grand Total is hidden for better visual balance
+- Responsive behavior: Mode switcher works identically on mobile and desktop
+- Accessibility: Uses `role="group"`, `aria-label`, and `aria-pressed` attributes for screen readers
+- Mode changes trigger `renderLabor()` and `renderMaterials()` for immediate UI updates
+
 ## Adding New API Endpoints
 
 1. Create new file in `api/src/functions/`
