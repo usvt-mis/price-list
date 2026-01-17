@@ -61,6 +61,7 @@
               <th class="w-10 py-2"></th>
               <th class="text-left py-2">Job</th>
               <th class="text-right py-2">Manhours</th>
+              <th class="text-right py-2">Cost before Sales Profit</th>
               <th class="text-right py-2">Cost</th>
               <th class="text-right py-2">Sales Profit</th>
             </tr>
@@ -88,6 +89,7 @@
               <th class="text-left py-2">Name</th>
               <th class="text-right py-2">Unit Cost</th>
               <th class="text-right py-2">Qty</th>
+              <th class="text-right py-2">Cost before Sales Profit</th>
               <th class="text-right py-2">Line Total</th>
               <th class="text-right py-2">Sales Profit</th>
               <th class="text-right py-2"></th>
@@ -112,12 +114,12 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div>
           <label class="block text-sm font-medium text-slate-700">Sales Profit %</label>
-          <input id="salesProfitPct" type="number" step="0.01" class="mt-1 w-full rounded-lg border-slate-200"/>
+          <input id="salesProfitPct" type="number" step="0.01" class="mt-1 w-full rounded-lg border-2 border-slate-400"/>
           <p class="text-xs text-slate-500 mt-1">Can be negative for discounts.</p>
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700">Travel/Shipping Distance (Km)</label>
-          <input id="travelKm" type="number" step="1" min="0" class="mt-1 w-full rounded-lg border-slate-200"/>
+          <input id="travelKm" type="number" step="1" min="0" class="mt-1 w-full rounded-lg border-2 border-slate-400"/>
         </div>
         <div class="rounded-xl border border-slate-200 p-4">
           <div class="text-sm text-slate-500">Travel/Shipping Cost</div>
@@ -271,6 +273,12 @@
       const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
       const salesProfit = Number.isFinite(cph) ? getJobSalesProfit(j, cph, branchMultiplier) : NaN;
 
+      // Calculate cost before sales profit (after branch multiplier, before sales profit)
+      const salesProfitMultiplier = getSalesProfitMultiplier();
+      const costBeforeSalesProfit = (salesProfitMultiplier !== 0 && Number.isFinite(adjustedCph))
+        ? mh * adjustedCph / salesProfitMultiplier
+        : NaN;
+
       // Apply disabled styling when unchecked
       const rowClass = isChecked ? "border-b" : "border-b bg-slate-50";
       const textClass = isChecked ? "" : "line-through text-slate-400";
@@ -286,12 +294,13 @@
                  class="w-20 text-right rounded border-slate-200 px-2 py-1 ${!isChecked ? 'bg-slate-100' : ''}"
                  value="${j.effectiveManHours}" ${!isChecked ? 'disabled' : ''}>
         </td>
+        <td class="py-2 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>
         <td class="py-2 text-right ${textClass}">${fmt(cost)}</td>
         <td class="py-2 text-right ${textClass}">${fmt(salesProfit)}</td>
       </tr>`;
     }).join("");
 
-    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="5">Select Motor Type to load jobs.</td></tr>`;
+    el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="6">Select Motor Type to load jobs.</td></tr>`;
 
     // Attach event listeners to checkboxes
     document.querySelectorAll(".job-checkbox").forEach(cb => {
@@ -389,6 +398,10 @@
       // Calculate Sales Profit per material line: base × branchMultiplier × (salesProfitMultiplier - 1)
       const salesProfitMultiplier = getSalesProfitMultiplier();
       const salesProfitAmount = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier * (salesProfitMultiplier - 1) : NaN;
+      // Calculate cost before sales profit (after branch multiplier, before sales profit)
+      const costBeforeSalesProfit = Number.isFinite(ln.unitCost)
+        ? ln.unitCost * ln.qty * branchMultiplier
+        : NaN;
 
       return `
         <!-- Mobile Card (visible < md) -->
@@ -415,6 +428,14 @@
                    class="w-full text-lg p-3 rounded-lg border-slate-200 min-h-[48px] text-center font-semibold"
                    value="${ln.qty}"/>
           </div>
+
+          <!-- Cost before Sales Profit -->
+          ${ln.code ? `
+          <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
+            <span class="text-sm text-slate-600">Cost before Sales Profit</span>
+            <span class="text-xl font-bold">${fmt(costBeforeSalesProfit)}</span>
+          </div>
+          ` : ''}
 
           <!-- Line Total -->
           ${ln.code ? `
@@ -449,6 +470,7 @@
                    class="w-32 text-right rounded-lg border-slate-200 px-2 py-1"
                    value="${ln.qty}"/>
           </td>
+          <td class="py-2 text-right">${fmt(costBeforeSalesProfit)}</td>
           <td class="py-2 text-right">${fmt(lineTotal)}</td>
           <td class="py-2 text-right">${fmt(salesProfitAmount)}</td>
           <td class="py-2 text-right">
@@ -458,7 +480,7 @@
       `;
     }).join("") || `
       <div class="md:hidden p-4 text-center text-slate-500">No materials yet. Click “Add row”.</div>
-      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="8">No materials yet. Click "Add row".</td></tr>
+      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="9">No materials yet. Click "Add row".</td></tr>
     `;
 
     // wire events
@@ -546,8 +568,12 @@
 
     // Get multipliers for adjusted line total
     const multiplier = getCompleteMultiplier();
+    const branchMultiplier = getBranchMultiplier();
+    const salesProfitMultiplier = getSalesProfitMultiplier();
 
     const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
+    const salesProfitAmount = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier * (salesProfitMultiplier - 1) : NaN;
+    const costBeforeSalesProfit = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier : NaN;
 
     // Find and update desktop row using data-i attribute
     const desktopInput = el("materialRows").querySelector(`tr.hidden.md\\:table-row .matSearch[data-i="${i}"]`);
@@ -558,7 +584,9 @@
         if (cells[1]) cells[1].textContent = ln.code || "—";
         if (cells[2]) cells[2].textContent = ln.name || "—";
         if (cells[3]) cells[3].textContent = fmt(ln.unitCost);
-        if (cells[5]) cells[5].textContent = fmt(lineTotal);
+        if (cells[5]) cells[5].textContent = fmt(costBeforeSalesProfit);
+        if (cells[6]) cells[6].textContent = fmt(lineTotal);
+        if (cells[7]) cells[7].textContent = fmt(salesProfitAmount);
       }
       desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
     }
@@ -589,22 +617,57 @@
           <div class="text-slate-500">${ln.code} · ${fmt(ln.unitCost)}/unit</div>
         `;
       }
-      // Update line total section
-      let totalSection = mobileCard.querySelector(".flex.justify-between.items-center");
+
+      // Update or create the Cost before Sales Profit card
+      let costBeforeSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Cost before Sales Profit"));
+      if (!costBeforeSection && ln.code) {
+        costBeforeSection = document.createElement("div");
+        costBeforeSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
+        costBeforeSection.innerHTML = `
+          <span class="text-sm text-slate-600">Cost before Sales Profit</span>
+          <span class="text-xl font-bold">${fmt(costBeforeSalesProfit)}</span>
+        `;
+        const qtySection = mobileCard.querySelector("label")?.closest("div");
+        if (qtySection) {
+          qtySection.parentNode.insertBefore(costBeforeSection, qtySection.nextSibling);
+        }
+      } else if (costBeforeSection) {
+        costBeforeSection.querySelector(".text-xl.font-bold").textContent = fmt(costBeforeSalesProfit);
+      }
+
+      // Update or create the Line Total card
+      let totalSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Line Total"));
       if (!totalSection && ln.code) {
-        // Need to create the line total section
         totalSection = document.createElement("div");
         totalSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
         totalSection.innerHTML = `
           <span class="text-sm text-slate-600">Line Total</span>
           <span class="text-xl font-bold">${fmt(lineTotal)}</span>
         `;
-        const qtySection = mobileCard.querySelector("div"); // Find the quantity section
-        if (qtySection && qtySection.querySelector('label')) {
-          qtySection.parentNode.insertBefore(totalSection, qtySection.nextSibling);
+        if (costBeforeSection) {
+          costBeforeSection.parentNode.insertBefore(totalSection, costBeforeSection.nextSibling);
         }
       } else if (totalSection) {
         totalSection.querySelector(".text-xl.font-bold").textContent = fmt(lineTotal);
+      }
+
+      // Update or create the Sales Profit card
+      let salesProfitSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Sales Profit") && !el.querySelector(".text-sm")?.textContent.includes("Cost before"));
+      if (!salesProfitSection && ln.code) {
+        salesProfitSection = document.createElement("div");
+        salesProfitSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
+        salesProfitSection.innerHTML = `
+          <span class="text-sm text-slate-600">Sales Profit</span>
+          <span class="text-xl font-bold">${fmt(salesProfitAmount)}</span>
+        `;
+        if (totalSection) {
+          totalSection.parentNode.insertBefore(salesProfitSection, totalSection.nextSibling);
+        }
+      } else if (salesProfitSection) {
+        salesProfitSection.querySelector(".text-xl.font-bold").textContent = fmt(salesProfitAmount);
       }
     }
 
