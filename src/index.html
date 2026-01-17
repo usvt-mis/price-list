@@ -62,7 +62,7 @@
               <th class="text-left py-2">Job</th>
               <th class="text-right py-2">Manhours</th>
               <th class="text-right py-2">Cost</th>
-              <th class="text-right py-2">Sales Profit</th>
+              <th class="text-right py-2">Final Cost</th>
             </tr>
           </thead>
           <tbody id="laborRows"></tbody>
@@ -89,6 +89,7 @@
               <th class="text-right py-2">Unit Cost</th>
               <th class="text-right py-2">Qty</th>
               <th class="text-right py-2">Line Total</th>
+              <th class="text-right py-2">Sales Profit</th>
               <th class="text-right py-2"></th>
             </tr>
           </thead>
@@ -137,6 +138,7 @@
           <div>Labor: <span id="grandLabor" class="font-semibold text-white">—</span></div>
           <div>Materials: <span id="grandMaterials" class="font-semibold text-white">—</span></div>
           <div>Overhead: <span id="grandOverhead" class="font-semibold text-white">—</span></div>
+          <div>Travel Sales Profit: <span id="grandTravelSalesProfit" class="font-semibold text-white">—</span></div>
         </div>
       </div>
     </section>
@@ -285,7 +287,7 @@
                  value="${j.effectiveManHours}" ${!isChecked ? 'disabled' : ''}>
         </td>
         <td class="py-2 text-right ${textClass}">${fmt(cost)}</td>
-        <td class="py-2 text-right ${textClass}">${fmt(salesProfit)}</td>
+        <td class="py-2 text-right ${textClass}">${fmt(cost)}</td>
       </tr>`;
     }).join("");
 
@@ -380,9 +382,13 @@
   function renderMaterials() {
     // Get multipliers for adjusted line totals
     const multiplier = getCompleteMultiplier();
+    const branchMultiplier = getBranchMultiplier();
 
     el("materialRows").innerHTML = materialLines.map((ln, i) => {
       const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
+      // Calculate Sales Profit per material line: base × branchMultiplier × (salesProfitMultiplier - 1)
+      const salesProfitMultiplier = getSalesProfitMultiplier();
+      const salesProfitAmount = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier * (salesProfitMultiplier - 1) : NaN;
 
       return `
         <!-- Mobile Card (visible < md) -->
@@ -416,6 +422,10 @@
             <span class="text-sm text-slate-600">Line Total</span>
             <span class="text-xl font-bold">${fmt(lineTotal)}</span>
           </div>
+          <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
+            <span class="text-sm text-slate-600">Sales Profit</span>
+            <span class="text-xl font-bold">${fmt(salesProfitAmount)}</span>
+          </div>
           ` : ''}
 
           <!-- Remove Button -->
@@ -440,6 +450,7 @@
                    value="${ln.qty}"/>
           </td>
           <td class="py-2 text-right">${fmt(lineTotal)}</td>
+          <td class="py-2 text-right">${fmt(salesProfitAmount)}</td>
           <td class="py-2 text-right">
             <button data-del="${i}" class="text-sm px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-50">Remove</button>
           </td>
@@ -447,7 +458,7 @@
       `;
     }).join("") || `
       <div class="md:hidden p-4 text-center text-slate-500">No materials yet. Click “Add row”.</div>
-      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="7">No materials yet. Click “Add row”.</td></tr>
+      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="8">No materials yet. Click "Add row".</td></tr>
     `;
 
     // wire events
@@ -640,16 +651,20 @@
     const l = lAfterBranch * salesProfitMultiplier;
     const m = mAfterBranch * salesProfitMultiplier;
 
-    // Get travel cost
-    const travelCost = getTravelCost();
+    // Get travel cost (base: Km × 15)
+    const travelBase = getTravelCost();
+    // Apply sales profit multiplier to travel cost
+    const travelCost = travelBase * salesProfitMultiplier;
+    // Calculate travel sales profit amount
+    const travelSalesProfit = travelCost - travelBase;
 
     // Calculate overhead (difference between base and after-branch amounts)
     const overhead = (lAfterBranch + mAfterBranch) - (lBase + mBase);
 
-    // Calculate sales profit adjustment
+    // Calculate sales profit adjustment (labor + materials only)
     const salesProfitAdj = (l + m) - (lAfterBranch + mAfterBranch);
 
-    // Grand total = labor + materials + travel cost
+    // Grand total = labor + materials + travel cost (with sales profit applied)
     const g = l + m + travelCost;
 
     // Update display elements
@@ -660,7 +675,8 @@
     el("grandTotal").textContent = fmt(g);
     el("grandLabor").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("grandMaterials").textContent = fmt(m);
-    el("grandOverhead").textContent = fmt(overhead + salesProfitAdj); // Combined
+    el("grandOverhead").textContent = fmt(overhead + salesProfitAdj); // Combined (labor + materials overhead + sales profit)
+    el("grandTravelSalesProfit").textContent = fmt(travelSalesProfit); // Travel sales profit separately
   }
 
   // ---------- init ----------
