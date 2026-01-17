@@ -643,7 +643,6 @@
     // Update display elements
     el("laborSubtotal").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("materialSubtotal").textContent = fmt(m);
-    el("overheadTotal").textContent = fmt(overhead); // Branch overhead only
     el("travelCost").textContent = fmt(travelCost);
 
     el("grandTotal").textContent = fmt(g);
