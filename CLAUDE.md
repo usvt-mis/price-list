@@ -108,7 +108,7 @@ Each HTTP function file:
      - `BranchMultiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)` (from branch defaults, silent)
      - `SalesProfitMultiplier = (1 + SalesProfit%/100)` (user input, can be negative)
    - Multipliers are applied to CostPerHour first, then multiplied by effectiveManHours
-   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (with all multipliers applied), and Sales Profit (per job)
+   - Labor table displays: checkbox, JobName, Manhours (editable), Cost (base cost with all multipliers applied), and Final Cost (adjusted cost with all multipliers applied)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
@@ -117,11 +117,14 @@ Each HTTP function file:
 6. Material costs calculated as: sum(AdjustedUnitCost × Qty)
    - **AdjustedUnitCost = UnitCost × BranchMultiplier × SalesProfitMultiplier**
    - Multipliers are applied to UnitCost first, then multiplied by quantity
+   - Materials table displays: Material (search), Code, Name, Unit Cost, Qty, Line Total (with all multipliers applied), and Sales Profit (profit amount per line)
 7. User enters Sales Profit % and Travel/Shipping Distance (Km) in the "Sales Profit & Travel" panel
    - Sales Profit % can be negative for discounts
-   - Travel Cost = Km × 15 baht/km
-8. Grand total = labor (adjusted) + materials (adjusted) + travel cost
-   - Grand Overhead in footer shows combined overhead + sales profit adjustment
+   - Travel Cost = Km × 15 baht/km (base cost)
+   - Travel Cost includes Sales Profit multiplier applied (e.g., 10% Sales Profit adds 10% to travel cost)
+8. Grand total = labor (adjusted) + materials (adjusted) + travel cost (with sales profit applied)
+   - Grand Overhead in footer shows combined overhead + sales profit adjustment (labor + materials only)
+   - Travel Sales Profit is displayed separately in the grand total breakdown
 
 ### Jobs Panel UX
 - Each job row has a checkbox in the first column (default: checked)
@@ -179,11 +182,12 @@ Each HTTP function file:
   1. **Sales Profit %** - Number input with `step="0.01"` (allows decimals)
      - Can be negative for discounts
      - Applied after branch multipliers (Overhead% and PolicyProfit%)
+     - Applied to labor, materials, and travel costs
      - Default value: 0
   2. **Travel/Shipping Distance (Km)** - Number input with `step="1"` and `min="0"`
      - Integer values only (whole kilometers)
      - Default value: 0
-  3. **Travel/Shipping Cost** - Display showing calculated value (Km × 15 baht/km)
+  3. **Travel/Shipping Cost** - Display showing calculated value (Km × 15 baht/km × SalesProfitMultiplier)
 - Helper functions (`src/index.html`, lines ~206-239):
   - `getBranchMultiplier()` - Returns `(1 + OverheadPercent/100) × (1 + PolicyProfit/100)` from branch defaults
   - `getSalesProfitMultiplier()` - Returns `(1 + SalesProfit%/100)` from user input
@@ -193,28 +197,40 @@ Each HTTP function file:
     - Formula: `effectiveManHours × CostPerHour × BranchMultiplier × (SalesProfitMultiplier - 1)`
     - This isolates the Sales Profit portion applied after the branch multipliers
 - Event listeners trigger `calcAll()` on input changes (lines ~657-658)
-- Footer grand overhead shows combined overhead + sales profit adjustment
+- Footer grand overhead shows combined overhead + sales profit adjustment (labor + materials only)
+- Travel Sales Profit is displayed separately in the grand total breakdown
 
-### Sales Profit Column (Labor Table)
-- The labor table includes a **Sales Profit** column that shows the Sales Profit amount for each job row
-- Calculation is performed per job using `getJobSalesProfit()` helper function
+### Final Cost Column (Labor Table)
+- The labor table includes a **Final Cost** column that shows the final adjusted cost for each job row
+- The Final Cost includes all multipliers: BranchMultiplier (Overhead% + PolicyProfit%) and SalesProfitMultiplier
+- Formula breakdown:
+  - `Final_Cost = effectiveManHours × CostPerHour × BranchMultiplier × SalesProfitMultiplier`
+  - When Sales Profit % = 0: shows cost after branch multipliers only
+  - When Sales Profit % > 0: shows increased cost with profit added
+  - When Sales Profit % < 0 (discount): shows decreased cost with discount applied
+- The column uses the same styling as the Cost column (right-aligned, with strikethrough for unchecked jobs)
+
+### Sales Profit Column (Materials Table)
+- The materials table includes a **Sales Profit** column that shows the Sales Profit amount for each material line
+- Calculation is performed per material line in the `renderMaterials()` function
 - Sales Profit is calculated **after** the Branch Multiplier (Overhead% + PolicyProfit%) is applied
 - Formula breakdown:
-  - `Cost_After_Branch = effectiveManHours × CostPerHour × BranchMultiplier`
+  - `Cost_After_Branch = unitCost × qty × BranchMultiplier`
   - `Sales_Profit = Cost_After_Branch × (SalesProfitMultiplier - 1)`
   - When Sales Profit % = 0: shows 0.00
   - When Sales Profit % > 0: shows positive profit amount
   - When Sales Profit % < 0 (discount): shows negative value
-- The column uses the same styling as the Cost column (right-aligned, with strikethrough for unchecked jobs)
+- The Sales Profit is displayed in both desktop table row and mobile card layouts
 
 ### Responsive Design
 - The material panel uses a **dual-layout approach**:
   - **Mobile (< md breakpoint / 768px)**: Card-based layout with stacked information
     - Compact selected material display (name on one line, code + unit cost on second)
     - Full-width quantity input (48px min-height) with centered text for easy entry
-    - Line total displayed in white card with prominent styling
+    - Line total and Sales Profit displayed in white cards with prominent styling
   - **Desktop (md+)**: Traditional table layout with horizontal columns
     - Wider quantity input (w-32) for easier typing
+    - Sales Profit column shows profit amount per line
 - Mobile cards feature 44px minimum touch targets for all interactive elements
 - Search dropdown buttons are touch-friendly with `min-h-[44px]` and `text-base`
 - Table headers are hidden on mobile to reduce visual clutter
