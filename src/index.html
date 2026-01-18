@@ -66,7 +66,7 @@
               <th class="w-10 py-2"></th>
               <th class="text-left py-2">Job</th>
               <th class="text-right py-2">Manhours</th>
-              <th class="text-right py-2">Cost+Ovh</th>
+              <th class="text-right py-2">Cost+Ovh+PP</th>
               <th class="text-right py-2">Final Price</th>
             </tr>
           </thead>
@@ -93,7 +93,7 @@
               <th class="text-left py-2">Name</th>
               <th class="text-right py-2">Unit Cost</th>
               <th class="text-right py-2">Qty</th>
-              <th class="text-right py-2">Cost+Ovh</th>
+              <th class="text-right py-2">Cost+Ovh+PP</th>
               <th class="text-right py-2">Final Price</th>
               <th class="text-right py-2"></th>
             </tr>
@@ -163,11 +163,6 @@
             <div class="flex justify-between items-center">
               <span class="text-sm text-slate-300">Overhead + Policy Profit</span>
               <span id="grandOverhead" class="font-semibold text-white">—</span>
-            </div>
-            <!-- Travel Sales Profit -->
-            <div class="flex justify-between items-center">
-              <span class="text-sm text-slate-300">Travel Sales Profit</span>
-              <span id="grandTravelSalesProfit" class="font-semibold text-white">—</span>
             </div>
             <!-- Separator -->
             <div class="border-t border-slate-700 pt-4 mt-4"></div>
@@ -324,7 +319,7 @@
         <th class="w-10 py-2"></th>
         <th class="text-left py-2">Job</th>
         <th class="text-right py-2">Manhours</th>
-        ${isExecutiveMode() ? '<th class="text-right py-2">Cost+Ovh</th>' : ''}
+        ${isExecutiveMode() ? '<th class="text-right py-2">Cost+Ovh+PP</th>' : ''}
         <th class="text-right py-2">Final Price</th>
       </tr>
     `;
@@ -479,7 +474,7 @@
         <th class="text-left py-2">Name</th>
         ${isExecutiveMode() ? '<th class="text-right py-2">Unit Cost</th>' : ''}
         <th class="text-right py-2">Qty</th>
-        ${isExecutiveMode() ? '<th class="text-right py-2">Cost+Ovh</th>' : ''}
+        ${isExecutiveMode() ? '<th class="text-right py-2">Cost+Ovh+PP</th>' : ''}
         <th class="text-right py-2">Final Price</th>
         <th class="text-right py-2"></th>
       </tr>
@@ -523,10 +518,10 @@
                    value="${ln.qty}"/>
           </div>
 
-          <!-- Cost+Ovh -->
+          <!-- Cost+Ovh+PP -->
           ${isExecutiveMode() && ln.code ? `
           <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
-            <span class="text-sm text-slate-600">Cost+Ovh</span>
+            <span class="text-sm text-slate-600">Cost+Ovh+PP</span>
             <span class="text-xl font-bold">${fmt(costBeforeSalesProfit)}</span>
           </div>
           ` : ''}
@@ -716,16 +711,16 @@
         `;
       }
 
-      // Update or create the Cost+Ovh card (only in Executive mode)
+      // Update or create the Cost+Ovh+PP card (only in Executive mode)
       let costBeforeSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
-        .find(el => el.querySelector(".text-sm")?.textContent.includes("Cost+Ovh"));
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Cost+Ovh+PP"));
 
       if (isExecutiveMode() && !costBeforeSection && ln.code) {
-        // Create Cost+Ovh section
+        // Create Cost+Ovh+PP section
         costBeforeSection = document.createElement("div");
         costBeforeSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
         costBeforeSection.innerHTML = `
-          <span class="text-sm text-slate-600">Cost+Ovh</span>
+          <span class="text-sm text-slate-600">Cost+Ovh+PP</span>
           <span class="text-xl font-bold">${fmt(costBeforeSalesProfit)}</span>
         `;
         const qtySection = mobileCard.querySelector("label")?.closest("div");
@@ -734,10 +729,10 @@
         }
       } else if (costBeforeSection) {
         if (isExecutiveMode()) {
-          // Update existing Cost+Ovh section
+          // Update existing Cost+Ovh+PP section
           costBeforeSection.querySelector(".text-xl.font-bold").textContent = fmt(costBeforeSalesProfit);
         } else {
-          // Remove Cost+Ovh section when switching to Sales mode
+          // Remove Cost+Ovh+PP section when switching to Sales mode
           costBeforeSection.remove();
         }
       }
@@ -863,7 +858,6 @@
     el("grandLabor").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("grandMaterials").textContent = fmt(m);
     el("grandOverhead").textContent = fmt(overhead + salesProfitAdj); // Combined (labor + materials overhead + sales profit)
-    el("grandTravelSalesProfit").textContent = fmt(travelSalesProfit); // Travel sales profit separately
     el("grandSubTotalBeforeSalesProfit").textContent = fmt(subTotalBeforeSalesProfit);
     el("grandCommissionPercent").textContent = commissionPercent + "%";
     el("grandCommission").textContent = fmt(commission);

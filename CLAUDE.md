@@ -108,7 +108,7 @@ Each HTTP function file:
      - `BranchMultiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)` (from branch defaults, silent)
      - `SalesProfitMultiplier = (1 + SalesProfit%/100)` (user input, can be negative)
    - Multipliers are applied to CostPerHour first, then multiplied by effectiveManHours
-   - Labor table displays: checkbox, JobName, Manhours (editable), Cost+Ovh (after branch multiplier), **Final Price** (with commission)
+   - Labor table displays: checkbox, JobName, Manhours (editable), Cost+Ovh+PP (after branch multiplier), **Final Price** (with commission)
    - JobCode is not shown to the user
    - Each job row has a checkbox (default: checked)
    - Unchecked jobs are excluded from labor subtotal calculation
@@ -120,10 +120,10 @@ Each HTTP function file:
    - Multipliers are applied to UnitCost first, then multiplied by quantity
    - Materials use a **single-row table layout on desktop, card layout on mobile**:
      - Each material is displayed with: search input, material code/name, unit cost, quantity input, and cost breakdown
-     - Cost breakdown includes: Cost+Ovh, **Final Price**
+     - Cost breakdown includes: Cost+Ovh+PP, **Final Price**
    - **Materials Subtotal** displays sum of all Final Prices (including commission)
    - **Desktop (md+)**: Traditional single-row table with 8 columns
-     - Table headers: Material, Code, Name, Unit Cost, Qty, Cost+Ovh, Final Price, Remove
+     - Table headers: Material, Code, Name, Unit Cost, Qty, Cost+Ovh+PP, Final Price, Remove
      - Each material occupies one `<tr>` with all columns inline
      - Search input uses fixed positioning for dropdown overlay
    - **Mobile (< md)**: Single column card layout with larger touch targets
@@ -138,7 +138,6 @@ Each HTTP function file:
    - **Sub Grand Total** = labor (adjusted) + materials (adjusted) + travel cost (used for commission calculation)
    - Sub Total Cost in footer shows labor + materials + travel BEFORE sales profit multiplier
    - Grand Overhead in footer shows combined overhead + sales profit adjustment (labor + materials only)
-   - Travel Sales Profit is displayed separately in the grand total breakdown
 
 ### Jobs Panel UX
 - Each job row has a checkbox in the first column (default: checked)
@@ -213,7 +212,7 @@ Each HTTP function file:
     - Default value: 0
     - Larger input with `px-4 py-3 text-lg` for prominence
 - **Top Row: Right Card**: Cost breakdown items with progressive typography sizing
-  - Labor, Materials, Overhead, Travel Sales Profit: `text-sm` labels with `font-semibold` values
+  - Labor, Materials, Overhead: `text-sm` labels with `font-semibold` values
   - Sub Total Cost: `text-base font-medium` label with `text-xl font-bold` value (20px) - second-largest
   - Commission Section: `text-base font-medium text-emerald-400` labels with `text-2xl font-bold text-emerald-400` values (24px)
   - Visual separators using `border-t border-slate-700` between sections
@@ -234,7 +233,6 @@ Each HTTP function file:
   - **Labor**: Final labor cost (after branch + sales profit multipliers)
   - **Materials**: Final materials cost (after branch + sales profit multipliers)
   - **Overhead + Policy Profit**: Combined overhead + policy profit + sales profit adjustment (labor + materials only)
-  - **Travel Sales Profit**: Sales profit portion from travel (not the full travel cost)
   - **Sub Total Cost**: Labor + materials + travel BEFORE sales profit multiplier is applied (displayed with larger `text-lg font-bold` styling, hidden in Sales mode)
   - **Commission%**: Commission percentage based on Sub Grand Total vs STC ratio (displayed with `text-2xl font-bold text-emerald-400` styling)
   - **Commission**: Commission amount calculated as Commission% × Sub Grand Total (displayed with `text-2xl font-bold text-emerald-400` styling)
@@ -255,8 +253,8 @@ Each HTTP function file:
 - Commission elements are visually separated with a border (`border-t border-slate-700`) and styled with emerald color (`text-emerald-400`) for prominence
 - Updates in real-time whenever any value affecting SGT or STC changes (branch, motor type, jobs, materials, sales profit %, travel distance)
 
-### Cost+Ovh Column (Labor Table)
-- The labor table includes a **Cost+Ovh** column that shows the cost after the Branch Multiplier but before Sales Profit
+### Cost+Ovh+PP Column (Labor Table)
+- The labor table includes a **Cost+Ovh+PP** column that shows the cost after the Branch Multiplier but before Sales Profit
 - Positioned between "Manhours" and "Final Price" columns
 - Formula breakdown:
   - `Cost_Before_Sales_Profit = effectiveManHours × CostPerHour × BranchMultiplier`
@@ -267,8 +265,8 @@ Each HTTP function file:
 - The column uses the same styling as the Final Price column (right-aligned, with strikethrough for unchecked jobs)
 - Updates in real-time when the Sales Profit % input changes
 
-### Cost+Ovh Column (Materials Table)
-- The materials table includes a **Cost+Ovh** column that shows the cost after the Branch Multiplier but before Sales Profit
+### Cost+Ovh+PP Column (Materials Table)
+- The materials table includes a **Cost+Ovh+PP** column that shows the cost after the Branch Multiplier but before Sales Profit
 - Displayed between "Qty" and "Final Price" columns
 - Formula breakdown:
   - `Cost_Before_Sales_Profit = unitCost × qty × BranchMultiplier`
@@ -280,7 +278,7 @@ Each HTTP function file:
 
 ### Final Price Column (Labor Table)
 - The labor table includes a **Final Price** column that shows the price including commission for each job row
-- Positioned after "Cost+Ovh" column (last column)
+- Positioned after "Cost+Ovh+PP" column (last column)
 - Formula breakdown:
   - `Final_Price = Selling_Price × (1 + commissionPercent / 100)`
   - The commission percent is calculated based on the ratio of Sub Grand Total to Sub Total Cost
@@ -291,7 +289,7 @@ Each HTTP function file:
 
 ### Final Price Column (Materials Table)
 - The materials table includes a **Final Price** column that shows the price including commission for each material line
-- Positioned after "Cost+Ovh" column
+- Positioned after "Cost+Ovh+PP" column
 - Formula breakdown:
   - `Final_Price = Line_Total × (1 + commissionPercent / 100)`
   - The commission percent is calculated based on the ratio of Sub Grand Total to Sub Total Cost
@@ -305,17 +303,17 @@ Each HTTP function file:
   - **Mobile (< md breakpoint / 768px)**: Single-column card layout with stacked information
     - Compact selected material display (name on one line, code + unit cost on second in Executive mode, code only in Sales mode)
     - Full-width quantity input (48px min-height) with centered text for easy entry
-    - Cost+Ovh and Final Price displayed in white cards with prominent styling (Executive mode only)
+    - Cost+Ovh+PP and Final Price displayed in white cards with prominent styling (Executive mode only)
     - Larger touch targets (44px minimum) for all interactive elements
   - **Desktop (md+)**: Traditional single-row table layout with 8 columns (Executive mode) or 6 columns (Sales mode)
     - Each material occupies one `<tr>` with all columns inline
-    - Executive mode headers: Material, Code, Name, Unit Cost, Qty, Cost+Ovh, Final Price, Remove
-    - Sales mode headers: Material, Code, Name, Qty, Final Price, Remove (Unit Cost and Cost+Ovh hidden)
+    - Executive mode headers: Material, Code, Name, Unit Cost, Qty, Cost+Ovh+PP, Final Price, Remove
+    - Sales mode headers: Material, Code, Name, Qty, Final Price, Remove (Unit Cost and Cost+Ovh+PP hidden)
     - Search input uses fixed positioning (`fixed z-50`) for dropdown overlay
     - Table uses `overflow-x-auto` for horizontal scrolling on smaller screens
 - The labor table uses a **single-row table layout** with 5 columns (Executive mode) or 4 columns (Sales mode):
-  - Executive mode headers: (checkbox), Job, Manhours, Cost+Ovh, Final Price
-  - Sales mode headers: (checkbox), Job, Manhours, Final Price (Cost+Ovh hidden)
+  - Executive mode headers: (checkbox), Job, Manhours, Cost+Ovh+PP, Final Price
+  - Sales mode headers: (checkbox), Job, Manhours, Final Price (Cost+Ovh+PP hidden)
 - The Grand Total Panel uses a **three-tier layout**:
   - Top: Side-by-side cards on desktop (Sub Grand Total + Breakdown)
   - Bottom: Grand Total display (prominent, full width on all screen sizes)
@@ -331,8 +329,8 @@ Each HTTP function file:
 
 ### Mode Switcher (Executive vs Sales)
 - A segmented control in the header allows switching between two display modes:
-  - **Executive Mode** (default): Shows all cost details including Cost+Ovh columns, Unit Cost, Overhead + Policy Profit, Sub Grand Total, and Sub Total Cost
-  - **Sales Mode**: Hides sensitive cost information - Cost+Ovh columns, Unit Cost column, Overhead + Policy Profit, and Sub Total Cost
+  - **Executive Mode** (default): Shows all cost details including Cost+Ovh+PP columns, Unit Cost, Overhead + Policy Profit, Sub Grand Total, and Sub Total Cost
+  - **Sales Mode**: Hides sensitive cost information - Cost+Ovh+PP columns, Unit Cost column, Overhead + Policy Profit, and Sub Total Cost
 - Mode switcher implementation details:
   - **Location**: Header (top-right corner) with flex layout
   - **UI**: Segmented control with two buttons (Executive | Sales) using Tailwind CSS
@@ -343,8 +341,8 @@ Each HTTP function file:
     - `setMode(mode)` - Updates mode, saves to localStorage, triggers re-renders
     - `updateModeButtons()` - Updates button styling and Grand Total Panel visibility
 - Elements hidden in Sales Mode:
-  - **Labor Table**: Cost+Ovh column (header and cells)
-  - **Materials Table**: Cost+Ovh column (header and cells in both desktop and mobile layouts), Unit Cost column (header, cells, and mobile info)
+  - **Labor Table**: Cost+Ovh+PP column (header and cells)
+  - **Materials Table**: Cost+Ovh+PP column (header and cells in both desktop and mobile layouts), Unit Cost column (header, cells, and mobile info)
   - **Grand Total Panel**: Overhead + Policy Profit row, Sub Total Cost row
   - Sub Grand Total label remains VISIBLE in both modes
   - Grand Total text size increases (text-5xl → text-6xl) in Sales mode for better visual balance
