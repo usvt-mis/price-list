@@ -139,7 +139,7 @@ Each HTTP function file:
 8. **Grand Total** = sum of all Final Prices (labor + materials + travel)
    - **Sub Grand Total** = labor (adjusted) + materials (adjusted) + travel cost (used for commission calculation)
    - Sub Total Cost in footer shows labor + materials + travel BEFORE sales profit multiplier
-   - Grand Overhead in footer shows combined overhead + sales profit adjustment (labor + materials only)
+   - Grand Overhead in footer shows branch multipliers only (Overhead% + PolicyProfit% from branch defaults, excludes sales profit)
 
 ### Jobs Panel UX
 - Each job row has a checkbox in the first column (default: checked)
@@ -247,8 +247,8 @@ Each HTTP function file:
   - **Sub Grand Total**: Labor + materials + travel cost with all multipliers applied (used for commission calculation, shown in BOTH Executive and Sales modes)
   - **Labor**: Final labor cost (after branch + sales profit multipliers)
   - **Materials**: Final materials cost (after branch + sales profit multipliers)
-  - **Total Raw Cost**: Sum of raw labor and material costs WITHOUT any multipliers (CostPerHour × manhours + UnitCost × quantity, shown in BOTH Executive and Sales modes)
-  - **Overhead + Policy Profit**: Combined overhead + policy profit + sales profit adjustment (labor + materials only)
+  - **Total Raw Cost**: Sum of raw labor, material, and travel costs WITHOUT any multipliers (CostPerHour × manhours + UnitCost × quantity + Km × 15, shown in BOTH Executive and Sales modes)
+  - **Overhead + Policy Profit**: Combined overhead + policy profit from branch defaults only (labor + materials only, excludes sales profit)
   - **Sub Total Cost**: Labor + materials + travel BEFORE sales profit multiplier is applied (displayed with larger `text-lg font-bold` styling, hidden in Sales mode)
   - **Commission%**: Commission percentage based on Sub Grand Total vs STC ratio (displayed with `text-2xl font-bold text-emerald-400` styling)
   - **Commission**: Commission amount calculated as Commission% × Sub Grand Total (displayed with `text-2xl font-bold text-emerald-400` styling)

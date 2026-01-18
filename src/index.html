@@ -148,11 +148,6 @@
               <span class="text-sm text-slate-300">Materials</span>
               <span id="grandMaterials" class="font-semibold text-white">—</span>
             </div>
-            <!-- Total Raw Cost -->
-            <div class="flex justify-between items-center">
-              <span class="text-sm text-slate-300">Total Raw Cost</span>
-              <span id="grandTotalRawCost" class="font-semibold text-white">—</span>
-            </div>
             <!-- Overhead -->
             <div class="flex justify-between items-center">
               <span class="text-sm text-slate-300">Overhead + Policy Profit</span>
@@ -160,6 +155,11 @@
             </div>
             <!-- Separator -->
             <div class="border-t border-slate-700 pt-4 mt-4"></div>
+            <!-- Total Raw Cost -->
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-300">Total Raw Cost</span>
+              <span id="grandTotalRawCost" class="font-semibold text-white">—</span>
+            </div>
             <!-- Sub Total Cost -->
             <div id="subTotalCostSection" class="flex justify-between items-center">
               <span class="text-base font-medium text-slate-200">Total Cost+Ovh+PP</span>
@@ -678,15 +678,16 @@
         const cells = desktopRow.querySelectorAll("td");
         if (cells[1]) cells[1].textContent = ln.code || "—";
         if (cells[2]) cells[2].textContent = ln.name || "—";
-        // Unit Cost cell index shifts based on mode
+        // Unit Cost cell at index 3 (Executive mode only)
         const unitCostCell = isExecutiveMode() ? cells[3] : null;
         if (unitCostCell) unitCostCell.textContent = fmt(ln.unitCost);
-        // Raw Cost is at fixed index 4 (always visible)
-        if (cells[4]) cells[4].textContent = fmt(rawCost);
-        // Cost+Ovh+PP cell index shifts based on mode (was 5, now 6)
+        // Raw Cost: index 5 in Executive, index 4 in Sales
+        const rawCostCellIndex = isExecutiveMode() ? 5 : 4;
+        if (cells[rawCostCellIndex]) cells[rawCostCellIndex].textContent = fmt(rawCost);
+        // Cost+Ovh+PP: index 6 in Executive mode only
         const costBeforeCell = isExecutiveMode() ? cells[6] : null;
         if (costBeforeCell) costBeforeCell.textContent = fmt(costBeforeSalesProfit);
-        // Final Price cell index shifts based on mode (was 6, now 7)
+        // Final Price: index 7 in Executive, index 5 in Sales
         const finalPriceCellIndex = isExecutiveMode() ? 7 : 5;
         if (cells[finalPriceCellIndex]) cells[finalPriceCellIndex].textContent = fmt(finalPrice);
       }
@@ -814,9 +815,11 @@
     // Get base amounts (without multipliers)
     const lBase = laborSubtotalBase();
     const mBase = materialSubtotalBase();
+    // Get travel cost (base: Km × 15)
+    const travelBase = getTravelCost();
 
-    // Calculate total raw cost (labor + materials without any multipliers)
-    const totalRawCost = (Number.isFinite(lBase) ? lBase : 0) + (Number.isFinite(mBase) ? mBase : 0);
+    // Calculate total raw cost (labor + materials + travel without any multipliers)
+    const totalRawCost = (Number.isFinite(lBase) ? lBase : 0) + (Number.isFinite(mBase) ? mBase : 0) + travelBase;
 
     // Get branch multiplier (Overhead% + PolicyProfit% from branch defaults)
     const branchMultiplier = getBranchMultiplier();
@@ -832,8 +835,6 @@
     const l = lAfterBranch * salesProfitMultiplier;
     const m = mAfterBranch * salesProfitMultiplier;
 
-    // Get travel cost (base: Km × 15)
-    const travelBase = getTravelCost();
     // Apply sales profit multiplier to travel cost
     const travelCost = travelBase * salesProfitMultiplier;
     // Calculate travel sales profit amount
@@ -892,7 +893,7 @@
     el("grandLabor").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("grandMaterials").textContent = fmt(m);
     el("grandTotalRawCost").textContent = fmt(totalRawCost);
-    el("grandOverhead").textContent = fmt(overhead + salesProfitAdj); // Combined (labor + materials overhead + sales profit)
+    el("grandOverhead").textContent = fmt(overhead); // Overhead + Policy Profit (branch multipliers only, no sales profit)
     el("grandSubTotalBeforeSalesProfit").textContent = fmt(subTotalBeforeSalesProfit);
     el("grandCommissionPercent").textContent = commissionPercent + "%";
     el("grandCommission").textContent = fmt(commission);
