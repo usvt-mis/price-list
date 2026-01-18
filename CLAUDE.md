@@ -117,15 +117,15 @@ Each HTTP function file:
    - **Labor Subtotal** displays sum of all Final Prices (including commission)
 5. User adds materials → Search API with debounce (250ms)
 6. Material costs calculated as: sum(AdjustedUnitCost × Qty)
-   - **Raw Cost = UnitCost × Quantity** (no multipliers applied, visible in both modes)
+   - **Raw Cost = UnitCost × Quantity** (no multipliers applied, Executive mode only)
    - **AdjustedUnitCost = UnitCost × BranchMultiplier × SalesProfitMultiplier**
    - Multipliers are applied to UnitCost first, then multiplied by quantity
    - Materials use a **single-row table layout on desktop, card layout on mobile**:
      - Each material is displayed with: search input, material code/name, unit cost, quantity input, and cost breakdown
-     - Cost breakdown includes: Raw Cost, Cost+Ovh+PP (Executive only), **Final Price**
+     - Cost breakdown includes: Raw Cost (Executive only), Cost+Ovh+PP (Executive only), **Final Price**
    - **Materials Subtotal** displays sum of all Final Prices (including commission)
-   - **Desktop (md+)**: Traditional single-row table with 9 columns (Executive mode) or 7 columns (Sales mode)
-     - Table headers: Material, Code, Name, Unit Cost (Executive only), Qty, Raw Cost, Cost+Ovh+PP (Executive only), Final Price, Remove
+   - **Desktop (md+)**: Traditional single-row table with 9 columns (Executive mode) or 6 columns (Sales mode)
+     - Table headers: Material, Code, Name, Unit Cost (Executive only), Qty, Raw Cost (Executive only), Cost+Ovh+PP (Executive only), Final Price, Remove
      - Each material occupies one `<tr>` with all columns inline
      - Search input uses fixed positioning for dropdown overlay
    - **Mobile (< md)**: Single column card layout with larger touch targets
@@ -197,7 +197,7 @@ Each HTTP function file:
   - Header element: `<thead id="materialTableHead">` (empty in HTML, populated via JavaScript)
   - Header columns adjust based on mode (Executive vs Sales)
   - Executive mode: Material, Code, Name, Unit Cost, Qty, Raw Cost, Cost+Ovh+PP, Final Price, Remove (9 columns)
-  - Sales mode: Material, Code, Name, Qty, Raw Cost, Final Price, Remove (7 columns)
+  - Sales mode: Material, Code, Name, Qty, Final Price, Remove (6 columns)
 - **Alternating Row Backgrounds**: Desktop table rows use alternating background colors for readability
   - Even rows: `bg-white`
   - Odd rows: `bg-slate-50`
@@ -247,7 +247,7 @@ Each HTTP function file:
   - **Sub Grand Total**: Labor + materials + travel cost with all multipliers applied (used for commission calculation, shown in BOTH Executive and Sales modes)
   - **Labor**: Final labor cost (after branch + sales profit multipliers)
   - **Materials**: Final materials cost (after branch + sales profit multipliers)
-  - **Total Raw Cost**: Sum of raw labor, material, and travel costs WITHOUT any multipliers (CostPerHour × manhours + UnitCost × quantity + Km × 15, shown in BOTH Executive and Sales modes)
+  - **Total Raw Cost**: Sum of raw labor, material, and travel costs WITHOUT any multipliers (CostPerHour × manhours + UnitCost × quantity + Km × 15, shown in Executive mode only, hidden in Sales mode)
   - **Overhead + Policy Profit**: Combined overhead + policy profit from branch defaults only (labor + materials only, excludes sales profit)
   - **Sub Total Cost**: Labor + materials + travel BEFORE sales profit multiplier is applied (displayed with larger `text-lg font-bold` styling, hidden in Sales mode)
   - **Commission%**: Commission percentage based on Sub Grand Total vs STC ratio (displayed with `text-2xl font-bold text-emerald-400` styling)
@@ -306,7 +306,7 @@ Each HTTP function file:
 
 ### Raw Cost Column (Materials Table)
 - The materials table includes a **Raw Cost** column that shows the cost WITHOUT any multipliers (no Overhead%, PolicyProfit%, or Sales Profit)
-- Displayed between "Qty" and "Cost+Ovh+PP" columns (visible in both Executive and Sales modes)
+- Displayed between "Qty" and "Cost+Ovh+PP" columns (Executive mode only)
 - Formula breakdown:
   - `Raw_Cost = UnitCost × Quantity`
   - This is the base cost from the database without any adjustments
@@ -342,13 +342,13 @@ Each HTTP function file:
   - **Mobile (< md breakpoint / 768px)**: Single-column card layout with stacked information
     - Compact selected material display (name on one line, code + unit cost on second in Executive mode, code only in Sales mode)
     - Full-width quantity input (48px min-height) with centered text for easy entry
-    - Raw Cost displayed in white card with prominent styling (both modes)
-    - Cost+Ovh+PP and Final Price displayed in white cards with prominent styling (Executive mode only)
+    - Raw Cost, Cost+Ovh+PP, and Final Price displayed in white cards with prominent styling (Executive mode only)
+    - Final Price displayed in white card with prominent styling (both modes)
     - Larger touch targets (44px minimum) for all interactive elements
-  - **Desktop (md+)**: Traditional single-row table layout with 9 columns (Executive mode) or 7 columns (Sales mode)
+  - **Desktop (md+)**: Traditional single-row table layout with 9 columns (Executive mode) or 6 columns (Sales mode)
     - Each material occupies one `<tr>` with all columns inline
     - Executive mode headers: Material, Code, Name, Unit Cost, Qty, Raw Cost, Cost+Ovh+PP, Final Price, Remove
-    - Sales mode headers: Material, Code, Name, Qty, Raw Cost, Final Price, Remove (Unit Cost and Cost+Ovh+PP hidden)
+    - Sales mode headers: Material, Code, Name, Qty, Final Price, Remove (Unit Cost, Raw Cost, and Cost+Ovh+PP hidden)
     - Search input uses fixed positioning (`fixed z-50`) for dropdown overlay
     - Table uses `overflow-x-auto` for horizontal scrolling on smaller screens
 - The labor table uses a **single-row table layout** with 6 columns (Executive mode) or 5 columns (Sales mode):
@@ -369,9 +369,8 @@ Each HTTP function file:
 
 ### Mode Switcher (Executive vs Sales)
 - A segmented control in the header allows switching between two display modes:
-  - **Executive Mode** (default): Shows all cost details including Raw Cost columns, Cost+Ovh+PP columns, Unit Cost, Overhead + Policy Profit, Sub Grand Total, and Sub Total Cost
-  - **Sales Mode**: Hides sensitive cost information - Labor Raw Cost, Cost+Ovh+PP columns, Unit Cost column, Overhead + Policy Profit, and Sub Total Cost
-    - Note: Materials Raw Cost column remains VISIBLE in Sales mode (shows UnitCost × Quantity without multipliers)
+  - **Executive Mode** (default): Shows all cost details including Raw Cost columns, Cost+Ovh+PP columns, Unit Cost, Overhead + Policy Profit, Sub Grand Total, Total Raw Cost, and Sub Total Cost
+  - **Sales Mode**: Hides sensitive cost information - Labor Raw Cost, Materials Raw Cost, Cost+Ovh+PP columns, Unit Cost column, Overhead + Policy Profit, Total Raw Cost, and Sub Total Cost
 - Mode switcher implementation details:
   - **Location**: Header (top-right corner) with flex layout
   - **UI**: Segmented control with two buttons (Executive | Sales) using Tailwind CSS
@@ -383,10 +382,9 @@ Each HTTP function file:
     - `updateModeButtons()` - Updates button styling and Grand Total Panel visibility
 - Elements hidden in Sales Mode:
   - **Labor Table**: Raw Cost column, Cost+Ovh+PP column (header and cells)
-  - **Materials Table**: Cost+Ovh+PP column (header and cells in both desktop and mobile layouts), Unit Cost column (header, cells, and mobile info)
-  - **Grand Total Panel**: Overhead + Policy Profit row, Sub Total Cost row
+  - **Materials Table**: Raw Cost column (header and cells in both desktop and mobile layouts), Cost+Ovh+PP column (header and cells in both desktop and mobile layouts), Unit Cost column (header, cells, and mobile info)
+  - **Grand Total Panel**: Overhead + Policy Profit row, Total Raw Cost row, Sub Total Cost row
   - Sub Grand Total label remains VISIBLE in both modes
-  - Total Raw Cost remains VISIBLE in both modes
   - Grand Total text size increases (text-5xl → text-6xl) in Sales mode for better visual balance
 - Responsive behavior: Mode switcher works identically on mobile and desktop
 - Accessibility: Uses `role="group"`, `aria-label`, and `aria-pressed` attributes for screen readers
