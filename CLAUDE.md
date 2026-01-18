@@ -192,6 +192,19 @@ Each HTTP function file:
 - Quantity input is full-width on mobile (48px min-height, centered text) and standard width on desktop (w-32)
 - Quantity values are integer-only (decimals are truncated via `Math.trunc()`)
 
+### Material Table Layout
+- **Dynamic Table Header**: The materials table header is generated dynamically by `renderMaterials()` to ensure columns always match
+  - Header element: `<thead id="materialTableHead">` (empty in HTML, populated via JavaScript)
+  - Header columns adjust based on mode (Executive vs Sales)
+  - Executive mode: Material, Code, Name, Unit Cost, Qty, Raw Cost, Cost+Ovh+PP, Final Price, Remove (9 columns)
+  - Sales mode: Material, Code, Name, Qty, Raw Cost, Final Price, Remove (7 columns)
+- **Alternating Row Backgrounds**: Desktop table rows use alternating background colors for readability
+  - Even rows: `bg-white`
+  - Odd rows: `bg-slate-50`
+  - Applied via conditional class: `${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`
+  - Only applies to desktop view (`hidden md:table-row`)
+- The `renderMaterials()` function generates both mobile card layouts and desktop table rows with consistent data structure
+
 ### Travel Panel
 - Contains one user-editable input and one calculated display:
   1. **Travel/Shipping Distance (Km)** - Number input with `step="1"` and `min="0"`

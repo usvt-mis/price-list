@@ -86,18 +86,7 @@
 
       <div class="mt-4 overflow-x-auto">
         <table class="w-full text-sm">
-          <thead class="text-slate-600 hidden md:table-header-group">
-            <tr class="border-b">
-              <th class="text-left py-2">Material</th>
-              <th class="text-left py-2">Code</th>
-              <th class="text-left py-2">Name</th>
-              <th class="text-right py-2">Unit Cost</th>
-              <th class="text-right py-2">Qty</th>
-              <th class="text-right py-2">Cost+Ovh+PP</th>
-              <th class="text-right py-2">Final Price</th>
-              <th class="text-right py-2"></th>
-            </tr>
-          </thead>
+          <thead class="text-slate-600 hidden md:table-header-group" id="materialTableHead"></thead>
           <tbody id="materialRows"></tbody>
         </table>
       </div>
@@ -474,7 +463,7 @@
     const branchMultiplier = getBranchMultiplier();
 
     // Update table header based on mode
-    const materialsTableHead = el("materialRows").previousElementSibling;
+    const materialsTableHead = el("materialTableHead");
     materialsTableHead.innerHTML = `
       <tr class="border-b">
         <th class="text-left py-2">Material</th>
@@ -559,7 +548,7 @@
         </div>
 
         <!-- Desktop Table Row (visible md+) -->
-        <tr class="hidden md:table-row border-b">
+        <tr class="hidden md:table-row border-b ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}">
           <td class="py-2 min-w-[200px] relative">
             <input data-i="${i}" class="matSearch w-full rounded-lg border-slate-200"
                    placeholder="Type to search (min 2 chars)"/>
@@ -904,7 +893,6 @@
     el("grandMaterials").textContent = fmt(m);
     el("grandTotalRawCost").textContent = fmt(totalRawCost);
     el("grandOverhead").textContent = fmt(overhead + salesProfitAdj); // Combined (labor + materials overhead + sales profit)
-    el("grandTravelSalesProfit").textContent = fmt(travelSalesProfit); // Travel sales profit separately
     el("grandSubTotalBeforeSalesProfit").textContent = fmt(subTotalBeforeSalesProfit);
     el("grandCommissionPercent").textContent = commissionPercent + "%";
     el("grandCommission").textContent = fmt(commission);
