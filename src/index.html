@@ -134,7 +134,7 @@
         <!-- Left Card: Sub Grand Total + Sales Profit -->
         <div class="bg-slate-900 text-white rounded-2xl shadow p-6">
           <div class="text-center md:text-left">
-            <div class="text-sm font-medium text-slate-300 mb-2">Sub Grand Total</div>
+            <div class="text-sm font-medium text-slate-300 mb-2">Grand Total without Sales Profit</div>
             <div id="grandTotal" class="text-5xl font-extrabold text-white mb-6">—</div>
             <div class="space-y-2">
               <label for="salesProfitPct" class="block text-sm font-medium text-slate-300">Sales Profit %</label>
@@ -159,6 +159,11 @@
               <span class="text-sm text-slate-300">Materials</span>
               <span id="grandMaterials" class="font-semibold text-white">—</span>
             </div>
+            <!-- Total Raw Cost -->
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-300">Total Raw Cost</span>
+              <span id="grandTotalRawCost" class="font-semibold text-white">—</span>
+            </div>
             <!-- Overhead -->
             <div class="flex justify-between items-center">
               <span class="text-sm text-slate-300">Overhead + Policy Profit</span>
@@ -168,7 +173,7 @@
             <div class="border-t border-slate-700 pt-4 mt-4"></div>
             <!-- Sub Total Cost -->
             <div id="subTotalCostSection" class="flex justify-between items-center">
-              <span class="text-base font-medium text-slate-200">Sub Total Cost</span>
+              <span class="text-base font-medium text-slate-200">Total Cost+Ovh+PP+PP</span>
               <span id="grandSubTotalBeforeSalesProfit" class="text-xl font-bold text-white">—</span>
             </div>
             <!-- Commission Section -->
@@ -178,7 +183,7 @@
                 <span id="grandCommissionPercent" class="text-2xl font-bold text-emerald-400">—</span>
               </div>
               <div class="flex justify-between items-center">
-                <span class="text-base font-medium text-emerald-400">Commission</span>
+                <span class="text-base font-medium text-emerald-400">Sales Commission</span>
                 <span id="grandCommission" class="text-2xl font-bold text-emerald-400">—</span>
               </div>
             </div>
@@ -319,6 +324,7 @@
         <th class="w-10 py-2"></th>
         <th class="text-left py-2">Job</th>
         <th class="text-right py-2">Manhours</th>
+        ${isExecutiveMode() ? '<th class="text-right py-2">Raw Cost</th>' : ''}
         ${isExecutiveMode() ? '<th class="text-right py-2">Cost+Ovh+PP</th>' : ''}
         <th class="text-right py-2">Final Price</th>
       </tr>
@@ -341,6 +347,7 @@
 
       const isChecked = j.checked;
       const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
+      const rawCost = Number.isFinite(cph) ? mh * cph : NaN;
       const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
       // Calculate cost before sales profit (after branch multiplier, before sales profit)
       const salesProfitMultiplier = getSalesProfitMultiplier();
@@ -366,12 +373,13 @@
                  class="w-20 text-right rounded border-slate-200 px-2 py-1 ${!isChecked ? 'bg-slate-100' : ''}"
                  value="${j.effectiveManHours}" ${!isChecked ? 'disabled' : ''}>
         </td>
+        ${isExecutiveMode() ? `<td class="py-2 text-right ${textClass}">${fmt(rawCost)}</td>` : ''}
         ${isExecutiveMode() ? `<td class="py-2 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>` : ''}
         <td class="py-2 text-right ${textClass}">${fmt(finalPrice)}</td>
       </tr>`;
     }).join("");
 
-    const colspan = isExecutiveMode() ? 5 : 4;
+    const colspan = isExecutiveMode() ? 6 : 5;
     el("laborRows").innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="${colspan}">Select Motor Type to load jobs.</td></tr>`;
 
     // Attach event listeners to checkboxes
@@ -474,6 +482,7 @@
         <th class="text-left py-2">Name</th>
         ${isExecutiveMode() ? '<th class="text-right py-2">Unit Cost</th>' : ''}
         <th class="text-right py-2">Qty</th>
+        <th class="text-right py-2">Raw Cost</th>
         ${isExecutiveMode() ? '<th class="text-right py-2">Cost+Ovh+PP</th>' : ''}
         <th class="text-right py-2">Final Price</th>
         <th class="text-right py-2"></th>
@@ -481,6 +490,7 @@
     `;
 
     el("materialRows").innerHTML = materialLines.map((ln, i) => {
+      const rawCost = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
       const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
       // Calculate Sales Profit per material line: base × branchMultiplier × (salesProfitMultiplier - 1)
       const salesProfitMultiplier = getSalesProfitMultiplier();
@@ -517,6 +527,14 @@
                    class="w-full text-lg p-3 rounded-lg border-slate-200 min-h-[48px] text-center font-semibold"
                    value="${ln.qty}"/>
           </div>
+
+          <!-- Raw Cost -->
+          ${ln.code ? `
+          <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
+            <span class="text-sm text-slate-600">Raw Cost</span>
+            <span class="text-xl font-bold">${fmt(rawCost)}</span>
+          </div>
+          ` : ''}
 
           <!-- Cost+Ovh+PP -->
           ${isExecutiveMode() && ln.code ? `
@@ -555,6 +573,7 @@
                    class="w-32 text-right rounded-lg border-slate-200 px-2 py-1"
                    value="${ln.qty}"/>
           </td>
+          <td class="py-2 text-right">${fmt(rawCost)}</td>
           ${isExecutiveMode() ? `<td class="py-2 text-right">${fmt(costBeforeSalesProfit)}</td>` : ''}
           <td class="py-2 text-right">${fmt(finalPrice)}</td>
           <td class="py-2 text-right">
@@ -564,7 +583,7 @@
       `;
     }).join("") || `
       <div class="md:hidden p-4 text-center text-slate-500">No materials yet. Click "Add row".</div>
-      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="${isExecutiveMode() ? 8 : 6}">No materials yet. Click "Add row".</td></tr>
+      <tr class="hidden md:table-row"><td class="py-3 text-slate-500 text-center" colspan="${isExecutiveMode() ? 9 : 7}">No materials yet. Click "Add row".</td></tr>
     `;
 
     // wire events
@@ -655,6 +674,7 @@
     const branchMultiplier = getBranchMultiplier();
     const salesProfitMultiplier = getSalesProfitMultiplier();
 
+    const rawCost = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
     const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
     const salesProfitAmount = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier * (salesProfitMultiplier - 1) : NaN;
     const costBeforeSalesProfit = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier : NaN;
@@ -672,11 +692,13 @@
         // Unit Cost cell index shifts based on mode
         const unitCostCell = isExecutiveMode() ? cells[3] : null;
         if (unitCostCell) unitCostCell.textContent = fmt(ln.unitCost);
-        // Cost+Ovh cell index shifts based on mode
-        const costBeforeCell = isExecutiveMode() ? cells[5] : null;
+        // Raw Cost is at fixed index 4 (always visible)
+        if (cells[4]) cells[4].textContent = fmt(rawCost);
+        // Cost+Ovh+PP cell index shifts based on mode (was 5, now 6)
+        const costBeforeCell = isExecutiveMode() ? cells[6] : null;
         if (costBeforeCell) costBeforeCell.textContent = fmt(costBeforeSalesProfit);
-        // Final Price cell index shifts based on mode
-        const finalPriceCellIndex = isExecutiveMode() ? 6 : 4;
+        // Final Price cell index shifts based on mode (was 6, now 7)
+        const finalPriceCellIndex = isExecutiveMode() ? 7 : 5;
         if (cells[finalPriceCellIndex]) cells[finalPriceCellIndex].textContent = fmt(finalPrice);
       }
       desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : "";
@@ -709,6 +731,26 @@
           <div class="font-medium">${ln.name}</div>
           ${unitCostHtml}
         `;
+      }
+
+      // Update or create the Raw Cost card
+      let rawCostSection = Array.from(mobileCard.querySelectorAll(".flex.justify-between.items-center"))
+        .find(el => el.querySelector(".text-sm")?.textContent.includes("Raw Cost"));
+
+      if (!rawCostSection && ln.code) {
+        // Create Raw Cost section
+        rawCostSection = document.createElement("div");
+        rawCostSection.className = "flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200";
+        rawCostSection.innerHTML = `
+          <span class="text-sm text-slate-600">Raw Cost</span>
+          <span class="text-xl font-bold">${fmt(rawCost)}</span>
+        `;
+        const qtySection = mobileCard.querySelector("label")?.closest("div");
+        if (qtySection) {
+          qtySection.parentNode.insertBefore(rawCostSection, qtySection.nextSibling);
+        }
+      } else if (rawCostSection) {
+        rawCostSection.querySelector(".text-xl.font-bold").textContent = fmt(rawCost);
       }
 
       // Update or create the Cost+Ovh+PP card (only in Executive mode)
@@ -784,6 +826,9 @@
     const lBase = laborSubtotalBase();
     const mBase = materialSubtotalBase();
 
+    // Calculate total raw cost (labor + materials without any multipliers)
+    const totalRawCost = (Number.isFinite(lBase) ? lBase : 0) + (Number.isFinite(mBase) ? mBase : 0);
+
     // Get branch multiplier (Overhead% + PolicyProfit% from branch defaults)
     const branchMultiplier = getBranchMultiplier();
 
@@ -857,7 +902,9 @@
     el("grandTotal").textContent = fmt(subGrandTotal);
     el("grandLabor").textContent = Number.isFinite(l) ? fmt(l) : "—";
     el("grandMaterials").textContent = fmt(m);
+    el("grandTotalRawCost").textContent = fmt(totalRawCost);
     el("grandOverhead").textContent = fmt(overhead + salesProfitAdj); // Combined (labor + materials overhead + sales profit)
+    el("grandTravelSalesProfit").textContent = fmt(travelSalesProfit); // Travel sales profit separately
     el("grandSubTotalBeforeSalesProfit").textContent = fmt(subTotalBeforeSalesProfit);
     el("grandCommissionPercent").textContent = commissionPercent + "%";
     el("grandCommission").textContent = fmt(commission);
