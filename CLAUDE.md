@@ -35,11 +35,16 @@ The application expects these SQL Server tables:
 - **Database connection**: Shared connection pool via `mssql` package in `src/db.js`
 - **Entry point**: `src/index.js` registers all HTTP functions by requiring them
 - **HTTP handlers**: Located in `src/functions/`:
-  - `motorTypes.js` - GET /api/motor-types
-  - `branches.js` - GET /api/branches
-  - `labor.js` - GET /api/labor?motorTypeId={id}
-  - `materials.js` - GET /api/materials?query={search}
-  - `ping.js` - GET /api/ping
+  - `motorTypes.js` - GET /api/motor-types (authentication required)
+  - `branches.js` - GET /api/branches (authentication required)
+  - `labor.js` - GET /api/labor?motorTypeId={id} (authentication required)
+  - `materials.js` - GET /api/materials?query={search} (authentication required)
+  - `ping.js` - GET /api/ping (public health check)
+- **Middleware**: Located in `src/middleware/`:
+  - `auth.js` - Authentication middleware for Azure Static Web Apps Easy Auth
+    - `validateAuth(req)` - Parse and return user info from x-ms-client-principal header
+    - `requireAuth(req)` - Throw 401 if not authenticated
+    - `requireRole(...roles)` - Throw 403 if user lacks required roles
 
 ### Frontend Structure (`src/`)
 
@@ -80,6 +85,26 @@ The `.vscode/launch.json` configuration supports debugging:
 
 ## Key Implementation Details
 
+### Authentication (Azure Entra ID / Azure AD)
+- Uses **Azure Static Web Apps Easy Auth** for authentication
+- Auth state managed in global `authState` object:
+  - `isAuthenticated` - Boolean indicating login status
+  - `user` - Object containing name, email, initials, roles
+  - `isLoading` - Boolean for loading state
+- Auth functions (`src/index.html`):
+  - `getUserInfo()` - Fetches user from `/.auth/me` endpoint
+  - `extractInitials(emailOrName)` - Generates 2-letter initials from email/name
+  - `renderAuthSection()` - Renders login/logout UI in header
+  - `initAuth()` - Initializes auth on page load, enforces Executive mode access
+  - `checkExecutiveModeAccess()` - Forces Sales mode if unauthenticated user tries to access Executive mode
+  - `showNotification(message)` - Displays temporary status message
+- **Executive mode requires authentication** - Unauthenticated users are automatically switched to Sales mode with notification
+- **Role-based auto-selection**: Users with `PriceListExecutive` role auto-select Executive mode; others auto-select Sales mode
+- Login/logout handled via Static Web Apps routes: `/login` and `/logout`
+- All API endpoints (except `/api/ping`) require authentication via `x-ms-client-principal` header
+- 401 responses trigger redirect to `/login` after brief delay
+- Frontend fetch helper `fetchWithAuthCheck()` throws `'AUTH_REQUIRED'` error on 401 for centralized handling
+
 ### Database Connection Pooling
 - Connection pool is singleton-initialized in `api/src/db.js`
 - All functions use `getPool()` to get the shared pool
@@ -97,12 +122,17 @@ Each HTTP function file:
    - Shows "Connecting to Database" message with animated spinner and backdrop blur
    - Modal appears automatically when page loads and is visible by default (catches immediate loading state)
    - Controlled via `setDbLoadingModal(show)` function (toggles `hidden` class)
-   - `loadInit()` shows modal before fetching motor-types and branches
+   - `loadInit()` shows modal, checks auth first via `initAuth()`, then fetches motor-types and branches
    - Modal auto-hides on successful connection or error (via promise `.then()` and `.catch()`)
    - Only appears during initial load, not for subsequent API calls
-2. On load: Fetch motor types and branches for dropdowns
-3. User selects motor type → Fetch ALL jobs with motor-type-specific manhours
-4. Labor costs calculated as: sum(job.effectiveManHours × AdjustedCostPerHour) for **checked jobs only**
+2. **Authentication Check** - Runs before data loading
+   - `initAuth()` fetches user info from `/.auth/me` endpoint
+   - Renders auth section in header (Sign In button or user avatar + Sign Out)
+   - Enforces Executive mode access (switches to Sales mode if unauthenticated)
+   - Auto-selects mode based on user role (Executive vs Sales)
+3. On load: Fetch motor types and branches for dropdowns (after auth check)
+4. User selects motor type → Fetch ALL jobs with motor-type-specific manhours
+5. Labor costs calculated as: sum(job.effectiveManHours × AdjustedCostPerHour) for **checked jobs only**
    - **effectiveManHours** stores the user-editable manhour value (defaults to original ManHours from database)
    - **Raw Cost = CostPerHour × effectiveManHours** (no multipliers applied, Executive mode only)
    - **AdjustedCostPerHour = CostPerHour × BranchMultiplier × SalesProfitMultiplier**

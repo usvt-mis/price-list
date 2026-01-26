@@ -18,6 +18,8 @@ The Price List Calculator computes total cost based on three components:
 - Responsive design with mobile-friendly material panel (card-based layout on screens < 768px)
 
 ### UI Features
+- **Authentication UI**: Login/logout button in header with user avatar (initials) when signed in
+- **Mode-based access**: Executive mode requires authentication; Sales mode accessible to all
 - **Labor section**: Displays job names only (JobCode is hidden for cleaner presentation)
 - **Material search**:
   - Type-to-search with debounced API calls (250ms delay, min 2 characters)
@@ -38,6 +40,8 @@ The Price List Calculator computes total cost based on three components:
 - Azure Functions v4 (Node.js)
 - SQL Server database
 - HTTP API endpoints for data access
+- Azure Entra ID (Azure AD) authentication via Static Web Apps Easy Auth
+- Auth middleware with role-based access control support
 
 ## Database Schema
 
@@ -53,13 +57,14 @@ The application expects these SQL Server tables:
 
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/motor-types` | GET | Fetch all motor types |
-| `/api/branches` | GET | Fetch all branches |
-| `/api/labor?motorTypeId={id}` | GET | Fetch ALL jobs with motor-type-specific manhours (returns 0 for unmatched jobs) |
-| `/api/materials?query={search}` | GET | Search materials (min 2 chars, searches both code and name, returns top 20) |
-| `/api/ping` | GET | Health check endpoint |
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/api/motor-types` | GET | Fetch all motor types | Yes |
+| `/api/branches` | GET | Fetch all branches | Yes |
+| `/api/labor?motorTypeId={id}` | GET | Fetch ALL jobs with motor-type-specific manhours (returns 0 for unmatched jobs) | Yes |
+| `/api/materials?query={search}` | GET | Search materials (min 2 chars, searches both code and name, returns top 20) | Yes |
+| `/api/ping` | GET | Health check endpoint | No |
+| `/.auth/me` | GET | Get current user info from Static Web Apps | No |
 
 ## Development
 
@@ -99,14 +104,31 @@ Open `src/index.html` in a browser to use the application.
 
 ### Authentication
 
-The application is configured with Azure Active Directory authentication via `staticwebapp.config.json`:
+The application uses **Azure Entra ID (Azure AD)** authentication via Static Web Apps Easy Auth:
+
+**Features:**
 - Login route: `/login` (redirects to Azure AD)
 - Logout route: `/logout`
-- Unauthenticated users (401) are automatically redirected to login
+- All API endpoints (except `/api/ping`) require authentication
+- Executive mode requires authentication (unauthenticated users auto-switch to Sales mode)
+- Role-based access control: `PriceListExecutive` role auto-selects Executive mode
 
-To configure locally, set the following environment variables:
+**Configuration:**
+- Azure AD app registration configured in `staticwebapp.config.json`
+- Tenant ID: `2c64826f-cc97-46b5-85a9-0685f81334e0`
+- Auth state managed via `/.auth/me` endpoint
+
+**Local Development:**
+To test authentication locally, use the Static Web Apps CLI:
+```bash
+npm install -g @azure/static-web-apps-cli
+swa start src --api-location api
+```
+
+Set these environment variables:
 - `AZURE_CLIENT_ID`: Azure AD application client ID
 - `AZURE_CLIENT_SECRET_APP_SETTING_NAME`: Azure AD client secret
+- `WEBSITE_AUTH_ENABLED`: Set to `true`
 
 ### Debugging
 
@@ -126,6 +148,8 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │   ├── labor.js
 │   │   │   ├── materials.js
 │   │   │   └── ping.js
+│   │   ├── middleware/
+│   │   │   └── auth.js
 │   │   ├── db.js
 │   │   └── index.js
 │   ├── host.json

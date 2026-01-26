@@ -22,11 +22,18 @@
 
   <div class="max-w-6xl mx-auto p-6 space-y-6">
     <header>
-      <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center justify-between gap-4 flex-wrap">
         <h1 class="text-3xl font-bold tracking-tight">Price List Calculator</h1>
-        <div class="inline-flex rounded-lg border border-slate-300 bg-white p-1" role="group" aria-label="View mode">
-          <button id="modeExecutive" class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200" data-mode="executive" aria-pressed="true">Executive</button>
-          <button id="modeSales" class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200" data-mode="sales" aria-pressed="false">Sales</button>
+        <div class="flex items-center gap-4">
+          <!-- Mode Switcher -->
+          <div class="inline-flex rounded-lg border border-slate-300 bg-white p-1" role="group" aria-label="View mode">
+            <button id="modeExecutive" class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200" data-mode="executive" aria-pressed="true">Executive</button>
+            <button id="modeSales" class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200" data-mode="sales" aria-pressed="false">Sales</button>
+          </div>
+          <!-- Auth Control Section -->
+          <div id="authSection" class="flex items-center gap-4">
+            <!-- Injected via JavaScript -->
+          </div>
         </div>
       </div>
     </header>
@@ -205,6 +212,13 @@
   // Mode management: "executive" (show all) or "sales" (hide cost details)
   let currentMode = localStorage.getItem("pricelist-calculator-mode") || "executive";
 
+  // Auth state management
+  let authState = {
+    isAuthenticated: false,
+    user: null, // { name, email, initials, roles }
+    isLoading: true
+  };
+
   const el = id => document.getElementById(id);
   const fmt = n => Number.isFinite(n) ? n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}) : "—";
 
@@ -213,6 +227,12 @@
   }
 
   function setMode(mode) {
+    // Check auth before allowing Executive mode
+    if (mode === 'executive' && !authState.isAuthenticated) {
+      showNotification('Please sign in to access Executive mode');
+      return;
+    }
+
     currentMode = mode;
     localStorage.setItem("pricelist-calculator-mode", mode);
     renderLabor();
@@ -230,14 +250,128 @@
     }
   }
 
+  // ---------- auth functions ----------
+  // Fetch user info from Static Web Apps
+  async function getUserInfo() {
+    try {
+      const response = await fetch('/.auth/me');
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data.clientPrincipal;
+    } catch (e) {
+      console.error('Failed to fetch user info:', e);
+      return null;
+    }
+  }
+
+  // Extract initials from email/name
+  function extractInitials(emailOrName) {
+    const parts = emailOrName.split(/[@.\s-]/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+    }
+    return emailOrName.substring(0, 2).toUpperCase();
+  }
+
+  // Render auth section in header
+  async function renderAuthSection() {
+    const container = el('authSection');
+    const user = await getUserInfo();
+
+    if (user) {
+      authState.isAuthenticated = true;
+      authState.user = {
+        name: user.userDetails,
+        email: user.userDetails,
+        initials: extractInitials(user.userDetails),
+        roles: user.userRoles || []
+      };
+
+      const isExecutive = authState.user.roles.includes('PriceListExecutive');
+
+      container.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full ${isExecutive ? 'bg-slate-900' : 'bg-slate-600'} text-white flex items-center justify-center font-semibold text-sm">
+            <span>${authState.user.initials}</span>
+          </div>
+          <div class="hidden md:block">
+            <p class="text-sm font-medium text-slate-900">${authState.user.name}</p>
+            <p class="text-xs text-slate-500">${isExecutive ? 'Executive' : 'Sales'}</p>
+          </div>
+          <a href="/logout" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+            Sign Out
+          </a>
+        </div>
+      `;
+
+      // Auto-select mode based on role
+      if (isExecutive && !isExecutiveMode()) {
+        setMode('executive');
+      } else if (!isExecutive && isExecutiveMode()) {
+        setMode('sales');
+      }
+    } else {
+      authState.isAuthenticated = false;
+      authState.user = null;
+
+      container.innerHTML = `
+        <a href="/login" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+          </svg>
+          <span>Sign In</span>
+        </a>
+      `;
+    }
+
+    authState.isLoading = false;
+  }
+
+  // Show notification message
+  function showNotification(message) {
+    setStatus(message);
+    setTimeout(() => setStatus(''), 5000);
+  }
+
+  // Initialize auth on page load
+  async function initAuth() {
+    await renderAuthSection();
+    checkExecutiveModeAccess();
+  }
+
+  // Enforce auth for Executive mode
+  function checkExecutiveModeAccess() {
+    if (isExecutiveMode() && !authState.isAuthenticated) {
+      setMode('sales');
+      showNotification('Executive mode requires authentication. Please sign in.');
+    }
+  }
+
   // ---------- load dropdowns ----------
   async function loadInit() {
     setDbLoadingModal(true);  // Show loading modal
+    setStatus("Checking authentication...");
+
+    // Check auth first
+    await initAuth();
+
     setStatus("Loading motor types & branches...");
     try {
+      // Helper function to handle fetch with auth error checking
+      const fetchWithAuthCheck = async (url) => {
+        const response = await fetch(url);
+        if (response.status === 401) {
+          throw new Error('AUTH_REQUIRED');
+        }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+      };
+
       const [motorTypes, b] = await Promise.all([
-        fetch("/api/motor-types").then(r => r.json()),
-        fetch("/api/branches").then(r => r.json())
+        fetchWithAuthCheck("/api/motor-types"),
+        fetchWithAuthCheck("/api/branches")
       ]);
       branches = b;
 
@@ -260,10 +394,23 @@
     if (!motorTypeId) { labor = []; renderLabor(); calcAll(); return; }
 
     setStatus("Loading labor (jobs + manhours)...");
-    labor = await fetch(`/api/labor?motorTypeId=${motorTypeId}`).then(r => r.json());
-    setStatus("");
-    renderLabor();
-    calcAll();
+    try {
+      const response = await fetch(`/api/labor?motorTypeId=${motorTypeId}`);
+      if (response.status === 401) {
+        setStatus("Authentication required. Redirecting to login...");
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1500);
+        return;
+      }
+      labor = await response.json();
+      setStatus("");
+      renderLabor();
+      calcAll();
+    } catch (e) {
+      console.error(e);
+      setStatus("Failed to load labor. Please try again.");
+    }
   }
 
   function getSelectedBranch() {
@@ -456,7 +603,17 @@
 
   async function searchMaterials(q) {
     if (q.trim().length < 2) return [];
-    return fetch(`/api/materials?query=${encodeURIComponent(q)}`).then(r => r.json());
+    try {
+      const response = await fetch(`/api/materials?query=${encodeURIComponent(q)}`);
+      if (response.status === 401) {
+        showNotification("Authentication required. Please sign in.");
+        return [];
+      }
+      return response.json();
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
   }
 
   function renderMaterials() {
@@ -971,7 +1128,14 @@
     .catch(e => {
       console.error(e);
       setDbLoadingModal(false);  // Hide modal on error
-      setStatus("Init failed. Check console & /api endpoints.");
+      if (e.message === 'AUTH_REQUIRED') {
+        setStatus("Authentication required. Redirecting to login...");
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1500);
+      } else {
+        setStatus("Init failed. Check console & /api endpoints.");
+      }
     });
 </script>
 </body>
