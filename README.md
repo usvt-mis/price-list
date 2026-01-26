@@ -97,6 +97,17 @@ The API will be available at `http://localhost:7071`
 
 Open `src/index.html` in a browser to use the application.
 
+### Authentication
+
+The application is configured with Azure Active Directory authentication via `staticwebapp.config.json`:
+- Login route: `/login` (redirects to Azure AD)
+- Logout route: `/logout`
+- Unauthenticated users (401) are automatically redirected to login
+
+To configure locally, set the following environment variables:
+- `AZURE_CLIENT_ID`: Azure AD application client ID
+- `AZURE_CLIENT_SECRET_APP_SETTING_NAME`: Azure AD client secret
+
 ### Debugging
 
 Use the VS Code configuration in `.vscode/launch.json`:

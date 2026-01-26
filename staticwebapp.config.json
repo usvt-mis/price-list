@@ -6,10 +6,31 @@
       "outputLocation": "."
     }
   },
+  "auth": {
+    "identityProviders": {
+      "azureActiveDirectory": {
+        "registration": {
+          "openIdIssuer": "https://login.microsoftonline.com/2c64826f-cc97-46b5-85a9-0685f81334e0/v2.0",
+          "clientIdSettingName": "AZURE_CLIENT_ID",
+          "clientSecretSettingName": "AZURE_CLIENT_SECRET_APP_SETTING_NAME"
+        }
+      }
+    }
+  },
   "routes": [
     {
       "route": "/api/*",
       "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    },
+    { "route": "/login", "redirect": "/.auth/login/aad?post_login_redirect_uri=.referrer" },
+    { "route": "/logout", "redirect": "/.auth/logout?post_logout_redirect_uri=/" }
+
+  ],
+  "responseOverrides": {
+    "401": {
+      "statusCode": 302,
+      "redirect": "/.auth/login/aad?post_login_redirect_uri=.referrer"
     }
-  ]
+  }
+  
 }

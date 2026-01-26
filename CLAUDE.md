@@ -391,6 +391,15 @@ Each HTTP function file:
 - Mode changes trigger `renderLabor()` and `renderMaterials()` for immediate UI updates
 - **Note**: When updating table headers dynamically, use `el("id").previousElementSibling` directly (not `.querySelector("thead")`) since the `<thead>` element IS the previous sibling of `<tbody>`
 
+### Agent Team System
+- Hierarchical agent team for coordinating complex tasks across domains
+- Located in `.claude/agents/`
+- Team structure:
+  - Level 1: Orchestrator Agent (coordinates all tasks)
+  - Level 2: Architect Agent (technical decisions) and Planner Agent (implementation planning)
+  - Level 3: Specialist Agents (Frontend, Backend, Calculation, Database, Deployment)
+- See `.claude/agents/TEAM.md` for coordination protocols and decision tree
+
 ## Adding New API Endpoints
 
 1. Create new file in `api/src/functions/`
@@ -412,3 +421,9 @@ Each HTTP function file:
    ```
 3. Require it in `api/src/index.js`: `require("./functions/yourFile");`
 4. Access at `/api/your-route`
+
+## Custom Skills
+Custom slash commands for automating workflows:
+- Located in `.claude/skills/`
+- `update` skill: Automatically updates documentation and creates git commits
+- `bs` skill: Coordinates brainstorming sessions across multiple agents
