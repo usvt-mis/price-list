@@ -109,8 +109,8 @@ Open `src/index.html` in a browser to use the application.
 The application uses **Azure Entra ID (Azure AD)** authentication via Static Web Apps Easy Auth:
 
 **Features:**
-- Login route: `/login` (redirects to Azure AD)
-- Logout route: `/logout`
+- Login: `/.auth/login/aad` (Azure native authentication endpoint)
+- Logout: `/.auth/logout?post_logout_redirect_uri=/` (Azure native logout endpoint)
 - All API endpoints (except `/api/ping`) require authentication
 - Executive mode requires authentication (unauthenticated users auto-switch to Sales mode)
 - Role-based access control: `PriceListExecutive` role auto-selects Executive mode

@@ -107,14 +107,15 @@ The `.vscode/launch.json` configuration supports debugging:
   - `showNotification(message)` - Displays temporary status message
 - **Executive mode requires authentication** - Unauthenticated users are automatically switched to Sales mode with notification (except in local dev)
 - **Role-based auto-selection**: Users with `PriceListExecutive` role auto-select Executive mode; others auto-select Sales mode
-- Login/logout handled via Static Web Apps routes: `/login` and `/logout`
+- Login/logout handled via Azure's native authentication endpoints:
+  - Login: `/.auth/login/aad`
+  - Logout: `/.auth/logout?post_logout_redirect_uri=/`
 - **Routing Configuration**: `staticwebapp.config.json` defines Azure Static Web Apps routing:
-  - `routes` array: Defines `/login` and `/logout` redirects to `/.auth/*` endpoints
+  - `routes` array: Defines API authentication requirement (`/api/*` requires `authenticated` role)
   - `navigationFallback`: Configured with `rewrite: "/index.html"` for SPA support
-    - **Important**: The `exclude` array (containing `"/login"`, `"/logout"`) prevents auth routes from being caught by the SPA fallback
-    - Without this exclusion, `/login` and `/logout` would return 404 errors
+  - `responseOverrides`: 401 responses redirect to `/.auth/login/aad?post_login_redirect_uri=.referrer`
 - All API endpoints (except `/api/ping`) require authentication via `x-ms-client-principal` header (bypassed in local dev)
-- 401 responses trigger redirect to `/login` after brief delay (except in local dev)
+- 401 responses trigger redirect to `/.auth/login/aad?post_login_redirect_uri=.referrer` via `responseOverrides` (except in local dev)
 - Frontend fetch helper `fetchWithAuthCheck()` throws `'AUTH_REQUIRED'` error on 401 for centralized handling
 - Backend middleware (`api/src/middleware/auth.js`):
   - `isLocalRequest(req)` - Detects local development via header or hostname
