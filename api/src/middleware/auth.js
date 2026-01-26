@@ -1,7 +1,47 @@
 /**
  * Authentication middleware for Azure Static Web Apps
  * Validates x-ms-client-principal header from Static Web Apps
+ *
+ * Local Development Bypass:
+ * - When running locally (localhost/127.0.0.1), authentication is bypassed
+ * - Mock user with PriceListExecutive role is returned
+ * - This allows local development without requiring Azure Static Web Apps
  */
+
+/**
+ * Check if the request is from local development
+ */
+function isLocalRequest(req) {
+  // Check for special header from frontend
+  const isLocalDevHeader = req.headers.get('x-local-dev');
+  if (isLocalDevHeader === 'true') {
+    return true;
+  }
+
+  // Check origin or referer for localhost
+  const origin = req.headers.get('origin') || '';
+  const referer = req.headers.get('referer') || '';
+  const host = req.headers.get('host') || '';
+
+  return host.includes('localhost') ||
+         host.includes('127.0.0.1') ||
+         origin.includes('localhost') ||
+         origin.includes('127.0.0.1') ||
+         referer.includes('localhost') ||
+         referer.includes('127.0.0.1');
+}
+
+/**
+ * Create mock user for local development
+ */
+function createMockUser() {
+  return {
+    userId: 'dev-user',
+    userDetails: 'Dev User',
+    userRoles: ['PriceListExecutive', 'authenticated'],
+    claims: []
+  };
+}
 
 function parseClientPrincipal(req) {
   const headers = req.headers;
@@ -22,6 +62,11 @@ function parseClientPrincipal(req) {
 }
 
 function validateAuth(req) {
+  // Local development: return mock user
+  if (isLocalRequest(req)) {
+    return createMockUser();
+  }
+
   const user = parseClientPrincipal(req);
 
   if (!user) {
@@ -37,6 +82,11 @@ function validateAuth(req) {
 }
 
 function requireAuth(req) {
+  // Local development: return mock user
+  if (isLocalRequest(req)) {
+    return createMockUser();
+  }
+
   const user = validateAuth(req);
 
   if (!user) {
@@ -50,6 +100,11 @@ function requireAuth(req) {
 
 function requireRole(...allowedRoles) {
   return function(req) {
+    // Local development: mock user has all roles
+    if (isLocalRequest(req)) {
+      return createMockUser();
+    }
+
     const user = requireAuth(req);
     const userRoles = user.userRoles || [];
 

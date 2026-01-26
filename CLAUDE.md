@@ -87,23 +87,36 @@ The `.vscode/launch.json` configuration supports debugging:
 
 ### Authentication (Azure Entra ID / Azure AD)
 - Uses **Azure Static Web Apps Easy Auth** for authentication
+- **Local Development Bypass**: When running on localhost or 127.0.0.1, authentication is automatically bypassed
+  - Frontend detects local dev via `window.location.hostname`
+  - Mock user with `PriceListExecutive` role is returned
+  - Amber "DEV MODE" badge appears in header
+  - All API requests include `x-local-dev: true` header
+  - Backend middleware checks for localhost in headers (host, origin, referer) or the special header
+- **Production**: Full authentication required when deployed to Azure
 - Auth state managed in global `authState` object:
   - `isAuthenticated` - Boolean indicating login status
   - `user` - Object containing name, email, initials, roles
   - `isLoading` - Boolean for loading state
 - Auth functions (`src/index.html`):
-  - `getUserInfo()` - Fetches user from `/.auth/me` endpoint
+  - `getUserInfo()` - Returns mock user in local dev, otherwise fetches from `/.auth/me` endpoint
   - `extractInitials(emailOrName)` - Generates 2-letter initials from email/name
-  - `renderAuthSection()` - Renders login/logout UI in header
-  - `initAuth()` - Initializes auth on page load, enforces Executive mode access
-  - `checkExecutiveModeAccess()` - Forces Sales mode if unauthenticated user tries to access Executive mode
+  - `renderAuthSection()` - Renders login/logout UI in header (or dev mode indicator in local dev)
+  - `initAuth()` - Initializes auth on page load (skips enforcement in local dev)
+  - `checkExecutiveModeAccess()` - Forces Sales mode if unauthenticated (skipped in local dev)
   - `showNotification(message)` - Displays temporary status message
-- **Executive mode requires authentication** - Unauthenticated users are automatically switched to Sales mode with notification
+- **Executive mode requires authentication** - Unauthenticated users are automatically switched to Sales mode with notification (except in local dev)
 - **Role-based auto-selection**: Users with `PriceListExecutive` role auto-select Executive mode; others auto-select Sales mode
 - Login/logout handled via Static Web Apps routes: `/login` and `/logout`
-- All API endpoints (except `/api/ping`) require authentication via `x-ms-client-principal` header
-- 401 responses trigger redirect to `/login` after brief delay
+- All API endpoints (except `/api/ping`) require authentication via `x-ms-client-principal` header (bypassed in local dev)
+- 401 responses trigger redirect to `/login` after brief delay (except in local dev)
 - Frontend fetch helper `fetchWithAuthCheck()` throws `'AUTH_REQUIRED'` error on 401 for centralized handling
+- Backend middleware (`api/src/middleware/auth.js`):
+  - `isLocalRequest(req)` - Detects local development via header or hostname
+  - `createMockUser()` - Returns mock user with `PriceListExecutive` role
+  - `validateAuth(req)` - Returns mock user in local dev, otherwise parses `x-ms-client-principal`
+  - `requireAuth(req)` - Returns mock user in local dev, otherwise throws 401 if not authenticated
+  - `requireRole(...roles)` - Returns mock user in local dev, otherwise throws 403 if user lacks required roles
 
 ### Database Connection Pooling
 - Connection pool is singleton-initialized in `api/src/db.js`

@@ -212,6 +212,9 @@
   // Mode management: "executive" (show all) or "sales" (hide cost details)
   let currentMode = localStorage.getItem("pricelist-calculator-mode") || "executive";
 
+  // Detect local development environment
+  const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
   // Auth state management
   let authState = {
     isAuthenticated: false,
@@ -227,8 +230,8 @@
   }
 
   function setMode(mode) {
-    // Check auth before allowing Executive mode
-    if (mode === 'executive' && !authState.isAuthenticated) {
+    // Check auth before allowing Executive mode (skip in local development)
+    if (mode === 'executive' && !authState.isAuthenticated && !isLocalDev) {
       showNotification('Please sign in to access Executive mode');
       return;
     }
@@ -251,8 +254,18 @@
   }
 
   // ---------- auth functions ----------
-  // Fetch user info from Static Web Apps
+  // Fetch user info from Static Web Apps (or mock user in local dev)
   async function getUserInfo() {
+    // Local development: return mock user with Executive role
+    if (isLocalDev) {
+      return {
+        userDetails: 'Dev User',
+        userId: 'dev-user',
+        userRoles: ['PriceListExecutive', 'authenticated']
+      };
+    }
+
+    // Production: fetch from Azure Static Web Apps
     try {
       const response = await fetch('/.auth/me');
       if (!response.ok) return null;
@@ -291,16 +304,19 @@
 
       container.innerHTML = `
         <div class="flex items-center gap-3">
+          ${isLocalDev ? '<span class="px-2 py-1 text-xs font-semibold rounded bg-amber-100 text-amber-800 border border-amber-300">DEV MODE</span>' : ''}
           <div class="w-8 h-8 rounded-full ${isExecutive ? 'bg-slate-900' : 'bg-slate-600'} text-white flex items-center justify-center font-semibold text-sm">
             <span>${authState.user.initials}</span>
           </div>
           <div class="hidden md:block">
             <p class="text-sm font-medium text-slate-900">${authState.user.name}</p>
-            <p class="text-xs text-slate-500">${isExecutive ? 'Executive' : 'Sales'}</p>
+            <p class="text-xs text-slate-500">${isLocalDev ? 'Local Dev (Executive)' : (isExecutive ? 'Executive' : 'Sales')}</p>
           </div>
+          ${!isLocalDev ? `
           <a href="/logout" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
             Sign Out
           </a>
+          ` : ''}
         </div>
       `;
 
@@ -339,8 +355,11 @@
     checkExecutiveModeAccess();
   }
 
-  // Enforce auth for Executive mode
+  // Enforce auth for Executive mode (skipped in local development)
   function checkExecutiveModeAccess() {
+    // Skip enforcement in local development
+    if (isLocalDev) return;
+
     if (isExecutiveMode() && !authState.isAuthenticated) {
       setMode('sales');
       showNotification('Executive mode requires authentication. Please sign in.');
@@ -359,7 +378,9 @@
     try {
       // Helper function to handle fetch with auth error checking
       const fetchWithAuthCheck = async (url) => {
-        const response = await fetch(url);
+        // Add local dev header for backend detection
+        const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+        const response = await fetch(url, { headers });
         if (response.status === 401) {
           throw new Error('AUTH_REQUIRED');
         }
@@ -395,12 +416,18 @@
 
     setStatus("Loading labor (jobs + manhours)...");
     try {
-      const response = await fetch(`/api/labor?motorTypeId=${motorTypeId}`);
+      // Add local dev header for backend detection
+      const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+      const response = await fetch(`/api/labor?motorTypeId=${motorTypeId}`, { headers });
       if (response.status === 401) {
         setStatus("Authentication required. Redirecting to login...");
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 1500);
+        if (!isLocalDev) {
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
+        } else {
+          setStatus("Authentication error in local dev. Check backend auth bypass.");
+        }
         return;
       }
       labor = await response.json();
@@ -604,9 +631,13 @@
   async function searchMaterials(q) {
     if (q.trim().length < 2) return [];
     try {
-      const response = await fetch(`/api/materials?query=${encodeURIComponent(q)}`);
+      // Add local dev header for backend detection
+      const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+      const response = await fetch(`/api/materials?query=${encodeURIComponent(q)}`, { headers });
       if (response.status === 401) {
-        showNotification("Authentication required. Please sign in.");
+        if (!isLocalDev) {
+          showNotification("Authentication required. Please sign in.");
+        }
         return [];
       }
       return response.json();
@@ -1129,10 +1160,14 @@
       console.error(e);
       setDbLoadingModal(false);  // Hide modal on error
       if (e.message === 'AUTH_REQUIRED') {
-        setStatus("Authentication required. Redirecting to login...");
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 1500);
+        if (!isLocalDev) {
+          setStatus("Authentication required. Redirecting to login...");
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
+        } else {
+          setStatus("Authentication error in local dev. Check backend auth bypass.");
+        }
       } else {
         setStatus("Init failed. Check console & /api endpoints.");
       }

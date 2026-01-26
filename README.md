@@ -102,6 +102,8 @@ The API will be available at `http://localhost:7071`
 
 Open `src/index.html` in a browser to use the application.
 
+**Note**: Authentication is automatically bypassed in local development. A "DEV MODE" badge will appear in the header, and you'll have full access to Executive mode without needing to sign in.
+
 ### Authentication
 
 The application uses **Azure Entra ID (Azure AD)** authentication via Static Web Apps Easy Auth:
@@ -113,22 +115,16 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - Executive mode requires authentication (unauthenticated users auto-switch to Sales mode)
 - Role-based access control: `PriceListExecutive` role auto-selects Executive mode
 
-**Configuration:**
+**Local Development:**
+- **Automatic bypass**: When running on `localhost` or `127.0.0.1`, authentication is automatically bypassed
+- Mock user with `PriceListExecutive` role is used
+- "DEV MODE" badge appears in the header to indicate local development
+- Simply run `func start` and open `src/index.html` in a browser - no auth configuration needed
+
+**Production Configuration:**
 - Azure AD app registration configured in `staticwebapp.config.json`
 - Tenant ID: `2c64826f-cc97-46b5-85a9-0685f81334e0`
 - Auth state managed via `/.auth/me` endpoint
-
-**Local Development:**
-To test authentication locally, use the Static Web Apps CLI:
-```bash
-npm install -g @azure/static-web-apps-cli
-swa start src --api-location api
-```
-
-Set these environment variables:
-- `AZURE_CLIENT_ID`: Azure AD application client ID
-- `AZURE_CLIENT_SECRET_APP_SETTING_NAME`: Azure AD client secret
-- `WEBSITE_AUTH_ENABLED`: Set to `true`
 
 ### Debugging
 
