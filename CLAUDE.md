@@ -108,6 +108,11 @@ The `.vscode/launch.json` configuration supports debugging:
 - **Executive mode requires authentication** - Unauthenticated users are automatically switched to Sales mode with notification (except in local dev)
 - **Role-based auto-selection**: Users with `PriceListExecutive` role auto-select Executive mode; others auto-select Sales mode
 - Login/logout handled via Static Web Apps routes: `/login` and `/logout`
+- **Routing Configuration**: `staticwebapp.config.json` defines Azure Static Web Apps routing:
+  - `routes` array: Defines `/login` and `/logout` redirects to `/.auth/*` endpoints
+  - `navigationFallback`: Configured with `rewrite: "/index.html"` for SPA support
+    - **Important**: The `exclude` array (containing `"/login"`, `"/logout"`) prevents auth routes from being caught by the SPA fallback
+    - Without this exclusion, `/login` and `/logout` would return 404 errors
 - All API endpoints (except `/api/ping`) require authentication via `x-ms-client-principal` header (bypassed in local dev)
 - 401 responses trigger redirect to `/login` after brief delay (except in local dev)
 - Frontend fetch helper `fetchWithAuthCheck()` throws `'AUTH_REQUIRED'` error on 401 for centralized handling
