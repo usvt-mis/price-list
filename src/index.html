@@ -423,7 +423,7 @@
         setStatus("Authentication required. Redirecting to login...");
         if (!isLocalDev) {
           setTimeout(() => {
-            window.location.href = '/login';
+            window.location.href = '/.auth/login/aad';
           }, 1500);
         } else {
           setStatus("Authentication error in local dev. Check backend auth bypass.");
@@ -1163,7 +1163,7 @@
         if (!isLocalDev) {
           setStatus("Authentication required. Redirecting to login...");
           setTimeout(() => {
-            window.location.href = '/login';
+            window.location.href = '/.auth/login/aad';
           }, 1500);
         } else {
           setStatus("Authentication error in local dev. Check backend auth bypass.");
