@@ -482,6 +482,7 @@ Each HTTP function file:
   - **Breadcrumb Navigation** - Calculator > Records > 2024-001
 - **Key Functions** (`src/index.html`):
   - `serializeCalculatorState()` - Capture all calculator data (branch, motor type, jobs, materials, sales profit, travel)
+    - Filters out invalid material rows (where `materialId` is `null`) before serialization to prevent SQL constraint violations
   - `deserializeCalculatorState(data)` - Restore saved data and populate calculator
   - `saveCalculation()` - Create or update record via API
   - `loadSavedRecords()` - Fetch user's records (role-filtered)

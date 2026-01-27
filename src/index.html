@@ -517,11 +517,13 @@
         isChecked: j.checked !== false,
         sortOrder: j.SortOrder
       })),
-      materials: materialLines.map(m => ({
-        materialId: m.materialId,
-        unitCost: m.unitCost,
-        quantity: m.qty
-      }))
+      materials: materialLines
+        .filter(m => m.materialId != null)
+        .map(m => ({
+          materialId: m.materialId,
+          unitCost: m.unitCost,
+          quantity: m.qty
+        }))
     };
   }
 
