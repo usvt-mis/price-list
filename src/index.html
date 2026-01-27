@@ -671,6 +671,8 @@
         .filter(m => m.materialId != null && !isNaN(m.unitCost) && m.unitCost >= 0)
         .map(m => ({
           materialId: m.materialId,
+          code: m.code,
+          name: m.name,
           unitCost: m.unitCost,
           quantity: Math.trunc(m.qty)
         }))
@@ -699,25 +701,37 @@
     materialLines = [];
     for (const savedMaterial of data.materials) {
       if (savedMaterial.materialId) {
-        // Fetch material details from API
-        try {
-          const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
-          const response = await fetch(`/api/materials?query=${encodeURIComponent(savedMaterial.materialId)}`, { headers });
-          if (response.ok) {
-            const materials = await response.json();
-            const material = materials.find(m => m.MaterialId === savedMaterial.materialId);
-            if (material) {
-              materialLines.push({
-                materialId: material.MaterialId,
-                code: material.MaterialCode,
-                name: material.MaterialName,
-                unitCost: savedMaterial.unitCost,
-                qty: savedMaterial.quantity
-              });
+        // New format: has code and name stored (no API call needed)
+        if (savedMaterial.code && savedMaterial.name) {
+          materialLines.push({
+            materialId: savedMaterial.materialId,
+            code: savedMaterial.code,
+            name: savedMaterial.name,
+            unitCost: savedMaterial.unitCost,
+            qty: savedMaterial.quantity
+          });
+        }
+        // Old format: fetch from API as fallback for backward compatibility
+        else {
+          try {
+            const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+            const response = await fetch(`/api/materials?query=${encodeURIComponent(savedMaterial.materialId)}`, { headers });
+            if (response.ok) {
+              const materials = await response.json();
+              const material = materials.find(m => m.MaterialId === savedMaterial.materialId);
+              if (material) {
+                materialLines.push({
+                  materialId: material.MaterialId,
+                  code: material.MaterialCode,
+                  name: material.MaterialName,
+                  unitCost: savedMaterial.unitCost,
+                  qty: savedMaterial.quantity
+                });
+              }
             }
+          } catch (e) {
+            console.error('Failed to load material:', e);
           }
-        } catch (e) {
-          console.error('Failed to load material:', e);
         }
       }
     }
@@ -1087,8 +1101,6 @@
         }
         return;
       }
-
-      showNotification("Record deleted");
 
       // Clear cache and force fresh fetch
       savedRecordsList = null;
