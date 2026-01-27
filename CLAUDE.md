@@ -497,9 +497,11 @@ Each HTTP function file:
   - `showView(viewName)` - Navigate between views (calculator/list/detail)
   - `shareRecord(id, token)` - Generate or show share link
   - `deleteRecord(saveId)` - Delete a saved record via API
+    - Handles HTTP 204 (No Content) as successful deletion (standard DELETE response)
     - Enhanced error handling with specific messages for 403, 404, 401, and 500 status codes
     - Diagnostic console logging for debugging (SaveId, response status, error body)
     - Shows user-friendly notifications based on error type
+    - Refreshes records list after successful deletion
 - **Backend Validation** (`api/src/functions/savedCalculations.js`):
   - POST and PUT handlers validate materials before database insert:
     - `materialId` must exist in Materials table and be active (`IsActive = 1`)

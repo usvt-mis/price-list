@@ -863,6 +863,14 @@
       // Log response status
       console.log(`[deleteRecord] Response status: ${response.status}`);
 
+      // Handle 204 No Content (successful delete with no response body)
+      // HTTP 204 is the standard success response for DELETE operations
+      if (response.status === 204) {
+        showNotification("Record deleted successfully");
+        await renderRecordsList();
+        return;
+      }
+
       if (!response.ok) {
         let errorMessage = "Failed to delete record";
 
