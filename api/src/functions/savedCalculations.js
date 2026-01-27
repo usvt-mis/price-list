@@ -461,9 +461,11 @@ async function fetchSavedCalculationById(pool, saveId) {
   const materialsResult = await pool.request()
     .input("saveId", sql.Int, saveId)
     .query(`
-      SELECT SavedMaterialId, MaterialId, UnitCost, Quantity
-      FROM SavedCalculationMaterials
-      WHERE SaveId = @saveId
+      SELECT scm.SavedMaterialId, scm.MaterialId, scm.UnitCost, scm.Quantity,
+             m.MaterialCode AS code, m.MaterialName AS name
+      FROM SavedCalculationMaterials scm
+      INNER JOIN Materials m ON scm.MaterialId = m.MaterialId
+      WHERE scm.SaveId = @saveId
     `);
 
   return {
@@ -491,6 +493,8 @@ async function fetchSavedCalculationById(pool, saveId) {
     materials: materialsResult.recordset.map(m => ({
       savedMaterialId: m.SavedMaterialId,
       materialId: m.MaterialId,
+      code: m.code,
+      name: m.name,
       unitCost: m.UnitCost,
       quantity: m.Quantity
     }))
