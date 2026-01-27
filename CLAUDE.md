@@ -49,7 +49,7 @@ The application expects these SQL Server tables:
     - GET /api/saves - List saved records (role-filtered)
     - GET /api/saves/{id} - Get single record
     - PUT /api/saves/{id} - Update record (creator only)
-    - DELETE /api/saves/{id} - Delete record (creator only)
+    - DELETE /api/saves/{id} - Delete record (creator or executive)
   - `sharedCalculations.js` - Sharing functionality
     - POST /api/saves/{id}/share - Generate share token
     - GET /api/shared/{token} - Access shared record (authenticated)
@@ -104,6 +104,7 @@ The `.vscode/launch.json` configuration supports debugging:
 - **Local Development Bypass**: When running on localhost or 127.0.0.1, authentication is automatically bypassed
   - Frontend detects local dev via `window.location.hostname`
   - Mock user with `PriceListExecutive` role is returned
+  - Mock user email configurable via `MOCK_USER_EMAIL` environment variable in `api/local.settings.json` (defaults to `'Dev User'`)
   - Amber "DEV MODE" badge appears in header
   - All API requests include `x-local-dev: true` header
   - Backend middleware checks for localhost in headers (host, origin, referer) or the special header
@@ -466,7 +467,8 @@ Each HTTP function file:
 - **Access Control**:
   - Sales role: See only their own records
   - Executive role: See all records
-  - Only creators can edit/delete their own records
+  - Only creators can edit their own records
+  - Delete operations: Creators can delete their own records; Executives can delete any record
   - Shared records are view-only for authenticated users
 - **State Management**:
   - `currentSavedRecord` - Currently editing record (null = new calculation)
@@ -494,6 +496,10 @@ Each HTTP function file:
   - `renderRecordsList()` - Render filtered/sorted grid
   - `showView(viewName)` - Navigate between views (calculator/list/detail)
   - `shareRecord(id, token)` - Generate or show share link
+  - `deleteRecord(saveId)` - Delete a saved record via API
+    - Enhanced error handling with specific messages for 403, 404, 401, and 500 status codes
+    - Diagnostic console logging for debugging (SaveId, response status, error body)
+    - Shows user-friendly notifications based on error type
 - **Backend Validation** (`api/src/functions/savedCalculations.js`):
   - POST and PUT handlers validate materials before database insert:
     - `materialId` must exist in Materials table and be active (`IsActive = 1`)

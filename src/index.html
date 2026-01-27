@@ -850,6 +850,9 @@
       return;
     }
 
+    // Diagnostic logging
+    console.log(`[deleteRecord] Attempting to delete SaveId: ${saveId}`);
+
     try {
       const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
       const response = await fetch(`/api/saves/${saveId}`, {
@@ -857,18 +860,42 @@
         headers
       });
 
+      // Log response status
+      console.log(`[deleteRecord] Response status: ${response.status}`);
+
       if (!response.ok) {
-        if (response.status === 403) {
-          showNotification("You can only delete your own records");
-          return;
+        let errorMessage = "Failed to delete record";
+
+        // Try to get error details from response body
+        let errorDetails = "";
+        try {
+          const errorBody = await response.json();
+          errorDetails = errorBody.error || "";
+          console.log(`[deleteRecord] Error body:`, errorBody);
+        } catch (jsonError) {
+          console.log(`[deleteRecord] Could not parse error body:`, jsonError);
         }
-        throw new Error(`HTTP ${response.status}`);
+
+        if (response.status === 403) {
+          errorMessage = "You can only delete your own records";
+        } else if (response.status === 404) {
+          errorMessage = "Record not found (may have been deleted)";
+        } else if (response.status === 401) {
+          errorMessage = "Authentication required";
+        } else if (response.status === 500) {
+          errorMessage = errorDetails || "Server error - please try again";
+        } else {
+          errorMessage = errorDetails || `HTTP ${response.status}: Failed to delete record`;
+        }
+
+        showNotification(errorMessage);
+        return;
       }
 
       showNotification("Record deleted");
       await renderRecordsList();
     } catch (e) {
-      console.error(e);
+      console.error("[deleteRecord] Exception:", e);
       showNotification("Failed to delete record");
     }
   }

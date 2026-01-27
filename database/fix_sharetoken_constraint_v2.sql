@@ -35,8 +35,9 @@ DECLARE @SQL NVARCHAR(1000);
 -- Search sys.objects for table-level UNIQUE constraints (type='UQ')
 SELECT TOP 1 @ConstraintName = c.name
 FROM sys.objects c
-INNER JOIN sys.key_columns kc ON c.object_id = kc.object_id
-INNER JOIN sys.columns col ON kc.column_id = col.column_id AND kc.object_id = col.object_id
+INNER JOIN sys.indexes i ON c.object_id = i.object_id AND c.name = i.name
+INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+INNER JOIN sys.columns col ON ic.object_id = col.object_id AND ic.column_id = col.column_id
 WHERE c.type = 'UQ'
   AND c.parent_object_id = OBJECT_ID('SavedCalculations')
   AND col.name = 'ShareToken';
@@ -137,8 +138,9 @@ PRINT 'Checking for remaining unique objects on ShareToken...';
 DECLARE @ConstraintCount INT;
 SELECT @ConstraintCount = COUNT(*)
 FROM sys.objects c
-INNER JOIN sys.key_columns kc ON c.object_id = kc.object_id
-INNER JOIN sys.columns col ON kc.column_id = col.column_id AND kc.object_id = col.object_id
+INNER JOIN sys.indexes i ON c.object_id = i.object_id AND c.name = i.name
+INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+INNER JOIN sys.columns col ON ic.object_id = col.object_id AND ic.column_id = col.column_id
 WHERE c.type = 'UQ'
   AND c.parent_object_id = OBJECT_ID('SavedCalculations')
   AND col.name = 'ShareToken';
@@ -148,8 +150,9 @@ BEGIN
     PRINT 'WARNING: Found ' + CAST(@ConstraintCount AS NVARCHAR(10)) + ' remaining table-level UNIQUE constraint(s)';
     SELECT c.name AS ConstraintName, c.type AS ConstraintType
     FROM sys.objects c
-    INNER JOIN sys.key_columns kc ON c.object_id = kc.object_id
-    INNER JOIN sys.columns col ON kc.column_id = col.column_id AND kc.object_id = col.object_id
+    INNER JOIN sys.indexes i ON c.object_id = i.object_id AND c.name = i.name
+    INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+    INNER JOIN sys.columns col ON ic.object_id = col.object_id AND ic.column_id = col.column_id
     WHERE c.type = 'UQ'
       AND c.parent_object_id = OBJECT_ID('SavedCalculations')
       AND col.name = 'ShareToken';

@@ -25,7 +25,7 @@ The Price List Calculator computes total cost based on three components:
   - My Records list view with filtering (search, sort, date range)
   - Share records via generated links (authenticated-only access)
   - Role-based visibility: Sales users see own records, Executive users see all records
-  - Only creators can edit/delete their records
+  - Only creators can edit their records; Executives can delete any record, creators can delete their own
 - **Labor section**: Displays job names only (JobCode is hidden for cleaner presentation)
 - **Material search**:
   - Type-to-search with debounced API calls (250ms delay, min 2 characters)
@@ -79,7 +79,7 @@ The application expects these SQL Server tables:
 | `/api/saves` | GET | List saved records (role-filtered) | Yes |
 | `/api/saves/{id}` | GET | Get single saved record | Yes |
 | `/api/saves/{id}` | PUT | Update saved record (creator only) | Yes |
-| `/api/saves/{id}` | DELETE | Delete saved record (creator only) | Yes |
+| `/api/saves/{id}` | DELETE | Delete saved record (creator or executive) | Yes |
 | `/api/saves/{id}/share` | POST | Generate share token for record | Yes |
 | `/api/shared/{token}` | GET | Access shared record (authenticated) | Yes |
 | `/api/ping` | GET | Health check endpoint | No |
@@ -105,10 +105,13 @@ Configure the database connection in `api/local.settings.json`:
 ```json
 {
   "Values": {
-    "DATABASE_CONNECTION_STRING": "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+    "DATABASE_CONNECTION_STRING": "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
+    "MOCK_USER_EMAIL": "Dev User"
   }
 }
 ```
+
+**Optional**: Set `MOCK_USER_EMAIL` to match existing database records' CreatorEmail values for delete operations in local development. Defaults to `'Dev User'`.
 
 ### Running Locally
 

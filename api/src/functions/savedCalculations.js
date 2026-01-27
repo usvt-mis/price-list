@@ -367,7 +367,7 @@ app.http("updateSavedCalculation", {
   }
 });
 
-// DELETE /api/saves/{id} - Delete record (creator only)
+// DELETE /api/saves/{id} - Delete record (creator only, or executive)
 app.http("deleteSavedCalculation", {
   methods: ["DELETE"],
   authLevel: "anonymous",
@@ -377,6 +377,7 @@ app.http("deleteSavedCalculation", {
       const user = requireAuth(req);
       const saveId = Number(req.params.id);
       const userEmail = user.userDetails;
+      const userRoles = user.userRoles || [];
 
       if (!Number.isInteger(saveId)) {
         return { status: 400, jsonBody: { error: "Invalid save ID" } };
@@ -395,7 +396,9 @@ app.http("deleteSavedCalculation", {
         return { status: 404, jsonBody: { error: "Saved calculation not found" } };
       }
 
-      if (existing.recordset[0].CreatorEmail !== userEmail) {
+      // Check ownership or executive role
+      const isExecutive = userRoles.includes('PriceListExecutive');
+      if (existing.recordset[0].CreatorEmail !== userEmail && !isExecutive) {
         return { status: 403, jsonBody: { error: "You can only delete your own records" } };
       }
 

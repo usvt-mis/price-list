@@ -35,9 +35,10 @@ function isLocalRequest(req) {
  * Create mock user for local development
  */
 function createMockUser() {
+  const mockEmail = process.env.MOCK_USER_EMAIL || 'Dev User';
   return {
     userId: 'dev-user',
-    userDetails: 'Dev User',
+    userDetails: mockEmail,
     userRoles: ['PriceListExecutive', 'authenticated'],
     claims: []
   };
