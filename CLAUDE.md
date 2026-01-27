@@ -142,6 +142,10 @@ The `.vscode/launch.json` configuration supports debugging:
 - Connection pool is singleton-initialized in `api/src/db.js`
 - All functions use `getPool()` to get the shared pool
 - Uses parameterized queries to prevent SQL injection (see `labor.js` and `materials.js`)
+- **Transaction pattern**: When using transactions with stored procedures, ensure stored procedures don't create nested transactions
+  - Backend handlers manage the outer transaction via `pool.transaction()`
+  - Stored procedures should participate in the caller's transaction (no `BEGIN TRANSACTION` inside)
+  - Example: `GetNextRunNumber` stored procedure avoids inner transaction to prevent nesting issues
 
 ### Function Registration Pattern
 Each HTTP function file:
@@ -456,7 +460,9 @@ Each HTTP function file:
 
 ### Save Feature (Saved Calculations)
 - Allows users to save, load, edit, and share calculation records
-- **Run Numbers**: Year-based sequential format (e.g., 2024-001, 2024-002) generated via stored procedure
+- **Run Numbers**: Year-based sequential format (e.g., 2024-001, 2024-002) generated via `GetNextRunNumber` stored procedure
+  - Stored procedure participates in the caller's transaction (no inner transaction to avoid nesting issues)
+  - Uses `RunNumberSequence` table to track year-based sequential numbers
 - **Access Control**:
   - Sales role: See only their own records
   - Executive role: See all records

@@ -33,10 +33,12 @@ app.http("createSavedCalculation", {
 
       try {
         // Get next run number
+        ctx.log("Calling GetNextRunNumber stored procedure...");
         const requestRunNumber = new sql.Request(transaction);
         const runNumberResult = await requestRunNumber.output("runNumber", sql.NVarChar(10))
           .execute("GetNextRunNumber");
         const runNumber = runNumberResult.output.runNumber;
+        ctx.log(`Got run number: ${runNumber}`);
 
         // Insert main saved calculation
         const requestSave = new sql.Request(transaction);

@@ -161,8 +161,6 @@ BEGIN
     DECLARE @CurrentYear INT = YEAR(GETUTCDATE());
     DECLARE @NextNumber INT;
 
-    BEGIN TRANSACTION;
-
     IF NOT EXISTS (SELECT 1 FROM RunNumberSequence WHERE Year = @CurrentYear)
     BEGIN
         INSERT INTO RunNumberSequence (Year, NextNumber) VALUES (@CurrentYear, 1);
@@ -177,8 +175,6 @@ BEGIN
 
         SELECT @NextNumber = NextNumber FROM RunNumberSequence WHERE Year = @CurrentYear;
     END
-
-    COMMIT TRANSACTION;
 
     SET @RunNumber = CAST(@CurrentYear AS NVARCHAR(4)) + '-' + RIGHT('000' + CAST(@NextNumber AS NVARCHAR(3)), 3);
 END
