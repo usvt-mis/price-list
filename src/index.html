@@ -24,7 +24,21 @@
     <header>
       <div class="flex items-center justify-between gap-4 flex-wrap">
         <h1 class="text-3xl font-bold tracking-tight">Price List Calculator</h1>
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 flex-wrap">
+          <!-- My Records Button -->
+          <button id="myRecordsBtn" class="hidden px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+            </svg>
+            My Records
+          </button>
+          <!-- Save Button -->
+          <button id="saveBtn" class="hidden px-3 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+            </svg>
+            <span id="saveBtnText">Save</span>
+          </button>
           <!-- Mode Switcher -->
           <div class="inline-flex rounded-lg border border-slate-300 bg-white p-1" role="group" aria-label="View mode">
             <button id="modeExecutive" class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200" data-mode="executive" aria-pressed="true">Executive</button>
@@ -38,7 +52,18 @@
       </div>
     </header>
 
-    <!-- PART 1: Labor -->
+    <!-- Breadcrumb Navigation (hidden by default) -->
+    <nav id="breadcrumbNav" class="hidden text-sm text-slate-600">
+      <ol class="flex items-center gap-2">
+        <li><a href="#" id="breadcrumbCalculator" class="hover:text-slate-900">Calculator</a></li>
+        <li class="text-slate-400">/</li>
+        <li id="breadcrumbCurrent">Records</li>
+      </ol>
+    </nav>
+
+    <!-- Main Calculator View -->
+    <div id="calculatorView">
+      <!-- PART 1: Labor -->
     <section class="bg-white rounded-2xl shadow p-5">
       <div class="flex items-center justify-between gap-4 flex-wrap">
         <h2 class="text-xl font-semibold">Labor</h2>
@@ -198,6 +223,109 @@
         </div>
       </div>
     </section>
+    </div>
+    <!-- End Main Calculator View -->
+
+    <!-- Saved Records List View (hidden by default) -->
+    <div id="listView" class="hidden">
+      <div class="bg-white rounded-2xl shadow p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold">My Saved Records</h2>
+          <button id="backToCalculatorBtn" class="px-4 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+            ← Back to Calculator
+          </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Search by Run Number</label>
+            <input id="searchRunNumber" type="text" placeholder="2024-001" class="w-full rounded-lg border-slate-200 px-3 py-2">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Sort By</label>
+            <select id="sortBy" class="w-full rounded-lg border-slate-200 px-3 py-2">
+              <option value="date-desc">Date (Newest First)</option>
+              <option value="date-asc">Date (Oldest First)</option>
+              <option value="amount-desc">Amount (Highest First)</option>
+              <option value="amount-asc">Amount (Lowest First)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Date Range</label>
+            <select id="dateRange" class="w-full rounded-lg border-slate-200 px-3 py-2">
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Records Grid -->
+        <div id="recordsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <p class="text-slate-500 col-span-full text-center py-8">Loading saved records...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Record Detail View (hidden by default) -->
+    <div id="detailView" class="hidden">
+      <div class="bg-white rounded-2xl shadow p-6">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 id="detailRunNumber" class="text-2xl font-bold">2024-001</h2>
+            <p id="detailDate" class="text-sm text-slate-500">Created: Jan 1, 2024</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="detailShareBtn" class="px-4 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+              </svg>
+              Share
+            </button>
+            <button id="detailEditBtn" class="px-4 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors">
+              Edit Record
+            </button>
+            <button id="detailBackBtn" class="px-4 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+              ← Back
+            </button>
+          </div>
+        </div>
+
+        <!-- Read-only display of calculation data -->
+        <div class="space-y-6" id="detailContent">
+          <p class="text-slate-500">Loading record details...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Modal (hidden by default) -->
+    <div id="shareModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold">Share Record</h3>
+          <button id="closeShareModal" class="text-slate-400 hover:text-slate-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="text-sm text-slate-600 mb-4">
+          Anyone with the link can view this record. They must be signed in to access it.
+        </p>
+        <div class="flex gap-2">
+          <input id="shareUrlInput" type="text" readonly class="flex-1 rounded-lg border-slate-200 px-3 py-2 bg-slate-50 text-sm">
+          <button id="copyShareBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 transition-colors">
+            Copy
+          </button>
+        </div>
+        <div id="copyFeedback" class="hidden mt-3 text-sm text-emerald-600 font-medium">
+          ✓ Copied to clipboard!
+        </div>
+      </div>
+    </div>
 
     <div id="status" class="text-sm text-slate-600"></div>
   </div>
@@ -221,6 +349,12 @@
     user: null, // { name, email, initials, roles }
     isLoading: true
   };
+
+  // Save feature state
+  let currentSavedRecord = null; // null = new calculation, object = editing existing
+  let savedRecordsList = []; // cached list of saved records
+  let isDirty = false; // track unsaved changes
+  let isViewOnly = false; // view-only mode for shared records
 
   const el = id => document.getElementById(id);
   const fmt = n => Number.isFinite(n) ? n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}) : "—";
@@ -341,6 +475,7 @@
     }
 
     authState.isLoading = false;
+    updateSaveButtonsVisibility();
   }
 
   // Show notification message
@@ -364,6 +499,592 @@
       setMode('sales');
       showNotification('Executive mode requires authentication. Please sign in.');
     }
+  }
+
+  // ---------- Save feature functions ----------
+
+  // Serialize current calculator state to JSON
+  function serializeCalculatorState() {
+    return {
+      branchId: Number(el("branch").value),
+      motorTypeId: Number(el("motorType").value),
+      salesProfitPct: Number(el("salesProfitPct").value || 0),
+      travelKm: Number(el("travelKm").value || 0),
+      jobs: labor.map(j => ({
+        jobId: j.JobId,
+        originalManHours: Number(j.ManHours),
+        effectiveManHours: j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours),
+        isChecked: j.checked !== false,
+        sortOrder: j.SortOrder
+      })),
+      materials: materialLines.map(m => ({
+        materialId: m.materialId,
+        unitCost: m.unitCost,
+        quantity: m.qty
+      }))
+    };
+  }
+
+  // Deserialize saved state and populate the calculator
+  async function deserializeCalculatorState(data) {
+    // Set branch and motor type
+    el("branch").value = data.branchId;
+    el("motorType").value = data.motorTypeId;
+
+    // Load labor for this motor type
+    await loadLabor();
+
+    // Update labor with saved values
+    data.jobs.forEach(savedJob => {
+      const job = labor.find(j => j.JobId === savedJob.jobId);
+      if (job) {
+        job.effectiveManHours = savedJob.effectiveManHours;
+        job.checked = savedJob.isChecked;
+      }
+    });
+
+    // Clear and populate materials
+    materialLines = [];
+    for (const savedMaterial of data.materials) {
+      if (savedMaterial.materialId) {
+        // Fetch material details from API
+        try {
+          const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+          const response = await fetch(`/api/materials?query=${encodeURIComponent(savedMaterial.materialId)}`, { headers });
+          if (response.ok) {
+            const materials = await response.json();
+            const material = materials.find(m => m.MaterialId === savedMaterial.materialId);
+            if (material) {
+              materialLines.push({
+                materialId: material.MaterialId,
+                code: material.MaterialCode,
+                name: material.MaterialName,
+                unitCost: savedMaterial.unitCost,
+                qty: savedMaterial.quantity
+              });
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load material:', e);
+        }
+      }
+    }
+
+    // Set sales profit and travel
+    el("salesProfitPct").value = data.salesProfitPct;
+    el("travelKm").value = data.travelKm;
+
+    // Re-render everything
+    renderLabor();
+    renderMaterials();
+    calcAll();
+  }
+
+  // Mark calculation as dirty (unsaved changes)
+  function markDirty() {
+    if (!isDirty && currentSavedRecord === null && !isViewOnly) {
+      isDirty = true;
+      updateSaveButtonState();
+    }
+  }
+
+  // Update save button state (text and disabled state)
+  function updateSaveButtonState() {
+    const saveBtn = el("saveBtn");
+    const saveBtnText = el("saveBtnText");
+
+    if (isViewOnly) {
+      saveBtn.classList.add("hidden");
+      return;
+    }
+
+    if (currentSavedRecord) {
+      saveBtnText.textContent = "Update";
+    } else if (isDirty) {
+      saveBtnText.textContent = "Save *";
+    } else {
+      saveBtnText.textContent = "Save";
+    }
+  }
+
+  // Show/hide save and records buttons based on auth state
+  function updateSaveButtonsVisibility() {
+    const saveBtn = el("saveBtn");
+    const myRecordsBtn = el("myRecordsBtn");
+
+    if (authState.isAuthenticated && !isViewOnly) {
+      saveBtn.classList.remove("hidden");
+      myRecordsBtn.classList.remove("hidden");
+    } else {
+      saveBtn.classList.add("hidden");
+      myRecordsBtn.classList.add("hidden");
+    }
+  }
+
+  // Save current calculation
+  async function saveCalculation() {
+    if (!authState.isAuthenticated) {
+      showNotification("Please sign in to save calculations");
+      return;
+    }
+
+    const saveBtn = el("saveBtn");
+    const saveBtnText = el("saveBtnText");
+    const originalText = saveBtnText.textContent;
+
+    try {
+      saveBtn.disabled = true;
+      saveBtnText.textContent = "Saving...";
+
+      const data = serializeCalculatorState();
+      const headers = isLocalDev ? { 'x-local-dev': 'true', 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+
+      let response;
+      if (currentSavedRecord) {
+        // Update existing record
+        response = await fetch(`/api/saves/${currentSavedRecord.saveId}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(data)
+        });
+      } else {
+        // Create new record
+        response = await fetch('/api/saves', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(data)
+        });
+      }
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          showNotification("Authentication required");
+          return;
+        } else if (response.status === 403) {
+          showNotification("You can only edit your own records");
+          return;
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      currentSavedRecord = result;
+      isDirty = false;
+
+      showNotification(`Saved as ${result.runNumber}`);
+      updateSaveButtonState();
+
+    } catch (e) {
+      console.error(e);
+      showNotification("Failed to save calculation");
+    } finally {
+      saveBtn.disabled = false;
+      saveBtnText.textContent = originalText;
+    }
+  }
+
+  // Load saved records list
+  async function loadSavedRecords() {
+    try {
+      const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+      const response = await fetch('/api/saves', { headers });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          showNotification("Authentication required");
+          return [];
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      savedRecordsList = await response.json();
+      return savedRecordsList;
+    } catch (e) {
+      console.error(e);
+      showNotification("Failed to load saved records");
+      return [];
+    }
+  }
+
+  // Navigate between views
+  function showView(viewName) {
+    // Hide all views
+    el("calculatorView").classList.add("hidden");
+    el("listView").classList.add("hidden");
+    el("detailView").classList.add("hidden");
+    el("breadcrumbNav").classList.add("hidden");
+
+    // Show selected view
+    switch (viewName) {
+      case "calculator":
+        el("calculatorView").classList.remove("hidden");
+        break;
+      case "list":
+        el("listView").classList.remove("hidden");
+        el("breadcrumbNav").classList.remove("hidden");
+        el("breadcrumbCurrent").textContent = "My Records";
+        break;
+      case "detail":
+        el("detailView").classList.remove("hidden");
+        el("breadcrumbNav").classList.remove("hidden");
+        break;
+    }
+  }
+
+  // Render records grid in list view
+  function renderRecordsGrid(records) {
+    const grid = el("recordsGrid");
+
+    if (!records || records.length === 0) {
+      grid.innerHTML = `<p class="text-slate-500 col-span-full text-center py-8">No saved records found. Click "Save" to create your first record.</p>`;
+      return;
+    }
+
+    grid.innerHTML = records.map(record => `
+      <div class="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-lg font-bold">${record.RunNumber}</span>
+          <span class="text-xs text-slate-500">${formatDate(record.CreatedAt)}</span>
+        </div>
+        <div class="space-y-1 text-sm text-slate-600 mb-4">
+          <div><strong>Branch:</strong> ${record.BranchName}</div>
+          <div><strong>Motor:</strong> ${record.MotorTypeName}</div>
+          <div><strong>Jobs:</strong> ${record.JobCount || 0} · <strong>Materials:</strong> ${record.MaterialCount || 0}</div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="viewRecord(${record.SaveId})" class="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+            View
+          </button>
+          <button onclick="editRecord(${record.SaveId})" class="flex-1 px-3 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors">
+            Edit
+          </button>
+          <button onclick="shareRecord(${record.SaveId}, '${record.ShareToken || ''}')" class="px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+            </svg>
+          </button>
+          <button onclick="deleteRecord(${record.SaveId})" class="px-3 py-2 text-sm rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // Format date for display
+  function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  // View a saved record (read-only)
+  async function viewRecord(saveId) {
+    try {
+      const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+      const response = await fetch(`/api/saves/${saveId}`, { headers });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const record = await response.json();
+      displayRecordDetail(record);
+      showView("detail");
+    } catch (e) {
+      console.error(e);
+      showNotification("Failed to load record");
+    }
+  }
+
+  // Edit a saved record
+  async function editRecord(saveId) {
+    try {
+      const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+      const response = await fetch(`/api/saves/${saveId}`, { headers });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          showNotification("You can only edit your own records");
+          return;
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const record = await response.json();
+      currentSavedRecord = record;
+      isDirty = false;
+
+      await deserializeCalculatorState(record);
+      updateSaveButtonState();
+      showView("calculator");
+      showNotification(`Editing ${record.runNumber}`);
+    } catch (e) {
+      console.error(e);
+      showNotification("Failed to load record");
+    }
+  }
+
+  // Delete a saved record
+  async function deleteRecord(saveId) {
+    if (!confirm("Are you sure you want to delete this record?")) {
+      return;
+    }
+
+    try {
+      const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+      const response = await fetch(`/api/saves/${saveId}`, {
+        method: 'DELETE',
+        headers
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          showNotification("You can only delete your own records");
+          return;
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      showNotification("Record deleted");
+      await renderRecordsList();
+    } catch (e) {
+      console.error(e);
+      showNotification("Failed to delete record");
+    }
+  }
+
+  // Display record detail in read-only mode
+  function displayRecordDetail(record) {
+    el("detailRunNumber").textContent = record.runNumber;
+    el("detailDate").textContent = `Created: ${formatDate(record.createdAt)} · Modified: ${formatDate(record.modifiedAt)}`;
+
+    const isCreator = authState.user && authState.user.email === record.creatorEmail;
+    const detailEditBtn = el("detailEditBtn");
+
+    if (isCreator && !record.isShared) {
+      detailEditBtn.classList.remove("hidden");
+    } else {
+      detailEditBtn.classList.add("hidden");
+    }
+
+    // Store record for sharing
+    el("detailContent").dataset.recordId = record.saveId;
+    el("detailContent").dataset.shareToken = record.shareToken || "";
+
+    // Build detail HTML
+    const detailHtml = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-4">
+          <div class="rounded-xl border border-slate-200 p-4">
+            <h3 class="font-semibold mb-2">Calculation Details</h3>
+            <div class="space-y-2 text-sm">
+              <div><strong>Branch:</strong> ${record.branchName}</div>
+              <div><strong>Motor Type:</strong> ${record.motorTypeName}</div>
+              <div><strong>Sales Profit:</strong> ${record.salesProfitPct}%</div>
+              <div><strong>Travel Distance:</strong> ${record.travelKm} km</div>
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-4">
+            <h3 class="font-semibold mb-2">Creator</h3>
+            <div class="text-sm">
+              <div>${record.creatorName}</div>
+              <div class="text-slate-500">${record.creatorEmail}</div>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div class="rounded-xl border border-slate-200 p-4">
+            <h3 class="font-semibold mb-2">Jobs (${record.jobs.length})</h3>
+            <div class="space-y-1 text-sm max-h-48 overflow-y-auto">
+              ${record.jobs.map(j => `
+                <div class="flex justify-between ${j.isChecked ? '' : 'line-through text-slate-400'}">
+                  <span>Job #${j.jobId}</span>
+                  <span>${j.effectiveManHours}h</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-4">
+            <h3 class="font-semibold mb-2">Materials (${record.materials.length})</h3>
+            <div class="space-y-1 text-sm max-h-48 overflow-y-auto">
+              ${record.materials.map(m => `
+                <div class="flex justify-between">
+                  <span class="truncate">Material #${m.materialId}</span>
+                  <span>Qty: ${m.quantity}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    el("detailContent").innerHTML = detailHtml;
+  }
+
+  // Share a record
+  async function shareRecord(saveId, existingShareToken) {
+    const shareUrl = existingShareToken
+      ? `${window.location.origin}/?share=${existingShareToken}`
+      : null;
+
+    if (shareUrl) {
+      showShareModal(shareUrl);
+      return;
+    }
+
+    // Generate new share token
+    try {
+      const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+      const response = await fetch(`/api/saves/${saveId}/share`, {
+        method: 'POST',
+        headers
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          showNotification("You can only share your own records");
+          return;
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      showShareModal(result.shareUrl);
+    } catch (e) {
+      console.error(e);
+      showNotification("Failed to generate share link");
+    }
+  }
+
+  // Show share modal
+  function showShareModal(shareUrl) {
+    el("shareUrlInput").value = shareUrl;
+    el("shareModal").classList.remove("hidden");
+    el("copyFeedback").classList.add("hidden");
+  }
+
+  // Copy share URL to clipboard
+  async function copyShareUrl() {
+    const shareUrlInput = el("shareUrlInput");
+    try {
+      await navigator.clipboard.writeText(shareUrlInput.value);
+      el("copyFeedback").classList.remove("hidden");
+      setTimeout(() => el("copyFeedback").classList.add("hidden"), 2000);
+    } catch (e) {
+      showNotification("Failed to copy to clipboard");
+    }
+  }
+
+  // Render records list with filters
+  async function renderRecordsList() {
+    let records = await loadSavedRecords();
+
+    // Apply filters
+    const searchTerm = el("searchRunNumber").value.toLowerCase().trim();
+    const sortBy = el("sortBy").value;
+    const dateRange = el("dateRange").value;
+
+    // Filter by search term
+    if (searchTerm) {
+      records = records.filter(r => r.RunNumber.toLowerCase().includes(searchTerm));
+    }
+
+    // Filter by date range
+    if (dateRange !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const monthAgo = new Date(today);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      const yearAgo = new Date(today);
+      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+
+      records = records.filter(r => {
+        const recordDate = new Date(r.CreatedAt);
+        switch (dateRange) {
+          case 'today':
+            return recordDate >= today;
+          case 'week':
+            return recordDate >= weekAgo;
+          case 'month':
+            return recordDate >= monthAgo;
+          case 'year':
+            return recordDate >= yearAgo;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Sort
+    switch (sortBy) {
+      case 'date-asc':
+        records.sort((a, b) => new Date(a.CreatedAt) - new Date(b.CreatedAt));
+        break;
+      case 'date-desc':
+        records.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+        break;
+      case 'amount-asc':
+        records.sort((a, b) => (a.GrandTotal || 0) - (b.GrandTotal || 0));
+        break;
+      case 'amount-desc':
+        records.sort((a, b) => (b.GrandTotal || 0) - (a.GrandTotal || 0));
+        break;
+    }
+
+    renderRecordsGrid(records);
+  }
+
+  // Load shared record from URL
+  async function loadSharedRecord(shareToken) {
+    try {
+      const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+      const response = await fetch(`/api/shared/${shareToken}`, { headers });
+
+      if (!response.ok) {
+        showNotification("Shared record not found or has been deleted");
+        return;
+      }
+
+      const record = await response.json();
+      isViewOnly = true;
+
+      await deserializeCalculatorState(record);
+      displayRecordDetail(record);
+      showView("detail");
+
+      // Update breadcrumb for shared record
+      el("breadcrumbCurrent").textContent = `Shared: ${record.runNumber}`;
+      el("breadcrumbCalculator").classList.add("hidden");
+    } catch (e) {
+      console.error(e);
+      showNotification("Failed to load shared record");
+    }
+  }
+
+  // Start new calculation (clear current state)
+  function startNewCalculation() {
+    currentSavedRecord = null;
+    isDirty = false;
+    isViewOnly = false;
+
+    // Reset form
+    el("branch").value = "";
+    el("motorType").value = "";
+    el("salesProfitPct").value = "";
+    el("travelKm").value = "";
+
+    labor = [];
+    materialLines = [];
+
+    renderLabor();
+    renderMaterials();
+    calcAll();
+    updateSaveButtonState();
   }
 
   // ---------- load dropdowns ----------
@@ -1096,15 +1817,70 @@
   }
 
   // ---------- init ----------
-  el("motorType").addEventListener("change", loadLabor);
-  el("branch").addEventListener("change", () => { renderLabor(); calcAll(); });
+  el("motorType").addEventListener("change", () => { loadLabor(); markDirty(); });
+  el("branch").addEventListener("change", () => { renderLabor(); calcAll(); markDirty(); });
   el("salesProfitPct").addEventListener("input", () => {
     renderLabor();
     renderMaterials();
     calcAll();
+    markDirty();
   });
-  el("travelKm").addEventListener("input", calcAll);
-  el("addMaterial").addEventListener("click", addMaterialRow);
+  el("travelKm").addEventListener("input", () => { calcAll(); markDirty(); });
+  el("addMaterial").addEventListener("click", () => { addMaterialRow(); markDirty(); });
+
+  // Save feature event listeners
+  el("saveBtn").addEventListener("click", saveCalculation);
+
+  el("myRecordsBtn").addEventListener("click", async () => {
+    await renderRecordsList();
+    showView("list");
+  });
+
+  el("backToCalculatorBtn").addEventListener("click", () => {
+    startNewCalculation();
+    showView("calculator");
+  });
+
+  el("breadcrumbCalculator").addEventListener("click", (e) => {
+    e.preventDefault();
+    startNewCalculation();
+    showView("calculator");
+    el("breadcrumbCalculator").classList.remove("hidden");
+  });
+
+  el("detailBackBtn").addEventListener("click", () => {
+    if (currentSavedRecord) {
+      showView("calculator");
+    } else {
+      showView("list");
+    }
+  });
+
+  el("detailEditBtn").addEventListener("click", async () => {
+    const recordId = el("detailContent").dataset.recordId;
+    if (recordId) {
+      await editRecord(Number(recordId));
+    }
+  });
+
+  el("detailShareBtn").addEventListener("click", async () => {
+    const recordId = el("detailContent").dataset.recordId;
+    const shareToken = el("detailContent").dataset.shareToken;
+    if (recordId) {
+      await shareRecord(Number(recordId), shareToken);
+    }
+  });
+
+  el("closeShareModal").addEventListener("click", () => {
+    el("shareModal").classList.add("hidden");
+  });
+
+  el("copyShareBtn").addEventListener("click", copyShareUrl);
+
+  // Filter event listeners
+  el("searchRunNumber").addEventListener("input", renderRecordsList);
+  el("sortBy").addEventListener("change", renderRecordsList);
+  el("dateRange").addEventListener("change", renderRecordsList);
 
   function updateModeButtons() {
     const executiveBtn = el("modeExecutive");
@@ -1149,9 +1925,22 @@
   });
   updateModeButtons();
 
+  // Check for shared record URL parameter on page load
+  const urlParams = new URLSearchParams(window.location.search);
+  const shareToken = urlParams.get('share');
+
   loadInit()
-    .then(() => {
+    .then(async () => {
       setDbLoadingModal(false);  // Hide modal on success
+
+      // If shared token exists, load shared record
+      if (shareToken) {
+        await loadSharedRecord(shareToken);
+        // Clean URL by removing share parameter
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
+
       materialLines = [];
       renderMaterials();
       calcAll();

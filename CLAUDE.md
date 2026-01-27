@@ -28,6 +28,11 @@ The application expects these SQL Server tables:
 - `Jobs2MotorType` - Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours)
   - Uses LEFT JOIN so all Jobs are returned; jobs without matches return 0
 - `Materials` - Material catalog with MaterialCode, MaterialName, UnitCost, IsActive
+- `SavedCalculations` - Saved calculation records with run numbers (e.g., 2024-001)
+- `SavedCalculationJobs` - Jobs associated with each saved calculation
+- `SavedCalculationMaterials` - Materials associated with each saved calculation
+- `RunNumberSequence` - Tracks year-based sequential run numbers
+- **Database Schema File**: `database/save_feature_schema.sql` contains all table definitions and stored procedures
 
 ### Backend Structure (`api/`)
 
@@ -39,6 +44,15 @@ The application expects these SQL Server tables:
   - `branches.js` - GET /api/branches (authentication required)
   - `labor.js` - GET /api/labor?motorTypeId={id} (authentication required)
   - `materials.js` - GET /api/materials?query={search} (authentication required)
+  - `savedCalculations.js` - CRUD operations for saved calculations
+    - POST /api/saves - Create new saved calculation
+    - GET /api/saves - List saved records (role-filtered)
+    - GET /api/saves/{id} - Get single record
+    - PUT /api/saves/{id} - Update record (creator only)
+    - DELETE /api/saves/{id} - Delete record (creator only)
+  - `sharedCalculations.js` - Sharing functionality
+    - POST /api/saves/{id}/share - Generate share token
+    - GET /api/shared/{token} - Access shared record (authenticated)
   - `ping.js` - GET /api/ping (public health check)
 - **Middleware**: Located in `src/middleware/`:
   - `auth.js` - Authentication middleware for Azure Static Web Apps Easy Auth
@@ -439,6 +453,57 @@ Each HTTP function file:
 - Accessibility: Uses `role="group"`, `aria-label`, and `aria-pressed` attributes for screen readers
 - Mode changes trigger `renderLabor()` and `renderMaterials()` for immediate UI updates
 - **Note**: When updating table headers dynamically, use `el("id").previousElementSibling` directly (not `.querySelector("thead")`) since the `<thead>` element IS the previous sibling of `<tbody>`
+
+### Save Feature (Saved Calculations)
+- Allows users to save, load, edit, and share calculation records
+- **Run Numbers**: Year-based sequential format (e.g., 2024-001, 2024-002) generated via stored procedure
+- **Access Control**:
+  - Sales role: See only their own records
+  - Executive role: See all records
+  - Only creators can edit/delete their own records
+  - Shared records are view-only for authenticated users
+- **State Management**:
+  - `currentSavedRecord` - Currently editing record (null = new calculation)
+  - `savedRecordsList` - Cached list of saved records
+  - `isDirty` - Tracks unsaved changes (shows "Save *" indicator)
+  - `isViewOnly` - View-only mode for shared records
+- **UI Components**:
+  - **Save Button** - Header button with dynamic state (Save/Update)
+  - **My Records Button** - Access saved records list
+  - **List View** - Card grid with filtering (search, sort, date range)
+  - **Detail View** - Read-only record display with Share/Edit/Delete actions
+  - **Share Modal** - Copy share link to clipboard
+  - **Breadcrumb Navigation** - Calculator > Records > 2024-001
+- **Key Functions** (`src/index.html`):
+  - `serializeCalculatorState()` - Capture all calculator data (branch, motor type, jobs, materials, sales profit, travel)
+  - `deserializeCalculatorState(data)` - Restore saved data and populate calculator
+  - `saveCalculation()` - Create or update record via API
+  - `loadSavedRecords()` - Fetch user's records (role-filtered)
+  - `loadSharedRecord(token)` - Load shared record via URL parameter
+  - `renderRecordsList()` - Render filtered/sorted grid
+  - `showView(viewName)` - Navigate between views (calculator/list/detail)
+  - `shareRecord(id, token)` - Generate or show share link
+- **Sharing**:
+  - Share URL format: `/?share=<token>` (token is UUID v4)
+  - Requires authentication to access shared records
+  - Shared records are view-only (no editing)
+  - URL parameter is cleaned after loading (via `history.replaceState`)
+- **Unsaved Changes Tracking**:
+  - `markDirty()` called on any input change
+  - Save button shows "Save *" indicator for unsaved changes
+  - Only tracks dirty state for new calculations (not when editing existing)
+- **List View Filters**:
+  - Search by run number (case-insensitive)
+  - Sort by date (newest/oldest first) or amount (highest/lowest)
+  - Date range filter (all time, today, this week, this month, this year)
+- **Record Detail View**:
+  - Shows calculation metadata (branch, motor type, sales profit, travel distance)
+  - Lists all jobs with manhours and checked state
+  - Lists all materials with quantities
+  - Displays creator information
+  - Share button generates shareable link
+  - Edit button (visible to creator only) loads record into calculator
+  - Back button returns to list or calculator depending on context
 
 ### Agent Team System
 - Hierarchical agent team for coordinating complex tasks across domains

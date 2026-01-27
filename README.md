@@ -20,6 +20,12 @@ The Price List Calculator computes total cost based on three components:
 ### UI Features
 - **Authentication UI**: Login/logout button in header with user avatar (initials) when signed in
 - **Mode-based access**: Executive mode requires authentication; Sales mode accessible to all
+- **Save Feature**:
+  - Save button to create/update calculation records with year-based run numbers (e.g., 2024-001)
+  - My Records list view with filtering (search, sort, date range)
+  - Share records via generated links (authenticated-only access)
+  - Role-based visibility: Sales users see own records, Executive users see all records
+  - Only creators can edit/delete their records
 - **Labor section**: Displays job names only (JobCode is hidden for cleaner presentation)
 - **Material search**:
   - Type-to-search with debounced API calls (250ms delay, min 2 characters)
@@ -54,6 +60,12 @@ The application expects these SQL Server tables:
 | `Jobs` | Job definitions with JobCode, JobName, SortOrder |
 | `Jobs2MotorType` | Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours) |
 | `Materials` | Material catalog with MaterialCode, MaterialName, UnitCost, IsActive |
+| `SavedCalculations` | Saved calculation records with run numbers (e.g., 2024-001) |
+| `SavedCalculationJobs` | Jobs associated with each saved calculation |
+| `SavedCalculationMaterials` | Materials associated with each saved calculation |
+| `RunNumberSequence` | Tracks year-based sequential run numbers |
+
+**Note**: Run the `database/save_feature_schema.sql` script to create the Save feature tables.
 
 ## API Endpoints
 
@@ -63,6 +75,13 @@ The application expects these SQL Server tables:
 | `/api/branches` | GET | Fetch all branches | Yes |
 | `/api/labor?motorTypeId={id}` | GET | Fetch ALL jobs with motor-type-specific manhours (returns 0 for unmatched jobs) | Yes |
 | `/api/materials?query={search}` | GET | Search materials (min 2 chars, searches both code and name, returns top 20) | Yes |
+| `/api/saves` | POST | Create new saved calculation | Yes |
+| `/api/saves` | GET | List saved records (role-filtered) | Yes |
+| `/api/saves/{id}` | GET | Get single saved record | Yes |
+| `/api/saves/{id}` | PUT | Update saved record (creator only) | Yes |
+| `/api/saves/{id}` | DELETE | Delete saved record (creator only) | Yes |
+| `/api/saves/{id}/share` | POST | Generate share token for record | Yes |
+| `/api/shared/{token}` | GET | Access shared record (authenticated) | Yes |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/.auth/me` | GET | Get current user info from Static Web Apps | No |
 
@@ -143,6 +162,8 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │   ├── branches.js
 │   │   │   ├── labor.js
 │   │   │   ├── materials.js
+│   │   │   ├── savedCalculations.js
+│   │   │   ├── sharedCalculations.js
 │   │   │   └── ping.js
 │   │   ├── middleware/
 │   │   │   └── auth.js
@@ -151,6 +172,8 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── host.json
 │   ├── package.json
 │   └── local.settings.json
+├── database/
+│   └── save_feature_schema.sql
 ├── src/
 │   └── index.html
 ├── .github/
