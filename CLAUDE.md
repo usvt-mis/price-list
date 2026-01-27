@@ -477,13 +477,25 @@ Each HTTP function file:
   - `savedRecordsList` - Cached list of saved records
   - `isDirty` - Tracks unsaved changes (shows "Save *" indicator)
   - `isViewOnly` - View-only mode for shared records
+  - `selectedRecords` - Set of selected record IDs for batch operations
 - **UI Components**:
   - **Save Button** - Header button with dynamic state (Save/Update)
   - **My Records Button** - Access saved records list
   - **List View** - Card grid with filtering (search, sort, date range)
+    - **Record Cards**: Display run number, date, branch, motor type, job/material counts
+    - **Batch Selection**: Checkbox in top-left corner for multi-select operations
+    - **Visual Feedback**: Selected cards show blue ring highlight (`ring-2 ring-blue-500`)
   - **Detail View** - Read-only record display with Share/Edit/Delete actions
   - **Share Modal** - Copy share link to clipboard
   - **Save Success Modal** - Confirmation modal displayed after successful save with run number, timestamp, and action buttons (View Record, Close)
+  - **Delete Success Modal** - Red-themed confirmation modal after deletion with run number, timestamp, and Done button
+  - **Batch Delete Progress Modal** - Shows spinner, progress text, and progress bar during sequential deletions
+  - **Batch Delete Summary Modal** - Shows success/failure counts with appropriate icon styling
+  - **Bulk Actions Bar** - Fixed bar (desktop: top, mobile: bottom) with:
+    - Selected count display
+    - "Select All" button (desktop only)
+    - "Clear Selection" button
+    - "Delete Selected" button with red styling
   - **Breadcrumb Navigation** - Calculator > Records > 2024-001
 - **Key Functions** (`src/index.html`):
   - `serializeCalculatorState()` - Capture all calculator data (branch, motor type, jobs, materials, sales profit, travel)
@@ -497,17 +509,35 @@ Each HTTP function file:
   - `loadSavedRecords()` - Fetch user's records (role-filtered)
   - `loadSharedRecord(token)` - Load shared record via URL parameter
   - `renderRecordsList()` - Render filtered/sorted grid
+    - Generates record cards with `data-save-id` and `data-run-number` attributes
+    - Includes checkbox for batch selection with `onchange="toggleRecordSelection(saveId)"`
+    - Applies `ring-2 ring-blue-500` class to selected cards
+    - Calls `toggleBulkActions()` to show/hide bulk actions bar
   - `showView(viewName)` - Navigate between views (calculator/list/detail)
   - `shareRecord(id, token)` - Generate or show share link
-  - `deleteRecord(saveId)` - Delete a saved record via API
+  - `deleteRecord(saveId, runNumber)` - Delete a saved record via API
+    - **Immediate visual feedback**: Card fades out (300ms opacity + scale animation) and is removed from DOM immediately
+    - **Rollback capability**: Card is cloned before deletion; restored if API call fails
     - Handles HTTP 204 (No Content) as successful deletion (standard DELETE response)
     - Enhanced error handling with specific messages for 403, 404, 401, and 500 status codes
     - Diagnostic console logging for debugging (SaveId, response status, error body)
-    - Shows user-friendly notifications based on error type
+    - Shows delete success modal with run number and timestamp
     - Clears cache (`savedRecordsList = null`) and forces fresh fetch after successful deletion
     - Re-renders list to ensure UI updates immediately
   - `showSaveSuccessModal(runNumber, saveId)` - Display save success confirmation modal
   - `hideSaveSuccessModal()` - Hide save success modal
+  - `showDeleteSuccessModal(runNumber)` - Display delete success confirmation modal with red-themed styling
+  - `hideDeleteSuccessModal()` - Hide delete success modal
+  - **Batch Delete Functions**:
+    - `toggleRecordSelection(saveId)` - Toggle checkbox selection for individual records
+    - `selectAllRecords()` - Select all visible records in the grid
+    - `deselectAllRecords()` - Clear all selections
+    - `toggleBulkActions()` - Show/hide bulk actions bar based on selection count
+    - `bulkDeleteRecords()` - Delete multiple selected records with progress tracking
+      - Shows progress modal with spinner and progress bar
+      - Processes deletions sequentially (no backend changes required)
+      - Shows summary modal with success/failure counts
+      - Clears selection and refreshes list on completion
 - **Backend Validation** (`api/src/functions/savedCalculations.js`):
   - POST and PUT handlers validate materials before database insert:
     - `materialId` must exist in Materials table and be active (`IsActive = 1`)

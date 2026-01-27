@@ -361,6 +361,121 @@
       </div>
     </div>
 
+    <!-- Delete Success Modal (hidden by default) -->
+    <div id="deleteSuccessModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+        <!-- Success Icon -->
+        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </div>
+
+        <h3 class="text-2xl font-bold text-slate-900 mb-1">Record Deleted!</h3>
+        <p class="text-slate-500 text-sm mb-6">The record has been permanently deleted.</p>
+
+        <!-- Run Number Display -->
+        <div class="bg-slate-50 rounded-xl p-4 mb-4">
+          <p class="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">Deleted Record</p>
+          <p id="deleteSuccessRunNumber" class="text-3xl font-bold text-slate-900">2024-001</p>
+        </div>
+
+        <!-- Timestamp -->
+        <p id="deleteSuccessTimestamp" class="text-xs text-slate-400 mb-6"></p>
+
+        <!-- Action Button -->
+        <button id="deleteSuccessDoneBtn" class="w-full px-4 py-3 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors">
+          Done
+        </button>
+      </div>
+    </div>
+
+    <!-- Batch Delete Progress Modal (hidden by default) -->
+    <div id="batchDeleteProgressModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+        <!-- Progress Spinner -->
+        <div class="w-16 h-16 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin flex items-center justify-center mx-auto mb-4"></div>
+
+        <h3 class="text-2xl font-bold text-slate-900 mb-1">Deleting Records...</h3>
+        <p id="batchDeleteProgressText" class="text-slate-500 text-sm mb-6">Preparing to delete records...</p>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-slate-200 rounded-full h-2 mb-4">
+          <div id="batchDeleteProgressBar" class="bg-red-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch Delete Summary Modal (hidden by default) -->
+    <div id="batchDeleteSummaryModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+        <!-- Summary Icon -->
+        <div id="batchDeleteSummaryIcon" class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+
+        <h3 id="batchDeleteSummaryTitle" class="text-2xl font-bold text-slate-900 mb-1">Batch Delete Complete</h3>
+        <p id="batchDeleteSummaryText" class="text-slate-500 text-sm mb-6">Successfully deleted 5 records.</p>
+
+        <!-- Summary Stats -->
+        <div class="bg-slate-50 rounded-xl p-4 mb-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p id="batchDeleteSuccessCount" class="text-2xl font-bold text-emerald-600">5</p>
+              <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Deleted</p>
+            </div>
+            <div id="batchDeleteFailureCount" class="hidden">
+              <p class="text-2xl font-bold text-red-600">0</p>
+              <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Failed</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button id="batchDeleteSummaryDoneBtn" class="w-full px-4 py-3 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors">
+          Done
+        </button>
+      </div>
+    </div>
+
+    <!-- Bulk Actions Bar (hidden by default) -->
+    <div id="bulkActionsBar" class="hidden fixed left-0 right-0 z-40 bg-slate-900 shadow-lg">
+      <!-- Desktop: Top bar -->
+      <div class="hidden md:flex items-center justify-between px-6 py-3">
+        <div class="flex items-center gap-4">
+          <span id="bulkSelectedCount" class="text-white font-semibold">0 selected</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="bulkSelectAllBtn" class="px-4 py-2 text-sm text-white hover:bg-slate-800 rounded-lg transition-colors">
+            Select All
+          </button>
+          <button id="bulkClearBtn" class="px-4 py-2 text-sm text-slate-300 hover:text-white rounded-lg transition-colors">
+            Clear Selection
+          </button>
+          <div class="h-6 w-px bg-slate-700"></div>
+          <button id="bulkDeleteBtn" class="px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors">
+            Delete Selected
+          </button>
+        </div>
+      </div>
+      <!-- Mobile: Bottom bar -->
+      <div class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 px-4 py-3">
+        <div class="flex items-center justify-between">
+          <span id="bulkSelectedCountMobile" class="text-white font-semibold">0 selected</span>
+          <div class="flex items-center gap-2">
+            <button id="bulkDeleteBtnMobile" class="px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors">
+              Delete
+            </button>
+            <button id="bulkClearBtnMobile" class="px-4 py-2 text-sm text-slate-300 hover:text-white rounded-lg transition-colors">
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="status" class="text-sm text-slate-600"></div>
   </div>
 
@@ -389,6 +504,7 @@
   let savedRecordsList = []; // cached list of saved records
   let isDirty = false; // track unsaved changes
   let isViewOnly = false; // view-only mode for shared records
+  let selectedRecords = new Set(); // selected record IDs for batch operations
 
   const el = id => document.getElementById(id);
   const fmt = n => Number.isFinite(n) ? n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}) : "—";
@@ -789,12 +905,17 @@
 
     if (!records || records.length === 0) {
       grid.innerHTML = `<p class="text-slate-500 col-span-full text-center py-8">No saved records found. Click "Save" to create your first record.</p>`;
+      toggleBulkActions();
       return;
     }
 
     grid.innerHTML = records.map(record => `
-      <div class="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between mb-3">
+      <div data-save-id="${record.SaveId}" data-run-number="${record.RunNumber}" class="record-card border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow relative ${selectedRecords.has(record.SaveId) ? 'ring-2 ring-blue-500' : ''}">
+        <!-- Checkbox for batch selection -->
+        <div class="absolute top-4 left-4 z-10">
+          <input type="checkbox" ${selectedRecords.has(record.SaveId) ? 'checked' : ''} onchange="toggleRecordSelection(${record.SaveId})" class="record-checkbox w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" aria-label="Select ${record.RunNumber}">
+        </div>
+        <div class="flex items-center justify-between mb-3 pl-8">
           <span class="text-lg font-bold">${record.RunNumber}</span>
           <span class="text-xs text-slate-500">${formatDate(record.CreatedAt)}</span>
         </div>
@@ -815,7 +936,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
             </svg>
           </button>
-          <button onclick="deleteRecord(${record.SaveId})" class="px-3 py-2 text-sm rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+          <button onclick="deleteRecord(${record.SaveId}, '${record.RunNumber}')" class="px-3 py-2 text-sm rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
             </svg>
@@ -823,6 +944,8 @@
         </div>
       </div>
     `).join("");
+
+    toggleBulkActions();
   }
 
   // Format date for display
@@ -879,9 +1002,28 @@
   }
 
   // Delete a saved record
-  async function deleteRecord(saveId) {
-    if (!confirm("Are you sure you want to delete this record?")) {
+  async function deleteRecord(saveId, runNumber) {
+    if (!confirm(`Are you sure you want to delete ${runNumber}?`)) {
       return;
+    }
+
+    // Find the card element
+    const card = document.querySelector(`[data-save-id="${saveId}"]`);
+    const cardClone = card ? card.cloneNode(true) : null;
+
+    // Phase 1: Immediate visual feedback - fade out and remove card
+    if (card) {
+      // Apply fade-out animation
+      card.style.transition = 'opacity 300ms ease, transform 300ms ease';
+      card.style.opacity = '0';
+      card.style.transform = 'scale(0.95)';
+
+      // Remove from DOM after animation
+      setTimeout(() => {
+        if (card.parentNode) {
+          card.parentNode.removeChild(card);
+        }
+      }, 300);
     }
 
     // Diagnostic logging
@@ -900,13 +1042,14 @@
       // Handle 204 No Content (successful delete with no response body)
       // HTTP 204 is the standard success response for DELETE operations
       if (response.status === 204) {
-        showNotification("Record deleted successfully");
+        // Phase 2: Show delete success modal
+        showDeleteSuccessModal(runNumber);
 
-        // Clear cache and force fresh fetch
+        // Clear cache and force fresh fetch (background)
         savedRecordsList = null;
         await loadSavedRecords();
 
-        // Re-render list to update UI
+        // Re-render list to update UI (background)
         await renderRecordsList();
         return;
       }
@@ -937,6 +1080,11 @@
         }
 
         showNotification(errorMessage);
+
+        // Rollback: Restore card on error
+        if (cardClone && card) {
+          card.parentNode.replaceChild(cardClone, card);
+        }
         return;
       }
 
@@ -951,6 +1099,11 @@
     } catch (e) {
       console.error("[deleteRecord] Exception:", e);
       showNotification("Failed to delete record");
+
+      // Rollback: Restore card on error
+      if (cardClone && card) {
+        card.parentNode.replaceChild(cardClone, card);
+      }
     }
   }
 
@@ -1091,6 +1244,136 @@
   // Hide save success modal
   function hideSaveSuccessModal() {
     el("saveSuccessModal").classList.add("hidden");
+  }
+
+  // Show delete success modal
+  function showDeleteSuccessModal(runNumber) {
+    el("deleteSuccessRunNumber").textContent = runNumber || "Unknown";
+    el("deleteSuccessTimestamp").textContent = new Date().toLocaleString();
+    el("deleteSuccessModal").classList.remove("hidden");
+  }
+
+  // Hide delete success modal
+  function hideDeleteSuccessModal() {
+    el("deleteSuccessModal").classList.add("hidden");
+  }
+
+  // Toggle record selection for batch operations
+  function toggleRecordSelection(saveId) {
+    if (selectedRecords.has(saveId)) {
+      selectedRecords.delete(saveId);
+    } else {
+      selectedRecords.add(saveId);
+    }
+    renderRecordsList();
+  }
+
+  // Select all visible records
+  function selectAllRecords() {
+    const visibleCards = document.querySelectorAll('.record-card');
+    visibleCards.forEach(card => {
+      const saveId = parseInt(card.dataset.saveId);
+      selectedRecords.add(saveId);
+    });
+    renderRecordsList();
+  }
+
+  // Deselect all records
+  function deselectAllRecords() {
+    selectedRecords.clear();
+    renderRecordsList();
+  }
+
+  // Toggle bulk actions bar visibility
+  function toggleBulkActions() {
+    const bar = el("bulkActionsBar");
+    if (selectedRecords.size > 0) {
+      bar.classList.remove("hidden");
+      el("bulkSelectedCount").textContent = `${selectedRecords.size} selected`;
+      el("bulkSelectedCountMobile").textContent = `${selectedRecords.size} selected`;
+    } else {
+      bar.classList.add("hidden");
+    }
+  }
+
+  // Batch delete selected records
+  async function bulkDeleteRecords() {
+    const count = selectedRecords.size;
+    if (count === 0) return;
+
+    if (!confirm(`Are you sure you want to delete ${count} record${count > 1 ? 's' : ''}?`)) {
+      return;
+    }
+
+    const saveIds = Array.from(selectedRecords);
+    let successCount = 0;
+    let failureCount = 0;
+    const failures = [];
+
+    // Show progress modal
+    el("batchDeleteProgressModal").classList.remove("hidden");
+    el("batchDeleteProgressBar").style.width = "0%";
+
+    // Process deletions sequentially
+    for (let i = 0; i < saveIds.length; i++) {
+      const saveId = saveIds[i];
+      el("batchDeleteProgressText").textContent = `Deleting record ${i + 1} of ${count}...`;
+      el("batchDeleteProgressBar").style.width = `${((i + 1) / count) * 100}%`;
+
+      try {
+        const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
+        const response = await fetch(`/api/saves/${saveId}`, {
+          method: 'DELETE',
+          headers
+        });
+
+        if (response.status === 204 || response.ok) {
+          successCount++;
+        } else {
+          failureCount++;
+          failures.push({ saveId, status: response.status });
+        }
+      } catch (e) {
+        console.error(`[bulkDeleteRecords] Failed to delete ${saveId}:`, e);
+        failureCount++;
+        failures.push({ saveId, error: e.message });
+      }
+    }
+
+    // Hide progress modal
+    el("batchDeleteProgressModal").classList.add("hidden");
+
+    // Clear selection
+    selectedRecords.clear();
+
+    // Clear cache and refresh
+    savedRecordsList = null;
+    await loadSavedRecords();
+    await renderRecordsList();
+
+    // Show summary modal
+    el("batchDeleteSuccessCount").textContent = successCount;
+
+    if (failureCount > 0) {
+      el("batchDeleteFailureCount").classList.remove("hidden");
+      el("batchDeleteFailureCount").querySelector('p').textContent = failureCount;
+      el("batchDeleteSummaryTitle").textContent = "Partial Success";
+      el("batchDeleteSummaryText").textContent = `Successfully deleted ${successCount} of ${count} records. ${failureCount} failed.`;
+      el("batchDeleteSummaryIcon").classList.remove("bg-emerald-100");
+      el("batchDeleteSummaryIcon").classList.add("bg-amber-100");
+      el("batchDeleteSummaryIcon").querySelector("svg").classList.remove("text-emerald-600");
+      el("batchDeleteSummaryIcon").querySelector("svg").classList.add("text-amber-600");
+    } else {
+      el("batchDeleteFailureCount").classList.add("hidden");
+      el("batchDeleteSummaryTitle").textContent = "Batch Delete Complete";
+      el("batchDeleteSummaryText").textContent = `Successfully deleted ${successCount} record${successCount > 1 ? 's' : ''}.`;
+      el("batchDeleteSummaryIcon").classList.add("bg-emerald-100");
+      el("batchDeleteSummaryIcon").classList.remove("bg-amber-100");
+      el("batchDeleteSummaryIcon").querySelector("svg").classList.add("text-emerald-600");
+      el("batchDeleteSummaryIcon").querySelector("svg").classList.remove("text-amber-600");
+    }
+
+    el("batchDeleteSummaryModal").classList.remove("hidden");
   }
 
   // Render records list with filters
@@ -1999,6 +2282,21 @@
     hideSaveSuccessModal();
     viewRecord(saveId);
   });
+
+  // Delete success modal event listeners
+  el("deleteSuccessDoneBtn").addEventListener("click", hideDeleteSuccessModal);
+
+  // Batch delete summary modal event listeners
+  el("batchDeleteSummaryDoneBtn").addEventListener("click", () => {
+    el("batchDeleteSummaryModal").classList.add("hidden");
+  });
+
+  // Bulk actions bar event listeners
+  el("bulkSelectAllBtn").addEventListener("click", selectAllRecords);
+  el("bulkClearBtn").addEventListener("click", deselectAllRecords);
+  el("bulkClearBtnMobile").addEventListener("click", deselectAllRecords);
+  el("bulkDeleteBtn").addEventListener("click", bulkDeleteRecords);
+  el("bulkDeleteBtnMobile").addEventListener("click", bulkDeleteRecords);
 
   // Filter event listeners
   el("searchRunNumber").addEventListener("input", renderRecordsList);
