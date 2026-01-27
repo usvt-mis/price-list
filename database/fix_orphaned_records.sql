@@ -108,10 +108,15 @@ BEGIN
     BEGIN TRANSACTION;
 
     BEGIN TRY
-        -- Check if record exists
-        IF NOT EXISTS (SELECT 1 FROM SavedCalculations WHERE SaveId = @SaveId)
+        -- Check if record exists and is active (idempotent check)
+        IF NOT EXISTS (
+            SELECT 1 FROM SavedCalculations
+            WHERE SaveId = @SaveId AND IsActive = 1
+        )
         BEGIN
-            RAISERROR('Record not found: SaveId %d', 16, 1, @SaveId);
+            -- Return "success" for already-deleted records (idempotent operation)
+            SELECT 'Success' AS Status, @SaveId AS SaveId, 0 AS MaterialsDeleted, 0 AS JobsDeleted;
+            RETURN;
         END
 
         -- Delete child materials first
@@ -143,13 +148,14 @@ BEGIN
     BEGIN CATCH
         ROLLBACK TRANSACTION;
 
-        -- Return error information
+        -- Return error information as result set (not an exception)
         SELECT
             'Error' AS Status,
             ERROR_MESSAGE() AS ErrorMessage,
             ERROR_NUMBER() AS ErrorNumber;
 
-        THROW;
+        -- IMPORTANT: Do NOT use THROW here - it causes 500 error
+        -- Just let the procedure complete with the error result set
     END CATCH
 END
 GO

@@ -934,6 +934,7 @@
           <span class="text-xs text-slate-500">${formatDate(record.CreatedAt)}</span>
         </div>
         <div class="space-y-1 text-sm text-slate-600 mb-4">
+          <div><strong>Created by:</strong> ${record.CreatorName || record.CreatorEmail || 'Unknown'}</div>
           <div><strong>Branch:</strong> ${record.BranchName}</div>
           <div><strong>Motor:</strong> ${record.MotorTypeName}</div>
           <div><strong>Jobs:</strong> ${record.JobCount || 0} · <strong>Materials:</strong> ${record.MaterialCount || 0}</div>
@@ -1056,15 +1057,14 @@
       // Handle 204 No Content (successful delete with no response body)
       // HTTP 204 is the standard success response for DELETE operations
       if (response.status === 204) {
-        // Phase 2: Show delete success modal
+        // Clear cache immediately
+        savedRecordsList = null;
+
+        // Show delete success modal
         showDeleteSuccessModal(runNumber);
 
-        // Clear cache and force fresh fetch (background)
-        savedRecordsList = null;
-        await loadSavedRecords();
-
-        // Re-render list to update UI (background)
-        await renderRecordsList();
+        // Reload records (don't await - let it happen in background)
+        loadSavedRecords().then(() => renderRecordsList());
         return;
       }
 
@@ -1101,13 +1101,6 @@
         }
         return;
       }
-
-      // Clear cache and force fresh fetch
-      savedRecordsList = null;
-      await loadSavedRecords();
-
-      // Re-render list to update UI
-      await renderRecordsList();
     } catch (e) {
       console.error("[deleteRecord] Exception:", e);
       showNotification("Failed to delete record");

@@ -412,6 +412,13 @@ app.http("deleteSavedCalculation", {
         .input("DeletedBy", sql.NVarChar(255), userEmail)
         .execute("DeleteSavedCalculation");
 
+      // Check if stored procedure returned an error
+      const result = deleteResult.recordset[0];
+      if (result && result.Status === 'Error') {
+        ctx.error(`Stored procedure error: ${result.ErrorMessage}`);
+        return { status: 500, jsonBody: { error: "Failed to delete saved calculation", details: result.ErrorMessage } };
+      }
+
       ctx.log(`Deleted saved calculation: ${saveId}`);
       return { status: 204, body: "" };
 

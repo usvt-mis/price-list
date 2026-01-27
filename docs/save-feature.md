@@ -62,7 +62,7 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
 
 ### List View
 - Card grid with filtering (search, sort, date range)
-- **Record Cards**: Display run number, date, branch, motor type, job/material counts
+- **Record Cards**: Display run number, date, creator name, branch, motor type, job/material counts
 - **Batch Selection**: Checkbox in top-left corner for multi-select operations
 - **Visual Feedback**: Selected cards show blue ring highlight (`ring-2 ring-blue-500`)
 
@@ -160,8 +160,8 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
 - Enhanced error handling with specific messages for 403, 404, 401, and 500 status codes
 - Diagnostic console logging for debugging (SaveId, response status, error body)
 - Shows delete success modal with run number and timestamp
-- Clears cache (`savedRecordsList = null`) and forces fresh fetch after successful deletion
-- Re-renders list to ensure UI updates immediately
+- Clears cache (`savedRecordsList = null`) immediately, then reloads in background (non-blocking)
+- **Idempotent**: Already-deleted records return success without error
 
 ### Modal Functions
 
@@ -208,6 +208,9 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
 - Returns counts of deleted materials and jobs
 - Prevents orphaned records in child tables
 - Accepts `@SaveId` and `@DeletedBy` parameters
+- **Idempotent**: Already-deleted records return success without error
+- **Error handling**: Checks stored procedure result set for `Status: 'Error'` and returns appropriate 500 response
+- Stored procedure returns error info as result set instead of throwing (prevents 500 after successful error info return)
 
 ### Material Validation (POST and PUT handlers)
 - `materialId` must exist in Materials table and be active (`IsActive = 1`)
