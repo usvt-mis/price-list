@@ -538,13 +538,18 @@ Each HTTP function file:
       - Processes deletions sequentially (no backend changes required)
       - Shows summary modal with success/failure counts
       - Clears selection and refreshes list on completion
-- **Backend Validation** (`api/src/functions/savedCalculations.js`):
-  - POST and PUT handlers validate materials before database insert:
+- **Backend Implementation** (`api/src/functions/savedCalculations.js`):
+  - **Delete Operation**: Uses `DeleteSavedCalculation` stored procedure (from `database/fix_orphaned_records.sql`)
+    - Properly deletes child records (`SavedCalculationMaterials` and `SavedCalculationJobs`) before soft-deleting parent
+    - Returns counts of deleted materials and jobs
+    - Prevents orphaned records in child tables
+    - Accepts `@SaveId` and `@DeletedBy` parameters
+  - **Material Validation** (POST and PUT handlers):
     - `materialId` must exist in Materials table and be active (`IsActive = 1`)
     - `unitCost` must be non-null, non-NaN, and >= 0
     - `quantity` must be a non-negative integer
-  - Returns clear error messages for each validation failure (e.g., "MaterialId 123 does not exist or is inactive")
-  - Prevents 500 errors by catching validation issues before database operations
+    - Returns clear error messages for each validation failure (e.g., "MaterialId 123 does not exist or is inactive")
+    - Prevents 500 errors by catching validation issues before database operations
 - **Sharing**:
   - Share URL format: `/?share=<token>` (token is UUID v4)
   - Requires authentication to access shared records

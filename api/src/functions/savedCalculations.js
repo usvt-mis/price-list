@@ -406,10 +406,11 @@ app.http("deleteSavedCalculation", {
         return { status: 404, jsonBody: { error: "Saved calculation not found" } };
       }
 
-      // Soft delete (set IsActive = 0)
-      await pool.request()
-        .input("saveId", sql.Int, saveId)
-        .query("UPDATE SavedCalculations SET IsActive = 0 WHERE SaveId = @saveId");
+      // Use stored procedure to delete child records and soft delete parent
+      const deleteResult = await pool.request()
+        .input("SaveId", sql.Int, saveId)
+        .input("DeletedBy", sql.NVarChar(255), userEmail)
+        .execute("DeleteSavedCalculation");
 
       ctx.log(`Deleted saved calculation: ${saveId}`);
       return { status: 204, body: "" };
