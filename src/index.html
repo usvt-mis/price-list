@@ -327,6 +327,40 @@
       </div>
     </div>
 
+    <!-- Save Success Modal (hidden by default) -->
+    <div id="saveSuccessModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+        <!-- Success Icon -->
+        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+
+        <h3 class="text-2xl font-bold text-slate-900 mb-1">Calculation Saved!</h3>
+        <p class="text-slate-500 text-sm mb-6">Your calculation has been saved successfully.</p>
+
+        <!-- Run Number Display -->
+        <div class="bg-slate-50 rounded-xl p-4 mb-4">
+          <p class="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">Run Number</p>
+          <p id="saveSuccessRunNumber" class="text-3xl font-bold text-slate-900">2024-001</p>
+        </div>
+
+        <!-- Timestamp -->
+        <p id="saveSuccessTimestamp" class="text-xs text-slate-400 mb-6"></p>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-3">
+          <button id="saveSuccessViewBtn" class="flex-1 px-4 py-3 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors">
+            View Record
+          </button>
+          <button id="saveSuccessCloseBtn" class="flex-1 px-4 py-3 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="status" class="text-sm text-slate-600"></div>
   </div>
 
@@ -689,7 +723,7 @@
       currentSavedRecord = result;
       isDirty = false;
 
-      showNotification(`Saved as ${result.runNumber}`);
+      showSaveSuccessModal(result.runNumber, result.saveId);
       updateSaveButtonState();
 
     } catch (e) {
@@ -867,6 +901,12 @@
       // HTTP 204 is the standard success response for DELETE operations
       if (response.status === 204) {
         showNotification("Record deleted successfully");
+
+        // Clear cache and force fresh fetch
+        savedRecordsList = null;
+        await loadSavedRecords();
+
+        // Re-render list to update UI
         await renderRecordsList();
         return;
       }
@@ -901,6 +941,12 @@
       }
 
       showNotification("Record deleted");
+
+      // Clear cache and force fresh fetch
+      savedRecordsList = null;
+      await loadSavedRecords();
+
+      // Re-render list to update UI
       await renderRecordsList();
     } catch (e) {
       console.error("[deleteRecord] Exception:", e);
@@ -1029,6 +1075,22 @@
     } catch (e) {
       showNotification("Failed to copy to clipboard");
     }
+  }
+
+  // Show save success modal
+  function showSaveSuccessModal(runNumber, saveId) {
+    el("saveSuccessRunNumber").textContent = runNumber;
+    el("saveSuccessTimestamp").textContent = formatDate(new Date().toISOString());
+
+    // Store the saveId for the "View Record" button
+    el("saveSuccessViewBtn").dataset.saveId = saveId;
+
+    el("saveSuccessModal").classList.remove("hidden");
+  }
+
+  // Hide save success modal
+  function hideSaveSuccessModal() {
+    el("saveSuccessModal").classList.add("hidden");
   }
 
   // Render records list with filters
@@ -1929,6 +1991,14 @@
   });
 
   el("copyShareBtn").addEventListener("click", copyShareUrl);
+
+  // Save success modal event listeners
+  el("saveSuccessCloseBtn").addEventListener("click", hideSaveSuccessModal);
+  el("saveSuccessViewBtn").addEventListener("click", () => {
+    const saveId = Number(el("saveSuccessViewBtn").dataset.saveId);
+    hideSaveSuccessModal();
+    viewRecord(saveId);
+  });
 
   // Filter event listeners
   el("searchRunNumber").addEventListener("input", renderRecordsList);

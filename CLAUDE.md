@@ -32,7 +32,9 @@ The application expects these SQL Server tables:
 - `SavedCalculationJobs` - Jobs associated with each saved calculation
 - `SavedCalculationMaterials` - Materials associated with each saved calculation
 - `RunNumberSequence` - Tracks year-based sequential run numbers
-- **Database Schema File**: `database/save_feature_schema.sql` contains all table definitions and stored procedures
+- **Database Schema Files**:
+  - `database/save_feature_schema.sql` - All table definitions and stored procedures
+  - `database/fix_orphaned_records.sql` - Cleanup script for orphaned child records and stored procedure for clean deletes
 
 ### Backend Structure (`api/`)
 
@@ -481,6 +483,7 @@ Each HTTP function file:
   - **List View** - Card grid with filtering (search, sort, date range)
   - **Detail View** - Read-only record display with Share/Edit/Delete actions
   - **Share Modal** - Copy share link to clipboard
+  - **Save Success Modal** - Confirmation modal displayed after successful save with run number, timestamp, and action buttons (View Record, Close)
   - **Breadcrumb Navigation** - Calculator > Records > 2024-001
 - **Key Functions** (`src/index.html`):
   - `serializeCalculatorState()` - Capture all calculator data (branch, motor type, jobs, materials, sales profit, travel)
@@ -501,7 +504,10 @@ Each HTTP function file:
     - Enhanced error handling with specific messages for 403, 404, 401, and 500 status codes
     - Diagnostic console logging for debugging (SaveId, response status, error body)
     - Shows user-friendly notifications based on error type
-    - Refreshes records list after successful deletion
+    - Clears cache (`savedRecordsList = null`) and forces fresh fetch after successful deletion
+    - Re-renders list to ensure UI updates immediately
+  - `showSaveSuccessModal(runNumber, saveId)` - Display save success confirmation modal
+  - `hideSaveSuccessModal()` - Hide save success modal
 - **Backend Validation** (`api/src/functions/savedCalculations.js`):
   - POST and PUT handlers validate materials before database insert:
     - `materialId` must exist in Materials table and be active (`IsActive = 1`)

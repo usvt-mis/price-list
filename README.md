@@ -22,6 +22,7 @@ The Price List Calculator computes total cost based on three components:
 - **Mode-based access**: Executive mode requires authentication; Sales mode accessible to all
 - **Save Feature**:
   - Save button to create/update calculation records with year-based run numbers (e.g., 2024-001)
+  - Success confirmation modal with run number display and View Record/Close actions
   - My Records list view with filtering (search, sort, date range)
   - Share records via generated links (authenticated-only access)
   - Role-based visibility: Sales users see own records, Executive users see all records
@@ -65,7 +66,7 @@ The application expects these SQL Server tables:
 | `SavedCalculationMaterials` | Materials associated with each saved calculation |
 | `RunNumberSequence` | Tracks year-based sequential run numbers |
 
-**Note**: Run the `database/save_feature_schema.sql` script to create the Save feature tables.
+**Note**: Run the `database/save_feature_schema.sql` script to create the Save feature tables. Optionally run `database/fix_orphaned_records.sql` to clean up any orphaned child records and create a stored procedure for clean deletes.
 
 ## API Endpoints
 
