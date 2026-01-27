@@ -15,7 +15,7 @@ BEGIN
         MotorTypeId INT NOT NULL,
         SalesProfitPct DECIMAL(5,2) NOT NULL,
         TravelKm INT NOT NULL,
-        ShareToken NVARCHAR(36) UNIQUE,
+        ShareToken NVARCHAR(36) NULL,
         CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
         ModifiedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
         IsActive BIT NOT NULL DEFAULT 1,
@@ -121,10 +121,14 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_SavedCalculations_ShareToken')
+-- Filtered unique index allows multiple NULL values while enforcing uniqueness on non-NULL tokens
+-- This fixes the issue where multiple records with NULL ShareToken caused constraint violations
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_SavedCalculations_ShareToken_Unique' AND object_id = OBJECT_ID('SavedCalculations'))
 BEGIN
-    CREATE INDEX IX_SavedCalculations_ShareToken ON SavedCalculations(ShareToken);
-    PRINT 'Created index: IX_SavedCalculations_ShareToken';
+    CREATE UNIQUE NONCLUSTERED INDEX IX_SavedCalculations_ShareToken_Unique
+    ON SavedCalculations(ShareToken)
+    WHERE ShareToken IS NOT NULL;
+    PRINT 'Created filtered unique index: IX_SavedCalculations_ShareToken_Unique';
 END
 GO
 
