@@ -482,14 +482,25 @@ Each HTTP function file:
   - **Breadcrumb Navigation** - Calculator > Records > 2024-001
 - **Key Functions** (`src/index.html`):
   - `serializeCalculatorState()` - Capture all calculator data (branch, motor type, jobs, materials, sales profit, travel)
-    - Filters out invalid material rows (where `materialId` is `null`) before serialization to prevent SQL constraint violations
+    - Filters out invalid material rows before serialization: `materialId != null && !isNaN(unitCost) && unitCost >= 0`
+    - Ensures quantity is integer: `Math.trunc(m.qty)`
+    - This provides frontend defense-in-depth validation to prevent SQL constraint violations
   - `deserializeCalculatorState(data)` - Restore saved data and populate calculator
   - `saveCalculation()` - Create or update record via API
+    - Enhanced error handling extracts detailed error messages from API responses
+    - Shows user-friendly notifications with specific error details
   - `loadSavedRecords()` - Fetch user's records (role-filtered)
   - `loadSharedRecord(token)` - Load shared record via URL parameter
   - `renderRecordsList()` - Render filtered/sorted grid
   - `showView(viewName)` - Navigate between views (calculator/list/detail)
   - `shareRecord(id, token)` - Generate or show share link
+- **Backend Validation** (`api/src/functions/savedCalculations.js`):
+  - POST and PUT handlers validate materials before database insert:
+    - `materialId` must exist in Materials table and be active (`IsActive = 1`)
+    - `unitCost` must be non-null, non-NaN, and >= 0
+    - `quantity` must be a non-negative integer
+  - Returns clear error messages for each validation failure (e.g., "MaterialId 123 does not exist or is inactive")
+  - Prevents 500 errors by catching validation issues before database operations
 - **Sharing**:
   - Share URL format: `/?share=<token>` (token is UUID v4)
   - Requires authentication to access shared records

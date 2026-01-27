@@ -518,11 +518,11 @@
         sortOrder: j.SortOrder
       })),
       materials: materialLines
-        .filter(m => m.materialId != null)
+        .filter(m => m.materialId != null && !isNaN(m.unitCost) && m.unitCost >= 0)
         .map(m => ({
           materialId: m.materialId,
           unitCost: m.unitCost,
-          quantity: m.qty
+          quantity: Math.trunc(m.qty)
         }))
     };
   }
@@ -666,7 +666,23 @@
           showNotification("You can only edit your own records");
           return;
         }
-        throw new Error(`HTTP ${response.status}`);
+
+        // Try to extract error details from response
+        let errorMessage = `Failed to save calculation (HTTP ${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+            if (errorData.details) {
+              errorMessage += `: ${errorData.details}`;
+            }
+          }
+        } catch (parseError) {
+          // If we can't parse JSON, use the status text
+          console.error('Could not parse error response:', parseError);
+        }
+
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -677,8 +693,8 @@
       updateSaveButtonState();
 
     } catch (e) {
-      console.error(e);
-      showNotification("Failed to save calculation");
+      console.error('Save calculation error:', e);
+      showNotification(`Save failed: ${e.message}`);
     } finally {
       saveBtn.disabled = false;
       saveBtnText.textContent = originalText;

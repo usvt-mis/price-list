@@ -75,8 +75,27 @@ app.http("createSavedCalculation", {
             `);
         }
 
-        // Insert materials
+        // Insert materials with validation
         for (const material of materials) {
+          // Validate materialId exists and is active
+          const materialCheck = await new sql.Request(transaction)
+            .input("materialId", sql.Int, material.materialId)
+            .query("SELECT 1 FROM Materials WHERE MaterialId = @materialId AND IsActive = 1");
+
+          if (materialCheck.recordset.length === 0) {
+            throw new Error(`MaterialId ${material.materialId} does not exist or is inactive`);
+          }
+
+          // Validate unitCost
+          if (material.unitCost === null || material.unitCost === undefined || isNaN(material.unitCost) || material.unitCost < 0) {
+            throw new Error(`Invalid UnitCost for MaterialId ${material.materialId}: must be a non-negative number`);
+          }
+
+          // Validate quantity
+          if (material.quantity < 0 || !Number.isInteger(material.quantity)) {
+            throw new Error(`Invalid Quantity for MaterialId ${material.materialId}: must be a non-negative integer`);
+          }
+
           await new sql.Request(transaction)
             .input("saveId", sql.Int, saveId)
             .input("materialId", sql.Int, material.materialId)
@@ -289,12 +308,31 @@ app.http("updateSavedCalculation", {
             `);
         }
 
-        // Delete and re-insert materials
+        // Delete and re-insert materials with validation
         await new sql.Request(transaction)
           .input("saveId", sql.Int, saveId)
           .query("DELETE FROM SavedCalculationMaterials WHERE SaveId = @saveId");
 
         for (const material of materials) {
+          // Validate materialId exists and is active
+          const materialCheck = await new sql.Request(transaction)
+            .input("materialId", sql.Int, material.materialId)
+            .query("SELECT 1 FROM Materials WHERE MaterialId = @materialId AND IsActive = 1");
+
+          if (materialCheck.recordset.length === 0) {
+            throw new Error(`MaterialId ${material.materialId} does not exist or is inactive`);
+          }
+
+          // Validate unitCost
+          if (material.unitCost === null || material.unitCost === undefined || isNaN(material.unitCost) || material.unitCost < 0) {
+            throw new Error(`Invalid UnitCost for MaterialId ${material.materialId}: must be a non-negative number`);
+          }
+
+          // Validate quantity
+          if (material.quantity < 0 || !Number.isInteger(material.quantity)) {
+            throw new Error(`Invalid Quantity for MaterialId ${material.materialId}: must be a non-negative integer`);
+          }
+
           await new sql.Request(transaction)
             .input("saveId", sql.Int, saveId)
             .input("materialId", sql.Int, material.materialId)
