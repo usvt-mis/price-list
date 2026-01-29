@@ -146,6 +146,7 @@ app.http("admin-roles-delete", {
  * GET /api/admin/roles/current
  * Get current user's effective role
  * Requires: Authentication
+ * Returns 403 if user has NoRole assigned
  */
 app.http("admin-roles-current", {
   methods: ["GET"],
@@ -157,6 +158,19 @@ app.http("admin-roles-current", {
       const { getUserEffectiveRole } = require("../../middleware/auth");
 
       const role = await getUserEffectiveRole(user);
+
+      // Return 403 for unassigned users
+      if (role === 'NoRole') {
+        return {
+          status: 403,
+          jsonBody: {
+            error: "No role assigned",
+            email: user.userDetails,
+            userId: user.userId,
+            effectiveRole: role
+          }
+        };
+      }
 
       return {
         status: 200,

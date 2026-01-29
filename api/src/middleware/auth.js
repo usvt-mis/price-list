@@ -130,8 +130,9 @@ function requireRole(...allowedRoles) {
 
 /**
  * Get user's effective role from UserRoles database table
- * Returns 'Executive' or 'Sales' based on database assignment
+ * Returns 'Executive', 'Sales', or 'NoRole' based on database assignment
  * Falls back to checking Azure AD roles if no database entry
+ * Auto-creates UserRoles entry with Role = NULL (NoRole) on first login
  */
 async function getUserEffectiveRole(user) {
   const { getPool } = require('../db');
@@ -145,21 +146,45 @@ async function getUserEffectiveRole(user) {
       .query('SELECT Role FROM UserRoles WHERE Email = @email');
 
     if (result.recordset.length > 0) {
-      return result.recordset[0].Role; // 'Executive' or 'Sales'
+      const role = result.recordset[0].Role;
+      // NULL in database means NoRole
+      if (role === null) {
+        return 'NoRole';
+      }
+      return role; // 'Executive' or 'Sales'
     }
+
+    // No entry found - auto-create with NoRole (NULL) for new users
+    try {
+      await pool.request()
+        .input('email', sql.NVarChar, user.userDetails)
+        .input('role', sql.NVarChar, null) // NULL = NoRole
+        .input('assignedBy', sql.NVarChar, 'System')
+        .query(`
+          INSERT INTO UserRoles (Email, Role, AssignedBy)
+          VALUES (@email, @role, @assignedBy)
+        `);
+    } catch (insertError) {
+      // Ignore duplicate key errors (race condition)
+      if (!insertError.message.includes('duplicate')) {
+        console.error('Failed to create UserRoles entry:', insertError.message);
+      }
+    }
+
+    return 'NoRole';
   } catch (e) {
-    // If UserRoles table doesn't exist yet, continue to Azure AD check
+    // If UserRoles table doesn't exist yet, fall back to Azure AD check
     console.error('Failed to query UserRoles (table may not exist):', e.message);
   }
 
-  // Fallback: Check Azure AD roles
+  // Fallback: Check Azure AD roles (for backward compatibility)
   const userRoles = user.userRoles || [];
   if (userRoles.includes('PriceListExecutive')) {
     return 'Executive';
   }
 
-  // Default to Sales for all authenticated users
-  return 'Sales';
+  // Default to NoRole for all new authenticated users
+  return 'NoRole';
 }
 
 /**
@@ -214,7 +239,8 @@ function getRoleLabel(role) {
     'PriceListExecutive': 'Executive',
     'PriceListSales': 'Sales',
     'Executive': 'Executive',
-    'Sales': 'Sales'
+    'Sales': 'Sales',
+    'NoRole': 'Unassigned'
   };
   return roleLabels[role] || role;
 }

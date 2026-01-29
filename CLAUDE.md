@@ -58,14 +58,15 @@ The `.vscode/launch.json` configuration supports debugging:
 ### Database Schema
 - Core tables: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
-- Role management: UserRoles (stores Executive role assignments)
-- Schema files: `database/save_feature_schema.sql`, `database/fix_orphaned_records.sql`, `database/user_roles_schema.sql`
+- Role management: UserRoles (stores role assignments - can be Executive, Sales, or NULL/NoRole)
+- Backoffice admin: BackofficeAdmins, BackofficeSessions, RoleAssignmentAudit (for admin role management)
+- Schema files: `database/backoffice_schema.sql`
 
 ### Backend Structure (`api/`)
 - Azure Functions v4 with `@azure/functions` package
 - Shared connection pool via `mssql` package in `src/db.js`
-- HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, admin/roles
-- Authentication middleware in `src/middleware/auth.js`
+- HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, admin/roles, backoffice
+- Authentication middleware in `src/middleware/`: auth.js (Azure AD), backofficeAuth.js (username/password)
 
 ### Frontend Structure (`src/`)
 - Single HTML file with embedded JavaScript
@@ -101,32 +102,51 @@ Each HTTP function file:
 - View mode (Executive/Sales) is automatically determined from user's role via `/api/admin/roles/current` API
 - Executive users see cost details (overhead, raw costs, multipliers)
 - Sales users see simplified view without cost breakdowns
+- NoRole users see "awaiting assignment" screen with no access to calculator
 - No manual mode switching - mode is purely role-based for security
+- Authenticated users with roles land on list view (not calculator) by default
 
 ### Role-Based Access Control (RBAC)
-The application implements a 3-tier role system:
+The application implements a 4-tier role system:
 
 **Roles:**
 - **Executive**: Full access to costs, margins, multipliers; can assign Executive roles to others
-- **Sales**: Default role for authenticated users; restricted view (no cost data)
+- **Sales**: Restricted view (no cost data), can only see own records
+- **NoRole**: New authenticated users default to NoRole; see "awaiting assignment" screen, no access to calculator or records
 - **Customer**: No login required; view-only access via shared links (already implemented)
 
 **Role Detection:**
-1. Check UserRoles database table first (allows Executives to assign roles)
-2. Fall back to Azure AD role claims (`PriceListExecutive` → Executive)
-3. Default to Sales for all authenticated users
+1. Check UserRoles database table first (allows backoffice to assign roles)
+2. Auto-create UserRoles entry with Role = NULL (NoRole) for new users on first login
+3. Fall back to Azure AD role claims (`PriceListExecutive` → Executive)
+4. Default to NoRole for all new authenticated users
 
-**Admin API Endpoints:**
-- `GET /api/admin/roles` - List all role assignments (Executive only)
-- `POST /api/admin/roles/assign` - Assign Executive role to user (Executive only)
-- `DELETE /api/admin/roles/{email}` - Remove role assignment (Executive only)
-- `GET /api/admin/roles/current` - Get current user's effective role
+**Admin API Endpoints** (Azure AD - Executive only):
+- `GET /api/admin/roles` - List all role assignments
+- `POST /api/admin/roles/assign` - Assign Executive or Sales role to user
+- `DELETE /api/admin/roles/{email}` - Remove role assignment (sets to NoRole)
+- `GET /api/admin/roles/current` - Get current user's effective role (returns 403 for NoRole)
+
+**Backoffice Admin API Endpoints** (separate username/password auth):
+- `POST /api/backoffice/login` - Backoffice admin login (returns JWT token)
+- `POST /api/backoffice/logout` - Backoffice admin logout
+- `GET /api/backoffice/users` - List all users with roles (paginated, searchable)
+- `POST /api/backoffice/users/{email}/role` - Assign/update user role (NoRole/Sales/Executive)
+- `DELETE /api/backoffice/users/{email}/role` - Remove user role (sets to NoRole)
+- `GET /api/backoffice/audit-log` - View role change audit history
 
 **Auth Middleware Helpers:**
-- `getUserEffectiveRole(user)` - Get role from DB or Azure AD
+- `getUserEffectiveRole(user)` - Get role from DB or Azure AD, returns 'Executive', 'Sales', or 'NoRole'
 - `isExecutive(user)` - Check if user has Executive role
 - `isSales(user)` - Check if user has Sales role
-- `getRoleLabel(role)` - Map internal role names to display labels
+- `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
+
+**Backoffice Auth Middleware:**
+- `verifyBackofficeCredentials(username, password, clientInfo)` - Verify credentials and generate JWT
+- `requireBackofficeAuth(req)` - Middleware to protect backoffice endpoints
+- `backofficeLogout(req)` - Invalidate backoffice session
+- Rate limiting: 5 failed attempts per 15 minutes per IP
+- Account lockout: 15 minutes after 5 failed attempts
 
 ---
 

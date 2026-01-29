@@ -9,6 +9,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
     "@azure/functions": "^4.0.0",
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
     "mssql": "^10.0.0"
   }
 }
