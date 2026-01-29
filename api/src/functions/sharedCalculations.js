@@ -3,6 +3,23 @@ const { sql, getPool } = require("../db");
 const { requireAuth } = require("../middleware/auth");
 const { fetchSavedCalculationById } = require("./savedCalculations");
 
+// Helper function to get the base URL for share links
+const getBaseURL = (req) => {
+  // 1. Check environment variable (production override)
+  if (process.env.STATIC_WEB_APP_HOST) {
+    const protocol = req.headers.get('x-forwarded-proto') || 'https';
+    return `${protocol}://${process.env.STATIC_WEB_APP_HOST}`;
+  }
+  // 2. Check Azure WEBSITE_HOSTNAME
+  if (process.env.WEBSITE_HOSTNAME) {
+    return `https://${process.env.WEBSITE_HOSTNAME}`;
+  }
+  // 3. Fallback to host header (for local dev)
+  const protocol = req.headers.get('x-forwarded-proto') || 'http';
+  const host = req.headers.get('host');
+  return `${protocol}://${host}`;
+};
+
 // POST /api/saves/{id}/share - Generate share token
 app.http("generateShareToken", {
   methods: ["POST"],
@@ -41,7 +58,7 @@ app.http("generateShareToken", {
 
       // If share token already exists, return it
       if (existing.recordset[0].ShareToken) {
-        const shareUrl = `${req.headers.get('host')}/?share=${existing.recordset[0].ShareToken}`;
+        const shareUrl = `${getBaseURL(req)}/?share=${existing.recordset[0].ShareToken}`;
         ctx.log(`Existing share token returned for saveId: ${saveId}`);
         return {
           status: 200,
@@ -61,7 +78,7 @@ app.http("generateShareToken", {
         .input("shareToken", sql.NVarChar(36), shareToken)
         .query("UPDATE SavedCalculations SET ShareToken = @shareToken WHERE SaveId = @saveId");
 
-      const shareUrl = `${req.headers.get('host')}/?share=${shareToken}`;
+      const shareUrl = `${getBaseURL(req)}/?share=${shareToken}`;
 
       ctx.log(`Generated share token for saveId: ${saveId}`);
       return {

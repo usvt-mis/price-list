@@ -44,6 +44,8 @@ Set the `DATABASE_CONNECTION_STRING` environment variable in `api/local.settings
 }
 ```
 
+**Optional**: Set `STATIC_WEB_APP_HOST` environment variable for share link URL generation (useful in production where the host header may not match the actual application URL). For local development, set to `"localhost:7071"`.
+
 ### Debugging
 The `.vscode/launch.json` configuration supports debugging:
 1. Run "Attach to Node Functions" in VS Code debugger

@@ -136,6 +136,13 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
 
 #### `loadSharedRecord(token)`
 - Load shared record via URL parameter
+- Sets `isViewOnly = true` and calls `setViewOnlyMode(true)` to disable all input controls
+- Shared records are truly read-only - all inputs, dropdowns, and mode switchers are disabled
+
+#### `setViewOnlyMode(enabled)`
+- Disables/re-enables all input controls when viewing shared records
+- Disables: select dropdowns, number/text inputs, checkboxes, mode switchers
+- Called when loading shared records (enabled=true) and when navigating away (enabled=false)
 
 ### Rendering
 
@@ -257,8 +264,15 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
 ```
 - Token is UUID v4
 - Requires authentication to access shared records
-- Shared records are view-only (no editing)
+- Shared records are **truly view-only** - all inputs, dropdowns, and mode switchers are disabled
 - URL parameter is cleaned after loading (via `history.replaceState`)
+
+### Share Link URL Generation
+- Backend uses `getBaseURL()` helper to generate correct share URLs
+- Checks `STATIC_WEB_APP_HOST` environment variable first (production override)
+- Falls back to `WEBSITE_HOSTNAME` (Azure default)
+- Falls back to `host` header (local development)
+- Configure `STATIC_WEB_APP_HOST` in Azure Portal or `api/local.settings.json` for local testing
 
 ---
 

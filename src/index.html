@@ -766,6 +766,28 @@
     calcAll();
   }
 
+  // Set view-only mode state - disables all input controls
+  function setViewOnlyMode(enabled) {
+    const selectors = [
+      'select',                    // Branch, motor type dropdowns
+      'input[type="number"]',      // Labor hours, quantities, sales profit, travel
+      'input[type="text"]',        // Text inputs if any
+      'input[type="checkbox"]'     // Labor checkboxes
+    ];
+
+    selectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(el => {
+        el.disabled = enabled;
+      });
+    });
+
+    // Also disable mode switcher if in view-only mode
+    const modeSwitchers = document.querySelectorAll('[onclick*="setMode"]');
+    modeSwitchers.forEach(el => {
+      el.disabled = enabled;
+    });
+  }
+
   // Mark calculation as dirty (unsaved changes)
   function markDirty() {
     if (!isDirty && currentSavedRecord === null && !isViewOnly) {
@@ -1140,6 +1162,8 @@
       const record = await response.json();
       currentSavedRecord = record;
       isDirty = false;
+      isViewOnly = false;
+      setViewOnlyMode(false);
 
       await deserializeCalculatorState(record);
       updateSaveButtonState();
@@ -1590,6 +1614,7 @@
 
       const record = await response.json();
       isViewOnly = true;
+      setViewOnlyMode(true);
 
       await deserializeCalculatorState(record);
       displayRecordDetail(record);
@@ -1609,6 +1634,7 @@
     currentSavedRecord = null;
     isDirty = false;
     isViewOnly = false;
+    setViewOnlyMode(false);
 
     // Reset form
     el("branch").value = "";
@@ -2370,6 +2396,8 @@
   el("saveBtn").addEventListener("click", saveCalculation);
 
   el("myRecordsBtn").addEventListener("click", async () => {
+    isViewOnly = false;
+    setViewOnlyMode(false);
     await applyFiltersAndRender();
     updateViewToggleButtons();
     showView("list");

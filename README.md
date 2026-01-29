@@ -29,7 +29,7 @@ The Price List Calculator computes total cost based on three components:
   - Grid view: card-based layout with same information in visual format
   - Record cards/rows display creator name, branch, motor type, job/material counts, and amount
   - Batch operations: select multiple records for deletion with bulk actions bar
-  - Share records via generated links (authenticated-only access)
+  - Share records via generated links (authenticated-only access, true read-only view with all inputs disabled)
   - Role-based visibility: Sales users see own records, Executive users see all records
   - Only creators can edit their records; Executives can delete any record, creators can delete their own
   - Delete operation is idempotent and shows success modal immediately
@@ -113,7 +113,8 @@ Configure the database connection in `api/local.settings.json`:
 {
   "Values": {
     "DATABASE_CONNECTION_STRING": "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
-    "MOCK_USER_EMAIL": "Dev User"
+    "MOCK_USER_EMAIL": "Dev User",
+    "STATIC_WEB_APP_HOST": "localhost:7071"
   }
 }
 ```
@@ -198,6 +199,8 @@ Use the VS Code configuration in `.vscode/launch.json`:
 This project is configured to deploy as an Azure Static Web App with Azure Functions API backend.
 
 The GitHub Actions workflow in `.github/workflows/azure-static-web-apps.yml` handles automatic deployment on push to the main branch.
+
+**Production Configuration**: After deployment, configure the `STATIC_WEB_APP_HOST` environment variable in your Azure Static Web App with your production URL (e.g., `pricelist-calculator.azurestaticapps.net`) to ensure share links are generated correctly.
 
 ## License
 
