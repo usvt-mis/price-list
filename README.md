@@ -12,10 +12,16 @@ The Price List Calculator computes total cost based on three components:
 ## Architecture
 
 ### Frontend
-- Single-page HTML application (`src/index.html`)
-- Vanilla JavaScript with Tailwind CSS (via CDN)
-- No build process required
-- Responsive design with mobile-friendly material panel (card-based layout on screens < 768px)
+- **Main Calculator** (`src/index.html`): Single-page HTML application
+  - Vanilla JavaScript with Tailwind CSS (via CDN)
+  - No build process required
+  - Azure AD authentication for main app users
+  - Responsive design with mobile-friendly material panel (card-based layout on screens < 768px)
+- **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface
+  - Separate HTML file with complete UI independence
+  - Username/password authentication (no Azure AD dependency)
+  - No navigation links to main calculator
+  - User role management dashboard with audit log
 
 ### UI Features
 - **Authentication UI**: Login/logout button in header with user avatar (initials) when signed in
@@ -216,13 +222,14 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 4. Default: NoRole for all new authenticated users
 
 **Backoffice Admin Features:**
-- Separate authentication system at `/#/backoffice` (username/password, not Azure AD)
+- Separate interface at `/backoffice.html` (username/password, not Azure AD)
 - JWT-based session management with 15-minute token expiry
 - Idle timeout: 30 minutes of inactivity → auto-logout
 - Rate limiting: 5 failed login attempts per 15 minutes per IP
 - Account lockout: 15 minutes after 5 failed attempts
 - Can assign NoRole, Sales, or Executive roles to Azure AD users
 - Full audit log of all role changes
+- Complete UI separation from main calculator (no navigation links)
 
 **Local Development:**
 - **Automatic bypass**: When running on `localhost` or `127.0.0.1`, authentication is automatically bypassed
@@ -277,7 +284,8 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── diagnose_backoffice_login.sql
 │   └── fix_backoffice_issues.sql
 ├── src/
-│   └── index.html
+│   ├── index.html
+│   └── backoffice.html
 ├── .github/
 │   └── workflows/
 │       └── azure-static-web-apps.yml

@@ -71,10 +71,16 @@ The `.vscode/launch.json` configuration supports debugging:
 - Utility scripts in `scripts/`: backoffice-admin-manager.js (admin account management)
 
 ### Frontend Structure (`src/`)
-- Single HTML file with embedded JavaScript
-- No build process - uses CDN for Tailwind CSS
-- State managed in global variables
-- API communication via `fetch()`
+- **Main Calculator** (`index.html`): Single-page HTML application with embedded JavaScript
+  - No build process - uses CDN for Tailwind CSS
+  - State managed in global variables
+  - API communication via `fetch()`
+  - Azure AD authentication for Executive/Sales users
+- **Backoffice Admin** (`backoffice.html`): Standalone backoffice interface
+  - Separate HTML file with complete UI independence
+  - Username/password authentication (no Azure AD)
+  - No navigation links to main calculator
+  - Uses same `/api/backoffice/*` endpoints for data management
 
 ---
 
