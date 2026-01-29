@@ -4,8 +4,13 @@
  *
  * Local Development Bypass:
  * - When running locally (localhost/127.0.0.1), authentication is bypassed
- * - Mock user with PriceListExecutive role is returned
+ * - Mock user with PriceListSales role is returned by default
  * - This allows local development without requiring Azure Static Web Apps
+ *
+ * Role System:
+ * - Executive: Full access to costs, margins, multipliers; can assign roles
+ * - Sales: Default role for authenticated users; restricted view (no cost data)
+ * - Customer: No login required; view-only access via shared links (handled separately)
  */
 
 /**
@@ -36,10 +41,12 @@ function isLocalRequest(req) {
  */
 function createMockUser() {
   const mockEmail = process.env.MOCK_USER_EMAIL || 'Dev User';
+  // Use Sales role by default for local dev (can override with MOCK_USER_ROLE)
+  const mockRole = process.env.MOCK_USER_ROLE || 'PriceListSales';
   return {
     userId: 'dev-user',
     userDetails: mockEmail,
-    userRoles: ['PriceListExecutive', 'authenticated'],
+    userRoles: [mockRole, 'authenticated'],
     claims: []
   };
 }
@@ -121,8 +128,103 @@ function requireRole(...allowedRoles) {
   };
 }
 
+/**
+ * Get user's effective role from UserRoles database table
+ * Returns 'Executive' or 'Sales' based on database assignment
+ * Falls back to checking Azure AD roles if no database entry
+ */
+async function getUserEffectiveRole(user) {
+  const { getPool } = require('../db');
+  const sql = require('mssql');
+
+  try {
+    // Check UserRoles table first (database override)
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('email', sql.NVarChar, user.userDetails)
+      .query('SELECT Role FROM UserRoles WHERE Email = @email');
+
+    if (result.recordset.length > 0) {
+      return result.recordset[0].Role; // 'Executive' or 'Sales'
+    }
+  } catch (e) {
+    // If UserRoles table doesn't exist yet, continue to Azure AD check
+    console.error('Failed to query UserRoles (table may not exist):', e.message);
+  }
+
+  // Fallback: Check Azure AD roles
+  const userRoles = user.userRoles || [];
+  if (userRoles.includes('PriceListExecutive')) {
+    return 'Executive';
+  }
+
+  // Default to Sales for all authenticated users
+  return 'Sales';
+}
+
+/**
+ * Check if user has Executive role
+ * @param {object} user - User object from auth
+ * @returns {boolean} - True if user is Executive
+ */
+async function isExecutive(user) {
+  // For local dev, check the mock role
+  if (process.env.MOCK_USER_ROLE === 'PriceListExecutive') {
+    return true;
+  }
+
+  // Check Azure AD roles directly for non-async calls
+  const userRoles = user.userRoles || [];
+  if (userRoles.includes('PriceListExecutive')) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if user has Sales role
+ * @param {object} user - User object from auth
+ * @returns {boolean} - True if user is Sales (default for authenticated users)
+ */
+async function isSales(user) {
+  // For local dev, check the mock role
+  if (process.env.MOCK_USER_ROLE === 'PriceListSales') {
+    return true;
+  }
+
+  // Check Azure AD roles
+  const userRoles = user.userRoles || [];
+  // If user has Executive role, they are not "Sales-only"
+  if (userRoles.includes('PriceListExecutive')) {
+    return false;
+  }
+
+  // All authenticated users default to Sales
+  return true;
+}
+
+/**
+ * Get display label for a role
+ * @param {string} role - Internal role name
+ * @returns {string} - Display label
+ */
+function getRoleLabel(role) {
+  const roleLabels = {
+    'PriceListExecutive': 'Executive',
+    'PriceListSales': 'Sales',
+    'Executive': 'Executive',
+    'Sales': 'Sales'
+  };
+  return roleLabels[role] || role;
+}
+
 module.exports = {
   validateAuth,
   requireAuth,
-  requireRole
+  requireRole,
+  getUserEffectiveRole,
+  isExecutive,
+  isSales,
+  getRoleLabel
 };

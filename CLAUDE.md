@@ -58,12 +58,13 @@ The `.vscode/launch.json` configuration supports debugging:
 ### Database Schema
 - Core tables: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
-- Schema files: `database/save_feature_schema.sql`, `database/fix_orphaned_records.sql`
+- Role management: UserRoles (stores Executive role assignments)
+- Schema files: `database/save_feature_schema.sql`, `database/fix_orphaned_records.sql`, `database/user_roles_schema.sql`
 
 ### Backend Structure (`api/`)
 - Azure Functions v4 with `@azure/functions` package
 - Shared connection pool via `mssql` package in `src/db.js`
-- HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping
+- HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, admin/roles
 - Authentication middleware in `src/middleware/auth.js`
 
 ### Frontend Structure (`src/`)
@@ -91,9 +92,34 @@ Each HTTP function file:
 
 ### Local Development Bypass
 - When running on localhost, authentication is automatically bypassed
-- Mock user with `PriceListExecutive` role is returned
+- Mock user defaults to `PriceListSales` role (override with `MOCK_USER_ROLE` env var)
 - Frontend detects local dev via `window.location.hostname`
 - Backend checks for localhost in headers or special `x-local-dev: true` header
+
+### Role-Based Access Control (RBAC)
+The application implements a 3-tier role system:
+
+**Roles:**
+- **Executive**: Full access to costs, margins, multipliers; can assign Executive roles to others
+- **Sales**: Default role for authenticated users; restricted view (no cost data)
+- **Customer**: No login required; view-only access via shared links (already implemented)
+
+**Role Detection:**
+1. Check UserRoles database table first (allows Executives to assign roles)
+2. Fall back to Azure AD role claims (`PriceListExecutive` → Executive)
+3. Default to Sales for all authenticated users
+
+**Admin API Endpoints:**
+- `GET /api/admin/roles` - List all role assignments (Executive only)
+- `POST /api/admin/roles/assign` - Assign Executive role to user (Executive only)
+- `DELETE /api/admin/roles/{email}` - Remove role assignment (Executive only)
+- `GET /api/admin/roles/current` - Get current user's effective role
+
+**Auth Middleware Helpers:**
+- `getUserEffectiveRole(user)` - Get role from DB or Azure AD
+- `isExecutive(user)` - Check if user has Executive role
+- `isSales(user)` - Check if user has Sales role
+- `getRoleLabel(role)` - Map internal role names to display labels
 
 ---
 

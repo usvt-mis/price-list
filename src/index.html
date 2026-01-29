@@ -25,6 +25,10 @@
       <div class="flex items-center justify-between gap-4 flex-wrap">
         <h1 class="text-3xl font-bold tracking-tight">Price List Calculator</h1>
         <div class="flex items-center gap-3 flex-wrap">
+          <!-- Role Badge Indicator -->
+          <div id="roleBadge" class="hidden px-2 py-1 text-xs font-semibold rounded border">
+            <span id="roleBadgeText"></span>
+          </div>
           <!-- My Records Button -->
           <button id="myRecordsBtn" class="hidden px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,6 +42,14 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
             </svg>
             <span id="saveBtnText">Save</span>
+          </button>
+          <!-- Admin Panel Button (Executive only) -->
+          <button id="adminPanelBtn" class="hidden px-3 py-2 text-sm rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            Admin
           </button>
           <!-- Mode Switcher -->
           <div class="inline-flex rounded-lg border border-slate-300 bg-white p-1" role="group" aria-label="View mode">
@@ -457,6 +469,40 @@
       </div>
     </div>
 
+    <!-- Admin Panel Modal (hidden by default) -->
+    <div id="adminPanelModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-slate-900">Role Management</h2>
+          <button id="closeAdminPanel" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Assign Role Section -->
+        <div class="mb-6 p-4 bg-slate-50 rounded-xl">
+          <h3 class="text-sm font-semibold text-slate-700 mb-3">Assign Executive Role</h3>
+          <div class="flex gap-2">
+            <input id="assignRoleEmail" type="email" placeholder="user@example.com" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            <button id="assignRoleBtn" class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors">
+              Assign
+            </button>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">User will receive Executive privileges. They can view costs and manage all records.</p>
+        </div>
+
+        <!-- Role Assignments List -->
+        <div class="flex-1 overflow-y-auto">
+          <h3 class="text-sm font-semibold text-slate-700 mb-2">Role Assignments</h3>
+          <div id="adminRolesList" class="border border-slate-200 rounded-lg divide-y divide-slate-100">
+            <p class="text-sm text-slate-500 text-center py-4">Loading...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Bulk Actions Bar (hidden by default) -->
     <div id="bulkActionsBar" class="hidden fixed left-0 right-0 z-40 bg-slate-900 shadow-lg">
       <!-- Desktop: Top bar -->
@@ -636,6 +682,12 @@
       } else if (!isExecutive && isExecutiveMode()) {
         setMode('sales');
       }
+
+      // Fetch and update role badge
+      fetchCurrentUserRole().then(role => {
+        currentUserRole = role;
+        updateRoleBadge();
+      });
     } else {
       authState.isAuthenticated = false;
       authState.user = null;
@@ -648,6 +700,8 @@
           <span>Sign In</span>
         </a>
       `;
+
+      updateRoleBadge();
     }
 
     authState.isLoading = false;
@@ -1625,6 +1679,9 @@
       // Force Sales mode for shared links (shows minimal data)
       setMode('sales');
 
+      // Update role badge to show Customer View
+      updateRoleBadge();
+
       await deserializeCalculatorState(record);
       displayRecordDetail(record);
       showView("detail");
@@ -2560,6 +2617,224 @@
         setStatus("Init failed. Check console & /api endpoints.");
       }
     });
+
+  // ---------- Admin Role Management ----------
+
+  // Admin panel state
+  let userRoles = [];
+  let currentUserRole = null;
+
+  /**
+   * Fetch current user's effective role from the API
+   */
+  async function fetchCurrentUserRole() {
+    try {
+      const response = await fetch('/api/admin/roles/current');
+      if (!response.ok) {
+        // If endpoint doesn't exist yet, use local detection
+        return detectLocalRole();
+      }
+      const data = await response.json();
+      return data.effectiveRole;
+    } catch (e) {
+      console.error('Failed to fetch user role:', e);
+      return detectLocalRole();
+    }
+  }
+
+  /**
+   * Detect role locally from auth state (fallback)
+   */
+  function detectLocalRole() {
+    if (!authState.isAuthenticated) return null;
+    const isExecutive = authState.user.roles.includes('PriceListExecutive');
+    return isExecutive ? 'Executive' : 'Sales';
+  }
+
+  /**
+   * Update role badge display
+   */
+  function updateRoleBadge() {
+    const badge = el('roleBadge');
+    const badgeText = el('roleBadgeText');
+    const adminBtn = el('adminPanelBtn');
+    const modeSwitcher = el('modeExecutive')?.parentElement;
+
+    if (!badge) return;
+
+    // Handle Customer view (shared links)
+    if (isViewOnly) {
+      badge.classList.remove('hidden');
+      badgeText.textContent = 'Customer View';
+      badge.className = 'px-2 py-1 text-xs font-semibold rounded border border-blue-200 bg-blue-50 text-blue-700';
+      adminBtn?.classList.add('hidden');
+      // Hide mode switcher in customer view
+      if (modeSwitcher) modeSwitcher.classList.add('hidden');
+      return;
+    }
+
+    // Show mode switcher for authenticated users
+    if (modeSwitcher) modeSwitcher.classList.remove('hidden');
+
+    if (!authState.isAuthenticated) {
+      badge.classList.add('hidden');
+      adminBtn?.classList.add('hidden');
+      return;
+    }
+
+    // Show role badge for authenticated users
+    badge.classList.remove('hidden');
+
+    const role = currentUserRole || detectLocalRole();
+
+    if (role === 'Executive') {
+      badgeText.textContent = 'Executive';
+      badge.className = 'px-2 py-1 text-xs font-semibold rounded border border-emerald-200 bg-emerald-50 text-emerald-700';
+      adminBtn?.classList.remove('hidden');
+    } else {
+      badgeText.textContent = 'Sales';
+      badge.className = 'px-2 py-1 text-xs font-semibold rounded border border-slate-200 bg-slate-50 text-slate-600';
+      adminBtn?.classList.add('hidden');
+    }
+  }
+
+  /**
+   * Fetch all user roles from the admin API
+   */
+  async function fetchUserRoles() {
+    try {
+      const response = await fetch('/api/admin/roles');
+      if (!response.ok) {
+        throw new Error('Failed to fetch roles');
+      }
+      const data = await response.json();
+      userRoles = data;
+      return data;
+    } catch (e) {
+      console.error('Failed to fetch user roles:', e);
+      showNotification('Failed to load user roles');
+      return [];
+    }
+  }
+
+  /**
+   * Render admin panel with user roles
+   */
+  function renderAdminPanel() {
+    const container = el('adminRolesList');
+    if (!container) return;
+
+    if (userRoles.length === 0) {
+      container.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">No role assignments found. All users default to Sales role.</p>';
+      return;
+    }
+
+    container.innerHTML = userRoles.map(ur => `
+      <div class="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
+        <div class="flex-1">
+          <p class="text-sm font-medium text-slate-900">${ur.Email}</p>
+          <p class="text-xs text-slate-500">Assigned by ${ur.AssignedBy} · ${new Date(ur.AssignedAt).toLocaleDateString()}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-1 text-xs font-semibold rounded ${ur.Role === 'Executive' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">
+            ${ur.Role}
+          </span>
+          ${ur.Role === 'Executive' ? `
+            <button onclick="removeUserRole('${ur.Email}')" class="p-1 text-red-600 hover:bg-red-50 rounded" title="Remove Executive role">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  /**
+   * Assign Executive role to a user
+   */
+  async function assignExecutiveRole(email) {
+    try {
+      const response = await fetch('/api/admin/roles/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, role: 'Executive' })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to assign role');
+      }
+
+      showNotification(`Executive role assigned to ${email}`);
+      await fetchUserRoles();
+      renderAdminPanel();
+    } catch (e) {
+      console.error('Failed to assign role:', e);
+      showNotification(e.message || 'Failed to assign role');
+    }
+  }
+
+  /**
+   * Remove a user's role assignment
+   */
+  async function removeUserRole(email) {
+    if (!confirm(`Remove role assignment for ${email}? They will revert to their Azure AD default role.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/roles/${encodeURIComponent(email)}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to remove role');
+      }
+
+      showNotification(`Role assignment removed for ${email}`);
+      await fetchUserRoles();
+      renderAdminPanel();
+    } catch (e) {
+      console.error('Failed to remove role:', e);
+      showNotification(e.message || 'Failed to remove role');
+    }
+  }
+
+  // Admin panel event listeners
+  el('adminPanelBtn')?.addEventListener('click', async () => {
+    const modal = el('adminPanelModal');
+    modal?.classList.remove('hidden');
+    await fetchUserRoles();
+    renderAdminPanel();
+  });
+
+  el('closeAdminPanel')?.addEventListener('click', () => {
+    el('adminPanelModal')?.classList.add('hidden');
+  });
+
+  el('assignRoleBtn')?.addEventListener('click', () => {
+    const email = el('assignRoleEmail')?.value.trim();
+    if (!email) {
+      showNotification('Please enter an email address');
+      return;
+    }
+    assignExecutiveRole(email);
+    el('assignRoleEmail').value = '';
+  });
+
+  // Close modal on outside click
+  el('adminPanelModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'adminPanelModal') {
+      el('adminPanelModal').classList.add('hidden');
+    }
+  });
+
+  // Make removeUserRole available globally for onclick handlers
+  window.removeUserRole = removeUserRole;
+
 </script>
 </body>
 </html>

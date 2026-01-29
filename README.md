@@ -19,6 +19,8 @@ The Price List Calculator computes total cost based on three components:
 
 ### UI Features
 - **Authentication UI**: Login/logout button in header with user avatar (initials) when signed in
+- **Role Badge Indicator**: Displays current user's role (Executive/Sales/Customer View) in header
+- **Admin Panel**: Executive-only button to assign/revoke Executive roles for other users
 - **Mode-based access**: Executive mode requires authentication; Sales mode accessible to all
 - **Save Feature**:
   - Save button to create/update calculation records with year-based run numbers (e.g., 2024-001)
@@ -71,8 +73,9 @@ The application expects these SQL Server tables:
 | `SavedCalculationJobs` | Jobs associated with each saved calculation |
 | `SavedCalculationMaterials` | Materials associated with each saved calculation |
 | `RunNumberSequence` | Tracks year-based sequential run numbers |
+| `UserRoles` | Role assignments for Executive privileges (Email, Role, AssignedBy, AssignedAt) |
 
-**Note**: Run the `database/save_feature_schema.sql` script to create the Save feature tables. Optionally run `database/fix_orphaned_records.sql` to clean up any orphaned child records and create a stored procedure for clean deletes.
+**Note**: Run the `database/save_feature_schema.sql` script to create the Save feature tables. Optionally run `database/fix_orphaned_records.sql` to clean up any orphaned child records and create a stored procedure for clean deletes. Run `database/user_roles_schema.sql` to create the role management table.
 
 ## API Endpoints
 
@@ -89,6 +92,10 @@ The application expects these SQL Server tables:
 | `/api/saves/{id}` | DELETE | Delete saved record (creator or executive) | Yes |
 | `/api/saves/{id}/share` | POST | Generate share token for record | Yes |
 | `/api/shared/{token}` | GET | Access shared record (public, no auth required) | No |
+| `/api/admin/roles` | GET | List all role assignments | Executive only |
+| `/api/admin/roles/assign` | POST | Assign Executive role to user | Executive only |
+| `/api/admin/roles/{email}` | DELETE | Remove role assignment | Executive only |
+| `/api/admin/roles/current` | GET | Get current user's effective role | Yes |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/.auth/me` | GET | Get current user info from Static Web Apps | No |
 
@@ -114,12 +121,13 @@ Configure the database connection in `api/local.settings.json`:
   "Values": {
     "DATABASE_CONNECTION_STRING": "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
     "MOCK_USER_EMAIL": "Dev User",
+    "MOCK_USER_ROLE": "PriceListSales",
     "STATIC_WEB_APP_HOST": "localhost:7071"
   }
 }
 ```
 
-**Optional**: Set `MOCK_USER_EMAIL` to match existing database records' CreatorEmail values for delete operations in local development. Defaults to `'Dev User'`.
+**Optional**: Set `MOCK_USER_EMAIL` to match existing database records' CreatorEmail values for delete operations in local development. Defaults to `'Dev User'`. Set `MOCK_USER_ROLE` to `PriceListExecutive` to test Executive features in local development. Defaults to `PriceListSales`.
 
 ### Running Locally
 
@@ -132,7 +140,7 @@ The API will be available at `http://localhost:7071`
 
 Open `src/index.html` in a browser to use the application.
 
-**Note**: Authentication is automatically bypassed in local development. A "DEV MODE" badge will appear in the header, and you'll have full access to Executive mode without needing to sign in.
+**Note**: Authentication is automatically bypassed in local development. A "DEV MODE" badge will appear in the header, and you'll have access based on your mock role (defaults to Sales). Set `MOCK_USER_ROLE=PriceListExecutive` to test Executive features.
 
 ### Authentication
 
@@ -141,13 +149,21 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 **Features:**
 - Login: `/.auth/login/aad` (Azure native authentication endpoint)
 - Logout: `/.auth/logout?post_logout_redirect_uri=/` (Azure native logout endpoint)
-- All API endpoints (except `/api/ping`) require authentication
+- All API endpoints (except `/api/ping` and `/api/shared/{token}`) require authentication
 - Executive mode requires authentication (unauthenticated users auto-switch to Sales mode)
-- Role-based access control: `PriceListExecutive` role auto-selects Executive mode
+- Role-based access control with 3 tiers:
+  - **Executive**: Full access to costs, can view all records, can assign Executive roles to others
+  - **Sales**: Default for authenticated users; restricted view (no cost data), can only see own records
+  - **Customer**: No authentication; view-only access via shared links (Sales mode, read-only)
+
+**Role Detection Priority:**
+1. UserRoles database table (Executive assignments override Azure AD)
+2. Azure AD role claims (`PriceListExecutive` → Executive)
+3. Default: Sales for all authenticated users
 
 **Local Development:**
 - **Automatic bypass**: When running on `localhost` or `127.0.0.1`, authentication is automatically bypassed
-- Mock user with `PriceListExecutive` role is used
+- Mock user defaults to `PriceListSales` role (override with `MOCK_USER_ROLE` env var)
 - "DEV MODE" badge appears in the header to indicate local development
 - Simply run `func start` and open `src/index.html` in a browser - no auth configuration needed
 
@@ -175,7 +191,9 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │   ├── materials.js
 │   │   │   ├── savedCalculations.js
 │   │   │   ├── sharedCalculations.js
-│   │   │   └── ping.js
+│   │   │   ├── ping.js
+│   │   │   └── admin/
+│   │   │       └── roles.js
 │   │   ├── middleware/
 │   │   │   └── auth.js
 │   │   ├── db.js
@@ -184,7 +202,9 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── package.json
 │   └── local.settings.json
 ├── database/
-│   └── save_feature_schema.sql
+│   ├── save_feature_schema.sql
+│   ├── fix_orphaned_records.sql
+│   └── user_roles_schema.sql
 ├── src/
 │   └── index.html
 ├── .github/

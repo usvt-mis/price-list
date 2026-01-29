@@ -5,3 +5,4 @@ require("./functions/materials");
 require("./functions/savedCalculations");
 require("./functions/sharedCalculations");
 require("./functions/ping");
+require("./functions/admin/roles");
