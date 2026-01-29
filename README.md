@@ -23,8 +23,12 @@ The Price List Calculator computes total cost based on three components:
 - **Save Feature**:
   - Save button to create/update calculation records with year-based run numbers (e.g., 2024-001)
   - Success confirmation modal with run number display and View Record/Close actions
-  - My Records list view with filtering (search, sort, date range)
-  - Record cards display creator name, branch, motor type, and job/material counts
+  - My Records list view with toggle between list (table) and grid (card) layouts (preference persisted)
+  - Filtering: search by run number, sort by date/amount, filter by date range
+  - List view: compact table with columns for checkbox, run number, date, creator, branch, motor, jobs, materials, amount, actions
+  - Grid view: card-based layout with same information in visual format
+  - Record cards/rows display creator name, branch, motor type, job/material counts, and amount
+  - Batch operations: select multiple records for deletion with bulk actions bar
   - Share records via generated links (authenticated-only access)
   - Role-based visibility: Sales users see own records, Executive users see all records
   - Only creators can edit their records; Executives can delete any record, creators can delete their own

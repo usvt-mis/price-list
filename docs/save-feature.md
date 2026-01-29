@@ -46,6 +46,7 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
 - `isDirty` - Tracks unsaved changes (shows "Save *" indicator)
 - `isViewOnly` - View-only mode for shared records
 - `selectedRecords` - Set of selected record IDs for batch operations
+- `recordsViewMode` - View mode for records list: "list" (table) or "grid" (cards), persisted to localStorage
 
 ---
 
@@ -61,10 +62,13 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
 - Access saved records list
 
 ### List View
-- Card grid with filtering (search, sort, date range)
-- **Record Cards**: Display run number, date, creator name, branch, motor type, job/material counts
-- **Batch Selection**: Checkbox in top-left corner for multi-select operations
-- **Visual Feedback**: Selected cards show blue ring highlight (`ring-2 ring-blue-500`)
+- **View Toggle**: Switch between list (table) and grid (card) views, persisted to localStorage (default: list)
+- **List View (Table)**: Compact table layout with columns for checkbox, run number, date, creator, branch, motor, jobs, materials, amount, actions
+- **Grid View (Cards)**: Card grid layout with same information in a more visual format
+- **Filtering**: Search by run number, sort by date/amount, filter by date range
+- **Record Cards/Rows**: Display run number, date, creator name, branch, motor type, job/material counts, amount
+- **Batch Selection**: Checkbox for multi-select operations (header checkbox in list view, card checkbox in grid view)
+- **Visual Feedback**: Selected items show blue highlight (list: `bg-blue-50 ring-1 ring-blue-500`, grid: `ring-2 ring-blue-500`)
 
 ### Detail View
 - Read-only record display with Share/Edit/Delete actions
@@ -135,12 +139,36 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
 
 ### Rendering
 
-#### `renderRecordsList()`
-- Render filtered/sorted grid
+#### `applyFiltersAndRender()`
+- Applies filters (search, sort, date range) to records list
+- Dispatches to appropriate view renderer based on `recordsViewMode`
+
+#### `renderRecords(records)`
+- Dispatcher function that routes to list or grid view based on `recordsViewMode`
+- Updates container classes for proper layout
+
+#### `renderRecordsListView(records)`
+- Renders records as a table with columns: checkbox, run number, date, creator, branch, motor, jobs, materials, amount, actions
+- Includes header checkbox for select-all functionality
+- Responsive horizontal scroll on mobile
+- Applies `bg-blue-50 ring-1 ring-blue-500` to selected rows
+
+#### `renderRecordsGrid(records)`
+- Renders records as a card grid (1 column mobile, 2 tablet, 3 desktop)
 - Generates record cards with `data-save-id` and `data-run-number` attributes
 - Includes checkbox for batch selection with `onchange="toggleRecordSelection(saveId)"`
 - Applies `ring-2 ring-blue-500` class to selected cards
 - Calls `toggleBulkActions()` to show/hide bulk actions bar
+
+#### `setRecordsView(mode)`
+- Sets the view mode ('list' or 'grid')
+- Persists to localStorage
+- Re-renders records with new view
+- Updates toggle button states
+
+#### `updateViewToggleButtons()`
+- Updates visual state of view toggle buttons (active/inactive styling)
+- Highlights current view with white background and shadow
 
 #### `showView(viewName)`
 - Navigate between views (calculator/list/detail)
