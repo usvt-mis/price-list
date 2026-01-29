@@ -83,6 +83,46 @@ The application expects these SQL Server tables:
 
 **Note**: Run the `database/backoffice_schema.sql` script to create all required tables including role management and backoffice admin tables. Default backoffice credentials: `admin` / `Admin123!` (change immediately after first login).
 
+### Admin Account Management
+
+For managing backoffice admin accounts, use the utility script in `api/scripts/`:
+
+```bash
+cd api/scripts
+
+# List all admin accounts
+npm run admin:list
+
+# Unlock a locked account
+npm run admin:unlock admin
+
+# Enable a disabled account
+npm run admin:enable admin
+
+# Reset password to default (Admin123!)
+npm run admin:reset admin
+
+# Generate password hash for manual update
+npm run admin:hash "YourPassword123!"
+```
+
+See `api/scripts/README.md` for complete documentation.
+
+### Database Diagnostics
+
+If experiencing backoffice login issues, run the diagnostic script:
+
+```bash
+sqlcmd -S <server> -d <database> -U <user> -P <password> -i database/diagnose_backoffice_login.sql
+```
+
+This will check:
+- Table existence (BackofficeAdmins, BackofficeSessions, UserRoles, RoleAssignmentAudit)
+- Admin account status (locked, disabled, active)
+- Failed login attempts
+
+For quick fixes, run `database/fix_backoffice_issues.sql` to unlock accounts, enable disabled accounts, and clear expired sessions.
+
 ## API Endpoints
 
 | Endpoint | Method | Description | Auth Required |
@@ -227,9 +267,15 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   └── index.js
 │   ├── host.json
 │   ├── package.json
-│   └── local.settings.json
+│   ├── local.settings.json
+│   └── scripts/
+│       ├── backoffice-admin-manager.js
+│       ├── package.json
+│       └── README.md
 ├── database/
-│   └── backoffice_schema.sql
+│   ├── backoffice_schema.sql
+│   ├── diagnose_backoffice_login.sql
+│   └── fix_backoffice_issues.sql
 ├── src/
 │   └── index.html
 ├── .github/

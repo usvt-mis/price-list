@@ -126,41 +126,58 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
   }
 
   // Reset failed attempts on successful login
-  await pool.request()
-    .input('id', sql.Int, admin.Id)
-    .query(`
-      UPDATE BackofficeAdmins
-      SET FailedLoginAttempts = 0,
-          LockoutUntil = NULL,
-          LastLoginAt = GETDATE()
-      WHERE Id = @id
-    `);
+  try {
+    await pool.request()
+      .input('id', sql.Int, admin.Id)
+      .query(`
+        UPDATE BackofficeAdmins
+        SET FailedLoginAttempts = 0,
+            LockoutUntil = NULL,
+            LastLoginAt = GETDATE()
+        WHERE Id = @id
+      `);
+  } catch (error) {
+    console.error('[BACKOFFICE AUTH] Failed to reset failed attempts:', error.message);
+    throw new Error('Failed to update login state');
+  }
 
   // Generate JWT token
-  const token = jwt.sign(
-    {
-      adminId: admin.Id,
-      username: admin.Username,
-      email: admin.Email
-    },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRY }
-  );
+  let token;
+  try {
+    token = jwt.sign(
+      {
+        adminId: admin.Id,
+        username: admin.Username,
+        email: admin.Email
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    );
+  } catch (error) {
+    console.error('[BACKOFFICE AUTH] Failed to generate JWT token:', error.message);
+    throw new Error('Failed to generate access token');
+  }
 
   // Store session in database
-  const tokenHash = await bcrypt.hash(token, 10);
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+  try {
+    const tokenHash = await bcrypt.hash(token, 10);
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-  await pool.request()
-    .input('adminId', sql.Int, admin.Id)
-    .input('tokenHash', sql.NVarChar, tokenHash)
-    .input('expiresAt', sql.DateTime2, expiresAt)
-    .input('clientIP', sql.NVarChar, clientInfo.ip)
-    .input('userAgent', sql.NVarChar, clientInfo.userAgent)
-    .query(`
-      INSERT INTO BackofficeSessions (AdminId, TokenHash, ExpiresAt, ClientIP, UserAgent)
-      VALUES (@adminId, @tokenHash, @expiresAt, @clientIP, @userAgent)
-    `);
+    await pool.request()
+      .input('adminId', sql.Int, admin.Id)
+      .input('tokenHash', sql.NVarChar, tokenHash)
+      .input('expiresAt', sql.DateTime2, expiresAt)
+      .input('clientIP', sql.NVarChar, clientInfo.ip)
+      .input('userAgent', sql.NVarChar, clientInfo.userAgent)
+      .query(`
+        INSERT INTO BackofficeSessions (AdminId, TokenHash, ExpiresAt, ClientIP, UserAgent)
+        VALUES (@adminId, @tokenHash, @expiresAt, @clientIP, @userAgent)
+      `);
+  } catch (error) {
+    console.error('[BACKOFFICE AUTH] Failed to store session in database:', error.message);
+    console.error('[BACKOFFICE AUTH] Error details:', error);
+    throw new Error('Failed to create session');
+  }
 
   return {
     success: true,

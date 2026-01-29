@@ -61,12 +61,14 @@ The `.vscode/launch.json` configuration supports debugging:
 - Role management: UserRoles (stores role assignments - can be Executive, Sales, or NULL/NoRole)
 - Backoffice admin: BackofficeAdmins, BackofficeSessions, RoleAssignmentAudit (for admin role management)
 - Schema files: `database/backoffice_schema.sql`
+- Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`
 
 ### Backend Structure (`api/`)
 - Azure Functions v4 with `@azure/functions` package
 - Shared connection pool via `mssql` package in `src/db.js`
 - HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, admin/roles, backoffice
 - Authentication middleware in `src/middleware/`: auth.js (Azure AD), backofficeAuth.js (username/password)
+- Utility scripts in `scripts/`: backoffice-admin-manager.js (admin account management)
 
 ### Frontend Structure (`src/`)
 - Single HTML file with embedded JavaScript
@@ -142,11 +144,21 @@ The application implements a 4-tier role system:
 - `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
 
 **Backoffice Auth Middleware:**
-- `verifyBackofficeCredentials(username, password, clientInfo)` - Verify credentials and generate JWT
+- `verifyBackofficeCredentials(username, password, clientInfo)` - Verify credentials and generate JWT with enhanced error logging
 - `requireBackofficeAuth(req)` - Middleware to protect backoffice endpoints
 - `backofficeLogout(req)` - Invalidate backoffice session
 - Rate limiting: 5 failed attempts per 15 minutes per IP
 - Account lockout: 15 minutes after 5 failed attempts
+
+**Admin Account Management:**
+- Utility script at `api/scripts/backoffice-admin-manager.js`
+- Commands: `list`, `unlock <username>`, `enable <username>`, `reset <username>`, `hash <password>`
+- Run with: `cd api/scripts && npm run admin:list` (or other commands)
+- See `api/scripts/README.md` for full documentation
+
+**Database Diagnostics:**
+- `database/diagnose_backoffice_login.sql` - Run to check table existence, admin accounts, locked/disabled accounts
+- `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions
 
 ---
 

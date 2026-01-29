@@ -103,6 +103,11 @@ function requireAuth(req) {
     throw error;
   }
 
+  // Ensure user record exists in UserRoles (fire and forget)
+  getUserEffectiveRole(user).catch(err => {
+    console.error('Failed to ensure user record:', err.message);
+  });
+
   return user;
 }
 
@@ -165,10 +170,23 @@ async function getUserEffectiveRole(user) {
           VALUES (@email, @role, @assignedBy)
         `);
     } catch (insertError) {
-      // Ignore duplicate key errors (race condition)
-      if (!insertError.message.includes('duplicate')) {
-        console.error('Failed to create UserRoles entry:', insertError.message);
+      // More robust duplicate key detection
+      if (insertError.number === 2627 || // Primary key violation
+          insertError.number === 2601 || // Unique constraint violation
+          insertError.message.toLowerCase().includes('duplicate')) {
+        return 'NoRole'; // Race condition - already created
       }
+
+      // Log with full context for debugging
+      console.error('Failed to create UserRoles entry:', {
+        email: user.userDetails,
+        error: insertError.message,
+        number: insertError.number,
+        state: insertError.state
+      });
+
+      // Re-raise critical errors so they're visible
+      throw insertError;
     }
 
     return 'NoRole';

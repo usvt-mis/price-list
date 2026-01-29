@@ -64,8 +64,9 @@ app.http("backoffice-login", {
         }
       };
     } catch (e) {
-      ctx.error(e);
-      return { status: 500, jsonBody: { error: "Login failed" } };
+      ctx.error('[BACKOFFICE LOGIN ERROR]', e.message);
+      ctx.error('[BACKOFFICE LOGIN STACK]', e.stack);
+      return { status: 500, jsonBody: { error: `Login failed: ${e.message}` } };
     }
   }
 });
