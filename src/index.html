@@ -51,11 +51,6 @@
             </svg>
             Admin
           </button>
-          <!-- Mode Switcher -->
-          <div class="inline-flex rounded-lg border border-slate-300 bg-white p-1" role="group" aria-label="View mode">
-            <button id="modeExecutive" class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200" data-mode="executive" aria-pressed="true">Executive</button>
-            <button id="modeSales" class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200" data-mode="sales" aria-pressed="false">Sales</button>
-          </div>
           <!-- Auth Control Section -->
           <div id="authSection" class="flex items-center gap-4">
             <!-- Injected via JavaScript -->
@@ -550,7 +545,8 @@
   let commissionPercent = 0; // Global commission percentage for use in render functions
 
   // Mode management: "executive" (show all) or "sales" (hide cost details)
-  let currentMode = localStorage.getItem("pricelist-calculator-mode") || "executive";
+  // Mode is now determined from user's role, not from localStorage or user selection
+  let currentMode = null; // Will be set from auth state
 
   // Records view mode: "list" (table view) or "grid" (card view)
   let recordsViewMode = localStorage.getItem("pricelist-calculator-records-view") || "list";
@@ -579,24 +575,50 @@
     return currentMode === "executive";
   }
 
+  /**
+   * Initialize view mode based on user's role from the backend
+   * This replaces the localStorage-based mode selection
+   */
+  async function initializeModeFromRole() {
+    if (isLocalDev) {
+      // In local dev, default to executive mode
+      setMode('executive');
+      return;
+    }
+
+    if (authState.isAuthenticated || isViewOnly) {
+      try {
+        const response = await fetch('/api/admin/roles/current');
+        if (response.ok) {
+          const data = await response.json();
+          const mode = data.role === 'executive' ? 'executive' : 'sales';
+          setMode(mode);
+        } else {
+          // API failed - safe fallback to sales mode
+          setMode('sales');
+        }
+      } catch (error) {
+        console.error('Failed to fetch user role:', error);
+        // Network error - safe fallback to sales mode
+        setMode('sales');
+      }
+    } else {
+      // Unauthenticated users get sales view
+      setMode('sales');
+    }
+  }
+
+  /**
+   * Set view mode (now read-only, set only from auth state)
+   * @param {string} mode - "executive" or "sales"
+   */
   function setMode(mode) {
-    // Prevent mode switching when in view-only mode (shared links)
-    if (isViewOnly) {
-      showNotification('Mode switching is not available in view-only mode');
-      return;
+    if (currentMode !== mode) {
+      currentMode = mode;
+      renderLabor();
+      renderMaterials();
+      updateModeButtons();
     }
-
-    // Check auth before allowing Executive mode (skip in local development)
-    if (mode === 'executive' && !authState.isAuthenticated && !isLocalDev) {
-      showNotification('Please sign in to access Executive mode');
-      return;
-    }
-
-    currentMode = mode;
-    localStorage.setItem("pricelist-calculator-mode", mode);
-    renderLabor();
-    renderMaterials();
-    updateModeButtons();
   }
 
   function setStatus(msg){ el("status").textContent = msg || ""; }
@@ -676,12 +698,8 @@
         </div>
       `;
 
-      // Auto-select mode based on role
-      if (isExecutive && !isExecutiveMode()) {
-        setMode('executive');
-      } else if (!isExecutive && isExecutiveMode()) {
-        setMode('sales');
-      }
+      // Initialize mode based on user's role from backend
+      await initializeModeFromRole();
 
       // Fetch and update role badge
       fetchCurrentUserRole().then(role => {
@@ -701,6 +719,8 @@
         </a>
       `;
 
+      // Unauthenticated users get sales view
+      await initializeModeFromRole();
       updateRoleBadge();
     }
 
@@ -716,19 +736,10 @@
 
   // Initialize auth on page load
   async function initAuth() {
+    // Clean up stale localStorage mode preference
+    localStorage.removeItem("pricelist-calculator-mode");
+
     await renderAuthSection();
-    checkExecutiveModeAccess();
-  }
-
-  // Enforce auth for Executive mode (skipped in local development)
-  function checkExecutiveModeAccess() {
-    // Skip enforcement in local development
-    if (isLocalDev) return;
-
-    if (isExecutiveMode() && !authState.isAuthenticated) {
-      setMode('sales');
-      showNotification('Executive mode requires authentication. Please sign in.');
-    }
   }
 
   // ---------- Save feature functions ----------
@@ -839,12 +850,6 @@
       document.querySelectorAll(selector).forEach(el => {
         el.disabled = enabled;
       });
-    });
-
-    // Also disable mode switcher if in view-only mode
-    const modeSwitchers = document.querySelectorAll('[onclick*="setMode"]');
-    modeSwitchers.forEach(el => {
-      el.disabled = enabled;
     });
   }
 
@@ -2538,48 +2543,35 @@
   el("sortBy").addEventListener("change", applyFiltersAndRender);
   el("dateRange").addEventListener("change", applyFiltersAndRender);
 
+  /**
+   * Update UI based on current mode (role-based visibility)
+   * Note: Mode buttons have been removed - mode is now determined from user's role
+   */
   function updateModeButtons() {
-    const executiveBtn = el("modeExecutive");
-    const salesBtn = el("modeSales");
-    const subGrandTotalLabel = el("grandTotal").previousElementSibling;
     const grandTotalEl = el("grandTotal");
-    const overheadSection = el("grandOverhead").parentElement;
+    const overheadSection = el("grandOverhead")?.parentElement;
     const subTotalCostSection = el("subTotalCostSection");
     const totalRawCostSection = el("totalRawCostSection");
 
     if (isExecutiveMode()) {
-      executiveBtn.classList.add("bg-slate-900", "text-white", "shadow-sm");
-      executiveBtn.classList.remove("text-slate-600", "hover:text-slate-900", "hover:bg-slate-50");
-      executiveBtn.setAttribute("aria-pressed", "true");
-      salesBtn.classList.remove("bg-slate-900", "text-white", "shadow-sm");
-      salesBtn.classList.add("text-slate-600", "hover:text-slate-900", "hover:bg-slate-50");
-      salesBtn.setAttribute("aria-pressed", "false");
-      subGrandTotalLabel.classList.remove("hidden");
+      // Executive mode: show cost details
       grandTotalEl.classList.remove("text-6xl");
       grandTotalEl.classList.add("text-5xl", "mb-6");
-      overheadSection.classList.remove("hidden");
-      subTotalCostSection.classList.remove("hidden");
-      totalRawCostSection.classList.remove("hidden");
+      if (overheadSection) overheadSection.classList.remove("hidden");
+      if (subTotalCostSection) subTotalCostSection.classList.remove("hidden");
+      if (totalRawCostSection) totalRawCostSection.classList.remove("hidden");
     } else {
-      salesBtn.classList.add("bg-slate-900", "text-white", "shadow-sm");
-      salesBtn.classList.remove("text-slate-600", "hover:text-slate-900", "hover:bg-slate-50");
-      salesBtn.setAttribute("aria-pressed", "true");
-      executiveBtn.classList.remove("bg-slate-900", "text-white", "shadow-sm");
-      executiveBtn.classList.add("text-slate-600", "hover:text-slate-900", "hover:bg-slate-50");
-      executiveBtn.setAttribute("aria-pressed", "false");
-      // Sub Grand Total is shown in BOTH modes
+      // Sales mode: hide cost details
       grandTotalEl.classList.remove("text-5xl", "mb-6");
       grandTotalEl.classList.add("text-6xl");
-      overheadSection.classList.add("hidden");
-      subTotalCostSection.classList.add("hidden");
-      totalRawCostSection.classList.add("hidden");
+      if (overheadSection) overheadSection.classList.add("hidden");
+      if (subTotalCostSection) subTotalCostSection.classList.add("hidden");
+      if (totalRawCostSection) totalRawCostSection.classList.add("hidden");
     }
   }
 
-  document.querySelectorAll(".mode-btn").forEach(btn => {
-    btn.addEventListener("click", () => setMode(btn.dataset.mode));
-  });
-  updateModeButtons();
+  // Mode buttons removed - mode is now initialized from user's role
+  // updateModeButtons() will be called after auth state is determined
 
   // Check for shared record URL parameter on page load
   const urlParams = new URLSearchParams(window.location.search);
@@ -2658,7 +2650,6 @@
     const badge = el('roleBadge');
     const badgeText = el('roleBadgeText');
     const adminBtn = el('adminPanelBtn');
-    const modeSwitcher = el('modeExecutive')?.parentElement;
 
     if (!badge) return;
 
@@ -2668,13 +2659,8 @@
       badgeText.textContent = 'Customer View';
       badge.className = 'px-2 py-1 text-xs font-semibold rounded border border-blue-200 bg-blue-50 text-blue-700';
       adminBtn?.classList.add('hidden');
-      // Hide mode switcher in customer view
-      if (modeSwitcher) modeSwitcher.classList.add('hidden');
       return;
     }
-
-    // Show mode switcher for authenticated users
-    if (modeSwitcher) modeSwitcher.classList.remove('hidden');
 
     if (!authState.isAuthenticated) {
       badge.classList.add('hidden');

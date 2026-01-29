@@ -95,6 +95,13 @@ Each HTTP function file:
 - Mock user defaults to `PriceListSales` role (override with `MOCK_USER_ROLE` env var)
 - Frontend detects local dev via `window.location.hostname`
 - Backend checks for localhost in headers or special `x-local-dev: true` header
+- Local dev defaults to Executive mode; production mode is determined from user's role
+
+### Mode Determination
+- View mode (Executive/Sales) is automatically determined from user's role via `/api/admin/roles/current` API
+- Executive users see cost details (overhead, raw costs, multipliers)
+- Sales users see simplified view without cost breakdowns
+- No manual mode switching - mode is purely role-based for security
 
 ### Role-Based Access Control (RBAC)
 The application implements a 3-tier role system:

@@ -21,7 +21,7 @@ The Price List Calculator computes total cost based on three components:
 - **Authentication UI**: Login/logout button in header with user avatar (initials) when signed in
 - **Role Badge Indicator**: Displays current user's role (Executive/Sales/Customer View) in header
 - **Admin Panel**: Executive-only button to assign/revoke Executive roles for other users
-- **Mode-based access**: Executive mode requires authentication; Sales mode accessible to all
+- **Role-based view mode**: Executive/Sales mode automatically determined from user role (no manual switching)
 - **Save Feature**:
   - Save button to create/update calculation records with year-based run numbers (e.g., 2024-001)
   - Success confirmation modal with run number display and View Record/Close actions
@@ -150,7 +150,7 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - Login: `/.auth/login/aad` (Azure native authentication endpoint)
 - Logout: `/.auth/logout?post_logout_redirect_uri=/` (Azure native logout endpoint)
 - All API endpoints (except `/api/ping` and `/api/shared/{token}`) require authentication
-- Executive mode requires authentication (unauthenticated users auto-switch to Sales mode)
+- View mode (Executive/Sales) is automatically determined from user's role - no manual switching
 - Role-based access control with 3 tiers:
   - **Executive**: Full access to costs, can view all records, can assign Executive roles to others
   - **Sales**: Default for authenticated users; restricted view (no cost data), can only see own records
