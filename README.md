@@ -17,7 +17,7 @@ The Price List Calculator computes total cost based on three components:
   - No build process required
   - Azure AD authentication for main app users
   - Responsive design with mobile-friendly material panel (card-based layout on screens < 768px)
-- **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface
+- **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
   - Separate HTML file with complete UI independence
   - Username/password authentication (no Azure AD dependency)
   - No navigation links to main calculator
@@ -222,7 +222,8 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 4. Default: NoRole for all new authenticated users
 
 **Backoffice Admin Features:**
-- Separate interface at `/backoffice.html` (username/password, not Azure AD)
+- Separate interface at `/backoffice` (username/password, not Azure AD)
+- Clean URL routing: `/backoffice` and `/backoffice/` both serve `backoffice.html`
 - JWT-based session management with 15-minute token expiry
 - Idle timeout: 30 minutes of inactivity → auto-logout
 - Rate limiting: 5 failed login attempts per 15 minutes per IP

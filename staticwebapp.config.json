@@ -23,8 +23,12 @@
       "allowedRoles": ["authenticated"]
     },
     {
-      "route": "/backoffice*",
-      "statusCode": 200
+      "route": "/backoffice",
+      "rewrite": "/backoffice.html"
+    },
+    {
+      "route": "/backoffice/",
+      "rewrite": "/backoffice.html"
     }
   ],
   "responseOverrides": {
