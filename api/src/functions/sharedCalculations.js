@@ -99,17 +99,17 @@ app.http("generateShareToken", {
   }
 });
 
-// GET /api/shared/{token} - Access shared record (authenticated)
+// GET /api/shared/{token} - Access shared record (PUBLIC - no auth required)
 app.http("getSharedCalculation", {
   methods: ["GET"],
   authLevel: "anonymous",
   route: "shared/{token}",
   handler: async (req, ctx) => {
     try {
-      const user = requireAuth(req);
+      // NO AUTH REQUIREMENT - Public access via share token
       const token = req.params.token;
 
-      ctx.log(`User ${user.userDetails} accessing shared calculation via token: ${token}`);
+      ctx.log(`Accessing shared calculation via token: ${token}`);
 
       const pool = await getPool();
 
@@ -133,15 +133,12 @@ app.http("getSharedCalculation", {
 
       // Mark as shared for view-only mode in frontend
       result.isShared = true;
-      result.viewerEmail = user.userDetails;
+      // Note: No viewerEmail since no auth required
 
       ctx.log(`Shared calculation accessed: ${result.runNumber} (SaveId: ${saveId})`);
       return { status: 200, jsonBody: result };
 
     } catch (e) {
-      if (e.statusCode === 401) {
-        return { status: 401, jsonBody: { error: "Authentication required" } };
-      }
       ctx.error(e);
       return { status: 500, jsonBody: { error: "Failed to access shared calculation", details: e.message } };
     }

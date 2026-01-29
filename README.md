@@ -29,7 +29,7 @@ The Price List Calculator computes total cost based on three components:
   - Grid view: card-based layout with same information in visual format
   - Record cards/rows display creator name, branch, motor type, job/material counts, and amount
   - Batch operations: select multiple records for deletion with bulk actions bar
-  - Share records via generated links (authenticated-only access, true read-only view with all inputs disabled)
+  - Share records via generated links (public access, no authentication required, read-only view in Sales mode with all inputs disabled)
   - Role-based visibility: Sales users see own records, Executive users see all records
   - Only creators can edit their records; Executives can delete any record, creators can delete their own
   - Delete operation is idempotent and shows success modal immediately
@@ -88,7 +88,7 @@ The application expects these SQL Server tables:
 | `/api/saves/{id}` | PUT | Update saved record (creator only) | Yes |
 | `/api/saves/{id}` | DELETE | Delete saved record (creator or executive) | Yes |
 | `/api/saves/{id}/share` | POST | Generate share token for record | Yes |
-| `/api/shared/{token}` | GET | Access shared record (authenticated) | Yes |
+| `/api/shared/{token}` | GET | Access shared record (public, no auth required) | No |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/.auth/me` | GET | Get current user info from Static Web Apps | No |
 

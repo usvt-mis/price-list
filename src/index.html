@@ -534,6 +534,12 @@
   }
 
   function setMode(mode) {
+    // Prevent mode switching when in view-only mode (shared links)
+    if (isViewOnly) {
+      showNotification('Mode switching is not available in view-only mode');
+      return;
+    }
+
     // Check auth before allowing Executive mode (skip in local development)
     if (mode === 'executive' && !authState.isAuthenticated && !isLocalDev) {
       showNotification('Please sign in to access Executive mode');
@@ -1615,6 +1621,9 @@
       const record = await response.json();
       isViewOnly = true;
       setViewOnlyMode(true);
+
+      // Force Sales mode for shared links (shows minimal data)
+      setMode('sales');
 
       await deserializeCalculatorState(record);
       displayRecordDetail(record);
