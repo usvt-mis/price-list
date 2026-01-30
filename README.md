@@ -91,28 +91,28 @@ The application expects these SQL Server tables:
 
 ### Admin Account Management
 
-For managing backoffice admin accounts, use the utility script in `api/scripts/`:
+Admin accounts can be created and managed directly via SQL:
 
-```bash
-cd api/scripts
+```sql
+-- Create a new admin account (generate bcrypt hash first)
+INSERT INTO BackofficeAdmins (Username, PasswordHash, Email, Role, IsActive)
+VALUES ('admin', '<bcrypt_hash>', 'admin@example.com', 'Executive', 1);
 
-# List all admin accounts
-npm run admin:list
+-- Unlock a locked account
+UPDATE BackofficeAdmins
+SET LockoutUntil = NULL, FailedLoginAttempts = 0
+WHERE Username = 'admin';
 
-# Unlock a locked account
-npm run admin:unlock admin
+-- Enable a disabled account
+UPDATE BackofficeAdmins
+SET IsActive = 1
+WHERE Username = 'admin';
 
-# Enable a disabled account
-npm run admin:enable admin
-
-# Reset password to default (Admin123!)
-npm run admin:reset admin
-
-# Generate password hash for manual update
-npm run admin:hash "YourPassword123!"
+-- Reset password (generate new bcrypt hash first)
+UPDATE BackofficeAdmins
+SET PasswordHash = '<new_bcrypt_hash>'
+WHERE Username = 'admin';
 ```
-
-See `api/scripts/README.md` for complete documentation.
 
 ### Database Diagnostics
 
@@ -129,21 +129,19 @@ This will check:
 
 For quick fixes, run `database/fix_backoffice_issues.sql` to unlock accounts, enable disabled accounts, and clear expired sessions.
 
-### User Recovery
+### User Registration
 
-If users are not appearing in the backoffice user list, use the bulk registration script:
+Users are automatically registered in the UserRoles table on first login via Azure AD. If manual user registration is needed:
 
-```bash
-cd api/scripts
+```sql
+-- Register a user with a role
+INSERT INTO UserRoles (Email, Role, AssignedBy, AssignedAt)
+VALUES ('user@example.com', 'Sales', 'admin@example.com', GETDATE());
 
-# Dry run to test (no actual changes)
-DRY_RUN=true node backfill-missing-users.js user1@example.com user2@example.com
-
-# Actually register missing users
-node backfill-missing-users.js user1@example.com user2@example.com
+-- Register a user without a role (NoRole)
+INSERT INTO UserRoles (Email, Role, AssignedBy, AssignedAt)
+VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 ```
-
-The script will report: processed count, registered count, already exists count, and any failures.
 
 ## API Endpoints
 
@@ -299,12 +297,7 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   └── index.js
 │   ├── host.json
 │   ├── package.json
-│   ├── local.settings.json
-│   └── scripts/
-│       ├── backoffice-admin-manager.js
-│       ├── backfill-missing-users.js
-│       ├── package.json
-│       └── README.md
+│   └── local.settings.json
 ├── database/
 │   ├── backoffice_schema.sql
 │   ├── diagnose_backoffice_login.sql

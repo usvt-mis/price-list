@@ -174,8 +174,14 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
         VALUES (@adminId, @tokenHash, @expiresAt, @clientIP, @userAgent)
       `);
   } catch (error) {
-    console.error('[BACKOFFICE AUTH] Failed to store session in database:', error.message);
-    console.error('[BACKOFFICE AUTH] Error details:', error);
+    console.error('[BACKOFFICE AUTH] Failed to store session in database');
+    console.error('[BACKOFFICE AUTH] Error message:', error.message);
+    console.error('[BACKOFFICE AUTH] SQL State:', error.state);
+    console.error('[BACKOFFICE AUTH] SQL Class:', error.class);
+    console.error('[BACKOFFICE AUTH] SQL Server:', error.serverName);
+    console.error('[BACKOFFICE AUTH] SQL Number:', error.number);
+    console.error('[BACKOFFICE AUTH] SQL Line:', error.lineNumber);
+    console.error('[BACKOFFICE AUTH] Full error:', error);
     throw new Error('Failed to create session');
   }
 

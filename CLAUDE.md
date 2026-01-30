@@ -68,7 +68,6 @@ The `.vscode/launch.json` configuration supports debugging:
 - Shared connection pool via `mssql` package in `src/db.js`
 - HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, admin/roles, admin/diagnostics, backoffice
 - Authentication middleware in `src/middleware/`: auth.js (Azure AD), backofficeAuth.js (username/password)
-- Utility scripts in `scripts/`: backoffice-admin-manager.js (admin account management), backfill-missing-users.js (user recovery)
 
 ### Frontend Structure (`src/`)
 - **Main Calculator** (`index.html`): Single-page HTML application with embedded JavaScript
@@ -165,22 +164,22 @@ The application implements a 4-tier role system:
 - Rate limiting: 5 failed attempts per 15 minutes per IP
 - Account lockout: 15 minutes after 5 failed attempts
 
-**Admin Account Management:**
-- Utility script at `api/scripts/backoffice-admin-manager.js`
-- Commands: `list`, `unlock <username>`, `enable <username>`, `reset <username>`, `hash <password>`
-- Run with: `cd api/scripts && npm run admin:list` (or other commands)
-- See `api/scripts/README.md` for full documentation
-
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence, admin accounts, locked/disabled accounts
 - `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions
+- `database/ensure_backoffice_schema.sql` - Create all missing backoffice tables (comprehensive schema setup)
+- `database/create_backoffice_sessions.sql` - Create only the BackofficeSessions table
 
-**User Recovery Utility:**
-- Script at `api/scripts/backfill-missing-users.js`
-- Bulk register missing users into UserRoles table
-- Dry-run mode for testing: `DRY_RUN=true node backfill-missing-users.js <email1> <email2> ...`
-- Actual registration: `node backfill-missing-users.js <email1> <email2> ...`
-- Generates detailed report of processed, registered, already exists, and failed counts
+**Production Troubleshooting:**
+- See [Backoffice Production Setup Guide](docs/backoffice-production-setup.md) for diagnosing and fixing production login issues
+- Enhanced error logging in `api/src/middleware/backofficeAuth.js` captures SQL state, class, and server information
+
+**Admin Account Creation:**
+Admin accounts can be created directly via SQL:
+```sql
+INSERT INTO BackofficeAdmins (Username, PasswordHash, Role)
+VALUES ('admin', '<bcrypt_hash>', 'Executive');
+```
 
 ---
 
@@ -218,6 +217,7 @@ The application implements a 4-tier role system:
 | [Backend](docs/backend.md) | Azure Functions, middleware, patterns |
 | [Calculation](docs/calculation.md) | Pricing formulas, multipliers, commission |
 | [Save Feature](docs/save-feature.md) | Save/load, sharing, batch operations |
+| [Backoffice Production Setup](docs/backoffice-production-setup.md) | Production deployment & troubleshooting guide |
 
 ---
 
