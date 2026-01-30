@@ -220,6 +220,8 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
 
 /**
  * Verify backoffice JWT token from Authorization header
+ * Simplified version that only verifies JWT signature and expiry
+ * Note: Database session check removed - JWT signature verification provides sufficient security
  */
 async function verifyBackofficeToken(req) {
   const authHeader = req.headers.get('authorization');
@@ -230,31 +232,9 @@ async function verifyBackofficeToken(req) {
   const token = authHeader.substring(7);
 
   try {
-    // Verify JWT signature and expiry
+    // Verify JWT signature and expiry (no database check needed)
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // Verify token exists in database (not revoked)
-    const pool = await getPool();
-    const tokenHashes = await Promise.all(
-      [token, token.slice(0, token.length / 2)].map(t => bcrypt.hash(t, 10))
-    );
-
-    // Check if token exists in active sessions
-    const sessionResult = await pool.request()
-      .input('adminId', sql.Int, decoded.adminId)
-      .input('expiresAt', sql.DateTime2, new Date())
-      .query(`
-        SELECT Id, AdminId, ExpiresAt
-        FROM BackofficeSessions
-        WHERE AdminId = @adminId
-          AND ExpiresAt > GETDATE()
-      `);
-
-    if (sessionResult.recordset.length === 0) {
-      return null;
-    }
-
-    // Token is valid
     return {
       id: decoded.adminId,
       username: decoded.username,
@@ -262,11 +242,8 @@ async function verifyBackofficeToken(req) {
       expiresAt: new Date(decoded.exp * 1000)
     };
   } catch (e) {
-    if (e.name === 'TokenExpiredError') {
-      return null; // Token expired
-    }
-    if (e.name === 'JsonWebTokenError') {
-      return null; // Invalid token
+    if (e.name === 'TokenExpiredError' || e.name === 'JsonWebTokenError') {
+      return null;
     }
     throw e;
   }

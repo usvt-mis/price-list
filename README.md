@@ -261,7 +261,7 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 **Backoffice Admin Features:**
 - Separate interface at `/backoffice` (username/password, not Azure AD)
 - Clean URL routing: `/backoffice` and `/backoffice/` both serve `backoffice.html`
-- JWT-based session management with 15-minute token expiry
+- JWT-based session management with 15-minute token expiry (verified via JWT signature, no database session check)
 - Idle timeout: 30 minutes of inactivity → auto-logout
 - Rate limiting: 5 failed login attempts per 15 minutes per IP
 - Account lockout: 15 minutes after 5 failed attempts

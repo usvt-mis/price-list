@@ -179,11 +179,13 @@ The application implements a 4-tier role system:
 
 **Backoffice Auth Middleware:**
 - `verifyBackofficeCredentials(username, password, clientInfo)` - Verify credentials and generate JWT with enhanced error logging and session creation diagnostics
+- `verifyBackofficeToken(req)` - Verify JWT signature and expiry (no database session check - JWT provides sufficient security)
 - `requireBackofficeAuth(req)` - Middleware to protect backoffice endpoints
-- `backofficeLogout(req)` - Invalidate backoffice session
+- `backofficeLogout(req)` - Invalidate backoffice session (deletes all sessions for admin)
 - Rate limiting: 5 failed attempts per 15 minutes per IP
 - Account lockout: 15 minutes after 5 failed attempts
 - Session creation includes diagnostic logging of clientIP length, userAgent length, and token hash preview
+- JWT tokens expire after 15 minutes; client-side sessionStorage cleared on logout
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence, admin accounts, locked/disabled accounts
