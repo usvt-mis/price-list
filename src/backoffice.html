@@ -307,19 +307,57 @@
     const admin = JSON.parse(sessionStorage.getItem('backofficeAdmin') || 'null');
     const tokenExpiresAt = sessionStorage.getItem('backofficeTokenExpiresAt');
 
-    if (token && admin) {
-      backofficeState.isAuthenticated = true;
-      backofficeState.admin = admin;
-      backofficeState.token = token;
-      backofficeState.tokenExpiresAt = tokenExpiresAt ? new Date(tokenExpiresAt) : null;
-      backofficeState.lastActivity = Date.now();
+    // Add diagnostic logging
+    console.log('[BACKOFFICE SESSION] Checking session:', {
+      hasToken: !!token,
+      hasAdmin: !!admin,
+      hasExpiry: !!tokenExpiresAt,
+      expiryDate: tokenExpiresAt ? new Date(tokenExpiresAt).toISOString() : null,
+      isExpired: tokenExpiresAt ? Date.now() >= new Date(tokenExpiresAt).getTime() : null,
+      currentTime: new Date().toISOString()
+    });
 
-      // Start idle timeout check
-      startIdleTimeoutCheck();
+    if (token && admin && tokenExpiresAt) {
+      // Check if token has expired
+      const expiryDate = new Date(tokenExpiresAt);
+      const currentTime = Date.now();
 
-      return true;
+      if (currentTime < expiryDate.getTime()) {
+        // Token is still valid
+        backofficeState.isAuthenticated = true;
+        backofficeState.admin = admin;
+        backofficeState.token = token;
+        backofficeState.tokenExpiresAt = expiryDate;
+        backofficeState.lastActivity = currentTime;
+        startIdleTimeoutCheck();
+        console.log('[BACKOFFICE SESSION] Session is valid');
+        return true;
+      } else {
+        // Token expired - clear sessionStorage
+        console.log('[BACKOFFICE SESSION] Token expired, clearing session');
+        sessionStorage.removeItem('backofficeToken');
+        sessionStorage.removeItem('backofficeAdmin');
+        sessionStorage.removeItem('backofficeTokenExpiresAt');
+      }
     }
+
+    console.log('[BACKOFFICE SESSION] No valid session found');
     return false;
+  }
+
+  // Check if token is still valid (lightweight check without backend call)
+  function isTokenValid() {
+    if (!backofficeState.tokenExpiresAt) {
+      console.log('[BACKOFFICE TOKEN] No expiry date set');
+      return false;
+    }
+    const isValid = Date.now() < new Date(backofficeState.tokenExpiresAt).getTime();
+    console.log('[BACKOFFICE TOKEN] Token validity check:', {
+      expiresAt: backofficeState.tokenExpiresAt.toISOString(),
+      currentTime: new Date().toISOString(),
+      isValid: isValid
+    });
+    return isValid;
   }
 
   // Backoffice login form handler
@@ -361,9 +399,9 @@
         // Start idle timeout check
         startIdleTimeoutCheck();
 
-        // Navigate to dashboard
+        // Navigate to dashboard - let hash change handler handle navigation
+        // This prevents race condition from double dashboard call
         window.location.hash = '#dashboard';
-        showBackofficeDashboard();
       } else {
         // Show error
         errorEl.textContent = data.error || 'Login failed';
@@ -473,6 +511,14 @@
 
   // Load backoffice users list
   async function loadBackofficeUsers(page = 1) {
+    // Add token validation check at start
+    if (!isTokenValid()) {
+      console.log('[BACKOFFICE USERS] Token invalid, logging out');
+      backofficeLogout();
+      showNotification('Session expired. Please log in again.');
+      return;
+    }
+
     const search = el('backofficeUserSearch')?.value || '';
     const pageSize = backofficeState.pageSize;
     const offset = (page - 1) * pageSize;
@@ -593,6 +639,14 @@
 
   // Load audit log
   async function loadBackofficeAuditLog() {
+    // Add token validation check at start
+    if (!isTokenValid()) {
+      console.log('[BACKOFFICE AUDIT] Token invalid, logging out');
+      backofficeLogout();
+      showNotification('Session expired. Please log in again.');
+      return;
+    }
+
     try {
       const response = await fetch('/api/backoffice/audit-log', {
         headers: {
@@ -681,6 +735,14 @@
   el('roleChangeConfirm').addEventListener('click', async () => {
     const selectedRole = document.querySelector('input[name="roleChange"]:checked')?.value;
     if (!selectedRole || !backofficeState.currentEmail) return;
+
+    // Add token validation check before API call
+    if (!isTokenValid()) {
+      console.log('[BACKOFFICE ROLE CHANGE] Token invalid, logging out');
+      backofficeLogout();
+      showNotification('Session expired. Please log in again.');
+      return;
+    }
 
     try {
       const response = await fetch(`/api/backoffice/users/${encodeURIComponent(backofficeState.currentEmail)}/role`, {
