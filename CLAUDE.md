@@ -86,7 +86,7 @@ The `.vscode/launch.json` configuration supports debugging:
 ### Backend Structure (`api/`)
 - Azure Functions v4 with `@azure/functions` package
 - Shared connection pool via `mssql` package in `src/db.js`
-- HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, admin/roles, admin/diagnostics, admin/logs, admin/health, backoffice
+- HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, version, admin/roles, admin/diagnostics, admin/logs, admin/health, backoffice
 - Timer functions in `src/functions/timers/`: logPurge (daily log archival)
 - Utilities in `src/utils/`: logger.js (application logging), performanceTracker.js (performance metrics), circuitBreaker.js (fault tolerance)
 - Authentication middleware in `src/middleware/`: auth.js (Azure AD), backofficeAuth.js (username/password), correlationId.js (request tracing), requestLogger.js (correlation propagation)
@@ -102,6 +102,7 @@ The `.vscode/launch.json` configuration supports debugging:
   - Username/password authentication (no Azure AD)
   - No navigation links to main calculator
   - Uses same `/api/backoffice/*` endpoints for data management
+  - Version footer displays app version from `/api/version` endpoint
 
 ---
 
@@ -158,6 +159,9 @@ The application implements a 4-tier role system:
 - Registration status is tracked in user object: `registrationStatus` ('registered' | 'failed')
 - Failures are logged with full context but don't block authentication
 - Duplicate key errors are handled gracefully (race conditions)
+
+**Version API Endpoint** (no authentication):
+- `GET /api/version` - Get application version from package.json (includes environment)
 
 **Admin API Endpoints** (Azure AD - Executive only):
 - `GET /api/admin/roles` - List all role assignments
