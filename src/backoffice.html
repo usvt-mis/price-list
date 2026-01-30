@@ -457,6 +457,13 @@
       idleCheckInterval: null
     };
 
+    // Reset login button state (if showing login form)
+    const submitBtn = el('backofficeLoginSubmitBtn');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span>Sign In</span>';
+    }
+
     // Navigate to login
     window.location.hash = '#login';
     showView('backoffice-login');
@@ -527,8 +534,14 @@
 
       if (!response.ok) {
         if (response.status === 401) {
-          // Session expired
+          // Session expired - reset button state before logout
+          const submitBtn = el('backofficeLoginSubmitBtn');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Sign In</span>';
+          }
           backofficeLogout();
+          showNotification('Session expired. Please log in again.');
           return;
         }
         throw new Error('Failed to load users');
