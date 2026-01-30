@@ -205,7 +205,7 @@ async function verifyBackofficeToken(req) {
   try {
     // Verify JWT signature and expiry with clock tolerance (no database check needed)
     const decoded = jwt.verify(token, JWT_SECRET, {
-      clockTolerance: 30 // Allow 30 seconds clock skew
+      clockTolerance: 90 // Allow 90 seconds clock skew to handle more time drift
     });
 
     return {

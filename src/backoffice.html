@@ -587,14 +587,6 @@
 
   // Load backoffice users list
   async function loadBackofficeUsers(page = 1) {
-    // Add token validation check at start
-    if (!isTokenValid()) {
-      console.log('[BACKOFFICE USERS] Token invalid, logging out');
-      backofficeLogout();
-      showNotification('Session expired. Please log in again.');
-      return;
-    }
-
     const search = el('backofficeUserSearch')?.value || '';
     const pageSize = backofficeState.pageSize;
     const offset = (page - 1) * pageSize;
@@ -715,14 +707,6 @@
 
   // Load audit log
   async function loadBackofficeAuditLog() {
-    // Add token validation check at start
-    if (!isTokenValid()) {
-      console.log('[BACKOFFICE AUDIT] Token invalid, logging out');
-      backofficeLogout();
-      showNotification('Session expired. Please log in again.');
-      return;
-    }
-
     try {
       const response = await fetch('/api/backoffice/audit-log', {
         headers: {
@@ -731,6 +715,11 @@
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          backofficeLogout();
+          showNotification('Session expired. Please log in again.');
+          return;
+        }
         throw new Error('Failed to load audit log');
       }
 
@@ -812,14 +801,6 @@
     const selectedRole = document.querySelector('input[name="roleChange"]:checked')?.value;
     if (!selectedRole || !backofficeState.currentEmail) return;
 
-    // Add token validation check before API call
-    if (!isTokenValid()) {
-      console.log('[BACKOFFICE ROLE CHANGE] Token invalid, logging out');
-      backofficeLogout();
-      showNotification('Session expired. Please log in again.');
-      return;
-    }
-
     try {
       const response = await fetch(`/api/backoffice/users/${encodeURIComponent(backofficeState.currentEmail)}/role`, {
         method: 'POST',
@@ -831,6 +812,11 @@
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          backofficeLogout();
+          showNotification('Session expired. Please log in again.');
+          return;
+        }
         throw new Error('Failed to update role');
       }
 
