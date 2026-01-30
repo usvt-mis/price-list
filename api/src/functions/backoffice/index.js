@@ -469,7 +469,7 @@ app.http("backoffice-repair", {
         results.tablesCreated.push('BackofficeAdmins');
       }
 
-      // Check and create BackofficeSessions table
+      // Check and create BackofficeSessions table (deprecated - kept for historical purposes)
       results.tablesChecked.push('BackofficeSessions');
       const sessionsExists = await pool.request()
         .query(`SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'BackofficeSessions'`);

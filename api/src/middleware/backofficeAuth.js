@@ -158,53 +158,6 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
     throw new Error('Failed to generate access token');
   }
 
-  // Store session in database
-  try {
-    const tokenHash = await bcrypt.hash(token, 10);
-    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8 hours
-
-    // Log actual values being inserted for diagnostics
-    console.log('[BACKOFFICE] Creating session with values:', {
-      adminId: admin.Id,
-      tokenHashLength: tokenHash.length,
-      tokenHashPreview: tokenHash.substring(0, 20) + '...',
-      expiresAt: expiresAt.toISOString(),
-      clientIP: clientInfo.ip,
-      clientIPLength: clientInfo.ip.length,
-      userAgent: clientInfo.userAgent,
-      userAgentLength: clientInfo.userAgent.length
-    });
-
-    await pool.request()
-      .input('adminId', sql.Int, admin.Id)
-      .input('tokenHash', sql.NVarChar, tokenHash)
-      .input('expiresAt', sql.DateTime2, expiresAt)
-      .input('clientIP', sql.NVarChar, clientInfo.ip)
-      .input('userAgent', sql.NVarChar, clientInfo.userAgent)
-      .query(`
-        INSERT INTO BackofficeSessions (AdminId, TokenHash, ExpiresAt, ClientIP, UserAgent)
-        VALUES (@adminId, @tokenHash, @expiresAt, @clientIP, @userAgent)
-      `);
-
-    console.log('[BACKOFFICE] Session created successfully');
-  } catch (error) {
-    console.error('[BACKOFFICE AUTH] Failed to store session in database');
-    console.error('[BACKOFFICE AUTH] Error message:', error.message);
-    console.error('[BACKOFFICE AUTH] SQL State:', error.state);
-    console.error('[BACKOFFICE AUTH] SQL Class:', error.class);
-    console.error('[BACKOFFICE AUTH] SQL Server:', error.serverName);
-    console.error('[BACKOFFICE AUTH] SQL Number:', error.number);
-    console.error('[BACKOFFICE AUTH] SQL Line:', error.lineNumber);
-    console.error('[BACKOFFICE AUTH] Full error:', error);
-    console.error('[BACKOFFICE AUTH] Input values:', {
-      adminId: admin.Id,
-      clientIP: clientInfo.ip,
-      clientIPLength: clientInfo.ip?.length || 0,
-      userAgent: clientInfo.userAgent,
-      userAgentLength: clientInfo.userAgent?.length || 0
-    });
-    throw new Error('Failed to create session');
-  }
 
   return {
     success: true,
@@ -269,6 +222,7 @@ async function requireBackofficeAuth(req) {
 
 /**
  * Logout - invalidate backoffice session
+ * Note: Client-side clears sessionStorage; JWT validation will fail once token expires
  */
 async function backofficeLogout(req) {
   const admin = await verifyBackofficeToken(req);
@@ -279,27 +233,8 @@ async function backofficeLogout(req) {
     throw error;
   }
 
-  // Delete all sessions for this admin
-  const pool = await getPool();
-  await pool.request()
-    .input('adminId', sql.Int, admin.id)
-    .query('DELETE FROM BackofficeSessions WHERE AdminId = @adminId');
-
+  // Client will clear sessionStorage; token will expire naturally
   return { success: true };
-}
-
-/**
- * Clean up expired sessions (should be run periodically)
- */
-async function cleanupExpiredSessions() {
-  try {
-    const pool = await getPool();
-    await pool.request()
-      .input('now', sql.DateTime2, new Date())
-      .query('DELETE FROM BackofficeSessions WHERE ExpiresAt < @now');
-  } catch (e) {
-    console.error('Failed to cleanup expired sessions:', e.message);
-  }
 }
 
 /**
@@ -319,7 +254,6 @@ module.exports = {
   verifyBackofficeToken,
   requireBackofficeAuth,
   backofficeLogout,
-  cleanupExpiredSessions,
   checkRateLimit,
   recordFailedAttempt,
   clearLoginAttempts,

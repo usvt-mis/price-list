@@ -52,10 +52,12 @@ PRINT '';
 -- 2. BackofficeSessions Table
 -- ============================================
 PRINT '2. Checking BackofficeSessions table...';
+PRINT '   [DEPRECATED] This table is no longer used by the application';
+PRINT '   [INFO] Backoffice now uses pure JWT authentication (see api/src/middleware/backofficeAuth.js)';
 
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'BackofficeSessions')
 BEGIN
-    PRINT '   [CREATING] BackofficeSessions table...';
+    PRINT '   [CREATING] BackofficeSessions table (for historical purposes only)...';
 
     CREATE TABLE BackofficeSessions (
         Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -68,7 +70,7 @@ BEGIN
         FOREIGN KEY (AdminId) REFERENCES BackofficeAdmins(Id)
     );
 
-    PRINT '   [SUCCESS] BackofficeSessions table created';
+    PRINT '   [SUCCESS] BackofficeSessions table created (deprecated)';
 
     -- Create indexes for performance
     CREATE INDEX IX_BackofficeSessions_AdminId ON BackofficeSessions(AdminId);
@@ -190,7 +192,7 @@ SELECT
     TABLE_NAME,
     CASE
         WHEN TABLE_NAME = 'BackofficeAdmins' THEN 'Admin accounts'
-        WHEN TABLE_NAME = 'BackofficeSessions' THEN 'Active sessions'
+        WHEN TABLE_NAME = 'BackofficeSessions' THEN 'Active sessions (deprecated - using JWT-only auth)'
         WHEN TABLE_NAME = 'UserRoles' THEN 'User role assignments'
         WHEN TABLE_NAME = 'RoleAssignmentAudit' THEN 'Role change history'
         ELSE 'Unknown'

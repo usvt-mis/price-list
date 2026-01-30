@@ -77,7 +77,8 @@ The `.vscode/launch.json` configuration supports debugging:
 - Core tables: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
 - Role management: UserRoles (stores role assignments - can be Executive, Sales, or NULL/NoRole)
-- Backoffice admin: BackofficeAdmins, BackofficeSessions, RoleAssignmentAudit (for admin role management)
+- Backoffice admin: BackofficeAdmins, RoleAssignmentAudit (for admin role management)
+- **Note**: BackofficeSessions table is deprecated; backoffice now uses pure JWT authentication
 - Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`
 - Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup), `database/create_backoffice_sessions.sql` (sessions table only)
 
@@ -178,22 +179,21 @@ The application implements a 4-tier role system:
 - `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
 
 **Backoffice Auth Middleware:**
-- `verifyBackofficeCredentials(username, password, clientInfo)` - Verify credentials and generate JWT with enhanced error logging and session creation diagnostics
-- `verifyBackofficeToken(req)` - Verify JWT signature and expiry with 30-second clock tolerance (no database session check - JWT provides sufficient security)
+- `verifyBackofficeCredentials(username, password, clientInfo)` - Verify credentials and generate JWT token
+- `verifyBackofficeToken(req)` - Verify JWT signature and expiry with 30-second clock tolerance (pure JWT validation - no database session check)
 - `requireBackofficeAuth(req)` - Middleware to protect backoffice endpoints
-- `backofficeLogout(req)` - Invalidate backoffice session (deletes all sessions for admin)
+- `backofficeLogout(req)` - Logout handler (client clears sessionStorage; token expires naturally)
 - Rate limiting: 5 failed attempts per 15 minutes per IP
 - Account lockout: 15 minutes after 5 failed attempts
-- Session creation includes diagnostic logging of clientIP length, userAgent length, and token hash preview
 - JWT tokens expire after 8 hours; client-side sessionStorage cleared on logout
-- Idle timeout: 8 hours of inactivity → auto-logout (matches token expiry)
+- **Note**: BackofficeSessions database table is deprecated - authentication uses pure JWT (signature verification provides sufficient security)
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence, admin accounts, locked/disabled accounts
 - `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions
 - `database/fix_backoffice_sessions_clientip.sql` - Fix "Failed to create session" error by expanding ClientIP column to NVARCHAR(100)
 - `database/ensure_backoffice_schema.sql` - Create all missing backoffice tables (comprehensive schema setup)
-- `database/create_backoffice_sessions.sql` - Create only the BackofficeSessions table
+- `database/create_backoffice_sessions.sql` - Create only the BackofficeSessions table (deprecated - kept for historical purposes)
 
 **Production Troubleshooting:**
 - See [Backoffice Production Setup Guide](docs/backoffice-production-setup.md) for diagnosing and fixing production login issues

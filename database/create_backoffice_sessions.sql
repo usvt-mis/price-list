@@ -1,12 +1,18 @@
 -- ============================================
 -- Create BackofficeSessions Table
 -- Run this script if the BackofficeSessions table is missing
--- This table stores active admin sessions for JWT validation
+-- ============================================
+-- DEPRECATED: This table is no longer used by the application.
+-- The backoffice now uses pure JWT authentication (JWT-only validation).
+-- This script is provided for historical/backwards compatibility only.
+-- See api/src/middleware/backofficeAuth.js for current implementation.
 -- ============================================
 
 PRINT '===========================================';
 PRINT 'CREATING BackofficeSessions TABLE';
 PRINT '===========================================';
+PRINT 'WARNING: This table is DEPRECATED and no longer used.';
+PRINT 'The application now uses pure JWT authentication.';
 PRINT '';
 
 -- Check if table already exists
