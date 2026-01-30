@@ -19,6 +19,12 @@ jobs:
         with:
           submodules: true
           lfs: false
+
+      # Disable timer functions for SWA deployment (managed mode only supports HTTP functions)
+      - name: Configure for SWA (Disable Timer Functions)
+        run: |
+          echo '{"IsEncrypted":false,"Values":{"ENABLE_TIMER_FUNCTIONS":"false"}}' > api/local.swa.settings.json
+
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1

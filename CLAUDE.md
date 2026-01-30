@@ -46,6 +46,8 @@ Set the `DATABASE_CONNECTION_STRING` environment variable in `api/local.settings
 
 **Optional**: Set `STATIC_WEB_APP_HOST` environment variable for share link URL generation (useful in production where the host header may not match the actual application URL). For local development, set to `"localhost:7071"`.
 
+**Timer Functions**: Set `ENABLE_TIMER_FUNCTIONS` to `"true"` for local development (timer functions are disabled in Azure Static Web Apps managed mode - only HTTP functions are supported). The GitHub Actions workflow automatically sets this to `"false"` during deployment.
+
 ### Direct Database Access (sqlcmd)
 
 For diagnostics, troubleshooting, and running SQL scripts without starting the Azure Functions host, use sqlcmd:
@@ -113,7 +115,7 @@ The `.vscode/launch.json` configuration supports debugging:
 - Azure Functions v4 with `@azure/functions` package
 - Shared connection pool via `mssql` package in `src/db.js`
 - HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, version, admin/roles, admin/diagnostics, admin/logs, admin/health, backoffice
-- Timer functions in `src/functions/timers/`: logPurge (daily log archival)
+- Timer functions in `src/functions/timers/`: logPurge (daily log archival - conditionally registered via `ENABLE_TIMER_FUNCTIONS` env var)
 - Utilities in `src/utils/`: logger.js (application logging), performanceTracker.js (performance metrics), circuitBreaker.js (fault tolerance)
 - Authentication middleware in `src/middleware/`: auth.js (Azure AD), backofficeAuth.js (username/password), correlationId.js (request tracing), requestLogger.js (correlation propagation)
 
@@ -140,6 +142,14 @@ Each HTTP function file:
 2. Calls `app.http()` with function name and config object
 3. Exports nothing (registration happens via side effect)
 4. The main `index.js` requires all functions to register them
+
+**Timer Functions (Conditional Registration):**
+- Timer triggers use `app.timer()` with a schedule (cron expression)
+- For Azure Static Web Apps compatibility, timer functions are conditionally registered based on `ENABLE_TIMER_FUNCTIONS` environment variable
+- Pattern: Wrap `app.timer()` call in `if (process.env.ENABLE_TIMER_FUNCTIONS !== 'false') { ... }`
+- This allows HTTP endpoints (like manual purge) to always be available while the timer trigger is disabled in SWA
+- Local development: Set `ENABLE_TIMER_FUNCTIONS: "true"` in `api/local.settings.json`
+- Production (SWA): GitHub Actions workflow creates `local.swa.settings.json` with `ENABLE_TIMER_FUNCTIONS: "false"`
 
 ### Database Connection Pooling
 - Connection pool is singleton-initialized in `api/src/db.js`
@@ -245,7 +255,8 @@ The application implements a 4-tier role system:
 - Request correlation ID propagation for tracing related operations
 - Circuit breaker pattern prevents logging failures from affecting application performance
 - Performance tracker (`api/src/utils/performanceTracker.js`) captures API response times and database latency
-- Automated log archival via timer trigger (daily at 2 AM UTC)
+- Automated log archival via timer trigger (daily at 2 AM UTC) - disabled in Azure Static Web Apps; use manual endpoint instead
+- Manual log purge endpoint: `POST /api/admin/logs/purge/manual` (Executive only)
 - Environment variables: `LOG_LEVEL`, `LOG_BUFFER_FLUSH_MS`, `LOG_BUFFER_SIZE`, `CIRCUIT_BREAKER_THRESHOLD`, etc.
 
 **Production Troubleshooting:**

@@ -13,8 +13,12 @@ const logger = require('../../utils/logger');
  * Timer Trigger: Log Purge and Archive
  * Schedule: Run daily at 2 AM UTC
  * Cron: 0 0 2 * * *
+ *
+ * Timer trigger disabled for Azure Static Web Apps (managed mode only supports HTTP functions)
+ * Enable by setting ENABLE_TIMER_FUNCTIONS=true in environment
  */
-app.timer('logPurgeTimer', {
+if (process.env.ENABLE_TIMER_FUNCTIONS !== 'false') {
+    app.timer('logPurgeTimer', {
     schedule: '0 0 2 * * *', // Daily at 2 AM UTC
     handler: async (myTimer, context) => {
         const correlationId = `log-purge-${Date.now()}`;
@@ -176,6 +180,7 @@ app.timer('logPurgeTimer', {
         }
     }
 });
+}
 
 /**
  * Manual trigger for log purge (testing/admin use)
