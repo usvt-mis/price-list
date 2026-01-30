@@ -32,7 +32,7 @@ END
 ELSE
 BEGIN
     PRINT '   [MISSING] BackofficeAdmins table does NOT exist!';
-    PRINT '   --> FIX: Run database/backoffice_schema.sql';
+    PRINT '   --> FIX: Run database/ensure_backoffice_schema.sql';
 END
 PRINT '';
 PRINT '';
@@ -51,7 +51,7 @@ END
 ELSE
 BEGIN
     PRINT '   [MISSING] BackofficeSessions table does NOT exist!';
-    PRINT '   --> FIX: Run database/backoffice_schema.sql';
+    PRINT '   --> FIX: Run database/ensure_backoffice_schema.sql';
 END
 PRINT '';
 PRINT '';
@@ -65,7 +65,7 @@ END
 ELSE
 BEGIN
     PRINT '   [MISSING] UserRoles table does NOT exist!';
-    PRINT '   --> FIX: Run database/backoffice_schema.sql';
+    PRINT '   --> FIX: Run database/ensure_backoffice_schema.sql';
 END
 PRINT '';
 PRINT '';
@@ -79,7 +79,7 @@ END
 ELSE
 BEGIN
     PRINT '   [MISSING] RoleAssignmentAudit table does NOT exist!';
-    PRINT '   --> FIX: Run database/backoffice_schema.sql';
+    PRINT '   --> FIX: Run database/ensure_backoffice_schema.sql';
 END
 PRINT '';
 PRINT '';

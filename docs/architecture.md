@@ -28,7 +28,7 @@ The application expects these SQL Server tables:
 
 ### Database Schema Files
 
-- `database/save_feature_schema.sql` - All table definitions and stored procedures
+- `database/ensure_backoffice_schema.sql` - Backoffice admin and role management tables
 - `database/fix_orphaned_records.sql` - Cleanup script for orphaned child records and stored procedure for clean deletes
 
 ---

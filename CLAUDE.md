@@ -46,6 +46,24 @@ Set the `DATABASE_CONNECTION_STRING` environment variable in `api/local.settings
 
 **Optional**: Set `STATIC_WEB_APP_HOST` environment variable for share link URL generation (useful in production where the host header may not match the actual application URL). For local development, set to `"localhost:7071"`.
 
+### Direct Database Access (sqlcmd)
+
+For diagnostics, troubleshooting, and running SQL scripts without starting the Azure Functions host, use sqlcmd:
+
+```bash
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30
+```
+
+**Running diagnostic scripts:**
+```bash
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -i database/diagnose_backoffice_login.sql -N -l 30
+```
+
+⚠️ **Security**: Never commit hardcoded passwords to version control. Use environment variables in production scripts:
+```bash
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U $DB_USER -P "$DB_PASSWORD" -N -l 30
+```
+
 ### Debugging
 The `.vscode/launch.json` configuration supports debugging:
 1. Run "Attach to Node Functions" in VS Code debugger
@@ -60,8 +78,8 @@ The `.vscode/launch.json` configuration supports debugging:
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
 - Role management: UserRoles (stores role assignments - can be Executive, Sales, or NULL/NoRole)
 - Backoffice admin: BackofficeAdmins, BackofficeSessions, RoleAssignmentAudit (for admin role management)
-- Schema files: `database/backoffice_schema.sql`
 - Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`
+- Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup), `database/create_backoffice_sessions.sql` (sessions table only)
 
 ### Backend Structure (`api/`)
 - Azure Functions v4 with `@azure/functions` package
@@ -97,6 +115,7 @@ Each HTTP function file:
 - All functions use `getPool()` to get the shared pool
 - Uses parameterized queries to prevent SQL injection
 - When using transactions with stored procedures, ensure stored procedures don't create nested transactions
+- For direct database access (diagnostics, troubleshooting), use sqlcmd (see Quick Start above)
 
 ### Local Development Bypass
 - When running on localhost, authentication is automatically bypassed

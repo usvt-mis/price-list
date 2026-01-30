@@ -35,6 +35,12 @@ Required in Azure or `local.settings.json`:
 DATABASE_CONNECTION_STRING - SQL Server connection string
 ```
 
+For sqlcmd scripts (CI/CD, diagnostics):
+```bash
+# Use environment variables for security
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U $DB_USER -P "$DB_PASSWORD" -N -l 30
+```
+
 ## Route Configuration (staticwebapp.config.json)
 ```json
 {
@@ -51,6 +57,8 @@ DATABASE_CONNECTION_STRING - SQL Server connection string
 2. Use Azure App Configuration for production environment variables
 3. Test locally with `func start` before deploying
 4. Check GitHub Actions logs for deployment failures
+5. Use sqlcmd for database schema deployment and diagnostics in CI/CD
+6. Store sqlcmd credentials in GitHub Secrets for automated scripts
 
 ## Escalation Protocol
 
@@ -78,3 +86,5 @@ DATABASE_CONNECTION_STRING - SQL Server connection string
 | Add environment var | Add to Azure Static Web Apps configuration |
 | Update routes | Modify `staticwebapp.config.json` |
 | Debug production | Use Application Insights, check Azure Functions logs |
+| Deploy schema script | Use sqlcmd with GitHub Secret credentials: `sqlcmd -S $DB_SERVER -d $DB_NAME -U $DB_USER -P "$DB_PASSWORD" -i script.sql` |
+| Diagnose DB issues | Run diagnostic scripts via sqlcmd for faster troubleshooting |

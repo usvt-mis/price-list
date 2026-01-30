@@ -87,7 +87,7 @@ The application expects these SQL Server tables:
 | `BackofficeSessions` | JWT session tokens for backoffice authentication |
 | `RoleAssignmentAudit` | Immutable audit log of all role changes |
 
-**Note**: Run the `database/backoffice_schema.sql` script to create all required tables including role management and backoffice admin tables. Default backoffice credentials: `admin` / `Admin123!` (change immediately after first login).
+**Note**: Run the `database/ensure_backoffice_schema.sql` script to create all required backoffice tables including role management and backoffice admin tables. Default backoffice credentials: `admin` / `Admin123!` (change immediately after first login).
 
 ### Admin Account Management
 
@@ -315,7 +315,6 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── package.json
 │   └── local.settings.json
 ├── database/
-│   ├── backoffice_schema.sql
 │   ├── diagnose_backoffice_login.sql
 │   ├── fix_backoffice_issues.sql
 │   ├── fix_backoffice_sessions_clientip.sql

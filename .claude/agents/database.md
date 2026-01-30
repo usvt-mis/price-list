@@ -67,6 +67,69 @@ WHERE IsActive = 1
 3. Use `IsActive` flag for soft deletes on materials
 4. Index MaterialCode and MaterialName for search performance
 
+---
+
+## Direct Database Access (sqlcmd)
+
+For diagnostics, schema verification, and troubleshooting without starting the Azure Functions host, you can use sqlcmd for direct database access.
+
+### sqlcmd Connection Pattern
+
+**Production Connection:**
+```bash
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30
+```
+
+**Flags explained:**
+- `-S` : Server address with port
+- `-d` : Database name
+- `-U` : Username
+- `-P` : Password (use environment variables in production scripts)
+- `-N` : Encrypt connection (recommended for Azure)
+- `-l` : Login timeout in seconds
+
+**Running SQL Scripts:**
+```bash
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -i database/diagnose_backoffice_login.sql -N -l 30
+```
+
+**Interactive Queries:**
+```bash
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30
+# Then run SQL commands interactively:
+# SELECT * FROM BackofficeAdmins;
+# GO
+```
+
+### When to Use sqlcmd vs Backend API
+
+| Scenario | Approach |
+|----------|----------|
+| Query database via API | Use Backend Agent (Azure Functions endpoint) |
+| Direct schema verification | Use sqlcmd (faster, no host startup) |
+| Production troubleshooting | Use sqlcmd (diagnose connection issues) |
+| Run diagnostic scripts | Use sqlcmd with `-i script.sql` |
+| Schema migrations | Coordinate with Architect Agent, use sqlcmd or migration scripts |
+
+### Security Considerations
+
+⚠️ **IMPORTANT**: Never commit hardcoded passwords to version control.
+
+**Recommended pattern for scripts:**
+```bash
+# Use environment variables
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U $DB_USER -P "$DB_PASSWORD" -N -l 30
+```
+
+### Available Diagnostic Scripts
+
+Located in `database/` directory:
+- `diagnose_backoffice_login.sql` - Check table existence, admin accounts, locked accounts
+- `fix_backoffice_issues.sql` - Quick fixes for common backoffice issues
+- `fix_backoffice_sessions_clientip.sql` - Fix ClientIP column size issues
+- `ensure_backoffice_schema.sql` - Create all missing backoffice tables
+- `create_backoffice_sessions.sql` - Create only the BackofficeSessions table
+
 ## Escalation Protocol
 
 ### When to Escalate to Architect Agent

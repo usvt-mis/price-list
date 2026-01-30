@@ -50,6 +50,7 @@ app.http("functionName", {
 - Connection pool is singleton-initialized
 - Use parameterized queries to prevent SQL injection
 - Always use try/catch with `ctx.error()` logging
+- For direct database access (diagnostics, schema verification), coordinate with Database Agent for sqlcmd usage
 
 ## Guidelines
 1. All functions must be required in `api/src/index.js`
@@ -73,7 +74,7 @@ app.http("functionName", {
 
 ### When to Coordinate with Other Specialists
 - **Frontend Agent**: API contract changes, response format updates
-- **Database Agent**: Query optimization, new data requirements, schema changes
+- **Database Agent**: Query optimization, new data requirements, schema changes, sqlcmd vs API usage for database operations
 
 ## Common Tasks
 | Task | Approach |
@@ -81,3 +82,5 @@ app.http("functionName", {
 | Add new endpoint | Create file in `functions/`, require in `index.js` |
 | Fix SQL query | Check parameterization, verify column names |
 | Connection issue | Verify `DATABASE_CONNECTION_STRING`, check `db.js` |
+| DB diagnostics | Use sqlcmd for quick verification (coordinate with Database Agent) |
+| Schema verification | Use sqlcmd scripts without starting Azure Functions host |

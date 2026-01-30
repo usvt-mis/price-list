@@ -112,6 +112,8 @@ Before approving any architectural change:
 - [ ] Uses appropriate error handling
 - [ ] Maintains security best practices
 - [ ] Considers performance implications
+- [ ] For SQL changes: Uses sqlcmd for diagnostics, API for data access
+- [ ] For database tools: Documents connection patterns in CLAUDE.md
 
 ## Common Architectural Tasks
 
@@ -139,6 +141,8 @@ Before approving any architectural change:
 - Consult on schema design and normalization
 - Review query optimization and indexing strategy
 - Ensure data integrity constraints
+- Review sqlcmd usage patterns for direct database access
+- Coordinate SQL deployment patterns (sqlcmd scripts vs API migrations)
 
 ### With Calculation Agent
 - Consult on formula design and business logic

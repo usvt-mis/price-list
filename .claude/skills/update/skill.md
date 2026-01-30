@@ -26,6 +26,8 @@ Streamline the documentation and commit workflow by:
   - **Refactoring** (code structure changes without behavior change) → `refactor:`
   - **Documentation** (docs-only changes) → `docs:`
   - **Chore** (maintenance, config, dependencies) → `chore:`
+  - **Tool/Infrastructure** (sqlcmd, CLI tools, connection config) → `tool:`
+  - **Database schema** (migrations, schema changes) → `schema:`
 - Identify affected documentation sections
 - Determine commit type
 
@@ -40,6 +42,9 @@ Based on the analyzed changes, update documentation:
 - New patterns → Add to appropriate sections (under Key Implementation Details)
 - Architectural changes → Update Architecture section
 - New skills/agents → Note in CLAUDE.md if relevant
+- **sqlcmd/database tools** → Add to Database Connection Pooling section or Quick Start
+- **Database scripts** → Update Database Diagnostics section with new script info
+- **Schema changes** → Update Database Schema section
 
 **README.md updates:**
 - User-facing features → Update feature list in Overview
@@ -70,6 +75,8 @@ Based on the analyzed changes, update documentation:
 - If bug fix → `fix:`
 - If code restructuring → `refactor:`
 - If dependencies/config → `chore:`
+- If sqlcmd/CLI tool changes → `tool:`
+- If database schema changes (`.sql` files in `database/`) → `schema:`
 
 ### Phase 5: Create Commit
 - Execute `git commit` with generated message using heredoc format
@@ -102,6 +109,7 @@ Based on the analyzed changes, update documentation:
 - **Frontend**: Single-page HTML (`src/index.html`), vanilla JavaScript, Tailwind CSS
 - **Backend**: Azure Functions v4, Node.js
 - **Database**: SQL Server with connection pooling
+- **Direct DB Access**: sqlcmd for diagnostics and troubleshooting
 - **Deployment**: Azure (serverless)
 
 ### Common Change Scenarios
@@ -114,6 +122,9 @@ Based on the analyzed changes, update documentation:
 | New pattern | CLAUDE.md: Add to Key Implementation Details |
 | Config change | README.md: Update Development or Deployment sections |
 | New skill/agent | CLAUDE.md: Note in relevant section (if applicable) |
+| **sqlcmd/DB tool** | CLAUDE.md: Add to Database Connection Pooling section<br>README.md: Update Development section with sqlcmd examples |
+| **Database script** | CLAUDE.md: Update Database Diagnostics section<br>README.md: Note in troubleshooting section if applicable |
+| **Schema change** | CLAUDE.md: Update Database Schema section |
 
 ---
 
@@ -154,6 +165,8 @@ Commit SHA: (hash from git commit)
 {/update fix labor calculation overflow}
 {/update refactor database connection pooling}
 {/update docs: update API endpoint documentation}
+{/update tool: add sqlcmd connection info to database agent}
+{/update schema: add backoffice sessions table}
 ```
 
 ---
@@ -191,10 +204,12 @@ When user invokes `{/update [message]}`:
 
 - [ ] Run `git status` to detect modified/untracked files
 - [ ] Run `git diff` to analyze actual changes
-- [ ] Categorize changes (feat/fix/refactor/docs/chore)
+- [ ] Categorize changes (feat/fix/refactor/docs/chore/tool/schema)
+- [ ] Check for `.sql` files in `database/` directory (schema changes)
+- [ ] Check for sqlcmd or database tool changes (tool changes)
 - [ ] Identify affected documentation sections
 - [ ] Read CLAUDE.md and README.md
-- [ ] Update CLAUDE.md if architecture/features/patterns changed
+- [ ] Update CLAUDE.md if architecture/features/patterns/tools changed
 - [ ] Update README.md if user-facing features/setup changed
 - [ ] Stage documentation files (`git add CLAUDE.md README.md`)
 - [ ] Stage related code changes
