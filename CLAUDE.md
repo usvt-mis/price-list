@@ -48,6 +48,8 @@ Set the `DATABASE_CONNECTION_STRING` environment variable in `api/local.settings
 
 **Timer Functions**: Set `ENABLE_TIMER_FUNCTIONS` to `"true"` for local development (timer functions are disabled in Azure Static Web Apps managed mode - only HTTP functions are supported). The GitHub Actions workflow automatically sets this to `"false"` during deployment.
 
+**AzureWebJobsStorage**: Set to `"UseDevelopmentStorage=true"` for timer trigger support in local development (requires Azurite Azure Storage Emulator). Install Azurite with `npm install -g azurite` and run with `azurite --silent --location <path> --debug <path>`. Alternatively, set `ENABLE_TIMER_FUNCTIONS` to `"false"` to disable timer triggers while keeping manual HTTP endpoints available.
+
 ### Direct Database Access (sqlcmd)
 
 For diagnostics, troubleshooting, and running SQL scripts without starting the Azure Functions host, use sqlcmd:
@@ -200,19 +202,19 @@ The application implements a 4-tier role system:
 - `GET /api/version` - Get application version from package.json (includes environment)
 
 **Admin API Endpoints** (Azure AD - Executive only):
-- `GET /api/admin/roles` - List all role assignments
-- `POST /api/admin/roles/assign` - Assign Executive or Sales role to user
-- `DELETE /api/admin/roles/{email}` - Remove role assignment (sets to NoRole)
-- `GET /api/admin/roles/current` - Get current user's effective role (returns 403 for NoRole)
-- `GET /api/admin/diagnostics/registration` - User registration diagnostics (total users, role breakdown, recent registrations, database write test)
+- `GET /api/adm/roles` - List all role assignments
+- `POST /api/adm/roles/assign` - Assign Executive or Sales role to user
+- `DELETE /api/adm/roles/{email}` - Remove role assignment (sets to NoRole)
+- `GET /api/adm/roles/current` - Get current user's effective role (returns 403 for NoRole)
+- `GET /api/adm/diagnostics/registration` - User registration diagnostics (total users, role breakdown, recent registrations, database write test)
 
 **Logging API Endpoints** (Azure AD - Executive only):
-- `GET /api/admin/logs` - Query application logs with filters (date, user, type, level, correlationId)
-- `GET /api/admin/logs/errors` - Aggregated error summaries and frequency
-- `GET /api/admin/logs/export` - Export logs as CSV or JSON
-- `DELETE /api/admin/logs/purge` - Purge logs older than X days
-- `GET /api/admin/logs/health` - System health check (database status, log statistics, performance metrics)
-- `POST /api/admin/logs/purge/manual` - Manually trigger log archival and cleanup
+- `GET /api/adm/logs` - Query application logs with filters (date, user, type, level, correlationId)
+- `GET /api/adm/logs/errors` - Aggregated error summaries and frequency
+- `GET /api/adm/logs/export` - Export logs as CSV or JSON
+- `DELETE /api/adm/logs/purge` - Purge logs older than X days
+- `GET /api/adm/logs/health` - System health check (database status, log statistics, performance metrics)
+- `POST /api/adm/logs/purge/manual` - Manually trigger log archival and cleanup
 
 **Backoffice Admin API Endpoints** (separate username/password auth):
 - `POST /api/backoffice/login` - Backoffice admin login (returns JWT token)
@@ -256,7 +258,7 @@ The application implements a 4-tier role system:
 - Circuit breaker pattern prevents logging failures from affecting application performance
 - Performance tracker (`api/src/utils/performanceTracker.js`) captures API response times and database latency
 - Automated log archival via timer trigger (daily at 2 AM UTC) - disabled in Azure Static Web Apps; use manual endpoint instead
-- Manual log purge endpoint: `POST /api/admin/logs/purge/manual` (Executive only)
+- Manual log purge endpoint: `POST /api/adm/logs/purge/manual` (Executive only)
 - Environment variables: `LOG_LEVEL`, `LOG_BUFFER_FLUSH_MS`, `LOG_BUFFER_SIZE`, `CIRCUIT_BREAKER_THRESHOLD`, etc.
 
 **Production Troubleshooting:**

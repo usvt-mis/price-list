@@ -10,14 +10,14 @@ const { getPool } = require('../../db');
 const { isExecutive } = require('../../middleware/auth');
 
 /**
- * GET /api/admin/logs/health
+ * GET /api/adm/logs/health
  * Health check endpoint for system diagnostics
  * Returns: database status, log statistics, performance metrics
  */
 app.http('adminHealth', {
     methods: ['GET'],
     authLevel: 'anonymous',
-    route: 'admin/logs/health',
+    route: 'adm/logs/health',
     handler: async (req, ctx) => {
         const logger = require('../../utils/logger');
         const correlationId = req.headers.get('x-correlation-id') || logger.getCorrelationId();

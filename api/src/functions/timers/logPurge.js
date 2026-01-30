@@ -189,7 +189,7 @@ if (process.env.ENABLE_TIMER_FUNCTIONS !== 'false') {
 app.http('manualLogPurge', {
     methods: ['POST'],
     authLevel: 'anonymous',
-    route: 'admin/logs/purge/manual',
+    route: 'adm/logs/purge/manual',
     handler: async (req, ctx) => {
         const logger = require('../../utils/logger');
         const correlationId = req.headers.get('x-correlation-id') || logger.getCorrelationId();

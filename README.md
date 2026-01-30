@@ -181,17 +181,17 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/saves/{id}` | DELETE | Delete saved record (creator or executive) | Yes |
 | `/api/saves/{id}/share` | POST | Generate share token for record | Yes |
 | `/api/shared/{token}` | GET | Access shared record (public, no auth required) | No |
-| `/api/admin/roles` | GET | List all role assignments | Executive only |
-| `/api/admin/roles/assign` | POST | Assign Executive or Sales role to user | Executive only |
-| `/api/admin/roles/{email}` | DELETE | Remove role assignment (sets to NoRole) | Executive only |
-| `/api/admin/roles/current` | GET | Get current user's effective role (returns 403 if NoRole) | Yes |
-| `/api/admin/diagnostics/registration` | GET | User registration diagnostics (total users, role breakdown, recent registrations, database write test) | Executive only |
-| `/api/admin/logs` | GET | Query application logs with filters | Executive only |
-| `/api/admin/logs/errors` | GET | Aggregated error summaries | Executive only |
-| `/api/admin/logs/export` | GET | Export logs as CSV/JSON | Executive only |
-| `/api/admin/logs/purge` | DELETE | Purge logs older than X days | Executive only |
-| `/api/admin/logs/health` | GET | System health check (database, log stats, performance) | Executive only |
-| `/api/admin/logs/purge/manual` | POST | Manually trigger log archival | Executive only |
+| `/api/adm/roles` | GET | List all role assignments | Executive only |
+| `/api/adm/roles/assign` | POST | Assign Executive or Sales role to user | Executive only |
+| `/api/adm/roles/{email}` | DELETE | Remove role assignment (sets to NoRole) | Executive only |
+| `/api/adm/roles/current` | GET | Get current user's effective role (returns 403 if NoRole) | Yes |
+| `/api/adm/diagnostics/registration` | GET | User registration diagnostics (total users, role breakdown, recent registrations, database write test) | Executive only |
+| `/api/adm/logs` | GET | Query application logs with filters | Executive only |
+| `/api/adm/logs/errors` | GET | Aggregated error summaries | Executive only |
+| `/api/adm/logs/export` | GET | Export logs as CSV/JSON | Executive only |
+| `/api/adm/logs/purge` | DELETE | Purge logs older than X days | Executive only |
+| `/api/adm/logs/health` | GET | System health check (database, log stats, performance) | Executive only |
+| `/api/adm/logs/purge/manual` | POST | Manually trigger log archival | Executive only |
 | `/api/backoffice/login` | POST | Backoffice admin login (JWT token) | No (separate auth) |
 | `/api/backoffice/logout` | POST | Backoffice admin logout | Backoffice JWT |
 | `/api/backoffice/users` | GET | List all users with roles (paginated, searchable) | Backoffice JWT |
@@ -270,7 +270,7 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - All authenticated users are automatically registered in UserRoles table on first login
 - Registration uses synchronous await with retry logic for transient database errors
 - Registration status is tracked but failures don't block authentication
-- Use `/api/admin/diagnostics/registration` (Executive only) to verify user registration health
+- Use `/api/adm/diagnostics/registration` (Executive only) to verify user registration health
 
 **Backoffice Admin Features:**
 - Separate interface at `/backoffice` (username/password, not Azure AD)

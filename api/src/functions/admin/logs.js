@@ -10,7 +10,7 @@ const { getPool } = require('../../db');
 const { isExecutive } = require('../../middleware/auth');
 
 /**
- * GET /api/admin/logs
+ * GET /api/adm/logs
  * Query logs with optional filters
  * Query params:
  *   - startDate: ISO date string (default: 24 hours ago)
@@ -29,7 +29,7 @@ const { isExecutive } = require('../../middleware/auth');
 app.http('adminLogs', {
     methods: ['GET'],
     authLevel: 'anonymous',
-    route: 'admin/logs',
+    route: 'adm/logs',
     handler: async (req, ctx) => {
         const logger = require('../../utils/logger');
 
@@ -190,13 +190,13 @@ app.http('adminLogs', {
 });
 
 /**
- * GET /api/admin/logs/errors
+ * GET /api/adm/logs/errors
  * Get aggregated error summaries
  */
 app.http('adminLogsErrors', {
     methods: ['GET'],
     authLevel: 'anonymous',
-    route: 'admin/logs/errors',
+    route: 'adm/logs/errors',
     handler: async (req, ctx) => {
         const logger = require('../../utils/logger');
         const correlationId = req.headers['x-correlation-id'] || logger.getCorrelationId();
@@ -295,13 +295,13 @@ app.http('adminLogsErrors', {
 });
 
 /**
- * GET /api/admin/logs/export
+ * GET /api/adm/logs/export
  * Export logs as CSV or JSON
  */
 app.http('adminLogsExport', {
     methods: ['GET'],
     authLevel: 'anonymous',
-    route: 'admin/logs/export',
+    route: 'adm/logs/export',
     handler: async (req, ctx) => {
         const logger = require('../../utils/logger');
         const correlationId = req.headers['x-correlation-id'] || logger.getCorrelationId();
@@ -411,7 +411,7 @@ app.http('adminLogsExport', {
 });
 
 /**
- * DELETE /api/admin/logs/purge
+ * DELETE /api/adm/logs/purge
  * Purge logs older than specified days
  * Query params:
  *   - days: Number of days to keep (default: 30)
@@ -419,7 +419,7 @@ app.http('adminLogsExport', {
 app.http('adminLogsPurge', {
     methods: ['DELETE'],
     authLevel: 'anonymous',
-    route: 'admin/logs/purge',
+    route: 'adm/logs/purge',
     handler: async (req, ctx) => {
         const logger = require('../../utils/logger');
         const correlationId = req.headers['x-correlation-id'] || logger.getCorrelationId();

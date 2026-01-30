@@ -10,7 +10,7 @@ const { requireAuth, requireRole } = require("../../middleware/auth");
 app.http("admin-diagnostics-registration", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "admin/diagnostics/registration",
+  route: "adm/diagnostics/registration",
   handler: async (req, ctx) => {
     try {
       const user = await requireRole('PriceListExecutive')(req);

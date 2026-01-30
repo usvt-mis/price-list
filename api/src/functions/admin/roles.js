@@ -4,14 +4,14 @@ const { requireAuth, requireRole } = require("../../middleware/auth");
 const logger = require("../../utils/logger");
 
 /**
- * GET /api/admin/roles
+ * GET /api/adm/roles
  * List all users with their assigned roles
  * Requires: PriceListExecutive role
  */
 app.http("admin-roles-list", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "admin/roles",
+  route: "adm/roles",
   handler: async (req, ctx) => {
     const correlationId = req.headers.get('x-correlation-id') || logger.getCorrelationId();
     const scopedLogger = logger.withCorrelationId(correlationId);
@@ -67,7 +67,7 @@ app.http("admin-roles-list", {
 });
 
 /**
- * POST /api/admin/roles/assign
+ * POST /api/adm/roles/assign
  * Assign Executive role to a user
  * Requires: PriceListExecutive role
  * Body: { email: string, role: 'Executive' | 'Sales' }
@@ -75,7 +75,7 @@ app.http("admin-roles-list", {
 app.http("admin-roles-assign", {
   methods: ["POST"],
   authLevel: "anonymous",
-  route: "admin/roles/assign",
+  route: "adm/roles/assign",
   handler: async (req, ctx) => {
     const correlationId = req.headers.get('x-correlation-id') || logger.getCorrelationId();
     const scopedLogger = logger.withCorrelationId(correlationId);
@@ -166,14 +166,14 @@ app.http("admin-roles-assign", {
 });
 
 /**
- * DELETE /api/admin/roles/{email}
+ * DELETE /api/adm/roles/{email}
  * Remove a user's role assignment (reverts to Azure AD default)
  * Requires: PriceListExecutive role
  */
 app.http("admin-roles-delete", {
   methods: ["DELETE"],
   authLevel: "anonymous",
-  route: "admin/roles/{email}",
+  route: "adm/roles/{email}",
   handler: async (req, ctx) => {
     const correlationId = req.headers.get('x-correlation-id') || logger.getCorrelationId();
     const scopedLogger = logger.withCorrelationId(correlationId);
@@ -243,7 +243,7 @@ app.http("admin-roles-delete", {
 });
 
 /**
- * GET /api/admin/roles/current
+ * GET /api/adm/roles/current
  * Get current user's effective role
  * Requires: Authentication
  * Returns 403 if user has NoRole assigned
@@ -251,7 +251,7 @@ app.http("admin-roles-delete", {
 app.http("admin-roles-current", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "admin/roles/current",
+  route: "adm/roles/current",
   handler: async (req, ctx) => {
     try {
       const user = await requireAuth(req);
