@@ -274,6 +274,7 @@
   // Backoffice auth state
   let backofficeState = {
     isAuthenticated: false,
+    isInitializing: false,  // Prevents race condition during login
     admin: null,
     token: null,
     tokenExpiresAt: null,
@@ -332,6 +333,12 @@
 
   // Check for backoffice session on page load
   function checkBackofficeSession() {
+    // Skip session check during initialization (prevents race condition)
+    if (backofficeState.isInitializing) {
+      console.log('[BACKOFFICE SESSION] Skipping check during initialization');
+      return true;
+    }
+
     const token = sessionStorage.getItem('backofficeToken');
     const admin = JSON.parse(sessionStorage.getItem('backofficeAdmin') || 'null');
     const tokenExpiresAt = sessionStorage.getItem('backofficeTokenExpiresAt');
@@ -348,7 +355,24 @@
 
     if (token && admin && tokenExpiresAt) {
       // Check if token has expired
-      const expiryDate = new Date(tokenExpiresAt);
+      let expiryDate = new Date(tokenExpiresAt);
+
+      // Try to parse JWT to get exact expiry (more reliable than stored value)
+      try {
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        const jwtExpiry = new Date(tokenPayload.exp * 1000);
+        // Use JWT expiry if it's different from stored expiry
+        if (Math.abs(jwtExpiry.getTime() - expiryDate.getTime()) > 1000) {
+          console.log('[BACKOFFICE SESSION] Using JWT expiry instead of stored value:', {
+            stored: expiryDate.toISOString(),
+            jwt: jwtExpiry.toISOString()
+          });
+          expiryDate = jwtExpiry;
+        }
+      } catch (e) {
+        console.warn('[BACKOFFICE SESSION] Failed to parse JWT, using stored expiry:', e);
+      }
+
       const currentTime = Date.now();
 
       if (currentTime < expiryDate.getTime()) {
@@ -414,16 +438,32 @@
       const data = await response.json();
 
       if (response.ok) {
-        // Store session
+        // Set session state BEFORE navigation
         backofficeState.isAuthenticated = true;
         backofficeState.admin = data.admin;
         backofficeState.token = data.accessToken;
-        backofficeState.tokenExpiresAt = new Date(Date.now() + data.expiresIn * 1000);
         backofficeState.lastActivity = Date.now();
 
+        // Parse JWT to get exact expiry timestamp from exp claim
+        let tokenExpiresAt;
+        try {
+          const tokenPayload = JSON.parse(atob(data.accessToken.split('.')[1]));
+          tokenExpiresAt = new Date(tokenPayload.exp * 1000);
+          console.log('[BACKOFFICE LOGIN] Token expiry from JWT:', tokenExpiresAt.toISOString());
+        } catch (e) {
+          console.warn('[BACKOFFICE LOGIN] Failed to parse JWT, using fallback calculation:', e);
+          // Fallback to calculation from expiresIn if JWT parsing fails
+          tokenExpiresAt = new Date(Date.now() + data.expiresIn * 1000);
+        }
+        backofficeState.tokenExpiresAt = tokenExpiresAt;
+
+        // Store in sessionStorage
         sessionStorage.setItem('backofficeToken', data.accessToken);
         sessionStorage.setItem('backofficeAdmin', JSON.stringify(data.admin));
-        sessionStorage.setItem('backofficeTokenExpiresAt', backofficeState.tokenExpiresAt.toISOString());
+        sessionStorage.setItem('backofficeTokenExpiresAt', tokenExpiresAt.toISOString());
+
+        // Set initialization flag to prevent race condition
+        backofficeState.isInitializing = true;
 
         // Start idle timeout check
         startIdleTimeoutCheck();
@@ -431,6 +471,12 @@
         // Navigate to dashboard - let hash change handler handle navigation
         // This prevents race condition from double dashboard call
         window.location.hash = '#dashboard';
+
+        // Clear initialization flag after navigation completes
+        setTimeout(() => {
+          backofficeState.isInitializing = false;
+          console.log('[BACKOFFICE LOGIN] Initialization complete');
+        }, 100);
       } else {
         // Show error
         errorEl.textContent = data.error || 'Login failed';
@@ -469,6 +515,7 @@
     sessionStorage.removeItem('backofficeTokenExpiresAt');
     backofficeState = {
       isAuthenticated: false,
+      isInitializing: false,  // Reset initialization flag on logout
       admin: null,
       token: null,
       tokenExpiresAt: null,
@@ -815,7 +862,10 @@
       if (checkBackofficeSession()) {
         window.location.hash = '#dashboard';
       } else {
-        showView('backoffice-login');
+        // Only show login if not already initializing a session
+        if (!backofficeState.isInitializing) {
+          showView('backoffice-login');
+        }
       }
     } else if (hash === '#dashboard') {
       if (checkBackofficeSession()) {

@@ -246,9 +246,8 @@ async function backofficeLogout(req) {
   const admin = await verifyBackofficeToken(req);
 
   if (!admin) {
-    logger.warn('AUTH', 'BackofficeLogoutFailed', 'Backoffice logout failed: invalid token', {
-      serverContext: { endpoint: req.url }
-    });
+    // Token already invalid - this is expected during session expiry
+    // No need to log as a warning, just return unauthorized
     const error = new Error('Unauthorized');
     error.statusCode = 401;
     throw error;

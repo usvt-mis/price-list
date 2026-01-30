@@ -50,6 +50,27 @@ Set the `DATABASE_CONNECTION_STRING` environment variable in `api/local.settings
 
 For diagnostics, troubleshooting, and running SQL scripts without starting the Azure Functions host, use sqlcmd:
 
+#### PowerShell (Recommended on Windows)
+```powershell
+Invoke-Sqlcmd `
+  -ServerInstance "tcp:sv-pricelist-calculator.database.windows.net,1433" `
+  -Database "db-pricelist-calculator" `
+  -Username "mis-usvt" `
+  -Password "UsT@20262026" `
+  -Query "SELECT GETDATE() AS CurrentDateTime"
+```
+
+**Running diagnostic scripts:**
+```powershell
+Invoke-Sqlcmd `
+  -ServerInstance "tcp:sv-pricelist-calculator.database.windows.net,1433" `
+  -Database "db-pricelist-calculator" `
+  -Username "mis-usvt" `
+  -Password "UsT@20262026" `
+  -InputFile "database/diagnose_backoffice_login.sql"
+```
+
+#### Bash (Cross-platform)
 ```bash
 sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30
 ```
@@ -60,7 +81,12 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-
 ```
 
 ⚠️ **Security**: Never commit hardcoded passwords to version control. Use environment variables in production scripts:
+```powershell
+# PowerShell
+Invoke-Sqlcmd -ServerInstance "tcp:sv-pricelist-calculator.database.windows.net,1433" -Database "db-pricelist-calculator" -Username $env:DB_USER -Password $env:DB_PASSWORD -Query "SELECT GETDATE()"
+```
 ```bash
+# Bash
 sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U $DB_USER -P "$DB_PASSWORD" -N -l 30
 ```
 
