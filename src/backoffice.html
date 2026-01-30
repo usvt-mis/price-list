@@ -257,11 +257,8 @@
     idleCheckInterval: null
   };
 
-  // Session timeout duration (30 minutes of inactivity)
-  const IDLE_TIMEOUT = 30 * 60 * 1000;
-
-  // Token refresh threshold (5 minutes before expiry)
-  const REFRESH_THRESHOLD = 5 * 60 * 1000;
+  // Session timeout duration (8 hours of inactivity - matches token expiry)
+  const IDLE_TIMEOUT = 8 * 60 * 60 * 1000;
 
   // Reset activity timer on user interaction
   function resetActivityTimer() {
@@ -302,46 +299,6 @@
       clearInterval(backofficeState.idleCheckInterval);
       backofficeState.idleCheckInterval = null;
     }
-  }
-
-  // Auto-refresh token before expiry
-  async function autoRefreshToken() {
-    if (!backofficeState.isAuthenticated || !backofficeState.tokenExpiresAt) return;
-
-    const now = Date.now();
-    const expiresAt = new Date(backofficeState.tokenExpiresAt).getTime();
-    const timeUntilExpiry = expiresAt - now;
-
-    if (timeUntilExpiry < REFRESH_THRESHOLD && timeUntilExpiry > 0) {
-      try {
-        const response = await fetch('/api/backoffice/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username: backofficeState.admin.username,
-            password: '', // Backend should support refresh without password
-            refreshToken: true
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          backofficeState.token = data.accessToken;
-          backofficeState.tokenExpiresAt = new Date(Date.now() + data.expiresIn * 1000);
-          sessionStorage.setItem('backofficeToken', data.accessToken);
-          console.log('Token refreshed successfully');
-        }
-      } catch (error) {
-        console.error('Failed to refresh token:', error);
-      }
-    }
-  }
-
-  // Check token expiry periodically
-  function startTokenRefreshCheck() {
-    setInterval(async () => {
-      await autoRefreshToken();
-    }, 60000); // Check every minute
   }
 
   // Check for backoffice session on page load
@@ -785,10 +742,6 @@
   setTimeout(() => {
     handleHashChange();
   }, 100);
-
-  // Start token refresh check
-  startTokenRefreshCheck();
-
 </script>
 </body>
 </html>

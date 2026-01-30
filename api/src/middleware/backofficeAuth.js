@@ -11,7 +11,7 @@ const sql = require('mssql');
 
 // JWT configuration
 const JWT_SECRET = process.env.BACKOFFICE_JWT_SECRET || 'change-this-secret-in-production';
-const JWT_EXPIRY = '15 minutes'; // Access token expiry
+const JWT_EXPIRY = '8 hours'; // Access token expiry - extended for better UX
 const REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh token 5 minutes before expiry
 
 // Rate limiting configuration (in-memory store for simplicity)
@@ -161,7 +161,7 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
   // Store session in database
   try {
     const tokenHash = await bcrypt.hash(token, 10);
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8 hours
 
     // Log actual values being inserted for diagnostics
     console.log('[BACKOFFICE] Creating session with values:', {
@@ -214,7 +214,7 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
       email: admin.Email
     },
     token,
-    expiresIn: 15 * 60 // 15 minutes in seconds
+    expiresIn: 8 * 60 * 60 // 8 hours in seconds
   };
 }
 
@@ -232,8 +232,10 @@ async function verifyBackofficeToken(req) {
   const token = authHeader.substring(7);
 
   try {
-    // Verify JWT signature and expiry (no database check needed)
-    const decoded = jwt.verify(token, JWT_SECRET);
+    // Verify JWT signature and expiry with clock tolerance (no database check needed)
+    const decoded = jwt.verify(token, JWT_SECRET, {
+      clockTolerance: 30 // Allow 30 seconds clock skew
+    });
 
     return {
       id: decoded.adminId,
