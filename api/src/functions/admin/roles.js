@@ -13,7 +13,7 @@ app.http("admin-roles-list", {
   route: "admin/roles",
   handler: async (req, ctx) => {
     try {
-      const user = requireRole('PriceListExecutive')(req);
+      const user = await requireRole('PriceListExecutive')(req);
       ctx.log(`User ${user.userDetails} accessed admin roles list`);
 
       const pool = await getPool();
@@ -49,7 +49,7 @@ app.http("admin-roles-assign", {
   route: "admin/roles/assign",
   handler: async (req, ctx) => {
     try {
-      const user = requireRole('PriceListExecutive')(req);
+      const user = await requireRole('PriceListExecutive')(req);
       const body = await req.json();
       const { email, role } = body;
 
@@ -109,7 +109,7 @@ app.http("admin-roles-delete", {
   route: "admin/roles/{email}",
   handler: async (req, ctx) => {
     try {
-      const user = requireRole('PriceListExecutive')(req);
+      const user = await requireRole('PriceListExecutive')(req);
       const email = req.params.email;
 
       if (!email) {
@@ -154,7 +154,7 @@ app.http("admin-roles-current", {
   route: "admin/roles/current",
   handler: async (req, ctx) => {
     try {
-      const user = requireAuth(req);
+      const user = await requireAuth(req);
       const { getUserEffectiveRole } = require("../../middleware/auth");
 
       const role = await getUserEffectiveRole(user);

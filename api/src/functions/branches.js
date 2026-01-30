@@ -9,7 +9,7 @@ app.http("branches", {
   handler: async (req, ctx) => {
     try {
       // Validate auth
-      const user = requireAuth(req);
+      const user = await requireAuth(req);
       ctx.log(`User ${user.userDetails} accessed branches`);
 
       const pool = await getPool();

@@ -9,7 +9,7 @@ app.http("motorTypes", {
   handler: async (req, ctx) => {
     try {
       // Validate auth
-      const user = requireAuth(req);
+      const user = await requireAuth(req);
       ctx.log(`User ${user.userDetails} accessed motor types`);
 
       const pool = await getPool();

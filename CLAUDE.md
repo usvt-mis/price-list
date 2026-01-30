@@ -66,9 +66,9 @@ The `.vscode/launch.json` configuration supports debugging:
 ### Backend Structure (`api/`)
 - Azure Functions v4 with `@azure/functions` package
 - Shared connection pool via `mssql` package in `src/db.js`
-- HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, admin/roles, backoffice
+- HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, admin/roles, admin/diagnostics, backoffice
 - Authentication middleware in `src/middleware/`: auth.js (Azure AD), backofficeAuth.js (username/password)
-- Utility scripts in `scripts/`: backoffice-admin-manager.js (admin account management)
+- Utility scripts in `scripts/`: backoffice-admin-manager.js (admin account management), backfill-missing-users.js (user recovery)
 
 ### Frontend Structure (`src/`)
 - **Main Calculator** (`index.html`): Single-page HTML application with embedded JavaScript
@@ -129,11 +129,20 @@ The application implements a 4-tier role system:
 3. Fall back to Azure AD role claims (`PriceListExecutive` → Executive)
 4. Default to NoRole for all new authenticated users
 
+**User Registration:**
+- All authenticated users are automatically registered in UserRoles table on first login
+- Registration uses synchronous await with retry logic (3 attempts, exponential backoff)
+- Transient errors (timeouts, connection issues) are automatically retried
+- Registration status is tracked in user object: `registrationStatus` ('registered' | 'failed')
+- Failures are logged with full context but don't block authentication
+- Duplicate key errors are handled gracefully (race conditions)
+
 **Admin API Endpoints** (Azure AD - Executive only):
 - `GET /api/admin/roles` - List all role assignments
 - `POST /api/admin/roles/assign` - Assign Executive or Sales role to user
 - `DELETE /api/admin/roles/{email}` - Remove role assignment (sets to NoRole)
 - `GET /api/admin/roles/current` - Get current user's effective role (returns 403 for NoRole)
+- `GET /api/admin/diagnostics/registration` - User registration diagnostics (total users, role breakdown, recent registrations, database write test)
 
 **Backoffice Admin API Endpoints** (separate username/password auth):
 - `POST /api/backoffice/login` - Backoffice admin login (returns JWT token)
@@ -165,6 +174,13 @@ The application implements a 4-tier role system:
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence, admin accounts, locked/disabled accounts
 - `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions
+
+**User Recovery Utility:**
+- Script at `api/scripts/backfill-missing-users.js`
+- Bulk register missing users into UserRoles table
+- Dry-run mode for testing: `DRY_RUN=true node backfill-missing-users.js <email1> <email2> ...`
+- Actual registration: `node backfill-missing-users.js <email1> <email2> ...`
+- Generates detailed report of processed, registered, already exists, and failed counts
 
 ---
 

@@ -27,7 +27,7 @@ app.http("generateShareToken", {
   route: "saves/{id}/share",
   handler: async (req, ctx) => {
     try {
-      const user = requireAuth(req);
+      const user = await requireAuth(req);
       const saveId = Number(req.params.id);
       const userEmail = user.userDetails;
 

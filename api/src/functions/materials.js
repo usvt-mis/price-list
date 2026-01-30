@@ -12,7 +12,7 @@ app.http("materials", {
 
     try {
       // Validate auth
-      const user = requireAuth(req);
+      const user = await requireAuth(req);
       ctx.log(`User ${user.userDetails} searched materials for: ${q}`);
 
       const pool = await getPool();

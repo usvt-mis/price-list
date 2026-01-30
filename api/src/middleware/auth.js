@@ -89,7 +89,7 @@ function validateAuth(req) {
   };
 }
 
-function requireAuth(req) {
+async function requireAuth(req) {
   // Local development: return mock user
   if (isLocalRequest(req)) {
     return createMockUser();
@@ -103,22 +103,91 @@ function requireAuth(req) {
     throw error;
   }
 
-  // Ensure user record exists in UserRoles (fire and forget)
-  getUserEffectiveRole(user).catch(err => {
-    console.error('Failed to ensure user record:', err.message);
-  });
+  // AWAIT user registration with retry logic
+  try {
+    await ensureUserRegisteredWithRetry(user, 3);
+    user.registrationStatus = 'registered';
+  } catch (err) {
+    // Log with full context but don't fail auth
+    console.error('[USER REGISTRATION FAILED]', {
+      email: user.userDetails,
+      error: err.message,
+      code: err.number,
+      stack: err.stack
+    });
+    user.registrationStatus = 'failed';
+    user.registrationError = err.message;
+  }
 
   return user;
 }
 
+/**
+ * Ensure user is registered in UserRoles table with retry logic
+ * Handles transient database errors (timeouts, connection issues)
+ * @param {object} user - User object with userDetails (email)
+ * @param {number} maxAttempts - Maximum number of retry attempts
+ */
+async function ensureUserRegisteredWithRetry(user, maxAttempts = 3) {
+  const { getPool } = require('../db');
+  const sql = require('mssql');
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const pool = await getPool();
+
+      // Check if user exists
+      const result = await pool.request()
+        .input('email', sql.NVarChar, user.userDetails)
+        .query('SELECT Role FROM UserRoles WHERE Email = @email');
+
+      if (result.recordset.length > 0) {
+        return; // Already registered
+      }
+
+      // Insert new user with NoRole (NULL)
+      await pool.request()
+        .input('email', sql.NVarChar, user.userDetails)
+        .input('role', sql.NVarChar, null)
+        .input('assignedBy', sql.NVarChar, 'System')
+        .query(`
+          INSERT INTO UserRoles (Email, Role, AssignedBy)
+          VALUES (@email, @role, @assignedBy)
+        `);
+
+      return; // Success
+    } catch (err) {
+      // Check for transient errors (timeout, connection error)
+      const isTransientError = err.number === -2 || err.number === 258;
+
+      // More robust duplicate key detection
+      const isDuplicateError = err.number === 2627 ||
+                               err.number === 2601 ||
+                               err.message.toLowerCase().includes('duplicate');
+
+      if (isDuplicateError) {
+        // Race condition - another request already created the user
+        return;
+      }
+
+      if (!isTransientError || attempt === maxAttempts) {
+        throw err; // Re-throw non-transient errors or final attempt
+      }
+
+      // Wait before retry (exponential backoff: 100ms, 200ms, 400ms)
+      await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempt - 1)));
+    }
+  }
+}
+
 function requireRole(...allowedRoles) {
-  return function(req) {
+  return async function(req) {
     // Local development: mock user has all roles
     if (isLocalRequest(req)) {
       return createMockUser();
     }
 
-    const user = requireAuth(req);
+    const user = await requireAuth(req);
     const userRoles = user.userRoles || [];
 
     const hasRole = allowedRoles.some(role => userRoles.includes(role));

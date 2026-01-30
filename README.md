@@ -129,6 +129,22 @@ This will check:
 
 For quick fixes, run `database/fix_backoffice_issues.sql` to unlock accounts, enable disabled accounts, and clear expired sessions.
 
+### User Recovery
+
+If users are not appearing in the backoffice user list, use the bulk registration script:
+
+```bash
+cd api/scripts
+
+# Dry run to test (no actual changes)
+DRY_RUN=true node backfill-missing-users.js user1@example.com user2@example.com
+
+# Actually register missing users
+node backfill-missing-users.js user1@example.com user2@example.com
+```
+
+The script will report: processed count, registered count, already exists count, and any failures.
+
 ## API Endpoints
 
 | Endpoint | Method | Description | Auth Required |
@@ -148,6 +164,7 @@ For quick fixes, run `database/fix_backoffice_issues.sql` to unlock accounts, en
 | `/api/admin/roles/assign` | POST | Assign Executive or Sales role to user | Executive only |
 | `/api/admin/roles/{email}` | DELETE | Remove role assignment (sets to NoRole) | Executive only |
 | `/api/admin/roles/current` | GET | Get current user's effective role (returns 403 if NoRole) | Yes |
+| `/api/admin/diagnostics/registration` | GET | User registration diagnostics (total users, role breakdown, recent registrations, database write test) | Executive only |
 | `/api/backoffice/login` | POST | Backoffice admin login (JWT token) | No (separate auth) |
 | `/api/backoffice/logout` | POST | Backoffice admin logout | Backoffice JWT |
 | `/api/backoffice/users` | GET | List all users with roles (paginated, searchable) | Backoffice JWT |
@@ -221,6 +238,12 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 3. Azure AD role claims (`PriceListExecutive` → Executive)
 4. Default: NoRole for all new authenticated users
 
+**User Registration:**
+- All authenticated users are automatically registered in UserRoles table on first login
+- Registration uses synchronous await with retry logic for transient database errors
+- Registration status is tracked but failures don't block authentication
+- Use `/api/admin/diagnostics/registration` (Executive only) to verify user registration health
+
 **Backoffice Admin Features:**
 - Separate interface at `/backoffice` (username/password, not Azure AD)
 - Clean URL routing: `/backoffice` and `/backoffice/` both serve `backoffice.html`
@@ -265,7 +288,8 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │   ├── sharedCalculations.js
 │   │   │   ├── ping.js
 │   │   │   ├── admin/
-│   │   │   │   └── roles.js
+│   │   │   │   ├── roles.js
+│   │   │   │   └── diagnostics.js
 │   │   │   └── backoffice/
 │   │   │       └── index.js
 │   │   ├── middleware/
@@ -278,6 +302,7 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── local.settings.json
 │   └── scripts/
 │       ├── backoffice-admin-manager.js
+│       ├── backfill-missing-users.js
 │       ├── package.json
 │       └── README.md
 ├── database/

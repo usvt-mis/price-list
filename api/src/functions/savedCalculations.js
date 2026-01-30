@@ -9,7 +9,7 @@ app.http("createSavedCalculation", {
   route: "saves",
   handler: async (req, ctx) => {
     try {
-      const user = requireAuth(req);
+      const user = await requireAuth(req);
       ctx.log(`User ${user.userDetails} creating saved calculation`);
 
       const body = await req.json();
@@ -137,7 +137,7 @@ app.http("listSavedCalculations", {
   route: "saves",
   handler: async (req, ctx) => {
     try {
-      const user = requireAuth(req);
+      const user = await requireAuth(req);
       const userEmail = user.userDetails;
       const isExecutive = user.userRoles?.includes("PriceListExecutive");
 
@@ -193,7 +193,7 @@ app.http("getSavedCalculation", {
   route: "saves/{id}",
   handler: async (req, ctx) => {
     try {
-      const user = requireAuth(req);
+      const user = await requireAuth(req);
       const saveId = Number(req.params.id);
 
       if (!Number.isInteger(saveId)) {
@@ -228,7 +228,7 @@ app.http("updateSavedCalculation", {
   route: "saves/{id}",
   handler: async (req, ctx) => {
     try {
-      const user = requireAuth(req);
+      const user = await requireAuth(req);
       const saveId = Number(req.params.id);
       const userEmail = user.userDetails;
 
@@ -374,7 +374,7 @@ app.http("deleteSavedCalculation", {
   route: "saves/{id}",
   handler: async (req, ctx) => {
     try {
-      const user = requireAuth(req);
+      const user = await requireAuth(req);
       const saveId = Number(req.params.id);
       const userEmail = user.userDetails;
       const userRoles = user.userRoles || [];

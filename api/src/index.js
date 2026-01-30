@@ -6,4 +6,5 @@ require("./functions/savedCalculations");
 require("./functions/sharedCalculations");
 require("./functions/ping");
 require("./functions/admin/roles");
+require("./functions/admin/diagnostics");
 require("./functions/backoffice");

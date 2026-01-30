@@ -12,7 +12,7 @@ app.http("labor", {
 
     try {
       // Validate auth
-      const user = requireAuth(req);
+      const user = await requireAuth(req);
       ctx.log(`User ${user.userDetails} accessed labor for motorTypeId: ${motorTypeId}`);
 
       const pool = await getPool();
