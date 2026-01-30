@@ -417,3 +417,156 @@ app.http("backoffice-audit-log", {
     }
   }
 });
+
+/**
+ * GET /api/backoffice/repair
+ * Diagnose and repair backoffice database schema
+ * Query params: secret (required) - BACKOFFICE_REPAIR_SECRET env var
+ */
+app.http("backoffice-repair", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "backoffice/repair",
+  handler: async (req, ctx) => {
+    try {
+      // Verify secret for security
+      const secret = req.query.get('secret');
+      const REPAIR_SECRET = process.env.BACKOFFICE_REPAIR_SECRET || 'repair-backoffice-secret';
+
+      if (secret !== REPAIR_SECRET) {
+        return { status: 403, jsonBody: { error: "Invalid repair secret" } };
+      }
+
+      const bcrypt = require('bcryptjs');
+      const pool = await getPool();
+      const results = {
+        tablesChecked: [],
+        tablesCreated: [],
+        adminAccount: null,
+        errors: []
+      };
+
+      // Check and create BackofficeAdmins table
+      results.tablesChecked.push('BackofficeAdmins');
+      const adminsExists = await pool.request()
+        .query(`SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'BackofficeAdmins'`);
+
+      if (adminsExists.recordset.length === 0) {
+        await pool.request().query(`
+          CREATE TABLE BackofficeAdmins (
+            Id INT IDENTITY(1,1) PRIMARY KEY,
+            Username NVARCHAR(100) UNIQUE NOT NULL,
+            PasswordHash NVARCHAR(255) NOT NULL,
+            Email NVARCHAR(255),
+            IsActive BIT DEFAULT 1,
+            FailedLoginAttempts INT DEFAULT 0,
+            LockoutUntil DATETIME2,
+            LastLoginAt DATETIME2,
+            CreatedAt DATETIME2 DEFAULT GETDATE()
+          );
+          CREATE UNIQUE INDEX UX_BackofficeAdmins_Username ON BackofficeAdmins(Username);
+        `);
+        results.tablesCreated.push('BackofficeAdmins');
+      }
+
+      // Check and create BackofficeSessions table
+      results.tablesChecked.push('BackofficeSessions');
+      const sessionsExists = await pool.request()
+        .query(`SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'BackofficeSessions'`);
+
+      if (sessionsExists.recordset.length === 0) {
+        await pool.request().query(`
+          CREATE TABLE BackofficeSessions (
+            Id INT IDENTITY(1,1) PRIMARY KEY,
+            AdminId INT NOT NULL,
+            TokenHash NVARCHAR(255) NOT NULL,
+            ExpiresAt DATETIME2 NOT NULL,
+            ClientIP NVARCHAR(50),
+            UserAgent NVARCHAR(255),
+            CreatedAt DATETIME2 DEFAULT GETDATE(),
+            FOREIGN KEY (AdminId) REFERENCES BackofficeAdmins(Id)
+          );
+          CREATE INDEX IX_BackofficeSessions_AdminId ON BackofficeSessions(AdminId);
+          CREATE INDEX IX_BackofficeSessions_ExpiresAt ON BackofficeSessions(ExpiresAt);
+        `);
+        results.tablesCreated.push('BackofficeSessions');
+      }
+
+      // Check and create UserRoles table
+      results.tablesChecked.push('UserRoles');
+      const userRolesExists = await pool.request()
+        .query(`SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'UserRoles'`);
+
+      if (userRolesExists.recordset.length === 0) {
+        await pool.request().query(`
+          CREATE TABLE UserRoles (
+            Email NVARCHAR(255) PRIMARY KEY,
+            Role NVARCHAR(50),
+            AssignedBy NVARCHAR(255),
+            AssignedAt DATETIME2 DEFAULT GETDATE()
+          );
+          CREATE INDEX IX_UserRoles_Role ON UserRoles(Role);
+        `);
+        results.tablesCreated.push('UserRoles');
+      }
+
+      // Check and create RoleAssignmentAudit table
+      results.tablesChecked.push('RoleAssignmentAudit');
+      const auditExists = await pool.request()
+        .query(`SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'RoleAssignmentAudit'`);
+
+      if (auditExists.recordset.length === 0) {
+        await pool.request().query(`
+          CREATE TABLE RoleAssignmentAudit (
+            Id INT IDENTITY(1,1) PRIMARY KEY,
+            TargetEmail NVARCHAR(255) NOT NULL,
+            OldRole NVARCHAR(50),
+            NewRole NVARCHAR(50) NOT NULL,
+            ChangedBy NVARCHAR(255) NOT NULL,
+            ClientIP NVARCHAR(50),
+            Justification NVARCHAR(500),
+            ChangedAt DATETIME2 DEFAULT GETDATE()
+          );
+          CREATE INDEX IX_RoleAssignmentAudit_TargetEmail ON RoleAssignmentAudit(TargetEmail);
+          CREATE INDEX IX_RoleAssignmentAudit_ChangedAt ON RoleAssignmentAudit(ChangedAt);
+        `);
+        results.tablesCreated.push('RoleAssignmentAudit');
+      }
+
+      // Check and create admin account
+      const adminResult = await pool.request()
+        .input('username', sql.NVarChar, 'admin')
+        .query('SELECT Id, Username FROM BackofficeAdmins WHERE Username = @username');
+
+      if (adminResult.recordset.length === 0) {
+        // Create admin account with hashed password
+        const passwordHash = await bcrypt.hash('BackofficeAdmin2026!', 10);
+        await pool.request()
+          .input('username', sql.NVarChar, 'admin')
+          .input('passwordHash', sql.NVarChar, passwordHash)
+          .input('email', sql.NVarChar, 'admin@example.com')
+          .query(`
+            INSERT INTO BackofficeAdmins (Username, PasswordHash, Email, IsActive)
+            VALUES (@username, @passwordHash, @email, 1)
+          `);
+        results.adminAccount = { existed: false, created: true, username: 'admin' };
+      } else {
+        results.adminAccount = { existed: true, created: false, username: 'admin' };
+      }
+
+      ctx.log('[BACKOFFICE REPAIR] Completed successfully', JSON.stringify(results));
+
+      return {
+        status: 200,
+        jsonBody: {
+          success: true,
+          results
+        }
+      };
+    } catch (e) {
+      ctx.error('[BACKOFFICE REPAIR ERROR]', e.message);
+      ctx.error('[BACKOFFICE REPAIR STACK]', e.stack);
+      return { status: 500, jsonBody: { error: `Repair failed: ${e.message}` } };
+    }
+  }
+});

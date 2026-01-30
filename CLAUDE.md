@@ -150,6 +150,7 @@ The application implements a 4-tier role system:
 - `POST /api/backoffice/users/{email}/role` - Assign/update user role (NoRole/Sales/Executive)
 - `DELETE /api/backoffice/users/{email}/role` - Remove user role (sets to NoRole)
 - `GET /api/backoffice/audit-log` - View role change audit history
+- `GET /api/backoffice/repair?secret={secret}` - Diagnose and repair backoffice database schema (creates missing tables and admin account)
 
 **Auth Middleware Helpers:**
 - `getUserEffectiveRole(user)` - Get role from DB or Azure AD, returns 'Executive', 'Sales', or 'NoRole'

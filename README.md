@@ -116,8 +116,21 @@ WHERE Username = 'admin';
 
 ### Database Diagnostics
 
-If experiencing backoffice login issues, run the diagnostic script:
+If experiencing backoffice login issues, you can use either of these methods:
 
+**Method 1: API Repair Endpoint (Recommended)**
+```bash
+curl "https://your-api-url/api/backoffice/repair?secret=repair-backoffice-secret"
+```
+
+This will automatically:
+- Check and create missing tables (BackofficeAdmins, BackofficeSessions, UserRoles, RoleAssignmentAudit)
+- Create default admin account if missing (username: `admin`, password: `BackofficeAdmin2026!`)
+- Return detailed diagnostic results
+
+Override the default secret by setting `BACKOFFICE_REPAIR_SECRET` environment variable.
+
+**Method 2: SQL Diagnostic Script**
 ```bash
 sqlcmd -S <server> -d <database> -U <user> -P <password> -i database/diagnose_backoffice_login.sql
 ```
@@ -169,6 +182,7 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/backoffice/users/{email}/role` | POST | Assign/update user role | Backoffice JWT |
 | `/api/backoffice/users/{email}/role` | DELETE | Remove user role | Backoffice JWT |
 | `/api/backoffice/audit-log` | GET | View role change audit history | Backoffice JWT |
+| `/api/backoffice/repair?secret={secret}` | GET | Diagnose and repair backoffice database schema (creates missing tables and admin account) | No (secret required) |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/.auth/me` | GET | Get current user info from Static Web Apps | No |
 
