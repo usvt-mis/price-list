@@ -258,3 +258,4 @@ Custom slash commands for automating workflows:
 - Located in `.claude/skills/`
 - `update` skill: Automatically updates documentation and creates git commits
 - `bs` skill: Coordinates brainstorming sessions across multiple agents
+- `deploy` skill: Deploys application to Azure Static Web Apps Production environment
