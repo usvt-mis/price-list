@@ -163,6 +163,18 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
     const tokenHash = await bcrypt.hash(token, 10);
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
+    // Log actual values being inserted for diagnostics
+    console.log('[BACKOFFICE] Creating session with values:', {
+      adminId: admin.Id,
+      tokenHashLength: tokenHash.length,
+      tokenHashPreview: tokenHash.substring(0, 20) + '...',
+      expiresAt: expiresAt.toISOString(),
+      clientIP: clientInfo.ip,
+      clientIPLength: clientInfo.ip.length,
+      userAgent: clientInfo.userAgent,
+      userAgentLength: clientInfo.userAgent.length
+    });
+
     await pool.request()
       .input('adminId', sql.Int, admin.Id)
       .input('tokenHash', sql.NVarChar, tokenHash)
@@ -173,6 +185,8 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
         INSERT INTO BackofficeSessions (AdminId, TokenHash, ExpiresAt, ClientIP, UserAgent)
         VALUES (@adminId, @tokenHash, @expiresAt, @clientIP, @userAgent)
       `);
+
+    console.log('[BACKOFFICE] Session created successfully');
   } catch (error) {
     console.error('[BACKOFFICE AUTH] Failed to store session in database');
     console.error('[BACKOFFICE AUTH] Error message:', error.message);
@@ -182,6 +196,13 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
     console.error('[BACKOFFICE AUTH] SQL Number:', error.number);
     console.error('[BACKOFFICE AUTH] SQL Line:', error.lineNumber);
     console.error('[BACKOFFICE AUTH] Full error:', error);
+    console.error('[BACKOFFICE AUTH] Input values:', {
+      adminId: admin.Id,
+      clientIP: clientInfo.ip,
+      clientIPLength: clientInfo.ip?.length || 0,
+      userAgent: clientInfo.userAgent,
+      userAgentLength: clientInfo.userAgent?.length || 0
+    });
     throw new Error('Failed to create session');
   }
 

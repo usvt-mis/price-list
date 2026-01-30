@@ -140,7 +140,9 @@ This will check:
 - Admin account status (locked, disabled, active)
 - Failed login attempts
 
-For quick fixes, run `database/fix_backoffice_issues.sql` to unlock accounts, enable disabled accounts, and clear expired sessions.
+For quick fixes:
+- `database/fix_backoffice_issues.sql` - Unlock accounts, enable disabled accounts, clear expired sessions
+- `database/fix_backoffice_sessions_clientip.sql` - Fix "Failed to create session" error by expanding ClientIP column to NVARCHAR(100) for Azure proxy headers
 
 ### User Registration
 
@@ -315,7 +317,10 @@ Use the VS Code configuration in `.vscode/launch.json`:
 ├── database/
 │   ├── backoffice_schema.sql
 │   ├── diagnose_backoffice_login.sql
-│   └── fix_backoffice_issues.sql
+│   ├── fix_backoffice_issues.sql
+│   ├── fix_backoffice_sessions_clientip.sql
+│   ├── ensure_backoffice_schema.sql
+│   └── create_backoffice_sessions.sql
 ├── src/
 │   ├── index.html
 │   └── backoffice.html

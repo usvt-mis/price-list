@@ -159,15 +159,17 @@ The application implements a 4-tier role system:
 - `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
 
 **Backoffice Auth Middleware:**
-- `verifyBackofficeCredentials(username, password, clientInfo)` - Verify credentials and generate JWT with enhanced error logging
+- `verifyBackofficeCredentials(username, password, clientInfo)` - Verify credentials and generate JWT with enhanced error logging and session creation diagnostics
 - `requireBackofficeAuth(req)` - Middleware to protect backoffice endpoints
 - `backofficeLogout(req)` - Invalidate backoffice session
 - Rate limiting: 5 failed attempts per 15 minutes per IP
 - Account lockout: 15 minutes after 5 failed attempts
+- Session creation includes diagnostic logging of clientIP length, userAgent length, and token hash preview
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence, admin accounts, locked/disabled accounts
 - `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions
+- `database/fix_backoffice_sessions_clientip.sql` - Fix "Failed to create session" error by expanding ClientIP column to NVARCHAR(100)
 - `database/ensure_backoffice_schema.sql` - Create all missing backoffice tables (comprehensive schema setup)
 - `database/create_backoffice_sessions.sql` - Create only the BackofficeSessions table
 

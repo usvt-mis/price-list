@@ -25,7 +25,7 @@ BEGIN
         AdminId INT NOT NULL,
         TokenHash NVARCHAR(255) NOT NULL,
         ExpiresAt DATETIME2 NOT NULL,
-        ClientIP NVARCHAR(50),
+        ClientIP NVARCHAR(100),
         UserAgent NVARCHAR(255),
         CreatedAt DATETIME2 DEFAULT GETDATE(),
         FOREIGN KEY (AdminId) REFERENCES BackofficeAdmins(Id)
@@ -51,7 +51,7 @@ BEGIN
     PRINT '  - AdminId: INT (Foreign Key to BackofficeAdmins)';
     PRINT '  - TokenHash: NVARCHAR(255) (hashed JWT token)';
     PRINT '  - ExpiresAt: DATETIME2 (session expiration)';
-    PRINT '  - ClientIP: NVARCHAR(50) (client IP address)';
+    PRINT '  - ClientIP: NVARCHAR(100) (client IP address)';
     PRINT '  - UserAgent: NVARCHAR(255) (browser user agent)';
     PRINT '  - CreatedAt: DATETIME2 (session creation timestamp)';
     PRINT '';

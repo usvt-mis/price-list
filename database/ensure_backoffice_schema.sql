@@ -62,7 +62,7 @@ BEGIN
         AdminId INT NOT NULL,
         TokenHash NVARCHAR(255) NOT NULL,
         ExpiresAt DATETIME2 NOT NULL,
-        ClientIP NVARCHAR(50),
+        ClientIP NVARCHAR(100),
         UserAgent NVARCHAR(255),
         CreatedAt DATETIME2 DEFAULT GETDATE(),
         FOREIGN KEY (AdminId) REFERENCES BackofficeAdmins(Id)
@@ -132,7 +132,7 @@ BEGIN
         OldRole NVARCHAR(50),
         NewRole NVARCHAR(50) NOT NULL,
         ChangedBy NVARCHAR(255) NOT NULL,
-        ClientIP NVARCHAR(50),
+        ClientIP NVARCHAR(100),
         Justification NVARCHAR(500),
         ChangedAt DATETIME2 DEFAULT GETDATE()
     );
