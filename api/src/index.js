@@ -7,4 +7,7 @@ require("./functions/sharedCalculations");
 require("./functions/ping");
 require("./functions/admin/roles");
 require("./functions/admin/diagnostics");
+require("./functions/admin/logs");
+require("./functions/admin/health");
+require("./functions/timers/logPurge");
 require("./functions/backoffice");

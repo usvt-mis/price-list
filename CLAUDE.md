@@ -78,15 +78,18 @@ The `.vscode/launch.json` configuration supports debugging:
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
 - Role management: UserRoles (stores role assignments - can be Executive, Sales, or NULL/NoRole)
 - Backoffice admin: BackofficeAdmins, RoleAssignmentAudit (for admin role management)
+- **Application Logging**: AppLogs (main logging), PerformanceMetrics (API performance), AppLogs_Archive (historical logs)
 - **Note**: BackofficeSessions table is deprecated; backoffice now uses pure JWT authentication
-- Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`
-- Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup), `database/create_backoffice_sessions.sql` (sessions table only)
+- Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`, `database/diagnostics_logs.sql` (log queries)
+- Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup), `database/create_app_logs.sql` (logging schema)
 
 ### Backend Structure (`api/`)
 - Azure Functions v4 with `@azure/functions` package
 - Shared connection pool via `mssql` package in `src/db.js`
-- HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, admin/roles, admin/diagnostics, backoffice
-- Authentication middleware in `src/middleware/`: auth.js (Azure AD), backofficeAuth.js (username/password)
+- HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, admin/roles, admin/diagnostics, admin/logs, admin/health, backoffice
+- Timer functions in `src/functions/timers/`: logPurge (daily log archival)
+- Utilities in `src/utils/`: logger.js (application logging), performanceTracker.js (performance metrics), circuitBreaker.js (fault tolerance)
+- Authentication middleware in `src/middleware/`: auth.js (Azure AD), backofficeAuth.js (username/password), correlationId.js (request tracing), requestLogger.js (correlation propagation)
 
 ### Frontend Structure (`src/`)
 - **Main Calculator** (`index.html`): Single-page HTML application with embedded JavaScript
@@ -163,6 +166,14 @@ The application implements a 4-tier role system:
 - `GET /api/admin/roles/current` - Get current user's effective role (returns 403 for NoRole)
 - `GET /api/admin/diagnostics/registration` - User registration diagnostics (total users, role breakdown, recent registrations, database write test)
 
+**Logging API Endpoints** (Azure AD - Executive only):
+- `GET /api/admin/logs` - Query application logs with filters (date, user, type, level, correlationId)
+- `GET /api/admin/logs/errors` - Aggregated error summaries and frequency
+- `GET /api/admin/logs/export` - Export logs as CSV or JSON
+- `DELETE /api/admin/logs/purge` - Purge logs older than X days
+- `GET /api/admin/logs/health` - System health check (database status, log statistics, performance metrics)
+- `POST /api/admin/logs/purge/manual` - Manually trigger log archival and cleanup
+
 **Backoffice Admin API Endpoints** (separate username/password auth):
 - `POST /api/backoffice/login` - Backoffice admin login (returns JWT token)
 - `POST /api/backoffice/logout` - Backoffice admin logout
@@ -194,6 +205,17 @@ The application implements a 4-tier role system:
 - `database/fix_backoffice_sessions_clientip.sql` - Fix "Failed to create session" error by expanding ClientIP column to NVARCHAR(100)
 - `database/ensure_backoffice_schema.sql` - Create all missing backoffice tables (comprehensive schema setup)
 - `database/create_backoffice_sessions.sql` - Create only the BackofficeSessions table (deprecated - kept for historical purposes)
+- `database/diagnostics_logs.sql` - Collection of diagnostic queries for application logs (recent errors, user activity, performance, etc.)
+
+**Application Logging:**
+- Logger utility (`api/src/utils/logger.js`) provides async buffered logging with graceful fallback to console
+- Supports log levels: DEBUG, INFO, WARN, ERROR, CRITICAL
+- Automatic PII masking (emails, IPs, phone numbers)
+- Request correlation ID propagation for tracing related operations
+- Circuit breaker pattern prevents logging failures from affecting application performance
+- Performance tracker (`api/src/utils/performanceTracker.js`) captures API response times and database latency
+- Automated log archival via timer trigger (daily at 2 AM UTC)
+- Environment variables: `LOG_LEVEL`, `LOG_BUFFER_FLUSH_MS`, `LOG_BUFFER_SIZE`, `CIRCUIT_BREAKER_THRESHOLD`, etc.
 
 **Production Troubleshooting:**
 - See [Backoffice Production Setup Guide](docs/backoffice-production-setup.md) for diagnosing and fixing production login issues

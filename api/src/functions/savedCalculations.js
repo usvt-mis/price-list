@@ -1,6 +1,7 @@
 const { app } = require("@azure/functions");
 const { sql, getPool } = require("../db");
 const { requireAuth } = require("../middleware/auth");
+const logger = require("../utils/logger");
 
 // POST /api/saves - Create new saved calculation
 app.http("createSavedCalculation", {
@@ -8,24 +9,44 @@ app.http("createSavedCalculation", {
   authLevel: "anonymous",
   route: "saves",
   handler: async (req, ctx) => {
+    const correlationId = req.headers.get('x-correlation-id') || logger.getCorrelationId();
+    const scopedLogger = logger.withCorrelationId(correlationId);
+    const timer = logger.startTimer(correlationId);
+
     try {
       const user = await requireAuth(req);
-      ctx.log(`User ${user.userDetails} creating saved calculation`);
+      const userEmail = user.userDetails;
+      const userRole = user.userRoles?.includes('PriceListExecutive') ? 'Executive' : 'Sales';
+
+      scopedLogger.info('BUSINESS', 'CalculationSaveStart', `Creating saved calculation for user: ${userEmail}`, {
+        userEmail,
+        userRole,
+        serverContext: { endpoint: '/api/saves', method: 'POST' }
+      });
 
       const body = await req.json();
       const { branchId, motorTypeId, salesProfitPct, travelKm, jobs, materials } = body;
 
       // Validate required fields
       if (!branchId || !motorTypeId || salesProfitPct === undefined || travelKm === undefined) {
+        scopedLogger.warn('BUSINESS', 'CalculationSaveValidationFailed', 'Missing required fields', {
+          userEmail,
+          userRole,
+          serverContext: { hasBranchId: !!branchId, hasMotorTypeId: !!motorTypeId, hasSalesProfitPct: salesProfitPct !== undefined, hasTravelKm: travelKm !== undefined }
+        });
         return { status: 400, jsonBody: { error: "Missing required fields" } };
       }
       if (!Array.isArray(jobs) || !Array.isArray(materials)) {
+        scopedLogger.warn('BUSINESS', 'CalculationSaveValidationFailed', 'Jobs and materials must be arrays', {
+          userEmail,
+          userRole
+        });
         return { status: 400, jsonBody: { error: "Jobs and materials must be arrays" } };
       }
 
       // Extract user info
-      const creatorEmail = user.userDetails; // In Easy Auth, userDetails is the email
-      const creatorName = user.userDetails.split('@')[0]; // Use email prefix as name
+      const creatorEmail = userEmail; // In Easy Auth, userDetails is the email
+      const creatorName = userEmail.split('@')[0]; // Use email prefix as name
 
       const pool = await getPool();
       const transaction = pool.transaction();
@@ -33,12 +54,12 @@ app.http("createSavedCalculation", {
 
       try {
         // Get next run number
-        ctx.log("Calling GetNextRunNumber stored procedure...");
+        const dbTimer = logger.startTimer(correlationId);
         const requestRunNumber = new sql.Request(transaction);
         const runNumberResult = await requestRunNumber.output("runNumber", sql.NVarChar(10))
           .execute("GetNextRunNumber");
         const runNumber = runNumberResult.output.runNumber;
-        ctx.log(`Got run number: ${runNumber}`);
+        dbTimer.stop('DATABASE', 'GetNextRunNumber', 'Executed GetNextRunNumber stored procedure', { rowCount: 1 });
 
         // Insert main saved calculation
         const requestSave = new sql.Request(transaction);
@@ -112,8 +133,13 @@ app.http("createSavedCalculation", {
         // Fetch the complete saved calculation with related data
         const result = await fetchSavedCalculationById(pool, saveId);
 
-        ctx.log(`Created saved calculation: ${runNumber} (SaveId: ${saveId})`);
-        return { status: 201, jsonBody: result };
+        timer.stop('BUSINESS', 'CalculationSaved', `Saved calculation ${runNumber} created successfully`, {
+          userEmail,
+          userRole,
+          serverContext: { endpoint: '/api/saves', runNumber, saveId, jobCount: jobs.length, materialCount: materials.length }
+        });
+
+        return { status: 201, headers: { 'x-correlation-id': correlationId }, jsonBody: result };
 
       } catch (err) {
         await transaction.rollback();
@@ -122,10 +148,19 @@ app.http("createSavedCalculation", {
 
     } catch (e) {
       if (e.statusCode === 401) {
+        scopedLogger.warn('AUTH', 'AuthenticationRequired', 'Authentication required for saving calculation', {
+          serverContext: { endpoint: '/api/saves' }
+        });
         return { status: 401, jsonBody: { error: "Authentication required" } };
       }
+      scopedLogger.error('BUSINESS', 'CalculationSaveFailed', 'Failed to create saved calculation', {
+        error: e,
+        serverContext: { endpoint: '/api/saves' }
+      });
       ctx.error(e);
       return { status: 500, jsonBody: { error: "Failed to create saved calculation", details: e.message } };
+    } finally {
+      scopedLogger.release();
     }
   }
 });

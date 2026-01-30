@@ -2,6 +2,7 @@ const { app } = require("@azure/functions");
 const { sql, getPool } = require("../db");
 const { requireAuth } = require("../middleware/auth");
 const { fetchSavedCalculationById } = require("./savedCalculations");
+const logger = require("../utils/logger");
 
 // Helper function to get the base URL for share links
 const getBaseURL = (req) => {
@@ -26,16 +27,30 @@ app.http("generateShareToken", {
   authLevel: "anonymous",
   route: "saves/{id}/share",
   handler: async (req, ctx) => {
+    const correlationId = req.headers.get('x-correlation-id') || logger.getCorrelationId();
+    const scopedLogger = logger.withCorrelationId(correlationId);
+    const timer = logger.startTimer(correlationId);
+
     try {
       const user = await requireAuth(req);
       const saveId = Number(req.params.id);
       const userEmail = user.userDetails;
+      const userRole = user.userRoles?.includes('PriceListExecutive') ? 'Executive' : 'Sales';
 
       if (!Number.isInteger(saveId)) {
+        scopedLogger.warn('BUSINESS', 'ShareTokenValidationFailed', 'Invalid save ID', {
+          userEmail,
+          userRole,
+          serverContext: { saveId }
+        });
         return { status: 400, jsonBody: { error: "Invalid save ID" } };
       }
 
-      ctx.log(`User ${userEmail} generating share token for saved calculation: ${saveId}`);
+      scopedLogger.info('BUSINESS', 'ShareTokenGenerationStart', `Generating share token for calculation: ${saveId}`, {
+        userEmail,
+        userRole,
+        serverContext: { endpoint: '/api/saves/{id}/share', saveId }
+      });
 
       const pool = await getPool();
 
@@ -45,23 +60,43 @@ app.http("generateShareToken", {
         .query("SELECT CreatorEmail, IsActive, ShareToken FROM SavedCalculations WHERE SaveId = @saveId");
 
       if (existing.recordset.length === 0) {
+        scopedLogger.warn('BUSINESS', 'ShareTokenGenerationFailed', 'Saved calculation not found', {
+          userEmail,
+          userRole,
+          serverContext: { saveId }
+        });
         return { status: 404, jsonBody: { error: "Saved calculation not found" } };
       }
 
       if (existing.recordset[0].CreatorEmail !== userEmail) {
+        scopedLogger.warn('BUSINESS', 'ShareTokenGenerationUnauthorized', 'Attempted to share another user record', {
+          userEmail,
+          userRole,
+          serverContext: { saveId, ownerEmail: existing.recordset[0].CreatorEmail }
+        });
         return { status: 403, jsonBody: { error: "You can only share your own records" } };
       }
 
       if (!existing.recordset[0].IsActive) {
+        scopedLogger.warn('BUSINESS', 'ShareTokenGenerationFailed', 'Attempted to share deleted record', {
+          userEmail,
+          userRole,
+          serverContext: { saveId }
+        });
         return { status: 403, jsonBody: { error: "This record has been deleted" } };
       }
 
       // If share token already exists, return it
       if (existing.recordset[0].ShareToken) {
         const shareUrl = `${getBaseURL(req)}/?share=${existing.recordset[0].ShareToken}`;
-        ctx.log(`Existing share token returned for saveId: ${saveId}`);
+        timer.stop('BUSINESS', 'ShareTokenRetrieved', `Existing share token returned for saveId: ${saveId}`, {
+          userEmail,
+          userRole,
+          serverContext: { endpoint: '/api/saves/{id}/share', saveId, existingToken: true }
+        });
         return {
           status: 200,
+          headers: { 'x-correlation-id': correlationId },
           jsonBody: {
             shareToken: existing.recordset[0].ShareToken,
             shareUrl: shareUrl
@@ -80,9 +115,15 @@ app.http("generateShareToken", {
 
       const shareUrl = `${getBaseURL(req)}/?share=${shareToken}`;
 
-      ctx.log(`Generated share token for saveId: ${saveId}`);
+      timer.stop('BUSINESS', 'ShareTokenGenerated', `New share token generated for saveId: ${saveId}`, {
+        userEmail,
+        userRole,
+        serverContext: { endpoint: '/api/saves/{id}/share', saveId, shareToken }
+      });
+
       return {
         status: 200,
+        headers: { 'x-correlation-id': correlationId },
         jsonBody: {
           shareToken: shareToken,
           shareUrl: shareUrl
@@ -91,10 +132,19 @@ app.http("generateShareToken", {
 
     } catch (e) {
       if (e.statusCode === 401) {
+        scopedLogger.warn('AUTH', 'AuthenticationRequired', 'Authentication required for generating share token', {
+          serverContext: { endpoint: '/api/saves/{id}/share' }
+        });
         return { status: 401, jsonBody: { error: "Authentication required" } };
       }
+      scopedLogger.error('BUSINESS', 'ShareTokenGenerationError', 'Failed to generate share token', {
+        error: e,
+        serverContext: { endpoint: '/api/saves/{id}/share' }
+      });
       ctx.error(e);
       return { status: 500, jsonBody: { error: "Failed to generate share token", details: e.message } };
+    } finally {
+      scopedLogger.release();
     }
   }
 });
@@ -105,11 +155,17 @@ app.http("getSharedCalculation", {
   authLevel: "anonymous",
   route: "shared/{token}",
   handler: async (req, ctx) => {
+    const correlationId = req.headers.get('x-correlation-id') || logger.getCorrelationId();
+    const scopedLogger = logger.withCorrelationId(correlationId);
+    const timer = logger.startTimer(correlationId);
+
     try {
       // NO AUTH REQUIREMENT - Public access via share token
       const token = req.params.token;
 
-      ctx.log(`Accessing shared calculation via token: ${token}`);
+      scopedLogger.info('BUSINESS', 'SharedCalculationAccess', `Accessing shared calculation via token`, {
+        serverContext: { endpoint: '/api/shared/{token}', tokenPrefix: token.substring(0, 8) }
+      });
 
       const pool = await getPool();
 
@@ -119,6 +175,9 @@ app.http("getSharedCalculation", {
         .query("SELECT SaveId FROM SavedCalculations WHERE ShareToken = @shareToken AND IsActive = 1");
 
       if (r.recordset.length === 0) {
+        scopedLogger.warn('BUSINESS', 'SharedCalculationNotFound', 'Shared calculation not found or has been deleted', {
+          serverContext: { tokenPrefix: token.substring(0, 8) }
+        });
         return { status: 404, jsonBody: { error: "Shared calculation not found or has been deleted" } };
       }
 
@@ -128,6 +187,9 @@ app.http("getSharedCalculation", {
       const result = await fetchSavedCalculationById(pool, saveId);
 
       if (!result) {
+        scopedLogger.warn('BUSINESS', 'SharedCalculationFetchFailed', 'Failed to fetch shared calculation', {
+          serverContext: { saveId }
+        });
         return { status: 404, jsonBody: { error: "Shared calculation not found" } };
       }
 
@@ -135,12 +197,25 @@ app.http("getSharedCalculation", {
       result.isShared = true;
       // Note: No viewerEmail since no auth required
 
-      ctx.log(`Shared calculation accessed: ${result.runNumber} (SaveId: ${saveId})`);
-      return { status: 200, jsonBody: result };
+      timer.stop('BUSINESS', 'SharedCalculationAccessed', `Shared calculation accessed: ${result.runNumber}`, {
+        serverContext: { endpoint: '/api/shared/{token}', runNumber: result.runNumber, saveId }
+      });
+
+      return {
+        status: 200,
+        headers: { 'x-correlation-id': correlationId },
+        jsonBody: result
+      };
 
     } catch (e) {
+      scopedLogger.error('BUSINESS', 'SharedCalculationAccessError', 'Failed to access shared calculation', {
+        error: e,
+        serverContext: { endpoint: '/api/shared/{token}' }
+      });
       ctx.error(e);
       return { status: 500, jsonBody: { error: "Failed to access shared calculation", details: e.message } };
+    } finally {
+      scopedLogger.release();
     }
   }
 });

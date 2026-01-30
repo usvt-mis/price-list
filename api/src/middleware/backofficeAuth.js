@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getPool } = require('../db');
 const sql = require('mssql');
+const logger = require('../utils/logger');
 
 // JWT configuration
 const JWT_SECRET = process.env.BACKOFFICE_JWT_SECRET || 'change-this-secret-in-production';
@@ -85,6 +86,9 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
     `);
 
   if (result.recordset.length === 0) {
+    logger.warn('AUTH', 'BackofficeLoginFailed', `Backoffice login failed: user not found - ${username}`, {
+      serverContext: { clientIP: clientInfo.ip }
+    });
     return { success: false, error: 'Invalid credentials' };
   }
 
@@ -92,12 +96,18 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
 
   // Check if account is active
   if (!admin.IsActive) {
+    logger.warn('AUTH', 'BackofficeLoginFailed', `Backoffice login failed: account disabled - ${username}`, {
+      serverContext: { clientIP: clientInfo.ip, username, adminId: admin.Id }
+    });
     return { success: false, error: 'Account is disabled' };
   }
 
   // Check if account is locked out
   if (admin.LockoutUntil && new Date(admin.LockoutUntil) > new Date()) {
     const remainingMinutes = Math.ceil((new Date(admin.LockoutUntil) - new Date()) / 60000);
+    logger.warn('AUTH', 'BackofficeLoginLocked', `Backoffice login blocked: account locked - ${username}`, {
+      serverContext: { clientIP: clientInfo.ip, username, adminId: admin.Id, lockoutUntil: admin.LockoutUntil }
+    });
     return { success: false, error: `Account locked for ${remainingMinutes} minutes` };
   }
 
@@ -122,6 +132,9 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
         WHERE Id = @id
       `);
 
+    logger.warn('AUTH', 'BackofficeLoginFailed', `Backoffice login failed: invalid password - ${username}`, {
+      serverContext: { clientIP: clientInfo.ip, username, adminId: admin.Id, failedAttempts: newAttempts }
+    });
     return { success: false, error: 'Invalid credentials' };
   }
 
@@ -158,6 +171,11 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
     throw new Error('Failed to generate access token');
   }
 
+  logger.info('AUTH', 'BackofficeLoginSuccess', `Backoffice login successful - ${username}`, {
+    userEmail: admin.Email,
+    userRole: 'Backoffice',
+    serverContext: { clientIP: clientInfo.ip, username, adminId: admin.Id }
+  });
 
   return {
     success: true,
@@ -228,10 +246,19 @@ async function backofficeLogout(req) {
   const admin = await verifyBackofficeToken(req);
 
   if (!admin) {
+    logger.warn('AUTH', 'BackofficeLogoutFailed', 'Backoffice logout failed: invalid token', {
+      serverContext: { endpoint: req.url }
+    });
     const error = new Error('Unauthorized');
     error.statusCode = 401;
     throw error;
   }
+
+  logger.info('AUTH', 'BackofficeLogoutSuccess', `Backoffice logout successful - ${admin.username}`, {
+    userEmail: admin.email,
+    userRole: 'Backoffice',
+    serverContext: { username: admin.username, adminId: admin.id }
+  });
 
   // Client will clear sessionStorage; token will expire naturally
   return { success: true };

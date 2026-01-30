@@ -13,6 +13,8 @@
  * - Customer: No login required; view-only access via shared links (handled separately)
  */
 
+const logger = require('../utils/logger');
+
 /**
  * Check if the request is from local development
  */
@@ -92,12 +94,19 @@ function validateAuth(req) {
 async function requireAuth(req) {
   // Local development: return mock user
   if (isLocalRequest(req)) {
+    logger.debug('AUTH', 'LocalDevBypass', 'Local development bypass - using mock user', {
+      userEmail: process.env.MOCK_USER_EMAIL || 'Dev User',
+      userRole: process.env.MOCK_USER_ROLE || 'PriceListSales'
+    });
     return createMockUser();
   }
 
   const user = validateAuth(req);
 
   if (!user) {
+    logger.warn('AUTH', 'AuthenticationFailed', 'No valid authentication credentials found', {
+      serverContext: { endpoint: req.url, hasClientPrincipal: !!req.headers.get('x-ms-client-principal') }
+    });
     const error = new Error('Unauthorized');
     error.statusCode = 401;
     throw error;
@@ -107,8 +116,16 @@ async function requireAuth(req) {
   try {
     await ensureUserRegisteredWithRetry(user, 3);
     user.registrationStatus = 'registered';
+    logger.info('AUTH', 'UserAuthenticated', `User authenticated: ${user.userDetails}`, {
+      userEmail: user.userDetails,
+      userRole: user.userRoles?.join(', ') || 'none'
+    });
   } catch (err) {
     // Log with full context but don't fail auth
+    logger.error('AUTH', 'UserRegistrationFailed', 'Failed to register user in UserRoles table', {
+      error: err,
+      userEmail: user.userDetails
+    });
     console.error('[USER REGISTRATION FAILED]', {
       email: user.userDetails,
       error: err.message,

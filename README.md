@@ -86,8 +86,11 @@ The application expects these SQL Server tables:
 | `BackofficeAdmins` | Backoffice admin accounts with username/password hash and lockout tracking |
 | `BackofficeSessions` | JWT session tokens for backoffice authentication |
 | `RoleAssignmentAudit` | Immutable audit log of all role changes |
+| `AppLogs` | Application logging (errors, events, performance tracking) |
+| `PerformanceMetrics` | API performance metrics (response times, database latency) |
+| `AppLogs_Archive` | Historical application logs (archived after 30 days) |
 
-**Note**: Run the `database/ensure_backoffice_schema.sql` script to create all required backoffice tables including role management and backoffice admin tables. Default backoffice credentials: `admin` / `Admin123!` (change immediately after first login).
+**Note**: Run the `database/ensure_backoffice_schema.sql` script to create all required backoffice tables including role management and backoffice admin tables. Run `database/create_app_logs.sql` to create the application logging tables. Default backoffice credentials: `admin` / `Admin123!` (change immediately after first login).
 
 ### Admin Account Management
 
@@ -144,6 +147,11 @@ For quick fixes:
 - `database/fix_backoffice_issues.sql` - Unlock accounts, enable disabled accounts, clear expired sessions
 - `database/fix_backoffice_sessions_clientip.sql` - Fix "Failed to create session" error by expanding ClientIP column to NVARCHAR(100) for Azure proxy headers
 
+**Application Logging Diagnostics:**
+- `database/diagnostics_logs.sql` - Run diagnostic queries for application logs (recent errors, user activity, performance metrics, etc.)
+- `database/create_app_logs.sql` - Create logging schema (AppLogs, PerformanceMetrics, AppLogs_Archive tables)
+- Logs are automatically archived after 30 days and purged from archive after 90 days (configurable via environment variables)
+
 ### User Registration
 
 Users are automatically registered in the UserRoles table on first login via Azure AD. If manual user registration is needed:
@@ -178,6 +186,12 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/admin/roles/{email}` | DELETE | Remove role assignment (sets to NoRole) | Executive only |
 | `/api/admin/roles/current` | GET | Get current user's effective role (returns 403 if NoRole) | Yes |
 | `/api/admin/diagnostics/registration` | GET | User registration diagnostics (total users, role breakdown, recent registrations, database write test) | Executive only |
+| `/api/admin/logs` | GET | Query application logs with filters | Executive only |
+| `/api/admin/logs/errors` | GET | Aggregated error summaries | Executive only |
+| `/api/admin/logs/export` | GET | Export logs as CSV/JSON | Executive only |
+| `/api/admin/logs/purge` | DELETE | Purge logs older than X days | Executive only |
+| `/api/admin/logs/health` | GET | System health check (database, log stats, performance) | Executive only |
+| `/api/admin/logs/purge/manual` | POST | Manually trigger log archival | Executive only |
 | `/api/backoffice/login` | POST | Backoffice admin login (JWT token) | No (separate auth) |
 | `/api/backoffice/logout` | POST | Backoffice admin logout | Backoffice JWT |
 | `/api/backoffice/users` | GET | List all users with roles (paginated, searchable) | Backoffice JWT |
@@ -303,12 +317,22 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │   ├── ping.js
 │   │   │   ├── admin/
 │   │   │   │   ├── roles.js
-│   │   │   │   └── diagnostics.js
+│   │   │   │   ├── diagnostics.js
+│   │   │   │   ├── logs.js
+│   │   │   │   └── health.js
+│   │   │   ├── timers/
+│   │   │   │   └── logPurge.js
 │   │   │   └── backoffice/
 │   │   │       └── index.js
 │   │   ├── middleware/
 │   │   │   ├── auth.js
-│   │   │   └── backofficeAuth.js
+│   │   │   ├── backofficeAuth.js
+│   │   │   ├── correlationId.js
+│   │   │   └── requestLogger.js
+│   │   ├── utils/
+│   │   │   ├── logger.js
+│   │   │   ├── performanceTracker.js
+│   │   │   └── circuitBreaker.js
 │   │   ├── db.js
 │   │   └── index.js
 │   ├── host.json
@@ -319,7 +343,9 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── fix_backoffice_issues.sql
 │   ├── fix_backoffice_sessions_clientip.sql
 │   ├── ensure_backoffice_schema.sql
-│   └── create_backoffice_sessions.sql
+│   ├── create_backoffice_sessions.sql
+│   ├── create_app_logs.sql
+│   └── diagnostics_logs.sql
 ├── src/
 │   ├── index.html
 │   └── backoffice.html
