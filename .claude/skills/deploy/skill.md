@@ -17,7 +17,16 @@ Deploy the current state of the application to production by running the Azure S
 - Check if `swa` CLI is installed
 - Verify project is in valid state for deployment
 
-### Phase 2: Execute Deployment
+### Phase 2: Update Backoffice Version
+- Run task: `update backoffice version`
+- This updates the version in `backoffice.html` to match `package.json`
+
+### Phase 3: Build Application
+- Run `swa build --auto`
+- Monitor build progress
+- Capture any errors or warnings
+
+### Phase 4: Execute Deployment
 - Run `swa deploy --env Production`
 - Monitor deployment progress
 - Capture any errors or warnings
@@ -34,7 +43,10 @@ Deploy the current state of the application to production by running the Azure S
 ### Deployment Target
 - **Service**: Azure Static Web Apps
 - **Environment**: Production
-- **CLI Command**: `swa deploy --env Production`
+- **Commands**:
+  1. Update backoffice version
+  2. `swa build --auto`
+  3. `swa deploy --env Production`
 
 ### What Gets Deployed
 - Frontend: `src/index.html` and related static assets
@@ -50,11 +62,18 @@ After deployment, present:
 - Working directory state (clean/dirty)
 - CLI availability check
 
-### 2. Deployment Progress
-- Command being executed
-- Progress output from `swa` CLI
+### 2. Version Update
+- Backoffice version update status
 
-### 3. Deployment Result
+### 3. Build Progress
+- Build command being executed
+- Progress output from `swa build --auto`
+
+### 4. Deployment Progress
+- Deploy command being executed
+- Progress output from `swa deploy --env Production`
+
+### 5. Deployment Result
 - **Success**: Deployment URL, confirmation message
 - **Failure**: Error message, suggested remediation steps
 
@@ -74,6 +93,8 @@ When user invokes `{/deploy}`:
 
 - [ ] Check if `swa` CLI is available
 - [ ] Check git status (warn if uncommitted changes exist)
+- [ ] Run task: update backoffice version
+- [ ] Execute `swa build --auto`
 - [ ] Execute `swa deploy --env Production`
 - [ ] Monitor and report deployment progress
 - [ ] Report final status with URL or error details
