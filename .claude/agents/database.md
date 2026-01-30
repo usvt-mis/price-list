@@ -121,14 +121,46 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-
 sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U $DB_USER -P "$DB_PASSWORD" -N -l 30
 ```
 
-### Available Diagnostic Scripts
+### Diagnostic Script Management
+
+#### Available Diagnostic Scripts
 
 Located in `database/` directory:
+
+**Backoffice Diagnostics:**
 - `diagnose_backoffice_login.sql` - Check table existence, admin accounts, locked accounts
 - `fix_backoffice_issues.sql` - Quick fixes for common backoffice issues
 - `fix_backoffice_sessions_clientip.sql` - Fix ClientIP column size issues
 - `ensure_backoffice_schema.sql` - Create all missing backoffice tables
-- `create_backoffice_sessions.sql` - Create only the BackofficeSessions table
+- `create_backoffice_sessions.sql` - Create only the BackofficeSessions table (deprecated)
+
+**Logging Diagnostics:**
+- `diagnostics_logs.sql` - Collection of diagnostic queries for application logs
+
+**Schema Scripts:**
+- `create_app_logs.sql` - Logging schema (AppLogs, PerformanceMetrics, AppLogs_Archive)
+
+#### Script Usage Pattern
+```bash
+# Run diagnostic script
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -i database/diagnose_backoffice_login.sql -N -l 30
+
+# Run fix script
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -i database/fix_backoffice_issues.sql -N -l 30
+```
+
+#### Production Troubleshooting SQL Scripts
+
+**When to use:** Production issues where API endpoints are unavailable or authentication is failing.
+
+**Common scenarios:**
+- Backoffice login failures
+- Missing database tables
+- Locked admin accounts
+- Schema inconsistencies
+- Log query performance issues
+
+**Coordination:** For complex schema changes, coordinate with Architect Agent. For backoffice issues, coordinate with Backoffice Agent.
 
 ## Escalation Protocol
 
@@ -146,6 +178,9 @@ Located in `database/` directory:
 ### When to Coordinate with Other Specialists
 - **Backend Agent**: Query optimization, new data requirements, schema change coordination
 - **Architect Agent**: Index strategy, schema design review, data integrity constraints
+- **Auth Agent**: UserRoles, BackofficeAdmins, RoleAssignmentAudit tables
+- **Logging Agent**: AppLogs, PerformanceMetrics, AppLogs_Archive tables
+- **Backoffice Agent**: Backoffice-specific tables and diagnostic scripts
 
 ## Common Tasks
 | Task | Approach |

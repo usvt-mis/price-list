@@ -19,22 +19,17 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
                 │                             │
                 └──────────────┬──────────────┘
                                │
-        ┌──────────────────────┼──────────────────────┐
-        │                      │                      │
-┌───────▼────────┐   ┌────────▼────────┐   ┌────────▼────────┐
-│ Frontend Agent │   │ Backend Agent   │   │Database Agent   │
-│  (Specialist)  │   │  (Specialist)   │   │  (Specialist)   │
-└────────────────┘   └─────────────────┘   └─────────────────┘
+    ┌──────────────────────────┼──────────────────────────┐
+    │          │               │              │            │
+┌───▼────┐ ┌───▼────┐   ┌──────▼──────┐  ┌───▼────┐  ┌───▼────┐
+│Frontend│ │Backoff │   │   Backend   │  │ Auth   │  │Logging │
+│        │ │office  │   │             │  │& Secur│  │& Monit │
+└────────┘ └────────┘   └─────────────┘  └────────┘  └────────┘
 
-        ┌──────────────────────┐
-        │  Calculation Agent   │
-        │    (Specialist)      │
-        └──────────────────────┘
-
-        ┌──────────────────────┐
-        │  Deployment Agent    │
-        │    (Specialist)      │
-        └──────────────────────┘
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│ Calculation  │  │  Database    │  │  Deployment  │
+│              │  │              │  │              │
+└──────────────┘  └──────────────┘  └──────────────┘
 ```
 
 ## Agent Hierarchy
@@ -58,8 +53,8 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
 - Design new features with consideration for all layers
 - Ensure consistency with existing patterns
 - Identify technical debt and suggest refactoring
-- Make decisions on cross-cutting concerns
-**Coordinates**: Frontend, Backend, Database, Calculation agents
+- Make decisions on cross-cutting concerns (security, performance, scalability)
+**Coordinates**: Frontend, Backoffice, Backend, Auth & Security, Logging & Monitoring, Calculation, Database agents
 
 #### Planner Agent (Implementation Lead)
 **Role**: Implementation planning and task breakdown
@@ -74,13 +69,16 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
 
 ### Level 3: Specialist Agents
 
-| Agent | Role | File | Reports To |
-|-------|------|------|------------|
-| Frontend Agent | UI components, responsive design, interactions | `frontend.md` | Architect (UI/UX), Planner (implementation) |
-| Backend Agent | Azure Functions API, database operations | `backend.md` | Architect (API), Planner (implementation) |
-| Calculation Agent | Pricing formulas, commission logic, multipliers | `calculation.md` | Architect (formulas), Planner (implementation) |
-| Database Agent | SQL schema, queries, data integrity | `database.md` | Architect (schema), Planner (migrations) |
-| Deployment Agent | Azure deployment, CI/CD, configuration | `deploy.md` | Architect (infrastructure), Planner (releases) |
+| Agent | Role | File | Scope | Reports To |
+|-------|------|------|-------|------------|
+| Frontend Agent | UI components, responsive design, interactions | `frontend.md` | Main calculator only (`src/index.html`) | Architect (UI/UX), Planner (implementation) |
+| Backoffice Agent | Backoffice admin UI, role management, audit logs | `backoffice.md` | Backoffice only (`src/backoffice.html`) | Architect (UI/UX), Planner (implementation) |
+| Backend Agent | Azure Functions API, business logic | `backend.md` | API endpoints only (no auth/logging) | Architect (API), Planner (implementation) |
+| Auth & Security Agent | Authentication systems, security policies, RBAC | `auth.md` | Dual auth (Azure AD + JWT), rate limiting, security | Architect (security), Planner (implementation) |
+| Logging & Monitoring Agent | Application logging, performance tracking, health checks | `logging.md` | Logger utility, performance metrics, archival | Architect (monitoring), Planner (implementation) |
+| Calculation Agent | Pricing formulas, commission logic, multipliers | `calculation.md` | (unchanged) | Architect (formulas), Planner (implementation) |
+| Database Agent | SQL schema, queries, data integrity, diagnostic scripts | `database.md` | (unchanged) + diagnostic script awareness | Architect (schema), Planner (migrations) |
+| Deployment Agent | Azure deployment, CI/CD, configuration | `deploy.md` | (unchanged) | Architect (infrastructure), Planner (releases) |
 
 ## Coordination Protocols
 
@@ -133,12 +131,69 @@ Agent completes assigned subtask
     Next subtask assigned to appropriate agent
 ```
 
+### Protocol 5: Authentication-Related Tasks
+```
+Auth/Security Task Identified
+                ↓
+    Orchestrator routes to Auth & Security Agent
+                ↓
+    If backend changes needed → Coordinate with Backend Agent
+    If UI changes needed → Coordinate with Frontend/Backoffice Agent
+    If logging needed → Coordinate with Logging & Monitoring Agent
+                ↓
+    Auth & Security Agent implements with coordination
+                ↓
+    Verification: Test with all user roles (Executive, Sales, NoRole, Customer)
+```
+
+### Protocol 6: Logging/Monitoring Tasks
+```
+Logging/Monitoring Task Identified
+                ↓
+    Orchestrator routes to Logging & Monitoring Agent
+                ↓
+    If backend instrumentation needed → Coordinate with Backend Agent
+    If auth events to log → Coordinate with Auth & Security Agent
+    If database queries needed → Coordinate with Database Agent
+                ↓
+    Logging & Monitoring Agent implements with coordination
+                ↓
+    Verification: Test log queries, performance tracking, health checks
+```
+
+### Protocol 7: Backoffice-Specific Tasks
+```
+Backoffice Task Identified
+                ↓
+    Orchestrator routes to Backoffice Agent
+                ↓
+    If API endpoints needed → Coordinate with Backend Agent
+    If auth changes needed → Coordinate with Auth & Security Agent
+    If audit logging needed → Coordinate with Logging & Monitoring Agent
+                ↓
+    Backoffice Agent implements with coordination
+                ↓
+    Verification: Test backoffice functionality independently
+```
+
 ## Quick Reference
 
 ### Decision Tree for Task Routing
 ```
 Is the task simple and single-domain?
     YES → Direct to specialist agent
+    NO  → Continue
+
+Is it an authentication/security task?
+    YES → Auth & Security Agent (may coordinate with others)
+    NO  → Continue
+
+Is it a logging/monitoring task?
+    YES → Logging & Monitoring Agent (may coordinate with others)
+    NO  → Continue
+
+Is it a backoffice-specific task?
+    YES → Backoffice Agent (may coordinate with others)
     NO  → Continue
 
 Does the task involve architecture/design?
@@ -154,16 +209,24 @@ Does the task require implementation planning?
 
 | Trigger | Agent to Involve |
 |---------|-----------------|
-| Fix button alignment | Frontend Agent (direct) |
+| Fix button alignment (main calculator) | Frontend Agent (direct) |
+| Fix backoffice UI layout | Backoffice Agent (direct) |
 | Add new API endpoint | Backend Agent (direct) |
 | Update commission formula | Calculation Agent (direct) |
 | Optimize SQL query | Database Agent (direct) |
 | Fix deployment issue | Deployment Agent (direct) |
-| Add new feature (frontend only) | Planner Agent → Frontend Agent |
-| Add new feature (frontend + backend) | Planner Agent → Frontend + Backend |
+| Add authentication to endpoint | Auth & Security Agent (direct) |
+| Add performance logging | Logging & Monitoring Agent (direct) |
+| Add new feature (main calculator UI only) | Planner Agent → Frontend Agent |
+| Add new feature (backoffice UI only) | Planner Agent → Backoffice Agent |
+| Add new feature (frontend + backend) | Planner Agent → Frontend + Backend + Auth |
+| Change authentication policy | Planner Agent → Auth & Security + Frontend + Backend |
+| Add logging to endpoint | Planner Agent → Logging & Monitoring + Backend |
 | Major architectural change | Architect Agent → Planner Agent → Specialists |
 | Database schema modification | Architect Agent + Database Agent → Planner Agent |
 | Multi-domain refactoring | Architect Agent → Planner Agent → All specialists |
+| Security audit | Architect Agent → Auth & Security Agent |
+| Performance investigation | Architect Agent → Logging & Monitoring Agent |
 
 ## File Structure
 
@@ -173,11 +236,14 @@ Does the task require implementation planning?
 ├── orchestrator.md      (Level 1: Coordinator)
 ├── architect.md         (Level 2: Technical lead)
 ├── planner.md           (Level 2: Implementation lead)
-├── frontend.md          (Level 3: Specialist)
-├── backend.md           (Level 3: Specialist)
-├── calculation.md       (Level 3: Specialist)
-├── database.md          (Level 3: Specialist)
-└── deployment.md        (Level 3: Specialist)
+├── frontend.md          (Level 3: Specialist - Main calculator)
+├── backoffice.md        (Level 3: Specialist - Backoffice admin)
+├── backend.md           (Level 3: Specialist - API endpoints)
+├── auth.md              (Level 3: Specialist - Authentication & security)
+├── logging.md           (Level 3: Specialist - Logging & monitoring)
+├── calculation.md       (Level 3: Specialist - Formulas)
+├── database.md          (Level 3: Specialist - Schema & queries)
+└── deployment.md        (Level 3: Specialist - Azure deployment)
 ```
 
 ## Tools and Permissions
@@ -219,15 +285,45 @@ User: "Add a new user authentication system"
 Expected: Orchestrator involves Architect Agent for design, then Planner for implementation
 ```
 
-### Test 4: Escalation Protocol
+### Test 4: Authentication Task
+```
+User: "Add rate limiting to backoffice login"
+Expected: Orchestrator routes to Auth & Security Agent, may coordinate with Backoffice Agent
+```
+
+### Test 5: Logging Task
+```
+User: "Add performance tracking to all API endpoints"
+Expected: Orchestrator routes to Logging & Monitoring Agent, coordinates with Backend Agent
+```
+
+### Test 6: Backoffice Task
+```
+User: "Add user search to backoffice admin"
+Expected: Orchestrator routes to Backoffice Agent, may coordinate with Backend Agent
+```
+
+### Test 7: Escalation Protocol
 ```
 Specialist: "This change requires database schema modification"
 Expected: Specialist escalates to Architect + Database Agent, then Planner for implementation
 ```
 
-### Test 5: Conflict Resolution
+### Test 8: Conflict Resolution
 ```
 Frontend Agent: "Use modal dialog"
 Backend Agent: "Use inline form"
 Expected: Architect Agent makes decision, Orchestrator communicates it
+```
+
+### Test 9: Scope Boundary Test
+```
+User: "Update backoffice login page"
+Expected: Orchestrator routes to Backoffice Agent (NOT Frontend Agent)
+```
+
+### Test 10: Cross-Domain Coordination
+```
+User: "Add audit logging for role changes"
+Expected: Planner Agent coordinates Auth & Security (role changes), Logging & Monitoring (audit), Backoffice (UI)
 ```
