@@ -877,7 +877,6 @@
           </div>
           <div class="hidden md:block">
             <p class="text-sm font-medium text-slate-900">${authState.user.name}</p>
-            <p class="text-xs text-slate-500">${isLocalDev ? 'Local Dev (Executive)' : (isExecutive ? 'Executive' : 'Sales')}</p>
           </div>
           ${!isLocalDev ? `
           <a href="/.auth/logout?post_logout_redirect_uri=/" class="px-3 py-1.5 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
