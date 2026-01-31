@@ -229,6 +229,8 @@ app.http("backoffice-assign-role", {
         : null;
 
       // Update or insert role
+      // UTC Handling: Use GETUTCDATE() for consistent UTC timezone across all servers
+      // JavaScript Date objects use Date.toISOString() for UTC datetime parameters
       await pool.request()
         .input('email', sql.NVarChar, email)
         .input('role', sql.NVarChar, role === 'NoRole' ? null : role)
@@ -238,7 +240,7 @@ app.http("backoffice-assign-role", {
           USING (VALUES (@email, @role, @assignedBy)) AS source (Email, Role, AssignedBy)
           ON target.Email = source.Email
           WHEN MATCHED THEN
-            UPDATE SET Role = source.Role, AssignedBy = source.AssignedBy, AssignedAt = GETDATE()
+            UPDATE SET Role = source.Role, AssignedBy = source.AssignedBy, AssignedAt = GETUTCDATE()
           WHEN NOT MATCHED THEN
             INSERT (Email, Role, AssignedBy)
             VALUES (source.Email, source.Role, source.AssignedBy);
@@ -312,12 +314,14 @@ app.http("backoffice-remove-role", {
         : currentResult.recordset[0].Role;
 
       // Set role to NULL (NoRole)
+      // UTC Handling: Use GETUTCDATE() for consistent UTC timezone across all servers
+      // JavaScript Date objects use Date.toISOString() for UTC datetime parameters
       await pool.request()
         .input('email', sql.NVarChar, email)
         .input('assignedBy', sql.NVarChar, admin.username)
         .query(`
           UPDATE UserRoles
-          SET Role = NULL, AssignedBy = @assignedBy, AssignedAt = GETDATE()
+          SET Role = NULL, AssignedBy = @assignedBy, AssignedAt = GETUTCDATE()
           WHERE Email = @email
         `);
 
@@ -437,6 +441,73 @@ app.http("backoffice-audit-log", {
 });
 
 /**
+ * GET /api/backoffice/timezone-check
+ * Diagnostic endpoint to check timezone configuration
+ * Returns database and JavaScript timezone information
+ */
+app.http("backoffice-timezone-check", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "backoffice/timezone-check",
+  handler: async (req, ctx) => {
+    try {
+      const admin = await requireBackofficeAuth(req);
+      ctx.log(`Admin ${admin.username} accessed timezone check`);
+
+      const pool = await getPool();
+
+      // Query database for timezone information
+      const dbResult = await pool.request().query(`
+        SELECT
+          GETDATE() as LocalTime,
+          GETUTCDATE() as UTCTime,
+          SYSDATETIMEOFFSET() as DateTimeWithOffset,
+          DATEPART(tz, SYSDATETIMEOFFSET()) as OffsetMinutes
+      `);
+
+      const dbTime = dbResult.recordset[0];
+
+      // Get JavaScript timezone information
+      const jsNow = new Date();
+      const jsTime = {
+        isoString: jsNow.toISOString(),
+        timestamp: Date.now(),
+        timezoneOffset: jsNow.getTimezoneOffset(),
+        timezoneOffsetHours: jsNow.getTimezoneOffset() / 60,
+        localString: jsNow.toString(),
+        utcString: jsNow.toUTCString()
+      };
+
+      return {
+        status: 200,
+        jsonBody: {
+          database: {
+            localTime: dbTime.LocalTime,
+            utcTime: dbTime.UTCTime,
+            dateTimeWithOffset: dbTime.DateTimeWithOffset,
+            offsetMinutes: dbTime.OffsetMinutes,
+            offsetHours: dbTime.OffsetMinutes / 60
+          },
+          javascript: jsTime,
+          analysis: {
+            dbIsUTC: dbTime.UTCTime !== null,
+            dbOffsetMatchesJS: Math.abs(dbTime.OffsetMinutes - jsTime.timezoneOffset) < 5, // Allow 5 min tolerance
+            jsTimezoneOffset: jsTime.timezoneOffset,
+            dbTimezoneOffset: dbTime.OffsetMinutes
+          }
+        }
+      };
+    } catch (e) {
+      if (e.statusCode === 401) {
+        return { status: 401, jsonBody: { error: "Unauthorized" } };
+      }
+      ctx.error(e);
+      return { status: 500, jsonBody: { error: "Failed to check timezone configuration" } };
+    }
+  }
+});
+
+/**
  * GET /api/backoffice/repair
  * Diagnose and repair backoffice database schema
  * Query params: secret (required) - BACKOFFICE_REPAIR_SECRET env var
@@ -480,7 +551,7 @@ app.http("backoffice-repair", {
             FailedLoginAttempts INT DEFAULT 0,
             LockoutUntil DATETIME2,
             LastLoginAt DATETIME2,
-            CreatedAt DATETIME2 DEFAULT GETDATE()
+            CreatedAt DATETIME2 DEFAULT GETUTCDATE()
           );
           CREATE UNIQUE INDEX UX_BackofficeAdmins_Username ON BackofficeAdmins(Username);
         `);
@@ -501,7 +572,7 @@ app.http("backoffice-repair", {
             ExpiresAt DATETIME2 NOT NULL,
             ClientIP NVARCHAR(50),
             UserAgent NVARCHAR(255),
-            CreatedAt DATETIME2 DEFAULT GETDATE(),
+            CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
             FOREIGN KEY (AdminId) REFERENCES BackofficeAdmins(Id)
           );
           CREATE INDEX IX_BackofficeSessions_AdminId ON BackofficeSessions(AdminId);
@@ -521,7 +592,7 @@ app.http("backoffice-repair", {
             Email NVARCHAR(255) PRIMARY KEY,
             Role NVARCHAR(50),
             AssignedBy NVARCHAR(255),
-            AssignedAt DATETIME2 DEFAULT GETDATE()
+            AssignedAt DATETIME2 DEFAULT GETUTCDATE()
           );
           CREATE INDEX IX_UserRoles_Role ON UserRoles(Role);
         `);
@@ -543,7 +614,7 @@ app.http("backoffice-repair", {
             ChangedBy NVARCHAR(255) NOT NULL,
             ClientIP NVARCHAR(50),
             Justification NVARCHAR(500),
-            ChangedAt DATETIME2 DEFAULT GETDATE()
+            ChangedAt DATETIME2 DEFAULT GETUTCDATE()
           );
           CREATE INDEX IX_RoleAssignmentAudit_TargetEmail ON RoleAssignmentAudit(TargetEmail);
           CREATE INDEX IX_RoleAssignmentAudit_ChangedAt ON RoleAssignmentAudit(ChangedAt);

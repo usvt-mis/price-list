@@ -161,6 +161,10 @@ For quick fixes:
 - `database/fix_backoffice_issues.sql` - Unlock accounts, enable disabled accounts, clear expired sessions
 - `database/fix_backoffice_sessions_clientip.sql` - Fix "Failed to create session" error by expanding ClientIP column to NVARCHAR(100) for Azure proxy headers
 
+**Timezone Diagnostics:**
+- `database/diagnostics_timezone.sql` - Check server timezone configuration, column types, and identify mixed timezone sources (GETDATE vs GETUTCDATE)
+- `database/migrations/migrate_to_utc.sql` - Migrate existing timestamps from local time to UTC (idempotent, can be run multiple times)
+
 **Application Logging Diagnostics:**
 - `database/diagnostics_logs.sql` - Run diagnostic queries for application logs (recent errors, user activity, performance metrics, etc.)
 - `database/create_app_logs.sql` - Create logging schema (AppLogs, PerformanceMetrics, AppLogs_Archive tables)
@@ -213,6 +217,7 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/backoffice/users/{email}/role` | DELETE | Remove user role | Backoffice JWT |
 | `/api/backoffice/audit-log` | GET | View role change audit history (?email=search for filtering) | Backoffice JWT |
 | `/api/backoffice/repair?secret={secret}` | GET | Diagnose and repair backoffice database schema (creates missing tables and admin account) | No (secret required) |
+| `/api/backoffice/timezone-check` | GET | Diagnostic endpoint for timezone configuration (returns database and JavaScript timezone info) | Backoffice JWT |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/.auth/me` | GET | Get current user info from Static Web Apps | No |
 
@@ -364,9 +369,11 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── ensure_backoffice_schema.sql
 │   ├── create_backoffice_sessions.sql
 │   ├── create_app_logs.sql
+│   ├── diagnostics_timezone.sql
 │   ├── diagnostics_logs.sql
 │   └── migrations/
-│       └── phase1_backoffice_3tabs.sql
+│       ├── phase1_backoffice_3tabs.sql
+│       └── migrate_to_utc.sql
 ├── src/
 │   ├── index.html
 │   └── backoffice.html

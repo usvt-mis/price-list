@@ -3,6 +3,30 @@
 -- Run this script to verify and create all missing backoffice tables
 -- This is a comprehensive schema setup script for production deployment
 -- ============================================
+--
+-- IMPORTANT: UTC TIMEZONE CONVENTION
+-- ============================================
+-- All datetime columns in this schema use UTC timezone (GETUTCDATE())
+-- This ensures consistency across deployments and prevents timezone bugs
+--
+-- Database:
+--   - Always use GETUTCDATE() for default constraints
+--   - Never use GETDATE(), CURRENT_TIMESTAMP, or SYSDATETIME()
+--   - All timestamps are stored in UTC
+--
+-- Application (JavaScript):
+--   - Use new Date().toISOString() to get UTC timestamp
+--   - Use new Date(dateString + 'Z') to parse UTC timestamps
+--   - Display times in user's local timezone via browser
+--
+-- Comparisons:
+--   - Always compare against GETUTCDATE() in SQL queries
+--   - Example: WHERE LockoutUntil > GETUTCDATE()
+--
+-- Migration:
+--   - If migrating from local timestamps, use database/migrations/migrate_to_utc.sql
+--   - That script will convert existing data and update defaults
+-- ============================================
 
 PRINT '===========================================';
 PRINT 'BACKOFFICE SCHEMA VERIFICATION & SETUP';
@@ -30,7 +54,7 @@ BEGIN
         FailedLoginAttempts INT DEFAULT 0,
         LockoutUntil DATETIME2,
         LastLoginAt DATETIME2,
-        CreatedAt DATETIME2 DEFAULT GETDATE()
+        CreatedAt DATETIME2 DEFAULT GETUTCDATE()
     );
 
     PRINT '   [SUCCESS] BackofficeAdmins table created';
@@ -66,7 +90,7 @@ BEGIN
         ExpiresAt DATETIME2 NOT NULL,
         ClientIP NVARCHAR(100),
         UserAgent NVARCHAR(255),
-        CreatedAt DATETIME2 DEFAULT GETDATE(),
+        CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
         FOREIGN KEY (AdminId) REFERENCES BackofficeAdmins(Id)
     );
 
@@ -101,7 +125,7 @@ BEGIN
         Email NVARCHAR(255) PRIMARY KEY,
         Role NVARCHAR(50), -- 'Executive', 'Sales', or NULL (NoRole)
         AssignedBy NVARCHAR(255),
-        AssignedAt DATETIME2 DEFAULT GETDATE()
+        AssignedAt DATETIME2 DEFAULT GETUTCDATE()
     );
 
     PRINT '   [SUCCESS] UserRoles table created';
@@ -136,7 +160,7 @@ BEGIN
         ChangedBy NVARCHAR(255) NOT NULL,
         ClientIP NVARCHAR(100),
         Justification NVARCHAR(500),
-        ChangedAt DATETIME2 DEFAULT GETDATE()
+        ChangedAt DATETIME2 DEFAULT GETUTCDATE()
     );
 
     PRINT '   [SUCCESS] RoleAssignmentAudit table created';

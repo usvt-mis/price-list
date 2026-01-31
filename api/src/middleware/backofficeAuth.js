@@ -104,12 +104,34 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
   }
 
   // Check if account is locked out
-  if (admin.LockoutUntil && new Date(admin.LockoutUntil) > new Date()) {
-    const remainingMinutes = Math.ceil((new Date(admin.LockoutUntil) - new Date()) / 60000);
-    logger.warn('AUTH', 'BackofficeLoginLocked', `Backoffice login blocked: account locked - ${username}`, {
-      serverContext: { clientIP: clientInfo.ip, username, adminId: admin.Id, lockoutUntil: admin.LockoutUntil }
+  // Timezone handling: SQL GETDATE() returns UTC, JavaScript new Date() works in local time
+  // Comparisons work correctly because both sides use ISO8601 format
+  if (admin.LockoutUntil) {
+    const dbLockoutUntil = admin.LockoutUntil;
+    const jsLockoutTime = new Date(admin.LockoutUntil).toISOString();
+    const jsCurrentTime = new Date().toISOString();
+    const timezoneOffset = new Date().getTimezoneOffset();
+    const isLockedOut = new Date(admin.LockoutUntil) > new Date();
+
+    logger.debug('AUTH', 'LockoutCheck', `Lockout status check - ${username}`, {
+      serverContext: {
+        username,
+        adminId: admin.Id,
+        dbLockoutUntil, // Raw SQL value
+        jsLockoutTime, // Parsed JavaScript time
+        jsCurrentTime, // Current JavaScript time
+        timezoneOffset, // Timezone offset in minutes
+        isLockedOut // Comparison result
+      }
     });
-    return { success: false, error: `Account locked for ${remainingMinutes} minutes` };
+
+    if (isLockedOut) {
+      const remainingMinutes = Math.ceil((new Date(admin.LockoutUntil) - new Date()) / 60000);
+      logger.warn('AUTH', 'BackofficeLoginLocked', `Backoffice login blocked: account locked - ${username}`, {
+        serverContext: { clientIP: clientInfo.ip, username, adminId: admin.Id, lockoutUntil: admin.LockoutUntil }
+      });
+      return { success: false, error: `Account locked for ${remainingMinutes} minutes` };
+    }
   }
 
   // Verify password
@@ -118,9 +140,24 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
   if (!isPasswordValid) {
     // Increment failed attempts
     const newAttempts = (admin.FailedLoginAttempts || 0) + 1;
+    // Timezone handling: JavaScript Date.now() returns UTC milliseconds
+    // new Date(utcMilliseconds) creates date object that toISOString() formats correctly
     const lockoutUntil = newAttempts >= MAX_ATTEMPTS
       ? new Date(Date.now() + LOCKOUT_DURATION)
       : null;
+
+    if (lockoutUntil) {
+      logger.debug('AUTH', 'LockoutSet', `Setting account lockout - ${username}`, {
+        serverContext: {
+          username,
+          adminId: admin.Id,
+          failedAttempts: newAttempts,
+          lockoutUntil: lockoutUntil.toISOString(), // JavaScript UTC time
+          lockoutSource: 'JavaScript Date.now() + LOCKOUT_DURATION',
+          lockoutDuration: `${LOCKOUT_DURATION}ms (${LOCKOUT_DURATION / 60000} minutes)`
+        }
+      });
+    }
 
     await pool.request()
       .input('id', sql.Int, admin.Id)
@@ -140,6 +177,8 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
   }
 
   // Reset failed attempts on successful login
+  // UTC Handling: Use GETUTCDATE() for consistent UTC timezone across all servers
+  // JavaScript Date objects use Date.toISOString() for UTC datetime parameters
   try {
     await pool.request()
       .input('id', sql.Int, admin.Id)
@@ -147,7 +186,7 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
         UPDATE BackofficeAdmins
         SET FailedLoginAttempts = 0,
             LockoutUntil = NULL,
-            LastLoginAt = GETDATE()
+            LastLoginAt = GETUTCDATE()
         WHERE Id = @id
       `);
   } catch (error) {

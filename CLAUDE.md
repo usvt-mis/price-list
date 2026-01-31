@@ -233,6 +233,7 @@ The application implements a 4-tier role system:
 - `DELETE /api/backoffice/users/{email}/role` - Remove user role (sets to NoRole)
 - `GET /api/backoffice/audit-log?email={query}` - View role change audit history with optional email filter
 - `GET /api/backoffice/repair?secret={secret}` - Diagnose and repair backoffice database schema (creates missing tables and admin account)
+- `GET /api/backoffice/timezone-check` - Diagnostic endpoint to check timezone configuration (returns database and JavaScript timezone information)
 
 **Auth Middleware Helpers:**
 - `getUserEffectiveRole(user)` - Get role from DB or Azure AD, returns 'Executive', 'Sales', or 'NoRole'
@@ -251,6 +252,7 @@ The application implements a 4-tier role system:
 - Token has no `exp` claim - only expires when user manually clicks logout
 - Client relies solely on server-side JWT validation
 - **Note**: BackofficeSessions database table is deprecated - authentication uses pure JWT (signature verification provides sufficient security)
+- **UTC Timezone**: All database timestamps use `GETUTCDATE()` for consistent UTC timezone across all servers; JavaScript uses `Date.toISOString()` for UTC datetime parameters
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence, admin accounts, locked/disabled accounts
@@ -258,7 +260,9 @@ The application implements a 4-tier role system:
 - `database/fix_backoffice_sessions_clientip.sql` - Fix "Failed to create session" error by expanding ClientIP column to NVARCHAR(100)
 - `database/ensure_backoffice_schema.sql` - Create all missing backoffice tables (comprehensive schema setup)
 - `database/create_backoffice_sessions.sql` - Create only the BackofficeSessions table (deprecated - kept for historical purposes)
+- `database/diagnostics_timezone.sql` - Timezone diagnostics (server offset, column analysis, lockout status comparison)
 - `database/diagnostics_logs.sql` - Collection of diagnostic queries for application logs (recent errors, user activity, performance, etc.)
+- `database/migrations/migrate_to_utc.sql` - Idempotent migration script to convert existing timestamps from local time to UTC
 
 **Application Logging:**
 - Logger utility (`api/src/utils/logger.js`) provides async buffered logging with graceful fallback to console

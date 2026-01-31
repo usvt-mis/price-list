@@ -1,6 +1,10 @@
 -- ============================================
 -- Quick Fixes for Backoffice Login Issues
 -- ============================================
+--
+-- NOTE: All timestamp comparisons now use UTC (GETUTCDATE())
+-- to match the application's timezone convention
+-- ============================================
 
 -- FIX 1: Unlock all locked accounts
 UPDATE BackofficeAdmins
@@ -20,7 +24,7 @@ PRINT '';
 
 -- FIX 3: Clear expired sessions
 DELETE FROM BackofficeSessions
-WHERE ExpiresAt < GETDATE();
+WHERE ExpiresAt < GETUTCDATE();
 
 PRINT 'FIXED: Expired sessions cleared';
 PRINT '';

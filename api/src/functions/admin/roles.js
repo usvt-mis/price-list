@@ -123,11 +123,13 @@ app.http("admin-roles-assign", {
           USING (VALUES (@email, @role, @assignedBy)) AS source (Email, Role, AssignedBy)
           ON target.Email = source.Email
           WHEN MATCHED THEN
-            UPDATE SET Role = source.Role, AssignedBy = source.AssignedBy, AssignedAt = GETDATE()
+            UPDATE SET Role = source.Role, AssignedBy = source.AssignedBy, AssignedAt = GETUTCDATE()
           WHEN NOT MATCHED THEN
             INSERT (Email, Role, AssignedBy)
             VALUES (source.Email, source.Role, source.AssignedBy);
         `);
+      // UTC Handling: Use GETUTCDATE() for consistent UTC timezone across all servers
+      // JavaScript Date objects use Date.toISOString() for UTC datetime parameters
 
       timer.stop('API', 'RoleAssigned', `Role ${role} assigned to ${email} by ${userEmail}`, {
         userEmail,

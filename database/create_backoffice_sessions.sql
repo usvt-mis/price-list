@@ -7,6 +7,10 @@
 -- This script is provided for historical/backwards compatibility only.
 -- See api/src/middleware/backofficeAuth.js for current implementation.
 -- ============================================
+--
+-- NOTE: All timestamp defaults use UTC (GETUTCDATE())
+-- to match the application's timezone convention
+-- ============================================
 
 PRINT '===========================================';
 PRINT 'CREATING BackofficeSessions TABLE';
@@ -33,7 +37,7 @@ BEGIN
         ExpiresAt DATETIME2 NOT NULL,
         ClientIP NVARCHAR(100),
         UserAgent NVARCHAR(255),
-        CreatedAt DATETIME2 DEFAULT GETDATE(),
+        CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
         FOREIGN KEY (AdminId) REFERENCES BackofficeAdmins(Id)
     );
 

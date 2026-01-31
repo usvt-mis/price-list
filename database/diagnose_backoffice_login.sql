@@ -2,6 +2,10 @@
 -- Backoffice Login Diagnostic Script
 -- Run this to diagnose login issues
 -- ============================================
+--
+-- NOTE: All timestamp comparisons now use UTC (GETUTCDATE())
+-- to match the application's timezone convention
+-- ============================================
 
 PRINT '===========================================';
 PRINT 'BACKOFFICE LOGIN DIAGNOSTIC';
@@ -45,7 +49,7 @@ BEGIN
 
     -- Show active sessions
     DECLARE @SessionCount INT;
-    SELECT @SessionCount = COUNT(*) FROM BackofficeSessions WHERE ExpiresAt > GETDATE();
+    SELECT @SessionCount = COUNT(*) FROM BackofficeSessions WHERE ExpiresAt > GETUTCDATE();
     PRINT '   Active sessions: ' + CAST(@SessionCount AS NVARCHAR(10));
 END
 ELSE
@@ -88,13 +92,13 @@ PRINT '';
 PRINT '5. Checking for locked accounts...';
 DECLARE @LockedCount INT;
 SELECT @LockedCount = COUNT(*) FROM BackofficeAdmins
-WHERE LockoutUntil IS NOT NULL AND LockoutUntil > GETDATE();
+WHERE LockoutUntil IS NOT NULL AND LockoutUntil > GETUTCDATE();
 
 IF @LockedCount > 0
 BEGIN
     PRINT '   [WARNING] Found ' + CAST(@LockedCount AS NVARCHAR(10)) + ' locked account(s)';
     SELECT Username, LockoutUntil FROM BackofficeAdmins
-    WHERE LockoutUntil IS NOT NULL AND LockoutUntil > GETDATE();
+    WHERE LockoutUntil IS NOT NULL AND LockoutUntil > GETUTCDATE();
     PRINT '   --> FIX: Run database/fix_backoffice_issues.sql';
 END
 ELSE
