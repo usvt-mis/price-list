@@ -68,7 +68,8 @@ The Price List Calculator computes total cost based on three components:
 - Azure Functions v4 (Node.js)
 - SQL Server database
 - HTTP API endpoints for data access
-- Azure Entra ID (Azure AD) authentication via Static Web Apps Easy Auth
+- Azure Entra ID (Azure AD) authentication via Static Web Apps Easy Auth for main app
+- Custom JWT authentication for backoffice admin (bypasses Azure AD via route exception)
 - Auth middleware with role-based access control support
 
 ## Database Schema
@@ -210,7 +211,7 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/adm/logs/purge` | DELETE | Purge logs older than X days | Executive only |
 | `/api/adm/logs/health` | GET | System health check (database, log stats, performance) | Executive only |
 | `/api/adm/logs/purge/manual` | POST | Manually trigger log archival | Executive only |
-| `/api/backoffice/login` | POST | Backoffice admin login (JWT token) | No (separate auth) |
+| `/api/backoffice/login` | POST | Backoffice admin login (JWT token) | No (bypasses Azure AD via route exception) |
 | `/api/backoffice/logout` | POST | Backoffice admin logout | Backoffice JWT |
 | `/api/backoffice/users` | GET | List users with optional role filtering (?role=Executive|Sales|Customer|NoRole) | Backoffice JWT |
 | `/api/backoffice/users/{email}/role` | POST | Assign/update user role (NoRole/Sales/Executive/Customer) | Backoffice JWT |
@@ -318,6 +319,7 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - Tenant ID: `2c64826f-cc97-46b5-85a9-0685f81334e0`
 - Auth state managed via `/.auth/me` endpoint
 - Set `BACKOFFICE_JWT_SECRET` environment variable for custom JWT secret (optional)
+- **Route Exception**: `/api/backoffice/*` routes have `allowedRoles: ["anonymous"]` to bypass Azure AD authentication, enabling backoffice's custom JWT authentication to work independently
 
 ### Debugging
 

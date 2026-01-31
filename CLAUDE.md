@@ -136,6 +136,7 @@ The `.vscode/launch.json` configuration supports debugging:
   - Username/password authentication (no Azure AD)
   - No navigation links to main calculator
   - Uses same `/api/backoffice/*` endpoints for data management
+  - **Route Exception**: `/api/backoffice/*` routes bypass Azure AD authentication via `staticwebapp.config.json` (allows custom JWT auth to work independently)
   - **3-Tab Layout**: Executives, Sales, Customers tabs for role-specific user management
   - **Inline add forms**: Add users directly in each tab with real-time email validation
   - **Status indicators**: Active (logged in) vs Pending (awaiting login) based on FirstLoginAt/LastLoginAt
@@ -234,6 +235,8 @@ The application implements a 4-tier role system:
 - `GET /api/backoffice/audit-log?email={query}` - View role change audit history with optional email filter
 - `GET /api/backoffice/repair?secret={secret}` - Diagnose and repair backoffice database schema (creates missing tables and admin account)
 - `GET /api/backoffice/timezone-check` - Diagnostic endpoint to check timezone configuration (returns database and JavaScript timezone information)
+
+**Note**: `/api/backoffice/*` endpoints bypass Azure AD authentication via `staticwebapp.config.json` route exception (placed before generic `/api/*` route for first-match-wins priority). This allows backoffice's custom JWT authentication to work independently in production.
 
 **Auth Middleware Helpers:**
 - `getUserEffectiveRole(user)` - Get role from DB or Azure AD, returns 'Executive', 'Sales', or 'NoRole'
