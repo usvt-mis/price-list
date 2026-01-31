@@ -56,10 +56,14 @@ This skill **spawns existing agents** from `.claude/agents/` to gather diverse p
 
 | Domain | Agent | Expertise |
 |--------|-------|-----------|
-| UI/UX Improvements | Frontend Agent | Responsive design, component architecture, interactions |
+| UI/UX (Main Calculator) | Frontend Agent | Responsive design, component architecture, interactions |
+| UI/UX (Backoffice) | Backoffice Agent | Backoffice admin UI, role management, audit logs |
 | API & Data Access | Backend Agent | Azure Functions, endpoints, error handling |
+| Authentication & Security | Auth & Security Agent | Dual auth (Azure AD + JWT), rate limiting, security policies |
+| Logging & Monitoring | Logging & Monitoring Agent | Application logging, performance tracking, health checks |
 | Pricing Logic | Calculation Agent | Formulas, multipliers, commission, business logic |
-| Data Structure | Database Agent | Schema, queries, normalization, performance |
+| Data Structure | Database Agent | Schema, queries, normalization, diagnostic scripts |
+| Deployment | Deployment Agent | Azure deployment, CI/CD, configuration |
 | System Design | Architect Agent | Cross-layer architecture, technical decisions |
 | Implementation Planning | Planner Agent | Task breakdown, dependencies, sequencing |
 
@@ -79,6 +83,26 @@ Spawn in parallel:
 Synthesize results into organized categories
 ```
 
+**Frontend vs Backoffice example:**
+
+```
+User Request: "{/bs Ideas for improving the calculator UI"
+
+Relevant Domain: Frontend (main calculator only)
+
+Spawn:
+    └── Frontend Agent → "UI improvements for src/index.html"
+```
+
+```
+User Request: "{/bs Ideas for improving the backoffice admin UI"
+
+Relevant Domain: Backoffice (backoffice only)
+
+Spawn:
+    └── Backoffice Agent → "UI improvements for src/backoffice.html"
+```
+
 **Multi-domain example:**
 
 ```
@@ -91,6 +115,36 @@ Spawn in parallel:
     ├── Backend Agent → "API endpoints for CRUD operations on quotes"
     ├── Database Agent → "Schema for storing quotes, line items, metadata"
     └── Architect Agent → "Cross-layer design and consistency"
+
+Synthesize and present organized options
+```
+
+**Backoffice-specific example:**
+
+```
+User Request: "{/bs How can we improve the backoffice role management?"
+
+Relevant Domains: Backoffice + Backend + Auth & Security
+
+Spawn in parallel:
+    ├── Backoffice Agent → "UX improvements for role assignment UI"
+    ├── Backend Agent → "API endpoints for role CRUD operations"
+    └── Auth & Security Agent → "RBAC security considerations"
+
+Synthesize and present organized options
+```
+
+**Logging & monitoring example:**
+
+```
+User Request: "{/bs Ideas for better performance tracking"
+
+Relevant Domains: Logging & Monitoring + Backend + Database
+
+Spawn in parallel:
+    ├── Logging & Monitoring Agent → "Performance metrics and dashboards"
+    ├── Backend Agent → "API instrumentation and response tracking"
+    └── Database Agent → "Query performance optimization"
 
 Synthesize and present organized options
 ```
@@ -126,10 +180,14 @@ Synthesize and present organized options
 Orchestrator Agent (Coordinator)
     ├── Architect Agent (Technical Lead)
     └── Planner Agent (Implementation Lead)
-        ├── Frontend Agent (UI Specialist)
+        ├── Frontend Agent (UI Specialist - Main Calculator)
+        ├── Backoffice Agent (UI Specialist - Backoffice Admin)
         ├── Backend Agent (API Specialist)
+        ├── Auth & Security Agent (Authentication & Security)
+        ├── Logging & Monitoring Agent (Logging & Performance)
         ├── Calculation Agent (Formula Specialist)
-        └── Database Agent (Data Specialist)
+        ├── Database Agent (Data Specialist)
+        └── Deployment Agent (Azure Deployment)
 ```
 
 ---
@@ -172,6 +230,10 @@ For each category, assess:
 {/bs Ideas for improving performance on large material searches}
 {/bs How could we add multi-currency support?}
 {/bs Explore options for exporting calculations to PDF}
+{/bs Ideas for improving backoffice role assignment workflow}
+{/bs How can we add better security to the backoffice login?}
+{/bs Brainstorm approaches for comprehensive audit logging}
+{/bs Ideas for real-time performance monitoring dashboards}
 ```
 
 ---
@@ -191,7 +253,7 @@ For each category, assess:
 4. **Be specific**: Next steps should name specific agents and suggest starting points
 
 ### When Recommending Next Steps
-1. **Match agent to domain**: Frontend for UI, Backend for API, etc.
+1. **Match agent to domain**: Frontend/Backoffice for UI, Backend for API, Auth & Security for authentication, Logging & Monitoring for logging, Calculation for formulas, Database for schema, Deployment for Azure
 2. **Simplify first**: Recommend quick wins before complex changes
 3. **Consider dependencies**: Some ideas require architectural work first
 4. **Invite Planner involvement**: For multi-step implementations, suggest Planner Agent
@@ -203,7 +265,7 @@ For each category, assess:
 When user invokes `{/bs [topic]}`:
 
 - [ ] Parse the brainstorming request and clarify the goal
-- [ ] Identify relevant domains (frontend, backend, calculation, database, architecture)
+- [ ] Identify relevant domains (frontend, backoffice, backend, auth & security, logging & monitoring, calculation, database, architecture)
 - [ ] Spawn appropriate agents in parallel to gather diverse perspectives
 - [ ] Collect all ideas from each agent
 - [ ] Organize ideas into thematic categories
