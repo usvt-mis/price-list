@@ -1,6 +1,6 @@
 const { app } = require("@azure/functions");
 const { sql, getPool } = require("../db");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, getUserEffectiveRole } = require("../middleware/auth");
 const logger = require("../utils/logger");
 
 // POST /api/saves - Create new saved calculation
@@ -16,7 +16,7 @@ app.http("createSavedCalculation", {
     try {
       const user = await requireAuth(req);
       const userEmail = user.userDetails;
-      const userRole = user.userRoles?.includes('PriceListExecutive') ? 'Executive' : 'Sales';
+      const userRole = await getUserEffectiveRole(user);
 
       scopedLogger.info('BUSINESS', 'CalculationSaveStart', `Creating saved calculation for user: ${userEmail}`, {
         userEmail,
@@ -174,7 +174,8 @@ app.http("listSavedCalculations", {
     try {
       const user = await requireAuth(req);
       const userEmail = user.userDetails;
-      const isExecutive = user.userRoles?.includes("PriceListExecutive");
+      const effectiveRole = await getUserEffectiveRole(user);
+      const isExecutive = effectiveRole === 'Executive';
 
       ctx.log(`User ${userEmail} listing saved calculations (Executive: ${isExecutive})`);
 
@@ -412,7 +413,8 @@ app.http("deleteSavedCalculation", {
       const user = await requireAuth(req);
       const saveId = Number(req.params.id);
       const userEmail = user.userDetails;
-      const userRoles = user.userRoles || [];
+      const effectiveRole = await getUserEffectiveRole(user);
+      const isExecutive = effectiveRole === 'Executive';
 
       if (!Number.isInteger(saveId)) {
         return { status: 400, jsonBody: { error: "Invalid save ID" } };
@@ -432,7 +434,6 @@ app.http("deleteSavedCalculation", {
       }
 
       // Check ownership or executive role
-      const isExecutive = userRoles.includes('PriceListExecutive');
       if (existing.recordset[0].CreatorEmail !== userEmail && !isExecutive) {
         return { status: 403, jsonBody: { error: "You can only delete your own records" } };
       }

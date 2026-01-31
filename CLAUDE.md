@@ -228,6 +228,14 @@ The application implements a 4-tier role system:
 **Version API Endpoint** (no authentication):
 - `GET /api/version` - Get application version from package.json (includes environment)
 
+**Saved Calculations API Endpoints** (Azure AD - role-based access):
+- `POST /api/saves` - Create new saved calculation (authenticated users only)
+- `GET /api/saves` - List saved calculations (Executive: all records, Sales: own records only, NoRole: 403 forbidden)
+- `GET /api/saves/{id}` - Get single saved calculation by ID
+- `PUT /api/saves/{id}` - Update saved calculation (creator only)
+- `DELETE /api/saves/{id}` - Delete saved calculation (creator or Executive only)
+- **Role Detection**: All endpoints use `getUserEffectiveRole()` to check UserRoles database table for role determination (Executive/Sales/NoRole)
+
 **Admin API Endpoints** (Azure AD - Executive only):
 - `GET /api/adm/roles` - List all role assignments
 - `POST /api/adm/roles/assign` - Assign Executive or Sales role to user
