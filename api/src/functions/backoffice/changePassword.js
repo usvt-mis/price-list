@@ -136,11 +136,9 @@ app.http("backoffice-change-password", {
       await pool.request()
         .input('id', sql.Int, admin.Id)
         .input('passwordHash', sql.NVarChar, newPasswordHash)
-        .input('lastPasswordChangeAt', sql.DateTime2, changedAt)
         .query(`
           UPDATE BackofficeAdmins
-          SET PasswordHash = @passwordHash,
-              LastPasswordChangeAt = @lastPasswordChangeAt
+          SET PasswordHash = @passwordHash
           WHERE Id = @id
         `);
 
@@ -172,7 +170,10 @@ app.http("backoffice-change-password", {
 
       ctx.error(e);
       logger.error('AUTH', 'PasswordChangeError', 'Password change error', {
-        error: e.message
+        error: e.message,
+        errorCode: e.code,
+        errorClass: e.name,
+        stackTrace: e.stack
       });
 
       return {

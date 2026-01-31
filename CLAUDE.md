@@ -255,6 +255,9 @@ The application implements a 4-tier role system:
 - `database/migrations/migrate_to_utc.sql` - Idempotent migration script to convert existing timestamps from local time to UTC
 - `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table for two-factor authentication
 
+**Maintenance Scripts:**
+- `api/scripts/reset-admin-password.js` - Reset backoffice admin password with proper bcrypt hash (usage: `node scripts/reset-admin-password.js [new-password]`)
+
 **Application Logging:**
 - Logger utility (`api/src/utils/logger.js`) provides async buffered logging with graceful fallback to console
 - Supports log levels: DEBUG, INFO, WARN, ERROR, CRITICAL

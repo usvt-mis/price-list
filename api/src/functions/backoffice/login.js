@@ -106,7 +106,19 @@ app.http("backoffice-login", {
       const email = azureUser.userDetails;
 
       // Step 2: Parse request body
-      const body = await req.json();
+      let body;
+      try {
+        body = await req.json();
+        logger.debug('AUTH', 'RequestBodyParsed', 'Request body parsed successfully', {
+          serverContext: { hasUsername: !!body.username, hasPassword: !!body.password }
+        });
+      } catch (parseError) {
+        logger.error('AUTH', 'RequestBodyParseError', 'Failed to parse request body', {
+          error: parseError.message,
+          errorClass: parseError.name
+        });
+        throw parseError;
+      }
       const { username, password, rememberMe = false } = body;
 
       if (!username) {
@@ -149,16 +161,39 @@ app.http("backoffice-login", {
       }
 
       // Step 4: Verify username and password against BackofficeAdmins table
-      const pool = await getPool();
+      let pool;
+      try {
+        pool = await getPool();
+        logger.debug('AUTH', 'DatabaseConnection', 'Database pool acquired successfully');
+      } catch (dbError) {
+        logger.error('AUTH', 'DatabaseConnectionError', 'Failed to get database pool', {
+          error: dbError.message,
+          errorClass: dbError.name
+        });
+        throw dbError;
+      }
 
-      const result = await pool.request()
-        .input('username', sql.NVarChar, username)
-        .query(`
-          SELECT Id, Username, Email, PasswordHash, IsActive,
-                 FailedLoginAttempts, LockoutUntil, LastPasswordChangeAt
-          FROM BackofficeAdmins
-          WHERE Username = @username
-        `);
+      let result;
+      try {
+        result = await pool.request()
+          .input('username', sql.NVarChar, username)
+          .query(`
+            SELECT Id, Username, Email, PasswordHash, IsActive,
+                   FailedLoginAttempts, LockoutUntil
+            FROM BackofficeAdmins
+            WHERE Username = @username
+          `);
+        logger.debug('AUTH', 'DatabaseQuery', 'Database query executed successfully', {
+          serverContext: { resultCount: result.recordset.length }
+        });
+      } catch (queryError) {
+        logger.error('AUTH', 'DatabaseQueryError', 'Database query failed', {
+          error: queryError.message,
+          errorClass: queryError.name,
+          serverContext: { username }
+        });
+        throw queryError;
+      }
 
       if (result.recordset.length === 0) {
         logger.warn('AUTH', 'BackofficeLoginFailed', `Backoffice login failed: username not found - ${username}`, {
@@ -210,7 +245,20 @@ app.http("backoffice-login", {
       }
 
       // Verify password using bcrypt
-      const isPasswordValid = await bcrypt.compare(password, admin.PasswordHash);
+      let isPasswordValid;
+      try {
+        isPasswordValid = await bcrypt.compare(password, admin.PasswordHash);
+        logger.debug('AUTH', 'PasswordCheck', 'Password verification completed', {
+          serverContext: { isValid: isPasswordValid, username }
+        });
+      } catch (bcryptError) {
+        logger.error('AUTH', 'PasswordCheckError', 'Password verification failed', {
+          error: bcryptError.message,
+          errorClass: bcryptError.name,
+          serverContext: { username, hasHash: !!admin.PasswordHash, hashLength: admin.PasswordHash?.length }
+        });
+        throw bcryptError;
+      }
 
       if (!isPasswordValid) {
         // Increment failed attempts
@@ -262,7 +310,20 @@ app.http("backoffice-login", {
       clearLoginAttempts(username);
 
       // Step 6: Generate JWT tokens
-      const tokens = generateTokens(admin.Email, rememberMe);
+      let tokens;
+      try {
+        tokens = generateTokens(admin.Email, rememberMe);
+        logger.debug('AUTH', 'TokenGeneration', 'JWT tokens generated successfully', {
+          serverContext: { email: admin.Email, rememberMe }
+        });
+      } catch (tokenError) {
+        logger.error('AUTH', 'TokenGenerationError', 'JWT token generation failed', {
+          error: tokenError.message,
+          errorClass: tokenError.name,
+          serverContext: { email: admin.Email }
+        });
+        throw tokenError;
+      }
 
       logger.info('AUTH', 'BackofficeLoginSuccess', `Backoffice login successful - ${username}`, {
         userEmail: admin.Email,
@@ -292,8 +353,12 @@ app.http("backoffice-login", {
       }
 
       ctx.error(e);
+      // Log detailed error information for debugging
       logger.error('AUTH', 'BackofficeLoginError', 'Backoffice login error', {
-        error: e.message
+        error: e.message,
+        errorCode: e.code,
+        errorClass: e.name,
+        stackTrace: e.stack
       });
 
       return {
