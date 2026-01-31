@@ -110,9 +110,9 @@ The `.vscode/launch.json` configuration supports debugging:
   - Columns: Email (PK), Role, AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt
   - FirstLoginAt: Tracks when user first logged in
   - LastLoginAt: Updated on every login for activity tracking
-- Backoffice admin: BackofficeAdmins, RoleAssignmentAudit (for admin role management)
+- Backoffice audit: RoleAssignmentAudit (tracks all role changes with ChangedBy email)
 - **Application Logging**: AppLogs (main logging), PerformanceMetrics (API performance), AppLogs_Archive (historical logs)
-- **Note**: BackofficeSessions table is deprecated; backoffice now uses pure JWT authentication
+- **Note**: BackofficeAdmins and BackofficeSessions tables are deprecated; backoffice now uses Azure AD authentication
 - Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`, `database/diagnostics_logs.sql` (log queries)
 - Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup), `database/create_app_logs.sql` (logging schema)
 - Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index)
@@ -133,15 +133,13 @@ The `.vscode/launch.json` configuration supports debugging:
   - Azure AD authentication for Executive/Sales users
 - **Backoffice Admin** (`backoffice.html`): Standalone backoffice interface with 3-tab role management
   - Separate HTML file with complete UI independence
-  - Username/password authentication (no Azure AD)
+  - **Azure AD authentication** (Executive role required via `PriceListExecutive`)
   - No navigation links to main calculator
-  - Uses same `/api/backoffice/*` endpoints for data management
-  - **Route Exception**: `/api/backoffice/*` routes bypass Azure AD authentication via `staticwebapp.config.json` (allows custom JWT auth to work independently)
+  - Uses `/api/backoffice/*` endpoints for data management
   - **3-Tab Layout**: Executives, Sales, Customers tabs for role-specific user management
   - **Inline add forms**: Add users directly in each tab with real-time email validation
   - **Status indicators**: Active (logged in) vs Pending (awaiting login) based on FirstLoginAt/LastLoginAt
   - **Count badges**: Each tab shows user count
-  - Version footer displays app version from `/api/version` endpoint
   - **Audit Log tab**: View role change history with search functionality
 
 ---
@@ -226,17 +224,13 @@ The application implements a 4-tier role system:
 - `GET /api/adm/logs/health` - System health check (database status, log statistics, performance metrics)
 - `POST /api/adm/logs/purge/manual` - Manually trigger log archival and cleanup
 
-**Backoffice Admin API Endpoints** (separate username/password auth):
-- `POST /api/backoffice/login` - Backoffice admin login (returns JWT token)
-- `POST /api/backoffice/logout` - Backoffice admin logout
+**Backoffice Admin API Endpoints** (Azure AD - Executive role required):
 - `GET /api/backoffice/users?role={Executive|Sales|Customer|NoRole}&page={page}&search={query}` - List users with optional role filtering (paginated, searchable)
 - `POST /api/backoffice/users/{email}/role` - Assign/update user role (NoRole/Sales/Executive/Customer)
 - `DELETE /api/backoffice/users/{email}/role` - Remove user role (sets to NoRole)
 - `GET /api/backoffice/audit-log?email={query}` - View role change audit history with optional email filter
-- `GET /api/backoffice/repair?secret={secret}` - Diagnose and repair backoffice database schema (creates missing tables and admin account)
+- `GET /api/backoffice/repair` - Diagnose and repair backoffice database schema (Executive only - creates missing UserRoles/RoleAssignmentAudit tables)
 - `GET /api/backoffice/timezone-check` - Diagnostic endpoint to check timezone configuration (returns database and JavaScript timezone information)
-
-**Note**: `/api/backoffice/*` endpoints bypass Azure AD authentication via `staticwebapp.config.json` route exception (placed before generic `/api/*` route for first-match-wins priority). This allows backoffice's custom JWT authentication to work independently in production.
 
 **Auth Middleware Helpers:**
 - `getUserEffectiveRole(user)` - Get role from DB or Azure AD, returns 'Executive', 'Sales', or 'NoRole'
@@ -244,25 +238,10 @@ The application implements a 4-tier role system:
 - `isSales(user)` - Check if user has Sales role
 - `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
 
-**Backoffice Auth Middleware:**
-- `verifyBackofficeCredentials(username, password, clientInfo)` - Verify credentials and generate JWT token
-- `verifyBackofficeToken(req)` - Verify JWT signature (no expiry check - tokens never expire)
-- `requireBackofficeAuth(req)` - Middleware to protect backoffice endpoints
-- `backofficeLogout(req)` - Logout handler (client clears sessionStorage)
-- Rate limiting: 5 failed attempts per 15 minutes per IP
-- Account lockout: 15 minutes after 5 failed attempts
-- **JWT tokens never expire** - "sign in forever" for single-admin convenience
-- Token has no `exp` claim - only expires when user manually clicks logout
-- Client relies solely on server-side JWT validation
-- **Note**: BackofficeSessions database table is deprecated - authentication uses pure JWT (signature verification provides sufficient security)
-- **UTC Timezone**: All database timestamps use `GETUTCDATE()` for consistent UTC timezone across all servers; JavaScript uses `Date.toISOString()` for UTC datetime parameters
-
 **Database Diagnostics:**
-- `database/diagnose_backoffice_login.sql` - Run to check table existence, admin accounts, locked/disabled accounts
-- `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions
-- `database/fix_backoffice_sessions_clientip.sql` - Fix "Failed to create session" error by expanding ClientIP column to NVARCHAR(100)
+- `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts (legacy - for JWT auth)
+- `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions (legacy)
 - `database/ensure_backoffice_schema.sql` - Create all missing backoffice tables (comprehensive schema setup)
-- `database/create_backoffice_sessions.sql` - Create only the BackofficeSessions table (deprecated - kept for historical purposes)
 - `database/diagnostics_timezone.sql` - Timezone diagnostics (server offset, column analysis, lockout status comparison)
 - `database/diagnostics_logs.sql` - Collection of diagnostic queries for application logs (recent errors, user activity, performance, etc.)
 - `database/migrations/migrate_to_utc.sql` - Idempotent migration script to convert existing timestamps from local time to UTC
@@ -278,16 +257,7 @@ The application implements a 4-tier role system:
 - Manual log purge endpoint: `POST /api/adm/logs/purge/manual` (Executive only)
 - Environment variables: `LOG_LEVEL`, `LOG_BUFFER_FLUSH_MS`, `LOG_BUFFER_SIZE`, `CIRCUIT_BREAKER_THRESHOLD`, etc.
 
-**Production Troubleshooting:**
-- See [Backoffice Production Setup Guide](docs/backoffice-production-setup.md) for diagnosing and fixing production login issues
-- Enhanced error logging in `api/src/middleware/backofficeAuth.js` captures SQL state, class, and server information
-
-**Admin Account Creation:**
-Admin accounts can be created directly via SQL:
-```sql
-INSERT INTO BackofficeAdmins (Username, PasswordHash, Role)
-VALUES ('admin', '<bcrypt_hash>', 'Executive');
-```
+**UTC Timezone**: All database timestamps use `GETUTCDATE()` for consistent UTC timezone across all servers; JavaScript uses `Date.toISOString()` for UTC datetime parameters
 
 ---
 

@@ -10,46 +10,30 @@
 <body class="bg-slate-50 text-slate-900">
   <div class="max-w-6xl mx-auto p-6 space-y-6">
 
-    <!-- Backoffice Login View -->
-    <div id="backofficeLoginView">
+    <!-- Access Denied View (shown to non-Executive users) -->
+    <div id="accessDeniedView" class="hidden">
       <div class="flex items-center justify-center min-h-[60vh]">
-        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4">
-          <!-- Logo/Icon -->
-          <div class="text-center mb-6">
-            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-              </svg>
-            </div>
-            <h1 class="text-2xl font-bold text-slate-900">Backoffice Admin</h1>
-            <p class="text-sm text-slate-500 mt-1">Sign in to manage user roles</p>
+        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+          <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
           </div>
+          <h1 class="text-2xl font-bold text-slate-900 mb-2">Access Denied</h1>
+          <p class="text-slate-600 mb-6">You must be an Executive to access the Backoffice Admin.</p>
+          <a href="/.auth/login/aad?post_login_redirect_uri=/backoffice" class="inline-block px-6 py-3 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition-colors">
+            Sign in with Azure AD
+          </a>
+        </div>
+      </div>
+    </div>
 
-          <!-- Login Form -->
-          <form id="backofficeLoginForm" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
-              <input id="backofficeUsername" type="text" required
-                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Enter your username">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
-              <input id="backofficePassword" type="password" required
-                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Enter your password">
-            </div>
-            <div id="backofficeLoginError" class="hidden text-sm text-red-600 bg-red-50 rounded-lg p-3"></div>
-            <button type="submit" id="backofficeLoginSubmitBtn"
-              class="w-full px-4 py-3 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2">
-              <span>Sign In</span>
-            </button>
-          </form>
-
-          <!-- Version Footer -->
-          <div class="mt-6 pt-4 border-t border-slate-200 text-center">
-            <p class="text-xs text-slate-500">Backoffice v<span id="appVersion">loading...</span></p>
-          </div>
+    <!-- Loading View -->
+    <div id="loadingView">
+      <div class="flex items-center justify-center min-h-[60vh]">
+        <div class="text-center">
+          <div class="animate-spin w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p class="text-slate-600">Checking permissions...</p>
         </div>
       </div>
     </div>
@@ -63,10 +47,10 @@
             <p class="text-sm text-slate-500">Manage user role assignments</p>
           </div>
           <div class="flex items-center gap-3">
-            <span id="backofficeAdminName" class="text-sm text-slate-600"></span>
-            <button id="backofficeLogoutBtn" class="px-4 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+            <span id="backofficeUserName" class="text-sm text-slate-600"></span>
+            <a href="/.auth/logout?post_logout_redirect_uri=/" class="px-4 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
               Logout
-            </button>
+            </a>
           </div>
         </div>
 
@@ -375,18 +359,12 @@
       const response = await fetch('/api/version');
       if (response.ok) {
         const data = await response.json();
-        const versionEl = el('appVersion');
-        if (versionEl) {
-          versionEl.textContent = data.version;
-        }
+        console.log('Backoffice version:', data.version);
       }
     } catch (error) {
       console.debug('Failed to fetch version:', error);
     }
   }
-
-  // Load version on page load
-  loadVersion();
 
   // ---------- Utility Functions ----------
 
@@ -422,33 +400,72 @@
   // Show view helper
   function showView(view) {
     // Hide all views
-    el('backofficeLoginView').classList.add('hidden');
+    el('loadingView').classList.add('hidden');
+    el('accessDeniedView').classList.add('hidden');
     el('backofficeDashboardView').classList.add('hidden');
 
     // Show requested view
-    if (view === 'backoffice-login') {
-      el('backofficeLoginView').classList.remove('hidden');
-    } else if (view === 'backoffice-dashboard') {
+    if (view === 'loading') {
+      el('loadingView').classList.remove('hidden');
+    } else if (view === 'access-denied') {
+      el('accessDeniedView').classList.remove('hidden');
+    } else if (view === 'dashboard') {
       el('backofficeDashboardView').classList.remove('hidden');
     }
   }
 
-  // ---------- Backoffice Auth and Dashboard ----------
+  // ---------- Azure AD Authentication ----------
 
-  // Backoffice auth state
+  // Check if running locally
+  const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  // Get user info from Azure AD
+  async function getUserInfo() {
+    if (isLocalDev) {
+      // Local development: return mock Executive user
+      return {
+        userDetails: 'Dev User',
+        userId: 'dev-user',
+        userRoles: ['PriceListExecutive', 'authenticated']
+      };
+    }
+
+    const response = await fetch('/.auth/me');
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.clientPrincipal;
+  }
+
+  // Check if user has Executive role
+  async function isExecutive() {
+    const user = await getUserInfo();
+    if (!user) return false;
+
+    // Check Azure AD role directly
+    if (user.userRoles?.includes('PriceListExecutive')) return true;
+
+    // Check database role via API
+    try {
+      const response = await fetch('/api/adm/roles/current');
+      if (response.ok) {
+        const data = await response.json();
+        return data.effectiveRole === 'Executive';
+      }
+    } catch (error) {
+      console.error('Failed to check role:', error);
+    }
+
+    return false;
+  }
+
+  // ---------- Backoffice State ----------
+
   let backofficeState = {
-    isAuthenticated: false,
-    isInitializing: false,  // Prevents race condition during login
-    admin: null,
-    token: null,
-    tokenExpiresAt: null,
-    currentTab: 'executives', // Default tab changed to 'executives'
+    currentTab: 'executives',
     currentPage: 1,
     pageSize: 50,
     totalPages: 0,
     currentEmail: null,
-    lastActivity: Date.now(),
-    idleCheckInterval: null,
     // Track page for each tab
     tabPages: {
       executives: 1,
@@ -460,249 +477,41 @@
       executives: [],
       sales: [],
       customers: []
-    },
-    // Track counts for badges
-    roleCounts: {
-      executive: 0,
-      sales: 0,
-      customer: 0
     }
   };
 
-  // Session timeout duration (8 hours of inactivity - matches token expiry)
-  const IDLE_TIMEOUT = 8 * 60 * 60 * 1000;
+  // ---------- Initialize Page ----------
 
-  // Reset activity timer on user interaction
-  function resetActivityTimer() {
-    if (backofficeState.isAuthenticated) {
-      backofficeState.lastActivity = Date.now();
-    }
-  }
-
-  // Track user activity for idle timeout
-  document.addEventListener('click', resetActivityTimer);
-  document.addEventListener('keypress', resetActivityTimer);
-  document.addEventListener('scroll', resetActivityTimer);
-  document.addEventListener('touchstart', resetActivityTimer);
-
-  // Check for idle timeout - DISABLED (tokens never expire)
-  // Idle timeout check removed since tokens have no expiry
-  // User must manually click logout to end session
-  function checkIdleTimeout() {
-    // No-op - tokens never expire
-    return;
-  }
-
-  // Start idle timeout check
-  function startIdleTimeoutCheck() {
-    if (backofficeState.idleCheckInterval) {
-      clearInterval(backofficeState.idleCheckInterval);
-    }
-    backofficeState.idleCheckInterval = setInterval(checkIdleTimeout, 60000); // Check every minute
-  }
-
-  // Stop idle timeout check
-  function stopIdleTimeoutCheck() {
-    if (backofficeState.idleCheckInterval) {
-      clearInterval(backofficeState.idleCheckInterval);
-      backofficeState.idleCheckInterval = null;
-    }
-  }
-
-  // Check for backoffice session on page load
-  function checkBackofficeSession() {
-    // Skip session check during initialization (prevents race condition)
-    if (backofficeState.isInitializing) {
-      console.log('[BACKOFFICE SESSION] Skipping check during initialization');
-      return true;
-    }
-
-    const token = sessionStorage.getItem('backofficeToken');
-    const admin = JSON.parse(sessionStorage.getItem('backofficeAdmin') || 'null');
-
-    // Add diagnostic logging
-    console.log('[BACKOFFICE SESSION] Checking session:', {
-      hasToken: !!token,
-      hasAdmin: !!admin,
-      note: 'Tokens never expire - sign in forever'
-    });
-
-    if (token && admin) {
-      // Token never expires - always valid
-      backofficeState.isAuthenticated = true;
-      backofficeState.admin = admin;
-      backofficeState.token = token;
-      backofficeState.tokenExpiresAt = null; // No expiry
-      backofficeState.lastActivity = Date.now();
-      startIdleTimeoutCheck(); // No-op since tokens don't expire
-      console.log('[BACKOFFICE SESSION] Session is valid (no expiry)');
-      return true;
-    }
-
-    console.log('[BACKOFFICE SESSION] No valid session found');
-    return false;
-  }
-
-  // Check if token is still valid (lightweight check without backend call)
-  function isTokenValid() {
-    // Tokens never expire - always valid if present
-    const isValid = !!backofficeState.token;
-    console.log('[BACKOFFICE TOKEN] Token validity check:', {
-      hasToken: !!backofficeState.token,
-      isValid: isValid,
-      note: 'Token never expires'
-    });
-    return isValid;
-  }
-
-  // Backoffice login form handler
-  el('backofficeLoginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = el('backofficeUsername').value.trim();
-    const password = el('backofficePassword').value;
-    const errorEl = el('backofficeLoginError');
-    const submitBtn = el('backofficeLoginSubmitBtn');
-
-    // Clear previous error
-    errorEl.classList.add('hidden');
-
-    // Disable submit button
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="animate-spin">⌛</span> Signing in...';
+  async function initializePage() {
+    showView('loading');
 
     try {
-      const response = await fetch('/api/backoffice/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
+      // Check if user is Executive
+      const executive = await isExecutive();
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store in sessionStorage FIRST (synchronous)
-        // This prevents race condition where hash change handler reads before storage completes
-        sessionStorage.setItem('backofficeToken', data.accessToken);
-        sessionStorage.setItem('backofficeAdmin', JSON.stringify(data.admin));
-
-        // Set session state AFTER sessionStorage is populated
-        backofficeState.isAuthenticated = true;
-        backofficeState.admin = data.admin;
-        backofficeState.token = data.accessToken;
-        backofficeState.lastActivity = Date.now();
-        backofficeState.tokenExpiresAt = null; // No expiry - sign in forever
-        // No need to store expiry since tokens never expire
-
-        // Set initialization flag to prevent race condition
-        backofficeState.isInitializing = true;
-
-        // Start idle timeout check (no-op since tokens don't expire)
-        startIdleTimeoutCheck();
-
-        // Navigate to dashboard - let hash change handler handle navigation
-        // This prevents race condition from double dashboard call
-        window.location.hash = '#dashboard';
-
-        // Clear initialization flag after navigation completes
-        setTimeout(() => {
-          backofficeState.isInitializing = false;
-          console.log('[BACKOFFICE LOGIN] Initialization complete');
-        }, 100);
-      } else {
-        // Show error
-        errorEl.textContent = data.error || 'Login failed';
-        errorEl.classList.remove('hidden');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span>Sign In</span>';
+      if (!executive) {
+        showView('access-denied');
+        return;
       }
+
+      // Load version and show dashboard
+      await loadVersion();
+
+      // Get user info for display
+      const user = await getUserInfo();
+      if (el('backofficeUserName')) {
+        el('backofficeUserName').textContent = `Logged in as ${user.userDetails}`;
+      }
+
+      showView('dashboard');
+      showBackofficeTab('executives');
     } catch (error) {
-      console.error('Backoffice login error:', error);
-      errorEl.textContent = 'Network error. Please try again.';
-      errorEl.classList.remove('hidden');
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '<span>Sign In</span>';
+      console.error('Initialization error:', error);
+      showView('access-denied');
     }
-  });
-
-  // Backoffice logout handler
-  async function backofficeLogout() {
-    try {
-      await fetch('/api/backoffice/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${backofficeState.token}`
-        }
-      });
-    } catch (e) {
-      console.error('Logout error:', e);
-    }
-
-    // Stop idle timeout check
-    stopIdleTimeoutCheck();
-
-    // Clear session
-    sessionStorage.removeItem('backofficeToken');
-    sessionStorage.removeItem('backofficeAdmin');
-    sessionStorage.removeItem('backofficeTokenExpiresAt');
-    backofficeState = {
-      isAuthenticated: false,
-      isInitializing: false,  // Reset initialization flag on logout
-      admin: null,
-      token: null,
-      tokenExpiresAt: null,
-      currentTab: 'executives', // Changed from 'users'
-      currentPage: 1,
-      pageSize: 50,
-      totalPages: 0,
-      currentEmail: null,
-      lastActivity: Date.now(),
-      idleCheckInterval: null,
-      tabPages: {
-        executives: 1,
-        sales: 1,
-        customers: 1
-      },
-      tabUsers: {
-        executives: [],
-        sales: [],
-        customers: []
-      },
-      roleCounts: {
-        executive: 0,
-        sales: 0,
-        customer: 0
-      }
-    };
-
-    // Reset login button state (if showing login form)
-    const submitBtn = el('backofficeLoginSubmitBtn');
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '<span>Sign In</span>';
-    }
-
-    // Navigate to login
-    window.location.hash = '#login';
-    showView('backoffice-login');
   }
 
-  el('backofficeLogoutBtn').addEventListener('click', backofficeLogout);
-
-  // Show backoffice dashboard
-  function showBackofficeDashboard() {
-    if (!backofficeState.isAuthenticated) {
-      showView('backoffice-login');
-      return;
-    }
-
-    // Update admin name
-    if (el('backofficeAdminName')) {
-      el('backofficeAdminName').textContent = `Logged in as ${backofficeState.admin.username}`;
-    }
-
-    showView('backoffice-dashboard');
-    showBackofficeTab('executives'); // Changed from 'users' to 'executives'
-  }
+  // ---------- Backoffice Tab Management ----------
 
   // Show backoffice tab (executives, sales, customers, or audit)
   window.showBackofficeTab = function(tab) {
@@ -712,7 +521,7 @@
     const tabButtons = ['backofficeTabExecutives', 'backofficeTabSales', 'backofficeTabCustomers', 'backofficeTabAudit'];
     tabButtons.forEach(btnId => {
       if (el(btnId)) {
-        el(btnId).classList.remove('bg-white', 'shadow-sm', 'text-purple-600');
+        el(btnId).classList.remove('bg-white', 'shadow-sm', 'text-purple-600', 'text-blue-600', 'text-gray-600');
         el(btnId).classList.add('text-slate-600', 'hover:text-slate-900');
       }
     });
@@ -765,6 +574,8 @@
     }
   };
 
+  // ---------- API Calls (No Authorization Headers - Azure AD handles it) ----------
+
   // Load users for a specific role tab
   async function loadRoleTabUsers(role, tabSuffix, page = null) {
     // Use saved page for this tab if not provided
@@ -781,24 +592,16 @@
       const url = new URL('/api/backoffice/users', window.location.origin);
       url.searchParams.set('page', page);
       url.searchParams.set('pageSize', pageSize);
-      url.searchParams.set('role', role); // Filter by role
+      url.searchParams.set('role', role);
       if (search) url.searchParams.set('search', search);
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          'Authorization': `Bearer ${backofficeState.token}`
-        }
-      });
+      // No Authorization header needed - Azure AD adds it automatically
+      const response = await fetch(url.toString());
 
       if (!response.ok) {
-        if (response.status === 401) {
-          const submitBtn = el('backofficeLoginSubmitBtn');
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span>Sign In</span>';
-          }
-          backofficeLogout();
-          showNotification('Authentication required. Please sign in to continue.');
+        if (response.status === 401 || response.status === 403) {
+          showNotification('Access denied. Executive role required.', 'error');
+          setTimeout(() => window.location.href = '/.auth/login/aad?post_login_redirect_uri=/backoffice', 2000);
           return;
         }
         throw new Error(`Failed to load ${role} users`);
@@ -1062,16 +865,15 @@
       const response = await fetch(`/api/backoffice/users/${encodeURIComponent(email)}/role`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${backofficeState.token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ role })
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          backofficeLogout();
-          showNotification('Authentication required. Please sign in to continue.', 'error');
+        if (response.status === 401 || response.status === 403) {
+          showNotification('Access denied. Executive role required.', 'error');
+          setTimeout(() => window.location.href = '/.auth/login/aad?post_login_redirect_uri=/backoffice', 2000);
           return;
         }
         const data = await response.json();
@@ -1085,7 +887,7 @@
       emailInput.classList.remove('border-green-500', 'border-red-500');
 
       showNotification(`Added ${email} to ${role}`, 'success');
-      loadRoleTabUsers(role, tabSuffix, 1); // Reload to show new user
+      loadRoleTabUsers(role, tabSuffix, 1);
     } catch (error) {
       console.error('Failed to add user:', error);
       showNotification(error.message || 'Failed to add user', 'error');
@@ -1105,16 +907,13 @@
         }
       }
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          'Authorization': `Bearer ${backofficeState.token}`
-        }
-      });
+      // No Authorization header needed - Azure AD adds it automatically
+      const response = await fetch(url.toString());
 
       if (!response.ok) {
-        if (response.status === 401) {
-          backofficeLogout();
-          showNotification('Authentication required. Please sign in to continue.');
+        if (response.status === 401 || response.status === 403) {
+          showNotification('Access denied. Executive role required.', 'error');
+          setTimeout(() => window.location.href = '/.auth/login/aad?post_login_redirect_uri=/backoffice', 2000);
           return;
         }
         throw new Error('Failed to load audit log');
@@ -1204,16 +1003,15 @@
       const response = await fetch(`/api/backoffice/users/${encodeURIComponent(backofficeState.currentEmail)}/role`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${backofficeState.token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ role: selectedRole })
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          backofficeLogout();
-          showNotification('Authentication required. Please sign in to continue.');
+        if (response.status === 401 || response.status === 403) {
+          showNotification('Access denied. Executive role required.', 'error');
+          setTimeout(() => window.location.href = '/.auth/login/aad?post_login_redirect_uri=/backoffice', 2000);
           return;
         }
         throw new Error('Failed to update role');
@@ -1227,14 +1025,13 @@
         'Executive': ['Executive', 'executive'],
         'Sales': ['Sales', 'sales'],
         'Customer': ['Customer', 'customer'],
-        'NoRole': null // NoRole users don't appear in any tab
+        'NoRole': null
       };
 
       const mapping = roleToTabMap[selectedRole];
       if (mapping) {
         loadRoleTabUsers(mapping[0], mapping[1], 1);
       } else {
-        // If changed to NoRole, refresh current tab to remove the user
         const currentTab = backofficeState.currentTab;
         if (currentTab === 'executives') loadRoleTabUsers('Executive', 'executive', backofficeState.tabPages.executives);
         else if (currentTab === 'sales') loadRoleTabUsers('Sales', 'sales', backofficeState.tabPages.sales);
@@ -1258,35 +1055,8 @@
     }
   });
 
-  // Hash-based routing for backoffice
-  function handleHashChange() {
-    const hash = window.location.hash;
-
-    if (hash === '#login' || hash === '' || hash === '#') {
-      if (checkBackofficeSession()) {
-        window.location.hash = '#dashboard';
-      } else {
-        // Only show login if not already initializing a session
-        if (!backofficeState.isInitializing) {
-          showView('backoffice-login');
-        }
-      }
-    } else if (hash === '#dashboard') {
-      if (checkBackofficeSession()) {
-        showBackofficeDashboard();
-      } else {
-        window.location.hash = '#login';
-      }
-    }
-  }
-
-  // Listen for hash changes
-  window.addEventListener('hashchange', handleHashChange);
-
-  // Check hash on page load (after init)
-  setTimeout(() => {
-    handleHashChange();
-  }, 100);
+  // Initialize on page load
+  initializePage();
 </script>
 </body>
 </html>

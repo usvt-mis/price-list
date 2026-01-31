@@ -19,7 +19,7 @@ The Price List Calculator computes total cost based on three components:
   - Responsive design with mobile-friendly material panel (card-based layout on screens < 768px)
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
   - Separate HTML file with complete UI independence
-  - Username/password authentication (no Azure AD dependency)
+  - **Azure AD authentication** (Executive role required via `PriceListExecutive`)
   - No navigation links to main calculator
   - **3-Tab Role Management**: Executives, Sales, Customers tabs for pre-assigning roles by email
   - **Inline Add Forms**: Add users directly in each tab with real-time validation
@@ -68,8 +68,7 @@ The Price List Calculator computes total cost based on three components:
 - Azure Functions v4 (Node.js)
 - SQL Server database
 - HTTP API endpoints for data access
-- Azure Entra ID (Azure AD) authentication via Static Web Apps Easy Auth for main app
-- Custom JWT authentication for backoffice admin (bypasses Azure AD via route exception)
+- Azure Entra ID (Azure AD) authentication via Static Web Apps Easy Auth (for both main app and backoffice)
 - Auth middleware with role-based access control support
 
 ## Database Schema
@@ -88,65 +87,14 @@ The application expects these SQL Server tables:
 | `SavedCalculationMaterials` | Materials associated with each saved calculation |
 | `RunNumberSequence` | Tracks year-based sequential run numbers |
 | `UserRoles` | Role assignments (Email, Role [Executive/Sales/Customer/NULL], AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt) |
-| `BackofficeAdmins` | Backoffice admin accounts with username/password hash and lockout tracking |
+| `BackofficeAdmins` | Backoffice admin accounts (deprecated - migrated to Azure AD auth) |
 | `BackofficeSessions` | JWT session tokens for backoffice authentication (deprecated) |
 | `RoleAssignmentAudit` | Immutable audit log of all role changes |
 | `AppLogs` | Application logging (errors, events, performance tracking) |
 | `PerformanceMetrics` | API performance metrics (response times, database latency) |
 | `AppLogs_Archive` | Historical application logs (archived after 30 days) |
 
-**Note**: Run the `database/ensure_backoffice_schema.sql` script to create all required backoffice tables including role management and backoffice admin tables. Run `database/create_app_logs.sql` to create the application logging tables. Default backoffice credentials: `admin` / `Admin123!` (change immediately after first login).
-
-### Admin Account Management
-
-Admin accounts can be created and managed directly via SQL:
-
-```sql
--- Create a new admin account (generate bcrypt hash first)
-INSERT INTO BackofficeAdmins (Username, PasswordHash, Email, Role, IsActive)
-VALUES ('admin', '<bcrypt_hash>', 'admin@example.com', 'Executive', 1);
-
--- Unlock a locked account
-UPDATE BackofficeAdmins
-SET LockoutUntil = NULL, FailedLoginAttempts = 0
-WHERE Username = 'admin';
-
--- Enable a disabled account
-UPDATE BackofficeAdmins
-SET IsActive = 1
-WHERE Username = 'admin';
-
--- Reset password (generate new bcrypt hash first)
-UPDATE BackofficeAdmins
-SET PasswordHash = '<new_bcrypt_hash>'
-WHERE Username = 'admin';
-```
-
-### Database Diagnostics
-
-If experiencing backoffice login issues, you can use either of these methods:
-
-**Method 1: API Repair Endpoint (Recommended)**
-```bash
-curl "https://your-api-url/api/backoffice/repair?secret=repair-backoffice-secret"
-```
-
-This will automatically:
-- Check and create missing tables (BackofficeAdmins, BackofficeSessions, UserRoles, RoleAssignmentAudit)
-- Create default admin account if missing (username: `admin`, password: `BackofficeAdmin2026!`)
-- Return detailed diagnostic results
-
-Override the default secret by setting `BACKOFFICE_REPAIR_SECRET` environment variable.
-
-**Method 2: SQL Diagnostic Script**
-```bash
-sqlcmd -S <server> -d <database> -U <user> -P <password> -i database/diagnose_backoffice_login.sql
-```
-
-This will check:
-- Table existence (BackofficeAdmins, BackofficeSessions, UserRoles, RoleAssignmentAudit)
-- Admin account status (locked, disabled, active)
-- Failed login attempts
+**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Backoffice uses Azure AD authentication - no admin account setup needed.
 
 **Method 3: Run Migration Scripts**
 ```bash
@@ -211,14 +159,12 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/adm/logs/purge` | DELETE | Purge logs older than X days | Executive only |
 | `/api/adm/logs/health` | GET | System health check (database, log stats, performance) | Executive only |
 | `/api/adm/logs/purge/manual` | POST | Manually trigger log archival | Executive only |
-| `/api/backoffice/login` | POST | Backoffice admin login (JWT token) | No (bypasses Azure AD via route exception) |
-| `/api/backoffice/logout` | POST | Backoffice admin logout | Backoffice JWT |
-| `/api/backoffice/users` | GET | List users with optional role filtering (?role=Executive|Sales|Customer|NoRole) | Backoffice JWT |
-| `/api/backoffice/users/{email}/role` | POST | Assign/update user role (NoRole/Sales/Executive/Customer) | Backoffice JWT |
-| `/api/backoffice/users/{email}/role` | DELETE | Remove user role | Backoffice JWT |
-| `/api/backoffice/audit-log` | GET | View role change audit history (?email=search for filtering) | Backoffice JWT |
-| `/api/backoffice/repair?secret={secret}` | GET | Diagnose and repair backoffice database schema (creates missing tables and admin account) | No (secret required) |
-| `/api/backoffice/timezone-check` | GET | Diagnostic endpoint for timezone configuration (returns database and JavaScript timezone info) | Backoffice JWT |
+| `/api/backoffice/users` | GET | List users with optional role filtering (?role=Executive|Sales|Customer|NoRole) | Executive only |
+| `/api/backoffice/users/{email}/role` | POST | Assign/update user role (NoRole/Sales/Executive/Customer) | Executive only |
+| `/api/backoffice/users/{email}/role` | DELETE | Remove user role | Executive only |
+| `/api/backoffice/audit-log` | GET | View role change audit history (?email=search for filtering) | Executive only |
+| `/api/backoffice/repair` | GET | Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit tables) | Executive only |
+| `/api/backoffice/timezone-check` | GET | Diagnostic endpoint for timezone configuration (returns database and JavaScript timezone info) | Executive only |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/.auth/me` | GET | Get current user info from Static Web Apps | No |
 
@@ -267,15 +213,15 @@ Open `src/index.html` in a browser to use the application.
 
 ### Authentication
 
-The application uses **Azure Entra ID (Azure AD)** authentication via Static Web Apps Easy Auth for main app users, and **separate username/password authentication** for backoffice administrators.
+The application uses **Azure Entra ID (Azure AD)** authentication via Static Web Apps Easy Auth for all users (both main app and backoffice).
 
 **Main App Features:**
 - Login: `/.auth/login/aad` (Azure native authentication endpoint)
 - Logout: `/.auth/logout?post_logout_redirect_uri=/` (Azure native logout endpoint)
-- All API endpoints (except `/api/ping`, `/api/shared/{token}`, and backoffice endpoints) require authentication
+- All API endpoints (except `/api/ping`, `/api/shared/{token}`) require authentication
 - View mode (Executive/Sales) is automatically determined from user's role - no manual switching
 - Role-based access control with 4 tiers:
-  - **Executive**: Full access to costs, can view all records, can assign Executive roles to others
+  - **Executive**: Full access to costs, can view all records, can assign Executive roles to others via backoffice
   - **Sales**: Restricted view (no cost data), can only see own records
   - **Customer**: Pre-registered for shared link access only (view-only, no login required)
   - **NoRole**: New authenticated users default to NoRole; see "awaiting assignment" screen, no access to calculator or records
@@ -293,12 +239,9 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - Use `/api/adm/diagnostics/registration` (Executive only) to verify user registration health
 
 **Backoffice Admin Features:**
-- Separate interface at `/backoffice` (username/password, not Azure AD)
+- Separate interface at `/backoffice` (Azure AD - Executive role required)
 - Clean URL routing: `/backoffice` and `/backoffice/` both serve `backoffice.html`
-- JWT-based session management with **no token expiry** - "sign in forever"
-- Session only ends when user manually clicks logout
-- Rate limiting: 5 failed login attempts per 15 minutes per IP
-- Account lockout: 15 minutes after 5 failed attempts
+- Requires `PriceListExecutive` Azure AD role to access
 - Can assign NoRole, Sales, Executive, or Customer roles to Azure AD users
 - Full audit log of all role changes
 - Complete UI separation from main calculator (no navigation links)
@@ -318,8 +261,6 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - Azure AD app registration configured in `staticwebapp.config.json`
 - Tenant ID: `2c64826f-cc97-46b5-85a9-0685f81334e0`
 - Auth state managed via `/.auth/me` endpoint
-- Set `BACKOFFICE_JWT_SECRET` environment variable for custom JWT secret (optional)
-- **Route Exception**: `/api/backoffice/*` routes have `allowedRoles: ["anonymous"]` to bypass Azure AD authentication, enabling backoffice's custom JWT authentication to work independently
 
 ### Debugging
 
@@ -352,7 +293,7 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │       └── index.js
 │   │   ├── middleware/
 │   │   │   ├── auth.js
-│   │   │   ├── backofficeAuth.js
+│   │   │   ├── backofficeAuth.js (deprecated - no longer used)
 │   │   │   ├── correlationId.js
 │   │   │   └── requestLogger.js
 │   │   ├── utils/
