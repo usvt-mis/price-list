@@ -133,9 +133,9 @@ The `.vscode/launch.json` configuration supports debugging:
   - Azure AD authentication for Executive/Sales users
 - **Backoffice Admin** (`backoffice.html`): Standalone backoffice interface with 3-tab role management
   - Separate HTML file with complete UI independence
-  - **Two-factor authentication**: Azure AD identity verification + admin password
-  - **Step 1**: Azure AD authenticates identity (no role filtering)
-  - **Step 2**: Admin password from BackofficeAdmins table
+  - **Two-factor authentication**: Azure AD identity verification + username/password credentials
+  - **Step 1**: Azure AD authenticates identity (no role filtering, auto-redirect)
+  - **Step 2**: Username + password from BackofficeAdmins table (username: `admin`, password from database)
   - **8-hour access tokens** with optional 7-day "Remember Me" refresh tokens
   - No navigation links to main calculator
   - Uses `/api/backoffice/*` endpoints for data management
@@ -228,8 +228,8 @@ The application implements a 4-tier role system:
 - `GET /api/adm/logs/health` - System health check (database status, log statistics, performance metrics)
 - `POST /api/adm/logs/purge/manual` - Manually trigger log archival and cleanup
 
-**Backoffice Admin API Endpoints** (Two-factor auth - Azure AD identity + admin password):
-- `POST /api/backoffice/login` - Step 2 of two-factor auth: verify admin password (returns 8-hour access token + optional 7-day refresh token)
+**Backoffice Admin API Endpoints** (Two-factor auth - Azure AD identity + username/password):
+- `POST /api/backoffice/login` - Step 2 of two-factor auth: verify username and password (request body: `{username, password, rememberMe}`; returns 8-hour access token + optional 7-day refresh token)
 - `POST /api/backoffice/refresh` - Refresh access token using refresh token
 - `POST /api/backoffice/logout` - Logout and clear session
 - `POST /api/backoffice/change-password` - Self-service password change

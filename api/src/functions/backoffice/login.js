@@ -70,10 +70,11 @@ function getClientIP(req) {
 
 /**
  * POST /api/backoffice/login
- * Step 2 of two-factor auth: Verify admin password after Azure AD identity check
+ * Step 2 of two-factor auth: Verify admin username and password after Azure AD identity check
  *
  * Request body:
  * {
+ *   "username": "admin",
  *   "password": "admin-password-here",
  *   "rememberMe": true  // optional, extends refresh token to 7 days
  * }
@@ -87,8 +88,8 @@ function getClientIP(req) {
  *
  * Response (error):
  * {
- *   "error": "Invalid password",
- *   "code": "INVALID_PASSWORD",
+ *   "error": "Invalid credentials",
+ *   "code": "INVALID_CREDENTIALS",
  *   "remainingAttempts": 3
  * }
  */
@@ -100,13 +101,23 @@ app.http("backoffice-login", {
     const clientIP = getClientIP(req);
 
     try {
-      // Step 1: Get Azure AD user identity (no role check)
+      // Step 1: Get Azure AD user identity (no role check - just confirms identity)
       const azureUser = await requireAzureAuth(req);
       const email = azureUser.userDetails;
 
       // Step 2: Parse request body
       const body = await req.json();
-      const { password, rememberMe = false } = body;
+      const { username, password, rememberMe = false } = body;
+
+      if (!username) {
+        return {
+          status: 400,
+          jsonBody: {
+            error: "Username is required",
+            code: "MISSING_USERNAME"
+          }
+        };
+      }
 
       if (!password) {
         return {
@@ -118,11 +129,11 @@ app.http("backoffice-login", {
         };
       }
 
-      // Step 3: Check rate limit
-      const rateLimit = checkRateLimit(email);
+      // Step 3: Check rate limit (use username as identifier for rate limiting)
+      const rateLimit = checkRateLimit(username);
       if (!rateLimit.allowed) {
-        logger.warn('AUTH', 'RateLimitExceeded', `Backoffice login rate limit exceeded: ${email}`, {
-          serverContext: { clientIP, email }
+        logger.warn('AUTH', 'RateLimitExceeded', `Backoffice login rate limit exceeded: ${username}`, {
+          serverContext: { clientIP, username }
         });
         return {
           status: 429,
@@ -137,27 +148,27 @@ app.http("backoffice-login", {
         };
       }
 
-      // Step 4: Verify password against BackofficeAdmins table
+      // Step 4: Verify username and password against BackofficeAdmins table
       const pool = await getPool();
 
       const result = await pool.request()
-        .input('email', sql.NVarChar, email)
+        .input('username', sql.NVarChar, username)
         .query(`
           SELECT Id, Username, Email, PasswordHash, IsActive,
                  FailedLoginAttempts, LockoutUntil, LastPasswordChangeAt
           FROM BackofficeAdmins
-          WHERE Email = @email
+          WHERE Username = @username
         `);
 
       if (result.recordset.length === 0) {
-        logger.warn('AUTH', 'BackofficeLoginFailed', `Backoffice login failed: email not found - ${email}`, {
-          serverContext: { clientIP, email }
+        logger.warn('AUTH', 'BackofficeLoginFailed', `Backoffice login failed: username not found - ${username}`, {
+          serverContext: { clientIP, username }
         });
         return {
           status: 401,
           jsonBody: {
             error: "Invalid credentials",
-            code: "INVALID_PASSWORD",
+            code: "INVALID_CREDENTIALS",
             remainingAttempts: rateLimit.remainingAttempts - 1
           }
         };
@@ -167,8 +178,8 @@ app.http("backoffice-login", {
 
       // Check if account is active
       if (!admin.IsActive) {
-        logger.warn('AUTH', 'AccountDisabled', `Backoffice login failed: account disabled - ${email}`, {
-          serverContext: { clientIP, email, adminId: admin.Id }
+        logger.warn('AUTH', 'AccountDisabled', `Backoffice login failed: account disabled - ${username}`, {
+          serverContext: { clientIP, username, adminId: admin.Id }
         });
         return {
           status: 403,
@@ -184,8 +195,8 @@ app.http("backoffice-login", {
         const isLockedOut = new Date(admin.LockoutUntil) > new Date();
         if (isLockedOut) {
           const remainingMinutes = Math.ceil((new Date(admin.LockoutUntil) - new Date()) / 60000);
-          logger.warn('AUTH', 'AccountLocked', `Backoffice login blocked: account locked - ${email}`, {
-            serverContext: { clientIP, email, adminId: admin.Id, lockoutUntil: admin.LockoutUntil }
+          logger.warn('AUTH', 'AccountLocked', `Backoffice login blocked: account locked - ${username}`, {
+            serverContext: { clientIP, username, adminId: admin.Id, lockoutUntil: admin.LockoutUntil }
           });
           return {
             status: 429,
@@ -220,17 +231,17 @@ app.http("backoffice-login", {
           `);
 
         // Record rate limit attempt
-        recordFailedAttempt(email);
+        recordFailedAttempt(username);
 
-        logger.warn('AUTH', 'BackofficeLoginFailed', `Backoffice login failed: invalid password - ${email}`, {
-          serverContext: { clientIP, email, adminId: admin.Id, failedAttempts: newAttempts }
+        logger.warn('AUTH', 'BackofficeLoginFailed', `Backoffice login failed: invalid password - ${username}`, {
+          serverContext: { clientIP, username, adminId: admin.Id, failedAttempts: newAttempts }
         });
 
         return {
           status: 401,
           jsonBody: {
-            error: "Invalid password",
-            code: "INVALID_PASSWORD",
+            error: "Invalid credentials",
+            code: "INVALID_CREDENTIALS",
             remainingAttempts: MAX_ATTEMPTS - newAttempts
           }
         };
@@ -248,15 +259,15 @@ app.http("backoffice-login", {
         `);
 
       // Clear rate limit attempts
-      clearLoginAttempts(email);
+      clearLoginAttempts(username);
 
       // Step 6: Generate JWT tokens
-      const tokens = generateTokens(email, rememberMe);
+      const tokens = generateTokens(admin.Email, rememberMe);
 
-      logger.info('AUTH', 'BackofficeLoginSuccess', `Backoffice login successful - ${email}`, {
-        userEmail: email,
+      logger.info('AUTH', 'BackofficeLoginSuccess', `Backoffice login successful - ${username}`, {
+        userEmail: admin.Email,
         userRole: 'Backoffice',
-        serverContext: { clientIP, adminId: admin.Id, rememberMe }
+        serverContext: { clientIP, username, adminId: admin.Id, rememberMe }
       });
 
       // Step 7: Return tokens
