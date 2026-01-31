@@ -142,6 +142,7 @@ async function requireAuth(req) {
 /**
  * Ensure user is registered in UserRoles table with retry logic
  * Handles transient database errors (timeouts, connection issues)
+ * Also tracks login timestamps (FirstLoginAt, LastLoginAt)
  * @param {object} user - User object with userDetails (email)
  * @param {number} maxAttempts - Maximum number of retry attempts
  */
@@ -153,23 +154,52 @@ async function ensureUserRegisteredWithRetry(user, maxAttempts = 3) {
     try {
       const pool = await getPool();
 
-      // Check if user exists
+      // Check if user exists and get current state
       const result = await pool.request()
         .input('email', sql.NVarChar, user.userDetails)
-        .query('SELECT Role FROM UserRoles WHERE Email = @email');
+        .query('SELECT Role, FirstLoginAt FROM UserRoles WHERE Email = @email');
+
+      const now = new Date().toISOString();
 
       if (result.recordset.length > 0) {
-        return; // Already registered
+        // User exists - update login timestamps
+        const firstLoginAt = result.recordset[0].FirstLoginAt;
+
+        if (firstLoginAt) {
+          // Not first login - just update LastLoginAt
+          await pool.request()
+            .input('email', sql.NVarChar, user.userDetails)
+            .input('lastLoginAt', sql.DateTime2, now)
+            .query(`
+              UPDATE UserRoles
+              SET LastLoginAt = @lastLoginAt
+              WHERE Email = @email
+            `);
+        } else {
+          // First login - set both timestamps
+          await pool.request()
+            .input('email', sql.NVarChar, user.userDetails)
+            .input('firstLoginAt', sql.DateTime2, now)
+            .input('lastLoginAt', sql.DateTime2, now)
+            .query(`
+              UPDATE UserRoles
+              SET FirstLoginAt = @firstLoginAt, LastLoginAt = @lastLoginAt
+              WHERE Email = @email
+            `);
+        }
+        return; // Already registered and timestamps updated
       }
 
-      // Insert new user with NoRole (NULL)
+      // Insert new user with NoRole (NULL) and first login timestamp
       await pool.request()
         .input('email', sql.NVarChar, user.userDetails)
         .input('role', sql.NVarChar, null)
         .input('assignedBy', sql.NVarChar, 'System')
+        .input('firstLoginAt', sql.DateTime2, now)
+        .input('lastLoginAt', sql.DateTime2, now)
         .query(`
-          INSERT INTO UserRoles (Email, Role, AssignedBy)
-          VALUES (@email, @role, @assignedBy)
+          INSERT INTO UserRoles (Email, Role, AssignedBy, FirstLoginAt, LastLoginAt)
+          VALUES (@email, @role, @assignedBy, @firstLoginAt, @lastLoginAt)
         `);
 
       return; // Success
@@ -224,20 +254,48 @@ function requireRole(...allowedRoles) {
  * Returns 'Executive', 'Sales', or 'NoRole' based on database assignment
  * Falls back to checking Azure AD roles if no database entry
  * Auto-creates UserRoles entry with Role = NULL (NoRole) on first login
+ * Also tracks login timestamps (FirstLoginAt, LastLoginAt)
  */
 async function getUserEffectiveRole(user) {
   const { getPool } = require('../db');
   const sql = require('mssql');
+  const now = new Date().toISOString();
 
   try {
     // Check UserRoles table first (database override)
     const pool = await getPool();
     const result = await pool.request()
       .input('email', sql.NVarChar, user.userDetails)
-      .query('SELECT Role FROM UserRoles WHERE Email = @email');
+      .query('SELECT Role, FirstLoginAt FROM UserRoles WHERE Email = @email');
 
     if (result.recordset.length > 0) {
       const role = result.recordset[0].Role;
+      const firstLoginAt = result.recordset[0].FirstLoginAt;
+
+      // Update login timestamps
+      if (firstLoginAt) {
+        // Not first login - just update LastLoginAt
+        await pool.request()
+          .input('email', sql.NVarChar, user.userDetails)
+          .input('lastLoginAt', sql.DateTime2, now)
+          .query(`
+            UPDATE UserRoles
+            SET LastLoginAt = @lastLoginAt
+            WHERE Email = @email
+          `);
+      } else {
+        // First login - set both timestamps
+        await pool.request()
+          .input('email', sql.NVarChar, user.userDetails)
+          .input('firstLoginAt', sql.DateTime2, now)
+          .input('lastLoginAt', sql.DateTime2, now)
+          .query(`
+            UPDATE UserRoles
+            SET FirstLoginAt = @firstLoginAt, LastLoginAt = @lastLoginAt
+            WHERE Email = @email
+          `);
+      }
+
       // NULL in database means NoRole
       if (role === null) {
         return 'NoRole';
@@ -245,15 +303,17 @@ async function getUserEffectiveRole(user) {
       return role; // 'Executive' or 'Sales'
     }
 
-    // No entry found - auto-create with NoRole (NULL) for new users
+    // No entry found - auto-create with NoRole (NULL) for new users with login timestamps
     try {
       await pool.request()
         .input('email', sql.NVarChar, user.userDetails)
         .input('role', sql.NVarChar, null) // NULL = NoRole
         .input('assignedBy', sql.NVarChar, 'System')
+        .input('firstLoginAt', sql.DateTime2, now)
+        .input('lastLoginAt', sql.DateTime2, now)
         .query(`
-          INSERT INTO UserRoles (Email, Role, AssignedBy)
-          VALUES (@email, @role, @assignedBy)
+          INSERT INTO UserRoles (Email, Role, AssignedBy, FirstLoginAt, LastLoginAt)
+          VALUES (@email, @role, @assignedBy, @firstLoginAt, @lastLoginAt)
         `);
     } catch (insertError) {
       // More robust duplicate key detection

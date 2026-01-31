@@ -71,24 +71,44 @@
         </div>
 
         <!-- Tabs -->
-        <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1 mb-6">
-          <button onclick="showBackofficeTab('users')" id="backofficeTabUsers" class="px-4 py-2 text-sm font-medium rounded-md transition-colors">
-            User Management
+        <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1 mb-6 overflow-x-auto">
+          <button onclick="showBackofficeTab('executives')" id="backofficeTabExecutives" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
+            Executives <span id="executiveCount" class="ml-1 px-2 py-0.5 text-xs bg-purple-200 text-purple-700 rounded-full">0</span>
           </button>
-          <button onclick="showBackofficeTab('audit')" id="backofficeTabAudit" class="px-4 py-2 text-sm font-medium rounded-md transition-colors">
+          <button onclick="showBackofficeTab('sales')" id="backofficeTabSales" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
+            Sales <span id="salesCount" class="ml-1 px-2 py-0.5 text-xs bg-blue-200 text-blue-700 rounded-full">0</span>
+          </button>
+          <button onclick="showBackofficeTab('customers')" id="backofficeTabCustomers" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
+            Customers <span id="customerCount" class="ml-1 px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded-full">0</span>
+          </button>
+          <button onclick="showBackofficeTab('audit')" id="backofficeTabAudit" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
             Audit Log
           </button>
         </div>
 
-        <!-- User Management Tab -->
-        <div id="backofficeUsersTab" class="hidden">
-          <!-- Search and Filters -->
+        <!-- Executives Tab -->
+        <div id="backofficeExecutivesTab" class="hidden">
+          <!-- Inline Add Form -->
+          <div class="flex flex-col sm:flex-row gap-3 mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <div class="flex-1">
+              <input id="executiveEmailInput" type="email" placeholder="Enter email to add to Executives..."
+                class="w-full px-4 py-2 rounded-lg border border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="executiveValidation" class="text-sm"></span>
+              <button id="executiveAddBtn" class="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm hover:bg-purple-700 transition-colors">
+                Add
+              </button>
+            </div>
+          </div>
+
+          <!-- Search -->
           <div class="flex flex-col sm:flex-row gap-4 mb-6">
             <div class="flex-1">
-              <input id="backofficeUserSearch" type="text" placeholder="Search by email..."
+              <input id="executiveSearch" type="text" placeholder="Search Executives by email..."
                 class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
             </div>
-            <button id="backofficeSearchBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 transition-colors">
+            <button id="executiveSearchBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 transition-colors">
               Search
             </button>
           </div>
@@ -99,28 +119,157 @@
               <thead class="bg-slate-50 text-slate-600">
                 <tr>
                   <th class="text-left px-4 py-3 font-medium">Email</th>
-                  <th class="text-left px-4 py-3 font-medium">Current Role</th>
+                  <th class="text-left px-4 py-3 font-medium">Status</th>
                   <th class="text-left px-4 py-3 font-medium">Assigned By</th>
-                  <th class="text-left px-4 py-3 font-medium">Assigned At</th>
+                  <th class="text-left px-4 py-3 font-medium">Last Login</th>
                   <th class="text-left px-4 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
-              <tbody id="backofficeUsersList" class="divide-y divide-slate-100">
+              <tbody id="executiveUsersList" class="divide-y divide-slate-100">
                 <tr>
-                  <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading users...</td>
+                  <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading Executives...</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <!-- Pagination -->
-          <div id="backofficePagination" class="flex items-center justify-between mt-4">
-            <span id="backofficePaginationInfo" class="text-sm text-slate-600"></span>
+          <div id="executivePagination" class="flex items-center justify-between mt-4">
+            <span id="executivePaginationInfo" class="text-sm text-slate-600"></span>
             <div class="flex items-center gap-2">
-              <button id="backofficePrevPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
+              <button id="executivePrevPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
                 Previous
               </button>
-              <button id="backofficeNextPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
+              <button id="executiveNextPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sales Tab -->
+        <div id="backofficeSalesTab" class="hidden">
+          <!-- Inline Add Form -->
+          <div class="flex flex-col sm:flex-row gap-3 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div class="flex-1">
+              <input id="salesEmailInput" type="email" placeholder="Enter email to add to Sales..."
+                class="w-full px-4 py-2 rounded-lg border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="salesValidation" class="text-sm"></span>
+              <button id="salesAddBtn" class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors">
+                Add
+              </button>
+            </div>
+          </div>
+
+          <!-- Search -->
+          <div class="flex flex-col sm:flex-row gap-4 mb-6">
+            <div class="flex-1">
+              <input id="salesSearch" type="text" placeholder="Search Sales by email..."
+                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <button id="salesSearchBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 transition-colors">
+              Search
+            </button>
+          </div>
+
+          <!-- Users Table -->
+          <div class="border border-slate-200 rounded-lg overflow-hidden">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="text-left px-4 py-3 font-medium">Email</th>
+                  <th class="text-left px-4 py-3 font-medium">Status</th>
+                  <th class="text-left px-4 py-3 font-medium">Assigned By</th>
+                  <th class="text-left px-4 py-3 font-medium">Last Login</th>
+                  <th class="text-left px-4 py-3 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="salesUsersList" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading Sales...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div id="salesPagination" class="flex items-center justify-between mt-4">
+            <span id="salesPaginationInfo" class="text-sm text-slate-600"></span>
+            <div class="flex items-center gap-2">
+              <button id="salesPrevPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
+                Previous
+              </button>
+              <button id="salesNextPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Customers Tab -->
+        <div id="backofficeCustomersTab" class="hidden">
+          <!-- Info Banner -->
+          <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <p class="text-sm text-gray-600">
+              <strong>Customers</strong> are pre-registered users who can only view calculations shared via link. They do not have login access.
+            </p>
+          </div>
+
+          <!-- Inline Add Form -->
+          <div class="flex flex-col sm:flex-row gap-3 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="flex-1">
+              <input id="customerEmailInput" type="email" placeholder="Enter email to add to Customers..."
+                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent">
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="customerValidation" class="text-sm"></span>
+              <button id="customerAddBtn" class="px-4 py-2 rounded-lg bg-gray-600 text-white text-sm hover:bg-gray-700 transition-colors">
+                Add
+              </button>
+            </div>
+          </div>
+
+          <!-- Search -->
+          <div class="flex flex-col sm:flex-row gap-4 mb-6">
+            <div class="flex-1">
+              <input id="customerSearch" type="text" placeholder="Search Customers by email..."
+                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent">
+            </div>
+            <button id="customerSearchBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 transition-colors">
+              Search
+            </button>
+          </div>
+
+          <!-- Users Table -->
+          <div class="border border-slate-200 rounded-lg overflow-hidden">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="text-left px-4 py-3 font-medium">Email</th>
+                  <th class="text-left px-4 py-3 font-medium">Status</th>
+                  <th class="text-left px-4 py-3 font-medium">Assigned By</th>
+                  <th class="text-left px-4 py-3 font-medium">Assigned At</th>
+                  <th class="text-left px-4 py-3 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="customerUsersList" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading Customers...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div id="customerPagination" class="flex items-center justify-between mt-4">
+            <span id="customerPaginationInfo" class="text-sm text-slate-600"></span>
+            <div class="flex items-center gap-2">
+              <button id="customerPrevPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
+                Previous
+              </button>
+              <button id="customerNextPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
                 Next
               </button>
             </div>
@@ -129,6 +278,18 @@
 
         <!-- Audit Log Tab -->
         <div id="backofficeAuditTab" class="hidden">
+          <!-- Search -->
+          <div class="flex flex-col sm:flex-row gap-4 mb-6">
+            <div class="flex-1">
+              <input id="auditSearch" type="text" placeholder="Search audit log by email..."
+                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            </div>
+            <button id="auditSearchBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 transition-colors">
+              Search
+            </button>
+          </div>
+
+          <!-- Audit Table -->
           <div class="border border-slate-200 rounded-lg overflow-hidden">
             <table class="w-full text-sm">
               <thead class="bg-slate-50 text-slate-600">
@@ -162,7 +323,7 @@
             <input type="radio" name="roleChange" value="NoRole" class="text-purple-600">
             <div>
               <div class="font-medium text-slate-900">Unassigned</div>
-              <div class="text-xs text-slate-500">No access to calculator</div>
+              <div class="text-xs text-slate-500">No access - "Awaiting Assignment"</div>
             </div>
           </label>
           <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
@@ -177,6 +338,13 @@
             <div>
               <div class="font-medium text-slate-900">Executive</div>
               <div class="text-xs text-slate-500">Full access including admin features</div>
+            </div>
+          </label>
+          <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+            <input type="radio" name="roleChange" value="Customer" class="text-gray-600">
+            <div>
+              <div class="font-medium text-slate-900">Customer</div>
+              <div class="text-xs text-slate-500">Pre-registered for shared links only</div>
             </div>
           </label>
         </div>
@@ -278,13 +446,31 @@
     admin: null,
     token: null,
     tokenExpiresAt: null,
-    currentTab: 'users',
+    currentTab: 'executives', // Default tab changed to 'executives'
     currentPage: 1,
     pageSize: 50,
     totalPages: 0,
     currentEmail: null,
     lastActivity: Date.now(),
-    idleCheckInterval: null
+    idleCheckInterval: null,
+    // Track page for each tab
+    tabPages: {
+      executives: 1,
+      sales: 1,
+      customers: 1
+    },
+    // Track existing users for duplicate detection
+    tabUsers: {
+      executives: [],
+      sales: [],
+      customers: []
+    },
+    // Track counts for badges
+    roleCounts: {
+      executive: 0,
+      sales: 0,
+      customer: 0
+    }
   };
 
   // Session timeout duration (8 hours of inactivity - matches token expiry)
@@ -519,13 +705,28 @@
       admin: null,
       token: null,
       tokenExpiresAt: null,
-      currentTab: 'users',
+      currentTab: 'executives', // Changed from 'users'
       currentPage: 1,
       pageSize: 50,
       totalPages: 0,
       currentEmail: null,
       lastActivity: Date.now(),
-      idleCheckInterval: null
+      idleCheckInterval: null,
+      tabPages: {
+        executives: 1,
+        sales: 1,
+        customers: 1
+      },
+      tabUsers: {
+        executives: [],
+        sales: [],
+        customers: []
+      },
+      roleCounts: {
+        executive: 0,
+        sales: 0,
+        customer: 0
+      }
     };
 
     // Reset login button state (if showing login form)
@@ -555,46 +756,87 @@
     }
 
     showView('backoffice-dashboard');
-    showBackofficeTab('users');
+    showBackofficeTab('executives'); // Changed from 'users' to 'executives'
   }
 
-  // Show backoffice tab (users or audit)
+  // Show backoffice tab (executives, sales, customers, or audit)
   window.showBackofficeTab = function(tab) {
     backofficeState.currentTab = tab;
 
-    // Update tab buttons
-    el('backofficeTabUsers').classList.remove('bg-white', 'shadow-sm', 'text-purple-600');
-    el('backofficeTabUsers').classList.add('text-slate-600', 'hover:text-slate-900');
-    el('backofficeTabAudit').classList.remove('bg-white', 'shadow-sm', 'text-purple-600');
-    el('backofficeTabAudit').classList.add('text-slate-600', 'hover:text-slate-900');
+    // Reset all tab button styles
+    const tabButtons = ['backofficeTabExecutives', 'backofficeTabSales', 'backofficeTabCustomers', 'backofficeTabAudit'];
+    tabButtons.forEach(btnId => {
+      if (el(btnId)) {
+        el(btnId).classList.remove('bg-white', 'shadow-sm', 'text-purple-600');
+        el(btnId).classList.add('text-slate-600', 'hover:text-slate-900');
+      }
+    });
 
-    // Hide all tabs
-    el('backofficeUsersTab').classList.add('hidden');
-    el('backofficeAuditTab').classList.add('hidden');
+    // Hide all tab contents
+    const tabContents = ['backofficeExecutivesTab', 'backofficeSalesTab', 'backofficeCustomersTab', 'backofficeAuditTab'];
+    tabContents.forEach(contentId => {
+      if (el(contentId)) {
+        el(contentId).classList.add('hidden');
+      }
+    });
 
-    if (tab === 'users') {
-      el('backofficeTabUsers').classList.add('bg-white', 'shadow-sm', 'text-purple-600');
-      el('backofficeTabUsers').classList.remove('text-slate-600', 'hover:text-slate-900');
-      el('backofficeUsersTab').classList.remove('hidden');
-      loadBackofficeUsers();
+    // Show selected tab
+    if (tab === 'executives') {
+      if (el('backofficeTabExecutives')) {
+        el('backofficeTabExecutives').classList.add('bg-white', 'shadow-sm', 'text-purple-600');
+        el('backofficeTabExecutives').classList.remove('text-slate-600', 'hover:text-slate-900');
+      }
+      if (el('backofficeExecutivesTab')) {
+        el('backofficeExecutivesTab').classList.remove('hidden');
+      }
+      loadRoleTabUsers('Executive', 'executive');
+    } else if (tab === 'sales') {
+      if (el('backofficeTabSales')) {
+        el('backofficeTabSales').classList.add('bg-white', 'shadow-sm', 'text-blue-600');
+        el('backofficeTabSales').classList.remove('text-slate-600', 'hover:text-slate-900');
+      }
+      if (el('backofficeSalesTab')) {
+        el('backofficeSalesTab').classList.remove('hidden');
+      }
+      loadRoleTabUsers('Sales', 'sales');
+    } else if (tab === 'customers') {
+      if (el('backofficeTabCustomers')) {
+        el('backofficeTabCustomers').classList.add('bg-white', 'shadow-sm', 'text-gray-600');
+        el('backofficeTabCustomers').classList.remove('text-slate-600', 'hover:text-slate-900');
+      }
+      if (el('backofficeCustomersTab')) {
+        el('backofficeCustomersTab').classList.remove('hidden');
+      }
+      loadRoleTabUsers('Customer', 'customer');
     } else if (tab === 'audit') {
-      el('backofficeTabAudit').classList.add('bg-white', 'shadow-sm', 'text-purple-600');
-      el('backofficeTabAudit').classList.remove('text-slate-600', 'hover:text-slate-900');
-      el('backofficeAuditTab').classList.remove('hidden');
+      if (el('backofficeTabAudit')) {
+        el('backofficeTabAudit').classList.add('bg-white', 'shadow-sm', 'text-purple-600');
+        el('backofficeTabAudit').classList.remove('text-slate-600', 'hover:text-slate-900');
+      }
+      if (el('backofficeAuditTab')) {
+        el('backofficeAuditTab').classList.remove('hidden');
+      }
       loadBackofficeAuditLog();
     }
   };
 
-  // Load backoffice users list
-  async function loadBackofficeUsers(page = 1) {
-    const search = el('backofficeUserSearch')?.value || '';
+  // Load users for a specific role tab
+  async function loadRoleTabUsers(role, tabSuffix, page = null) {
+    // Use saved page for this tab if not provided
+    if (page === null) {
+      page = backofficeState.tabPages[tabSuffix] || 1;
+    }
+    backofficeState.tabPages[tabSuffix] = page;
+
+    const searchInput = el(`${tabSuffix}Search`);
+    const search = searchInput?.value || '';
     const pageSize = backofficeState.pageSize;
-    const offset = (page - 1) * pageSize;
 
     try {
       const url = new URL('/api/backoffice/users', window.location.origin);
       url.searchParams.set('page', page);
       url.searchParams.set('pageSize', pageSize);
+      url.searchParams.set('role', role); // Filter by role
       if (search) url.searchParams.set('search', search);
 
       const response = await fetch(url.toString(), {
@@ -605,7 +847,6 @@
 
       if (!response.ok) {
         if (response.status === 401) {
-          // Session expired - reset button state before logout
           const submitBtn = el('backofficeLoginSubmitBtn');
           if (submitBtn) {
             submitBtn.disabled = false;
@@ -615,100 +856,311 @@
           showNotification('Session expired. Please log in again.');
           return;
         }
-        throw new Error('Failed to load users');
+        throw new Error(`Failed to load ${role} users`);
       }
 
       const data = await response.json();
-      backofficeState.currentPage = page;
-      backofficeState.totalPages = data.pagination.totalPages;
+      backofficeState.tabPages[tabSuffix] = page;
+      backofficeState.tabUsers[tabSuffix] = data.users;
 
-      renderBackofficeUsers(data.users);
-      updateBackofficePagination(data.pagination);
+      // Update count badge
+      const countBadge = el(`${tabSuffix}Count`);
+      if (countBadge) {
+        countBadge.textContent = data.pagination.total;
+      }
+
+      renderRoleTabUsers(data.users, tabSuffix, role);
+      updateRoleTabPagination(data.pagination, tabSuffix);
     } catch (error) {
-      console.error('Failed to load users:', error);
-      el('backofficeUsersList').innerHTML = `
-        <tr>
-          <td colspan="5" class="px-4 py-8 text-center text-red-500">
-            Failed to load users. ${error.message}
-          </td>
-        </tr>
-      `;
+      console.error(`Failed to load ${role} users:`, error);
+      const listId = `${tabSuffix}UsersList`;
+      const container = el(listId);
+      if (container) {
+        container.innerHTML = `
+          <tr>
+            <td colspan="5" class="px-4 py-8 text-center text-red-500">
+              Failed to load users. ${error.message}
+            </td>
+          </tr>
+        `;
+      }
     }
   }
 
-  // Render backoffice users table
-  function renderBackofficeUsers(users) {
-    const container = el('backofficeUsersList');
+  // Render users for a role tab
+  function renderRoleTabUsers(users, tabSuffix, role) {
+    const container = el(`${tabSuffix}UsersList`);
+    if (!container) return;
 
     if (users.length === 0) {
       container.innerHTML = `
         <tr>
           <td colspan="5" class="px-4 py-8 text-center text-slate-500">
-            No users found.
+            No ${role.toLowerCase()} users found.
           </td>
         </tr>
       `;
       return;
     }
 
-    container.innerHTML = users.map(user => `
-      <tr class="hover:bg-slate-50">
-        <td class="px-4 py-3">${user.email}</td>
-        <td class="px-4 py-3">
-          <span class="px-2 py-1 text-xs font-semibold rounded ${
-            user.role === 'Executive' ? 'bg-emerald-100 text-emerald-700' :
-            user.role === 'Sales' ? 'bg-blue-100 text-blue-700' :
-            'bg-slate-100 text-slate-600'
-          }">
-            ${user.role === 'NoRole' ? 'Unassigned' : user.role}
-          </span>
-        </td>
-        <td class="px-4 py-3 text-slate-600">${user.assignedBy || 'System'}</td>
-        <td class="px-4 py-3 text-slate-600">${user.assignedAt ? new Date(user.assignedAt).toLocaleDateString() : '-'}</td>
-        <td class="px-4 py-3">
-          <button onclick="openRoleChangeModal('${user.email}', '${user.role}')" class="px-3 py-1 text-xs font-medium rounded border border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors">
-            Change Role
-          </button>
-        </td>
-      </tr>
-    `).join('');
+    container.innerHTML = users.map(user => {
+      const isActive = user.lastLoginAt !== null;
+      const lastLoginText = user.lastLoginAt
+        ? timeAgo(new Date(user.lastLoginAt))
+        : 'Never';
+
+      return `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-medium">${user.email}</td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 text-xs font-semibold rounded ${
+              isActive
+                ? 'bg-green-100 text-green-700'
+                : 'bg-gray-100 text-gray-600'
+            }">
+              ${isActive ? 'Active' : 'Pending'}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-slate-600">${user.assignedBy || 'System'}</td>
+          <td class="px-4 py-3 text-slate-600">${lastLoginText}</td>
+          <td class="px-4 py-3">
+            <button onclick="openRoleChangeModal('${user.email}', '${user.role}')" class="px-3 py-1 text-xs font-medium rounded border border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors">
+              Change
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
 
-  // Update pagination UI
-  function updateBackofficePagination(pagination) {
-    el('backofficePaginationInfo').textContent = `Page ${pagination.page} of ${pagination.totalPages} (${pagination.total} total)`;
-    el('backofficePrevPage').disabled = pagination.page <= 1;
-    el('backofficeNextPage').disabled = pagination.page >= pagination.totalPages;
+  // Update pagination for a role tab
+  function updateRoleTabPagination(pagination, tabSuffix) {
+    const infoEl = el(`${tabSuffix}PaginationInfo`);
+    const prevBtn = el(`${tabSuffix}PrevPage`);
+    const nextBtn = el(`${tabSuffix}NextPage`);
+
+    if (infoEl) {
+      infoEl.textContent = `Page ${pagination.page} of ${pagination.totalPages} (${pagination.total} total)`;
+    }
+    if (prevBtn) {
+      prevBtn.disabled = pagination.page <= 1;
+    }
+    if (nextBtn) {
+      nextBtn.disabled = pagination.page >= pagination.totalPages;
+    }
   }
 
-  // Pagination handlers
-  el('backofficePrevPage').addEventListener('click', () => {
-    if (backofficeState.currentPage > 1) {
-      loadBackofficeUsers(backofficeState.currentPage - 1);
-    }
-  });
+  // Time ago helper function
+  function timeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
 
-  el('backofficeNextPage').addEventListener('click', () => {
-    if (backofficeState.currentPage < backofficeState.totalPages) {
-      loadBackofficeUsers(backofficeState.currentPage + 1);
-    }
-  });
+    const intervals = {
+      year: 31536000,
+      month: 2592000,
+      week: 604800,
+      day: 86400,
+      hour: 3600,
+      minute: 60
+    };
 
-  // Search handler
-  el('backofficeSearchBtn').addEventListener('click', () => {
-    loadBackofficeUsers(1);
-  });
-
-  el('backofficeUserSearch').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      loadBackofficeUsers(1);
+    if (seconds < intervals.minute) {
+      return 'Just now';
     }
-  });
+
+    for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+      const interval = Math.floor(seconds / secondsInUnit);
+      if (interval >= 1) {
+        return `${interval} ${unit}${interval > 1 ? 's' : ''} ago`;
+      }
+    }
+
+    return 'Just now';
+  }
+
+  // Pagination and search handlers for each role tab
+  function setupTabHandlers(role, tabSuffix) {
+    // Pagination handlers
+    const prevBtn = el(`${tabSuffix}PrevPage`);
+    const nextBtn = el(`${tabSuffix}NextPage`);
+    const searchBtn = el(`${tabSuffix}SearchBtn`);
+    const searchInput = el(`${tabSuffix}Search`);
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        const currentPage = backofficeState.tabPages[tabSuffix] || 1;
+        if (currentPage > 1) {
+          loadRoleTabUsers(role, tabSuffix, currentPage - 1);
+        }
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        const currentPage = backofficeState.tabPages[tabSuffix] || 1;
+        loadRoleTabUsers(role, tabSuffix, currentPage + 1);
+      });
+    }
+
+    // Search handlers
+    if (searchBtn) {
+      searchBtn.addEventListener('click', () => {
+        loadRoleTabUsers(role, tabSuffix, 1);
+      });
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          loadRoleTabUsers(role, tabSuffix, 1);
+        }
+      });
+    }
+
+    // Add button handler
+    const addBtn = el(`${tabSuffix}AddBtn`);
+    const emailInput = el(`${tabSuffix}EmailInput`);
+    if (addBtn && emailInput) {
+      addBtn.addEventListener('click', () => addUserToRole(role, tabSuffix, emailInput));
+
+      // Enter key to add
+      emailInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          addUserToRole(role, tabSuffix, emailInput);
+        }
+      });
+
+      // Real-time validation
+      emailInput.addEventListener('input', (e) => validateEmailInput(e.target, tabSuffix));
+    }
+  }
+
+  // Setup handlers for all role tabs
+  setupTabHandlers('Executive', 'executive');
+  setupTabHandlers('Sales', 'sales');
+  setupTabHandlers('Customer', 'customer');
+
+  // Audit log search handler
+  const auditSearchBtn = el('auditSearchBtn');
+  const auditSearch = el('auditSearch');
+  if (auditSearchBtn) {
+    auditSearchBtn.addEventListener('click', () => loadBackofficeAuditLog(true));
+  }
+  if (auditSearch) {
+    auditSearch.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') loadBackofficeAuditLog(true);
+    });
+  }
+
+  // Validate email input in real-time
+  function validateEmailInput(input, tabSuffix) {
+    const email = input.value.trim();
+    const validationEl = el(`${tabSuffix}Validation`);
+
+    if (!email) {
+      if (validationEl) validationEl.textContent = '';
+      input.classList.remove('border-green-500', 'border-red-500');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isValid = emailRegex.test(email);
+
+    // Check for duplicate in current tab
+    const currentUsers = backofficeState.tabUsers[tabSuffix] || [];
+    const isDuplicate = currentUsers.some(u => u.email.toLowerCase() === email.toLowerCase());
+
+    if (!isValid) {
+      if (validationEl) {
+        validationEl.innerHTML = '<span class="text-red-500">✕ Invalid email</span>';
+      }
+      input.classList.remove('border-green-500');
+      input.classList.add('border-red-500');
+    } else if (isDuplicate) {
+      if (validationEl) {
+        validationEl.innerHTML = '<span class="text-red-500">✕ Already in this list</span>';
+      }
+      input.classList.remove('border-green-500');
+      input.classList.add('border-red-500');
+    } else {
+      if (validationEl) {
+        validationEl.innerHTML = '<span class="text-green-500">✓ Press Enter or click Add</span>';
+      }
+      input.classList.remove('border-red-500');
+      input.classList.add('border-green-500');
+    }
+  }
+
+  // Add user to role via inline form
+  async function addUserToRole(role, tabSuffix, emailInput) {
+    const email = emailInput.value.trim();
+
+    if (!email) {
+      showNotification('Please enter an email address', 'error');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showNotification('Please enter a valid email address', 'error');
+      return;
+    }
+
+    // Check for duplicate
+    const currentUsers = backofficeState.tabUsers[tabSuffix] || [];
+    const isDuplicate = currentUsers.some(u => u.email.toLowerCase() === email.toLowerCase());
+    if (isDuplicate) {
+      showNotification('This email is already in the list', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/backoffice/users/${encodeURIComponent(email)}/role`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${backofficeState.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ role })
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          backofficeLogout();
+          showNotification('Session expired. Please log in again.', 'error');
+          return;
+        }
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to add user');
+      }
+
+      // Clear input and reload
+      emailInput.value = '';
+      const validationEl = el(`${tabSuffix}Validation`);
+      if (validationEl) validationEl.textContent = '';
+      emailInput.classList.remove('border-green-500', 'border-red-500');
+
+      showNotification(`Added ${email} to ${role}`, 'success');
+      loadRoleTabUsers(role, tabSuffix, 1); // Reload to show new user
+    } catch (error) {
+      console.error('Failed to add user:', error);
+      showNotification(error.message || 'Failed to add user', 'error');
+    }
+  }
 
   // Load audit log
-  async function loadBackofficeAuditLog() {
+  async function loadBackofficeAuditLog(useSearch = false) {
     try {
-      const response = await fetch('/api/backoffice/audit-log', {
+      let url = new URL('/api/backoffice/audit-log', window.location.origin);
+
+      // Add search parameter if provided
+      if (useSearch) {
+        const search = el('auditSearch')?.value || '';
+        if (search) {
+          url.searchParams.set('email', search);
+        }
+      }
+
+      const response = await fetch(url.toString(), {
         headers: {
           'Authorization': `Bearer ${backofficeState.token}`
         }
@@ -759,15 +1211,17 @@
           <span class="px-2 py-1 text-xs font-semibold rounded ${
             entry.oldRole === 'Executive' ? 'bg-emerald-100 text-emerald-700' :
             entry.oldRole === 'Sales' ? 'bg-blue-100 text-blue-700' :
+            entry.oldRole === 'Customer' ? 'bg-gray-100 text-gray-700' :
             'bg-slate-100 text-slate-600'
           }">
-            ${entry.oldRole === 'NoRole' ? 'Unassigned' : entry.oldRole}
+            ${entry.oldRole === 'NoRole' ? 'Unassigned' : entry.oldRole || 'Unassigned'}
           </span>
         </td>
         <td class="px-4 py-3">
           <span class="px-2 py-1 text-xs font-semibold rounded ${
             entry.newRole === 'Executive' ? 'bg-emerald-100 text-emerald-700' :
             entry.newRole === 'Sales' ? 'bg-blue-100 text-blue-700' :
+            entry.newRole === 'Customer' ? 'bg-gray-100 text-gray-700' :
             'bg-slate-100 text-slate-600'
           }">
             ${entry.newRole === 'NoRole' ? 'Unassigned' : entry.newRole}
@@ -820,9 +1274,28 @@
         throw new Error('Failed to update role');
       }
 
-      // Close modal and refresh list
+      // Close modal and refresh current tab
       el('roleChangeModal').classList.add('hidden');
-      loadBackofficeUsers(backofficeState.currentPage);
+
+      // Refresh the current tab based on new role
+      const roleToTabMap = {
+        'Executive': ['Executive', 'executive'],
+        'Sales': ['Sales', 'sales'],
+        'Customer': ['Customer', 'customer'],
+        'NoRole': null // NoRole users don't appear in any tab
+      };
+
+      const mapping = roleToTabMap[selectedRole];
+      if (mapping) {
+        loadRoleTabUsers(mapping[0], mapping[1], 1);
+      } else {
+        // If changed to NoRole, refresh current tab to remove the user
+        const currentTab = backofficeState.currentTab;
+        if (currentTab === 'executives') loadRoleTabUsers('Executive', 'executive', backofficeState.tabPages.executives);
+        else if (currentTab === 'sales') loadRoleTabUsers('Sales', 'sales', backofficeState.tabPages.sales);
+        else if (currentTab === 'customers') loadRoleTabUsers('Customer', 'customer', backofficeState.tabPages.customers);
+      }
+
       showNotification('Role updated successfully');
     } catch (error) {
       console.error('Failed to update role:', error);

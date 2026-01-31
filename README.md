@@ -21,7 +21,11 @@ The Price List Calculator computes total cost based on three components:
   - Separate HTML file with complete UI independence
   - Username/password authentication (no Azure AD dependency)
   - No navigation links to main calculator
-  - User role management dashboard with audit log
+  - **3-Tab Role Management**: Executives, Sales, Customers tabs for pre-assigning roles by email
+  - **Inline Add Forms**: Add users directly in each tab with real-time validation
+  - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
+  - **Count Badges**: User count displayed on each tab
+  - **Audit Log Tab**: View complete role change history
 
 ### UI Features
 - **Authentication UI**: Login/logout button in header with user avatar (initials) when signed in
@@ -82,9 +86,9 @@ The application expects these SQL Server tables:
 | `SavedCalculationJobs` | Jobs associated with each saved calculation |
 | `SavedCalculationMaterials` | Materials associated with each saved calculation |
 | `RunNumberSequence` | Tracks year-based sequential run numbers |
-| `UserRoles` | Role assignments (Email, Role [Executive/Sales/NULL], AssignedBy, AssignedAt) |
+| `UserRoles` | Role assignments (Email, Role [Executive/Sales/Customer/NULL], AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt) |
 | `BackofficeAdmins` | Backoffice admin accounts with username/password hash and lockout tracking |
-| `BackofficeSessions` | JWT session tokens for backoffice authentication |
+| `BackofficeSessions` | JWT session tokens for backoffice authentication (deprecated) |
 | `RoleAssignmentAudit` | Immutable audit log of all role changes |
 | `AppLogs` | Application logging (errors, events, performance tracking) |
 | `PerformanceMetrics` | API performance metrics (response times, database latency) |
@@ -143,6 +147,16 @@ This will check:
 - Admin account status (locked, disabled, active)
 - Failed login attempts
 
+**Method 3: Run Migration Scripts**
+```bash
+sqlcmd -S <server> -d <database> -U <user> -P <password> -i database/migrations/phase1_backoffice_3tabs.sql
+```
+
+This will:
+- Add FirstLoginAt and LastLoginAt columns to UserRoles table for login tracking
+- Create performance index IX_UserRoles_Role_Email for tab queries
+- Verify schema changes
+
 For quick fixes:
 - `database/fix_backoffice_issues.sql` - Unlock accounts, enable disabled accounts, clear expired sessions
 - `database/fix_backoffice_sessions_clientip.sql` - Fix "Failed to create session" error by expanding ClientIP column to NVARCHAR(100) for Azure proxy headers
@@ -194,10 +208,10 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/adm/logs/purge/manual` | POST | Manually trigger log archival | Executive only |
 | `/api/backoffice/login` | POST | Backoffice admin login (JWT token) | No (separate auth) |
 | `/api/backoffice/logout` | POST | Backoffice admin logout | Backoffice JWT |
-| `/api/backoffice/users` | GET | List all users with roles (paginated, searchable) | Backoffice JWT |
-| `/api/backoffice/users/{email}/role` | POST | Assign/update user role | Backoffice JWT |
+| `/api/backoffice/users` | GET | List users with optional role filtering (?role=Executive|Sales|Customer|NoRole) | Backoffice JWT |
+| `/api/backoffice/users/{email}/role` | POST | Assign/update user role (NoRole/Sales/Executive/Customer) | Backoffice JWT |
 | `/api/backoffice/users/{email}/role` | DELETE | Remove user role | Backoffice JWT |
-| `/api/backoffice/audit-log` | GET | View role change audit history | Backoffice JWT |
+| `/api/backoffice/audit-log` | GET | View role change audit history (?email=search for filtering) | Backoffice JWT |
 | `/api/backoffice/repair?secret={secret}` | GET | Diagnose and repair backoffice database schema (creates missing tables and admin account) | No (secret required) |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/.auth/me` | GET | Get current user info from Static Web Apps | No |
@@ -257,8 +271,8 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - Role-based access control with 4 tiers:
   - **Executive**: Full access to costs, can view all records, can assign Executive roles to others
   - **Sales**: Restricted view (no cost data), can only see own records
+  - **Customer**: Pre-registered for shared link access only (view-only, no login required)
   - **NoRole**: New authenticated users default to NoRole; see "awaiting assignment" screen, no access to calculator or records
-  - **Customer**: No authentication; view-only access via shared links (Sales mode, read-only)
 
 **Role Detection Priority:**
 1. UserRoles database table (backoffice assignments override Azure AD)
@@ -280,9 +294,14 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - Idle timeout: 8 hours of inactivity → auto-logout (matches token expiry)
 - Rate limiting: 5 failed login attempts per 15 minutes per IP
 - Account lockout: 15 minutes after 5 failed attempts
-- Can assign NoRole, Sales, or Executive roles to Azure AD users
+- Can assign NoRole, Sales, Executive, or Customer roles to Azure AD users
 - Full audit log of all role changes
 - Complete UI separation from main calculator (no navigation links)
+- **3-Tab Layout**: Executives, Sales, Customers tabs for role-specific user management
+- **Inline Add**: Add users by email directly in each tab with validation
+- **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
+- **Count Badges**: Each tab shows total user count
+- **Search**: Filter users within each role tab
 
 **Local Development:**
 - **Automatic bypass**: When running on `localhost` or `127.0.0.1`, authentication is automatically bypassed
@@ -346,7 +365,9 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── ensure_backoffice_schema.sql
 │   ├── create_backoffice_sessions.sql
 │   ├── create_app_logs.sql
-│   └── diagnostics_logs.sql
+│   ├── diagnostics_logs.sql
+│   └── migrations/
+│       └── phase1_backoffice_3tabs.sql
 ├── src/
 │   ├── index.html
 │   └── backoffice.html

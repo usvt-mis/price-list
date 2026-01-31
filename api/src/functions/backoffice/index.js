@@ -96,7 +96,7 @@ app.http("backoffice-logout", {
 /**
  * GET /api/backoffice/users
  * List all users with their roles (paginated)
- * Query params: page (default 1), pageSize (default 50), search (optional)
+ * Query params: page (default 1), pageSize (default 50), search (optional), role (optional - filter by Executive|Sales|Customer|NoRole)
  */
 app.http("backoffice-users-list", {
   methods: ["GET"],
@@ -110,38 +110,54 @@ app.http("backoffice-users-list", {
       const page = parseInt(req.query.get('page')) || 1;
       const pageSize = parseInt(req.query.get('pageSize')) || 50;
       const search = req.query.get('search') || '';
+      const roleFilter = req.query.get('role') || '';
       const offset = (page - 1) * pageSize;
 
       const pool = await getPool();
 
-      // Get total count
-      let countQuery = 'SELECT COUNT(*) as total FROM UserRoles';
-      let countParams = {};
+      // Build WHERE clause for role filtering
+      let whereClause = '';
+      let countParams = { search: '' };
+      let roleParam = null;
 
+      if (roleFilter) {
+        // Map role filter to database value
+        if (roleFilter === 'NoRole') {
+          whereClause = ' WHERE Role IS NULL';
+        } else {
+          whereClause = ' WHERE Role = @role';
+          roleParam = roleFilter;
+        }
+      }
+
+      // Add search to WHERE clause
       if (search) {
-        countQuery += ' WHERE Email LIKE @search';
+        if (whereClause) {
+          whereClause += ' AND Email LIKE @search';
+        } else {
+          whereClause = ' WHERE Email LIKE @search';
+        }
         countParams.search = `%${search}%`;
       }
 
+      // Get total count
       const countResult = await pool.request()
-        .input('search', sql.NVarChar, countParams.search || '')
-        .query(countQuery);
+        .input('search', sql.NVarChar, countParams.search)
+        .input('role', sql.NVarChar, roleParam)
+        .query(`SELECT COUNT(*) as total FROM UserRoles${whereClause}`);
       const total = countResult.recordset[0].total;
 
-      // Get paginated users
+      // Get paginated users with login timestamps
       let dataQuery = `
-        SELECT Email, Role, AssignedBy, AssignedAt
+        SELECT Email, Role, AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt
         FROM UserRoles
+        ${whereClause}
+        ORDER BY AssignedAt DESC OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
       `;
 
-      if (search) {
-        dataQuery += ' WHERE Email LIKE @search';
-      }
-
-      dataQuery += ' ORDER BY AssignedAt DESC OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY';
-
       const dataResult = await pool.request()
-        .input('search', sql.NVarChar, `%${search}%`)
+        .input('search', sql.NVarChar, countParams.search)
+        .input('role', sql.NVarChar, roleParam)
         .input('offset', sql.Int, offset)
         .input('pageSize', sql.Int, pageSize)
         .query(dataQuery);
@@ -153,7 +169,9 @@ app.http("backoffice-users-list", {
             email: u.Email,
             role: u.Role === null ? 'NoRole' : u.Role,
             assignedBy: u.AssignedBy,
-            assignedAt: u.AssignedAt
+            assignedAt: u.AssignedAt,
+            firstLoginAt: u.FirstLoginAt,
+            lastLoginAt: u.LastLoginAt
           })),
           pagination: {
             page,
@@ -176,7 +194,7 @@ app.http("backoffice-users-list", {
 /**
  * POST /api/backoffice/users/{email}/role
  * Assign or update a user's role
- * Body: { role: 'NoRole' | 'Sales' | 'Executive', justification?: string }
+ * Body: { role: 'NoRole' | 'Sales' | 'Executive' | 'Customer', justification?: string }
  */
 app.http("backoffice-assign-role", {
   methods: ["POST"],
@@ -193,8 +211,8 @@ app.http("backoffice-assign-role", {
         return { status: 400, jsonBody: { error: "Email is required" } };
       }
 
-      if (!role || !['NoRole', 'Sales', 'Executive'].includes(role)) {
-        return { status: 400, jsonBody: { error: "Role must be 'NoRole', 'Sales', or 'Executive'" } };
+      if (!role || !['NoRole', 'Sales', 'Executive', 'Customer'].includes(role)) {
+        return { status: 400, jsonBody: { error: "Role must be 'NoRole', 'Sales', 'Executive', or 'Customer'" } };
       }
 
       ctx.log(`Admin ${admin.username} assigned ${role} role to ${email}`);

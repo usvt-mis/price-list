@@ -106,12 +106,16 @@ The `.vscode/launch.json` configuration supports debugging:
 ### Database Schema
 - Core tables: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
-- Role management: UserRoles (stores role assignments - can be Executive, Sales, or NULL/NoRole)
+- Role management: UserRoles (stores role assignments - can be Executive, Sales, Customer, or NULL/NoRole)
+  - Columns: Email (PK), Role, AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt
+  - FirstLoginAt: Tracks when user first logged in
+  - LastLoginAt: Updated on every login for activity tracking
 - Backoffice admin: BackofficeAdmins, RoleAssignmentAudit (for admin role management)
 - **Application Logging**: AppLogs (main logging), PerformanceMetrics (API performance), AppLogs_Archive (historical logs)
 - **Note**: BackofficeSessions table is deprecated; backoffice now uses pure JWT authentication
 - Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`, `database/diagnostics_logs.sql` (log queries)
 - Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup), `database/create_app_logs.sql` (logging schema)
+- Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index)
 
 ### Backend Structure (`api/`)
 - Azure Functions v4 with `@azure/functions` package
@@ -127,12 +131,17 @@ The `.vscode/launch.json` configuration supports debugging:
   - State managed in global variables
   - API communication via `fetch()`
   - Azure AD authentication for Executive/Sales users
-- **Backoffice Admin** (`backoffice.html`): Standalone backoffice interface
+- **Backoffice Admin** (`backoffice.html`): Standalone backoffice interface with 3-tab role management
   - Separate HTML file with complete UI independence
   - Username/password authentication (no Azure AD)
   - No navigation links to main calculator
   - Uses same `/api/backoffice/*` endpoints for data management
+  - **3-Tab Layout**: Executives, Sales, Customers tabs for role-specific user management
+  - **Inline add forms**: Add users directly in each tab with real-time email validation
+  - **Status indicators**: Active (logged in) vs Pending (awaiting login) based on FirstLoginAt/LastLoginAt
+  - **Count badges**: Each tab shows user count
   - Version footer displays app version from `/api/version` endpoint
+  - **Audit Log tab**: View role change history with search functionality
 
 ---
 
@@ -219,10 +228,10 @@ The application implements a 4-tier role system:
 **Backoffice Admin API Endpoints** (separate username/password auth):
 - `POST /api/backoffice/login` - Backoffice admin login (returns JWT token)
 - `POST /api/backoffice/logout` - Backoffice admin logout
-- `GET /api/backoffice/users` - List all users with roles (paginated, searchable)
-- `POST /api/backoffice/users/{email}/role` - Assign/update user role (NoRole/Sales/Executive)
+- `GET /api/backoffice/users?role={Executive|Sales|Customer|NoRole}&page={page}&search={query}` - List users with optional role filtering (paginated, searchable)
+- `POST /api/backoffice/users/{email}/role` - Assign/update user role (NoRole/Sales/Executive/Customer)
 - `DELETE /api/backoffice/users/{email}/role` - Remove user role (sets to NoRole)
-- `GET /api/backoffice/audit-log` - View role change audit history
+- `GET /api/backoffice/audit-log?email={query}` - View role change audit history with optional email filter
 - `GET /api/backoffice/repair?secret={secret}` - Diagnose and repair backoffice database schema (creates missing tables and admin account)
 
 **Auth Middleware Helpers:**
