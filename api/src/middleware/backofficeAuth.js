@@ -12,7 +12,8 @@ const logger = require('../utils/logger');
 
 // JWT configuration
 const JWT_SECRET = process.env.BACKOFFICE_JWT_SECRET || 'change-this-secret-in-production';
-const JWT_EXPIRY = 8 * 60 * 60; // Access token expiry in seconds (8 hours) - using numeric value for consistent cross-platform behavior
+const JWT_EXPIRY = '8h'; // Access token expiry - use string format for better cross-platform compatibility
+const CLOCK_TOLERANCE = 300; // Clock tolerance in seconds (5 minutes) - increased for Azure Functions clock skew
 const REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh token 5 minutes before expiry
 
 // Rate limiting configuration (in-memory store for simplicity)
@@ -154,18 +155,27 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
     throw new Error('Failed to update login state');
   }
 
-  // Generate JWT token
+  // Generate JWT token with explicit timestamp
   let token;
   try {
+    const now = Math.floor(Date.now() / 1000);
     token = jwt.sign(
       {
         adminId: admin.Id,
         username: admin.Username,
-        email: admin.Email
+        email: admin.Email,
+        iat: now, // Explicit issued-at timestamp
+        exp: now + (8 * 60 * 60) // Explicit expiry: 8 hours from now
       },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRY }
+      JWT_SECRET
     );
+    console.log('[BACKOFFICE AUTH] JWT token generated successfully', {
+      adminId: admin.Id,
+      username: admin.Username,
+      iat: now,
+      exp: now + (8 * 60 * 60),
+      expiryDate: new Date((now + (8 * 60 * 60)) * 1000).toISOString()
+    });
   } catch (error) {
     console.error('[BACKOFFICE AUTH] Failed to generate JWT token:', error.message);
     throw new Error('Failed to generate access token');
@@ -185,7 +195,7 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
       email: admin.Email
     },
     token,
-    expiresIn: 8 * 60 * 60 // 8 hours in seconds
+    expiresIn: 8 * 60 * 60 // 8 hours in seconds (for client compatibility)
   };
 }
 
@@ -205,7 +215,16 @@ async function verifyBackofficeToken(req) {
   try {
     // Verify JWT signature and expiry with clock tolerance (no database check needed)
     const decoded = jwt.verify(token, JWT_SECRET, {
-      clockTolerance: 90 // Allow 90 seconds clock skew to handle more time drift
+      clockTolerance: CLOCK_TOLERANCE // Allow 5 minutes clock skew for Azure Functions
+    });
+
+    console.log('[BACKOFFICE AUTH] JWT token verified successfully', {
+      adminId: decoded.adminId,
+      username: decoded.username,
+      exp: decoded.exp,
+      expiryDate: new Date(decoded.exp * 1000).toISOString(),
+      currentTime: new Date().toISOString(),
+      timeUntilExpiry: Math.floor((decoded.exp * 1000 - Date.now()) / 1000 / 60) + ' minutes'
     });
 
     return {
@@ -215,9 +234,24 @@ async function verifyBackofficeToken(req) {
       expiresAt: new Date(decoded.exp * 1000)
     };
   } catch (e) {
-    if (e.name === 'TokenExpiredError' || e.name === 'JsonWebTokenError') {
+    if (e.name === 'TokenExpiredError') {
+      console.log('[BACKOFFICE AUTH] JWT token expired', {
+        error: e.message,
+        expiredAt: e.expiredAt ? new Date(e.expiredAt * 1000).toISOString() : 'unknown',
+        currentTime: new Date().toISOString()
+      });
       return null;
     }
+    if (e.name === 'JsonWebTokenError') {
+      console.log('[BACKOFFICE AUTH] JWT verification failed', {
+        error: e.message
+      });
+      return null;
+    }
+    console.error('[BACKOFFICE AUTH] Unexpected JWT error', {
+      error: e.message,
+      name: e.name
+    });
     throw e;
   }
 }
