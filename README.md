@@ -19,13 +19,17 @@ The Price List Calculator computes total cost based on three components:
   - Responsive design with mobile-friendly material panel (card-based layout on screens < 768px)
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
   - Separate HTML file with complete UI independence
-  - **Azure AD authentication** (Executive role required via `PriceListExecutive`)
+  - **Two-factor authentication**: Azure AD identity verification + admin password
+  - **Step 1**: Azure AD authenticates identity (no role filtering)
+  - **Step 2**: Admin password from BackofficeAdmins table
+  - **8-hour access tokens** with optional 7-day "Remember Me" refresh tokens
   - No navigation links to main calculator
   - **3-Tab Role Management**: Executives, Sales, Customers tabs for pre-assigning roles by email
   - **Inline Add Forms**: Add users directly in each tab with real-time validation
   - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
   - **Count Badges**: User count displayed on each tab
   - **Audit Log Tab**: View complete role change history
+  - **Settings Tab**: Self-service password change
 
 ### UI Features
 - **Authentication UI**: Login/logout button in header with user avatar (initials) when signed in
@@ -87,14 +91,13 @@ The application expects these SQL Server tables:
 | `SavedCalculationMaterials` | Materials associated with each saved calculation |
 | `RunNumberSequence` | Tracks year-based sequential run numbers |
 | `UserRoles` | Role assignments (Email, Role [Executive/Sales/Customer/NULL], AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt) |
-| `BackofficeAdmins` | Backoffice admin accounts (deprecated - migrated to Azure AD auth) |
-| `BackofficeSessions` | JWT session tokens for backoffice authentication (deprecated) |
+| `BackofficeAdmins` | Backoffice admin accounts for two-factor authentication (Username, Email, PasswordHash, IsActive, FailedLoginAttempts, LockoutUntil, LastPasswordChangeAt) |
 | `RoleAssignmentAudit` | Immutable audit log of all role changes |
 | `AppLogs` | Application logging (errors, events, performance tracking) |
 | `PerformanceMetrics` | API performance metrics (response times, database latency) |
 | `AppLogs_Archive` | Historical application logs (archived after 30 days) |
 
-**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Backoffice uses Azure AD authentication - no admin account setup needed.
+**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table for two-factor authentication.
 
 **Method 3: Run Migration Scripts**
 ```bash
@@ -108,7 +111,7 @@ This will:
 
 For quick fixes:
 - `database/fix_backoffice_issues.sql` - Unlock accounts, enable disabled accounts, clear expired sessions
-- `database/fix_backoffice_sessions_clientip.sql` - Fix "Failed to create session" error by expanding ClientIP column to NVARCHAR(100) for Azure proxy headers
+- `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table for two-factor authentication
 
 **Timezone Diagnostics:**
 - `database/diagnostics_timezone.sql` - Check server timezone configuration, column types, and identify mixed timezone sources (GETDATE vs GETUTCDATE)
@@ -159,12 +162,16 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/adm/logs/purge` | DELETE | Purge logs older than X days | Executive only |
 | `/api/adm/logs/health` | GET | System health check (database, log stats, performance) | Executive only |
 | `/api/adm/logs/purge/manual` | POST | Manually trigger log archival | Executive only |
-| `/api/backoffice/users` | GET | List users with optional role filtering (?role=Executive|Sales|Customer|NoRole) | Executive only |
-| `/api/backoffice/users/{email}/role` | POST | Assign/update user role (NoRole/Sales/Executive/Customer) | Executive only |
-| `/api/backoffice/users/{email}/role` | DELETE | Remove user role | Executive only |
-| `/api/backoffice/audit-log` | GET | View role change audit history (?email=search for filtering) | Executive only |
-| `/api/backoffice/repair` | GET | Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit tables) | Executive only |
-| `/api/backoffice/timezone-check` | GET | Diagnostic endpoint for timezone configuration (returns database and JavaScript timezone info) | Executive only |
+| `/api/backoffice/login` | POST | Two-factor auth step 2: Verify admin password (returns 8-hour access token + optional 7-day refresh token) | Azure AD + backoffice password |
+| `/api/backoffice/refresh` | POST | Refresh access token using refresh token | No |
+| `/api/backoffice/logout` | POST | Logout and clear session | Backoffice session |
+| `/api/backoffice/change-password` | POST | Self-service password change | Backoffice session |
+| `/api/backoffice/users` | GET | List users with optional role filtering (?role=Executive|Sales|Customer|NoRole) | Backoffice session |
+| `/api/backoffice/users/{email}/role` | POST | Assign/update user role (NoRole/Sales/Executive/Customer) | Backoffice session |
+| `/api/backoffice/users/{email}/role` | DELETE | Remove user role | Backoffice session |
+| `/api/backoffice/audit-log` | GET | View role change audit history (?email=search for filtering) | Backoffice session |
+| `/api/backoffice/repair` | GET | Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit/BackofficeAdmins tables) | Backoffice session |
+| `/api/backoffice/timezone-check` | GET | Diagnostic endpoint for timezone configuration (returns database and JavaScript timezone info) | Backoffice session |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/.auth/me` | GET | Get current user info from Static Web Apps | No |
 
@@ -191,7 +198,8 @@ Configure the database connection in `api/local.settings.json`:
     "DATABASE_CONNECTION_STRING": "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
     "MOCK_USER_EMAIL": "Dev User",
     "MOCK_USER_ROLE": "PriceListSales",
-    "STATIC_WEB_APP_HOST": "localhost:7071"
+    "STATIC_WEB_APP_HOST": "localhost:7071",
+    "BACKOFFICE_JWT_SECRET": "your-secret-key-here"
   }
 }
 ```
@@ -239,9 +247,11 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - Use `/api/adm/diagnostics/registration` (Executive only) to verify user registration health
 
 **Backoffice Admin Features:**
-- Separate interface at `/backoffice` (Azure AD - Executive role required)
+- Separate interface at `/backoffice` with two-factor authentication
+- **Step 1**: Azure AD identity verification (no role filtering)
+- **Step 2**: Admin password from BackofficeAdmins table
+- **8-hour access tokens** with optional 7-day "Remember Me" refresh tokens
 - Clean URL routing: `/backoffice` and `/backoffice/` both serve `backoffice.html`
-- Requires `PriceListExecutive` Azure AD role to access
 - Can assign NoRole, Sales, Executive, or Customer roles to Azure AD users
 - Full audit log of all role changes
 - Complete UI separation from main calculator (no navigation links)
@@ -250,6 +260,7 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
 - **Count Badges**: Each tab shows total user count
 - **Search**: Filter users within each role tab
+- **Settings Tab**: Self-service password change functionality
 
 **Local Development:**
 - **Automatic bypass**: When running on `localhost` or `127.0.0.1`, authentication is automatically bypassed
@@ -290,9 +301,14 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │   ├── timers/
 │   │   │   │   └── logPurge.js
 │   │   │   └── backoffice/
-│   │   │       └── index.js
+│   │   │       ├── index.js
+│   │   │       ├── login.js
+│   │   │       ├── refresh.js
+│   │   │       ├── logout.js
+│   │   │       └── changePassword.js
 │   │   ├── middleware/
 │   │   │   ├── auth.js
+│   │   │   ├── twoFactorAuth.js
 │   │   │   ├── backofficeAuth.js (deprecated - no longer used)
 │   │   │   ├── correlationId.js
 │   │   │   └── requestLogger.js
@@ -308,15 +324,14 @@ Use the VS Code configuration in `.vscode/launch.json`:
 ├── database/
 │   ├── diagnose_backoffice_login.sql
 │   ├── fix_backoffice_issues.sql
-│   ├── fix_backoffice_sessions_clientip.sql
 │   ├── ensure_backoffice_schema.sql
-│   ├── create_backoffice_sessions.sql
 │   ├── create_app_logs.sql
 │   ├── diagnostics_timezone.sql
 │   ├── diagnostics_logs.sql
 │   └── migrations/
 │       ├── phase1_backoffice_3tabs.sql
-│       └── migrate_to_utc.sql
+│       ├── migrate_to_utc.sql
+│       └── two_factor_auth.sql
 ├── src/
 │   ├── index.html
 │   └── backoffice.html

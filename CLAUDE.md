@@ -112,10 +112,10 @@ The `.vscode/launch.json` configuration supports debugging:
   - LastLoginAt: Updated on every login for activity tracking
 - Backoffice audit: RoleAssignmentAudit (tracks all role changes with ChangedBy email)
 - **Application Logging**: AppLogs (main logging), PerformanceMetrics (API performance), AppLogs_Archive (historical logs)
-- **Note**: BackofficeAdmins and BackofficeSessions tables are deprecated; backoffice now uses Azure AD authentication
+- **Backoffice authentication**: BackofficeAdmins table for two-factor auth (Azure AD + admin password), with JWT session tokens
 - Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`, `database/diagnostics_logs.sql` (log queries)
 - Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup), `database/create_app_logs.sql` (logging schema)
-- Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index)
+- Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index), `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema)
 
 ### Backend Structure (`api/`)
 - Azure Functions v4 with `@azure/functions` package
@@ -123,7 +123,7 @@ The `.vscode/launch.json` configuration supports debugging:
 - HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, version, admin/roles, admin/diagnostics, admin/logs, admin/health, backoffice
 - Timer functions in `src/functions/timers/`: logPurge (daily log archival - conditionally registered via `ENABLE_TIMER_FUNCTIONS` env var)
 - Utilities in `src/utils/`: logger.js (application logging), performanceTracker.js (performance metrics), circuitBreaker.js (fault tolerance)
-- Authentication middleware in `src/middleware/`: auth.js (Azure AD), backofficeAuth.js (username/password), correlationId.js (request tracing), requestLogger.js (correlation propagation)
+- Authentication middleware in `src/middleware/`: auth.js (Azure AD), twoFactorAuth.js (two-factor auth for backoffice), backofficeAuth.js (deprecated - JWT username/password), correlationId.js (request tracing), requestLogger.js (correlation propagation)
 
 ### Frontend Structure (`src/`)
 - **Main Calculator** (`index.html`): Single-page HTML application with embedded JavaScript
@@ -133,7 +133,10 @@ The `.vscode/launch.json` configuration supports debugging:
   - Azure AD authentication for Executive/Sales users
 - **Backoffice Admin** (`backoffice.html`): Standalone backoffice interface with 3-tab role management
   - Separate HTML file with complete UI independence
-  - **Azure AD authentication** (Executive role required via `PriceListExecutive`)
+  - **Two-factor authentication**: Azure AD identity verification + admin password
+  - **Step 1**: Azure AD authenticates identity (no role filtering)
+  - **Step 2**: Admin password from BackofficeAdmins table
+  - **8-hour access tokens** with optional 7-day "Remember Me" refresh tokens
   - No navigation links to main calculator
   - Uses `/api/backoffice/*` endpoints for data management
   - **3-Tab Layout**: Executives, Sales, Customers tabs for role-specific user management
@@ -141,6 +144,7 @@ The `.vscode/launch.json` configuration supports debugging:
   - **Status indicators**: Active (logged in) vs Pending (awaiting login) based on FirstLoginAt/LastLoginAt
   - **Count badges**: Each tab shows user count
   - **Audit Log tab**: View role change history with search functionality
+  - **Settings tab**: Self-service password change functionality
 
 ---
 
@@ -224,12 +228,16 @@ The application implements a 4-tier role system:
 - `GET /api/adm/logs/health` - System health check (database status, log statistics, performance metrics)
 - `POST /api/adm/logs/purge/manual` - Manually trigger log archival and cleanup
 
-**Backoffice Admin API Endpoints** (Azure AD - Executive role required):
+**Backoffice Admin API Endpoints** (Two-factor auth - Azure AD identity + admin password):
+- `POST /api/backoffice/login` - Step 2 of two-factor auth: verify admin password (returns 8-hour access token + optional 7-day refresh token)
+- `POST /api/backoffice/refresh` - Refresh access token using refresh token
+- `POST /api/backoffice/logout` - Logout and clear session
+- `POST /api/backoffice/change-password` - Self-service password change
 - `GET /api/backoffice/users?role={Executive|Sales|Customer|NoRole}&page={page}&search={query}` - List users with optional role filtering (paginated, searchable)
 - `POST /api/backoffice/users/{email}/role` - Assign/update user role (NoRole/Sales/Executive/Customer)
 - `DELETE /api/backoffice/users/{email}/role` - Remove user role (sets to NoRole)
 - `GET /api/backoffice/audit-log?email={query}` - View role change audit history with optional email filter
-- `GET /api/backoffice/repair` - Diagnose and repair backoffice database schema (Executive only - creates missing UserRoles/RoleAssignmentAudit tables)
+- `GET /api/backoffice/repair` - Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit/BackofficeAdmins tables)
 - `GET /api/backoffice/timezone-check` - Diagnostic endpoint to check timezone configuration (returns database and JavaScript timezone information)
 
 **Auth Middleware Helpers:**
@@ -239,12 +247,13 @@ The application implements a 4-tier role system:
 - `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
 
 **Database Diagnostics:**
-- `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts (legacy - for JWT auth)
-- `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions (legacy)
+- `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
+- `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions
 - `database/ensure_backoffice_schema.sql` - Create all missing backoffice tables (comprehensive schema setup)
 - `database/diagnostics_timezone.sql` - Timezone diagnostics (server offset, column analysis, lockout status comparison)
 - `database/diagnostics_logs.sql` - Collection of diagnostic queries for application logs (recent errors, user activity, performance, etc.)
 - `database/migrations/migrate_to_utc.sql` - Idempotent migration script to convert existing timestamps from local time to UTC
+- `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table for two-factor authentication
 
 **Application Logging:**
 - Logger utility (`api/src/utils/logger.js`) provides async buffered logging with graceful fallback to console

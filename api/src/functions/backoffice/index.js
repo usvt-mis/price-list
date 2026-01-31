@@ -1,6 +1,6 @@
 const { app } = require("@azure/functions");
 const { getPool } = require("../../db");
-const { requireRole } = require("../../middleware/auth");
+const { requireBackofficeSession } = require("../../middleware/twoFactorAuth");
 
 /**
  * Helper to get client IP address for audit logging
@@ -17,7 +17,7 @@ const sql = require('mssql');
  * GET /api/backoffice/users
  * List all users with their roles (paginated)
  * Query params: page (default 1), pageSize (default 50), search (optional), role (optional - filter by Executive|Sales|Customer|NoRole)
- * Requires: Executive role (Azure AD)
+ * Requires: Backoffice session token (after two-factor auth)
  */
 app.http("backoffice-users-list", {
   methods: ["GET"],
@@ -25,8 +25,8 @@ app.http("backoffice-users-list", {
   route: "backoffice/users",
   handler: async (req, ctx) => {
     try {
-      const user = await requireRole('PriceListExecutive')(req);
-      ctx.log(`Executive ${user.userDetails} accessed backoffice user list`);
+      const session = await requireBackofficeSession(req);
+      ctx.log(`Backoffice admin ${session.email} accessed backoffice user list`);
 
       const page = parseInt(req.query.get('page')) || 1;
       const pageSize = parseInt(req.query.get('pageSize')) || 50;
@@ -119,7 +119,7 @@ app.http("backoffice-users-list", {
  * POST /api/backoffice/users/{email}/role
  * Assign or update a user's role
  * Body: { role: 'NoRole' | 'Sales' | 'Executive' | 'Customer', justification?: string }
- * Requires: Executive role (Azure AD)
+ * Requires: Backoffice session token (after two-factor auth)
  */
 app.http("backoffice-assign-role", {
   methods: ["POST"],
@@ -127,7 +127,7 @@ app.http("backoffice-assign-role", {
   route: "backoffice/users/{email}/role",
   handler: async (req, ctx) => {
     try {
-      const user = await requireRole('PriceListExecutive')(req);
+      const session = await requireBackofficeSession(req);
       const email = req.params.email;
       const body = await req.json();
       const { role, justification } = body;
@@ -140,7 +140,7 @@ app.http("backoffice-assign-role", {
         return { status: 400, jsonBody: { error: "Role must be 'NoRole', 'Sales', 'Executive', or 'Customer'" } };
       }
 
-      ctx.log(`Executive ${user.userDetails} assigned ${role} role to ${email}`);
+      ctx.log(`Backoffice admin ${session.email} assigned ${role} role to ${email}`);
 
       const pool = await getPool();
 
@@ -159,7 +159,7 @@ app.http("backoffice-assign-role", {
       await pool.request()
         .input('email', sql.NVarChar, email)
         .input('role', sql.NVarChar, role === 'NoRole' ? null : role)
-        .input('assignedBy', sql.NVarChar, user.userDetails)
+        .input('assignedBy', sql.NVarChar, session.email)
         .query(`
           MERGE UserRoles AS target
           USING (VALUES (@email, @role, @assignedBy)) AS source (Email, Role, AssignedBy)
@@ -177,7 +177,7 @@ app.http("backoffice-assign-role", {
         .input('targetEmail', sql.NVarChar, email)
         .input('oldRole', sql.NVarChar, oldRole)
         .input('newRole', sql.NVarChar, role)
-        .input('changedBy', sql.NVarChar, user.userDetails)
+        .input('changedBy', sql.NVarChar, session.email)
         .input('clientIP', sql.NVarChar, clientIP)
         .input('justification', sql.NVarChar, justification || null)
         .query(`
@@ -210,7 +210,7 @@ app.http("backoffice-assign-role", {
 /**
  * DELETE /api/backoffice/users/{email}/role
  * Remove a user's role assignment (sets to NoRole)
- * Requires: Executive role (Azure AD)
+ * Requires: Backoffice session token (after two-factor auth)
  */
 app.http("backoffice-remove-role", {
   methods: ["DELETE"],
@@ -218,14 +218,14 @@ app.http("backoffice-remove-role", {
   route: "backoffice/users/{email}/role",
   handler: async (req, ctx) => {
     try {
-      const user = await requireRole('PriceListExecutive')(req);
+      const session = await requireBackofficeSession(req);
       const email = req.params.email;
 
       if (!email) {
         return { status: 400, jsonBody: { error: "Email is required" } };
       }
 
-      ctx.log(`Executive ${user.userDetails} removed role assignment for ${email}`);
+      ctx.log(`Backoffice admin ${session.email} removed role assignment for ${email}`);
 
       const pool = await getPool();
 
@@ -247,7 +247,7 @@ app.http("backoffice-remove-role", {
       // JavaScript Date objects use Date.toISOString() for UTC datetime parameters
       await pool.request()
         .input('email', sql.NVarChar, email)
-        .input('assignedBy', sql.NVarChar, user.userDetails)
+        .input('assignedBy', sql.NVarChar, session.email)
         .query(`
           UPDATE UserRoles
           SET Role = NULL, AssignedBy = @assignedBy, AssignedAt = GETUTCDATE()
@@ -260,7 +260,7 @@ app.http("backoffice-remove-role", {
         .input('targetEmail', sql.NVarChar, email)
         .input('oldRole', sql.NVarChar, oldRole)
         .input('newRole', sql.NVarChar, 'NoRole')
-        .input('changedBy', sql.NVarChar, user.userDetails)
+        .input('changedBy', sql.NVarChar, session.email)
         .input('clientIP', sql.NVarChar, clientIP)
         .query(`
           INSERT INTO RoleAssignmentAudit (TargetEmail, OldRole, NewRole, ChangedBy, ClientIP)
@@ -293,7 +293,7 @@ app.http("backoffice-remove-role", {
  * GET /api/backoffice/audit-log
  * Get role assignment audit log (paginated)
  * Query params: page (default 1), pageSize (default 50), email (optional filter)
- * Requires: Executive role (Azure AD)
+ * Requires: Backoffice session token (after two-factor auth)
  */
 app.http("backoffice-audit-log", {
   methods: ["GET"],
@@ -301,8 +301,8 @@ app.http("backoffice-audit-log", {
   route: "backoffice/audit-log",
   handler: async (req, ctx) => {
     try {
-      const user = await requireRole('PriceListExecutive')(req);
-      ctx.log(`Executive ${user.userDetails} accessed audit log`);
+      const session = await requireBackofficeSession(req);
+      ctx.log(`Backoffice admin ${session.email} accessed audit log`);
 
       const page = parseInt(req.query.get('page')) || 1;
       const pageSize = parseInt(req.query.get('pageSize')) || 50;
@@ -380,7 +380,7 @@ app.http("backoffice-audit-log", {
  * GET /api/backoffice/timezone-check
  * Diagnostic endpoint to check timezone configuration
  * Returns database and JavaScript timezone information
- * Requires: Executive role (Azure AD)
+ * Requires: Backoffice session token (after two-factor auth)
  */
 app.http("backoffice-timezone-check", {
   methods: ["GET"],
@@ -388,8 +388,8 @@ app.http("backoffice-timezone-check", {
   route: "backoffice/timezone-check",
   handler: async (req, ctx) => {
     try {
-      const user = await requireRole('PriceListExecutive')(req);
-      ctx.log(`Executive ${user.userDetails} accessed timezone check`);
+      const session = await requireBackofficeSession(req);
+      ctx.log(`Backoffice admin ${session.email} accessed timezone check`);
 
       const pool = await getPool();
 
@@ -450,8 +450,7 @@ app.http("backoffice-timezone-check", {
 /**
  * GET /api/backoffice/repair
  * Diagnose and repair backoffice database schema
- * Requires: Executive role (Azure AD) - for security, only Executives can repair schema
- * Note: BackofficeAdmins table is no longer used (migrated to Azure AD auth)
+ * Requires: Backoffice session token (after two-factor auth)
  */
 app.http("backoffice-repair", {
   methods: ["GET"],
@@ -459,8 +458,8 @@ app.http("backoffice-repair", {
   route: "backoffice/repair",
   handler: async (req, ctx) => {
     try {
-      const user = await requireRole('PriceListExecutive')(req);
-      ctx.log(`Executive ${user.userDetails} initiated backoffice repair`);
+      const session = await requireBackofficeSession(req);
+      ctx.log(`Backoffice admin ${session.email} initiated backoffice repair`);
 
       const pool = await getPool();
       const results = {
@@ -512,14 +511,53 @@ app.http("backoffice-repair", {
         results.tablesCreated.push('RoleAssignmentAudit');
       }
 
+      // Check and create BackofficeAdmins table (for two-factor auth)
+      results.tablesChecked.push('BackofficeAdmins');
+      const adminsExists = await pool.request()
+        .query(`SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'BackofficeAdmins'`);
+
+      if (adminsExists.recordset.length === 0) {
+        await pool.request().query(`
+          CREATE TABLE BackofficeAdmins (
+            Id INT IDENTITY(1,1) PRIMARY KEY,
+            Username NVARCHAR(100) UNIQUE,
+            Email NVARCHAR(255) NOT NULL UNIQUE,
+            PasswordHash NVARCHAR(500) NOT NULL,
+            IsActive BIT DEFAULT 1,
+            FailedLoginAttempts INT DEFAULT 0,
+            LockoutUntil DATETIME2,
+            LastLoginAt DATETIME2,
+            LastPasswordChangeAt DATETIME2,
+            CreatedAt DATETIME2 DEFAULT GETUTCDATE()
+          );
+          CREATE INDEX IX_BackofficeAdmins_Email ON BackofficeAdmins(Email);
+          CREATE INDEX IX_BackofficeAdmins_IsActive ON BackofficeAdmins(IsActive);
+        `);
+        results.tablesCreated.push('BackofficeAdmins');
+      } else {
+        // Check if LastPasswordChangeAt column exists (for password change feature)
+        const columnCheck = await pool.request().query(`
+          SELECT COLUMN_NAME
+          FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_NAME = 'BackofficeAdmins' AND COLUMN_NAME = 'LastPasswordChangeAt'
+        `);
+
+        if (columnCheck.recordset.length === 0) {
+          await pool.request().query(`
+            ALTER TABLE BackofficeAdmins
+            ADD LastPasswordChangeAt DATETIME2;
+          `);
+          results.tablesCreated.push('BackofficeAdmins (added LastPasswordChangeAt column)');
+        }
+      }
+
       ctx.log('[BACKOFFICE REPAIR] Completed successfully', JSON.stringify(results));
 
       return {
         status: 200,
         jsonBody: {
           success: true,
-          results,
-          note: 'BackofficeAdmins table is deprecated (migrated to Azure AD auth)'
+          results
         }
       };
     } catch (e) {
