@@ -2,9 +2,10 @@ const { app } = require("@azure/functions");
 const path = require("path");
 
 // Load package.json at module level (cached)
+// Load from root package.json (../../../ from api/src/functions/)
 let cachedVersion = null;
 try {
-  const pkg = require("../../package.json");
+  const pkg = require("../../../package.json");
   cachedVersion = pkg.version;
 } catch (error) {
   console.error("Failed to load package.json at module level:", error);
