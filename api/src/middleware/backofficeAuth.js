@@ -12,7 +12,7 @@ const logger = require('../utils/logger');
 
 // JWT configuration
 const JWT_SECRET = process.env.BACKOFFICE_JWT_SECRET || 'change-this-secret-in-production';
-const JWT_EXPIRY = '8 hours'; // Access token expiry - extended for better UX
+const JWT_EXPIRY = 8 * 60 * 60; // Access token expiry in seconds (8 hours) - using numeric value for consistent cross-platform behavior
 const REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh token 5 minutes before expiry
 
 // Rate limiting configuration (in-memory store for simplicity)
