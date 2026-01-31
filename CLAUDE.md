@@ -241,16 +241,15 @@ The application implements a 4-tier role system:
 - `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
 
 **Backoffice Auth Middleware:**
-- `verifyBackofficeCredentials(username, password, clientInfo)` - Verify credentials and generate JWT token with clock skew adjustment
-- `verifyBackofficeToken(req)` - Verify JWT signature and expiry with 300-second (5-minute) clock tolerance (pure JWT validation - no database session check)
+- `verifyBackofficeCredentials(username, password, clientInfo)` - Verify credentials and generate JWT token
+- `verifyBackofficeToken(req)` - Verify JWT signature (no expiry check - tokens never expire)
 - `requireBackofficeAuth(req)` - Middleware to protect backoffice endpoints
-- `backofficeLogout(req)` - Logout handler (client clears sessionStorage; token expires naturally)
+- `backofficeLogout(req)` - Logout handler (client clears sessionStorage)
 - Rate limiting: 5 failed attempts per 15 minutes per IP
 - Account lockout: 15 minutes after 5 failed attempts
-- JWT tokens expire after 8 hours; client-side sessionStorage cleared on logout
-- **Clock skew handling**: Token generation adjusts `iat` backwards by CLOCK_TOLERANCE (300s) to account for server clock being behind real time
-- Token verification uses `clockTolerance: 300` to allow up to 5 minutes of clock skew in either direction
-- Client relies solely on server-side JWT validation (no client-side expiry checks to avoid clock drift issues)
+- **JWT tokens never expire** - "sign in forever" for single-admin convenience
+- Token has no `exp` claim - only expires when user manually clicks logout
+- Client relies solely on server-side JWT validation
 - **Note**: BackofficeSessions database table is deprecated - authentication uses pure JWT (signature verification provides sufficient security)
 
 **Database Diagnostics:**

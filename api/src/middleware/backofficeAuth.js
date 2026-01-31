@@ -155,31 +155,23 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
     throw new Error('Failed to update login state');
   }
 
-  // Generate JWT token with explicit timestamp
-  // Adjust iat backwards by CLOCK_TOLERANCE to account for server clock skew
-  // This ensures tokens are valid even if server clock is behind real time
+  // Generate JWT token WITHOUT expiry - "sign in forever"
+  // Token only expires when user manually clicks logout
   let token;
   try {
-    const now = Math.floor(Date.now() / 1000);
-    const adjustedIat = now - CLOCK_TOLERANCE; // Adjust for potential clock skew
     token = jwt.sign(
       {
         adminId: admin.Id,
         username: admin.Username,
-        email: admin.Email,
-        iat: adjustedIat, // Issued-at timestamp adjusted for clock skew
-        exp: now + (8 * 60 * 60) // Explicit expiry: 8 hours from now (using actual time)
+        email: admin.Email
+        // No 'exp' claim - token never expires
       },
       JWT_SECRET
     );
     console.log('[BACKOFFICE AUTH] JWT token generated successfully', {
       adminId: admin.Id,
       username: admin.Username,
-      now: now,
-      adjustedIat: adjustedIat,
-      clockSkewAdjustment: CLOCK_TOLERANCE,
-      exp: now + (8 * 60 * 60),
-      expiryDate: new Date((now + (8 * 60 * 60)) * 1000).toISOString()
+      note: 'Token has no expiry - sign in forever'
     });
   } catch (error) {
     console.error('[BACKOFFICE AUTH] Failed to generate JWT token:', error.message);
@@ -200,7 +192,7 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
       email: admin.Email
     },
     token,
-    expiresIn: 8 * 60 * 60 // 8 hours in seconds (for client compatibility)
+    expiresIn: null // No expiry - token lasts forever
   };
 }
 
@@ -218,25 +210,21 @@ async function verifyBackofficeToken(req) {
   const token = authHeader.substring(7);
 
   try {
-    // Verify JWT signature and expiry with clock tolerance (no database check needed)
-    const decoded = jwt.verify(token, JWT_SECRET, {
-      clockTolerance: CLOCK_TOLERANCE // Allow 5 minutes clock skew for Azure Functions
-    });
+    // Verify JWT signature - no database check needed
+    // Tokens have no expiry, so no clock tolerance needed
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     console.log('[BACKOFFICE AUTH] JWT token verified successfully', {
       adminId: decoded.adminId,
       username: decoded.username,
-      exp: decoded.exp,
-      expiryDate: new Date(decoded.exp * 1000).toISOString(),
-      currentTime: new Date().toISOString(),
-      timeUntilExpiry: Math.floor((decoded.exp * 1000 - Date.now()) / 1000 / 60) + ' minutes'
+      note: 'Token has no expiry - valid forever'
     });
 
     return {
       id: decoded.adminId,
       username: decoded.username,
       email: decoded.email,
-      expiresAt: new Date(decoded.exp * 1000)
+      expiresAt: null // No expiry
     };
   } catch (e) {
     if (e.name === 'TokenExpiredError') {

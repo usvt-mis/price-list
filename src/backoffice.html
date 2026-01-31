@@ -485,16 +485,12 @@
   document.addEventListener('scroll', resetActivityTimer);
   document.addEventListener('touchstart', resetActivityTimer);
 
-  // Check for idle timeout
+  // Check for idle timeout - DISABLED (tokens never expire)
+  // Idle timeout check removed since tokens have no expiry
+  // User must manually click logout to end session
   function checkIdleTimeout() {
-    if (!backofficeState.isAuthenticated) return;
-
-    const inactiveTime = Date.now() - backofficeState.lastActivity;
-    if (inactiveTime > IDLE_TIMEOUT) {
-      // Session expired due to inactivity
-      backofficeLogout();
-      showNotification('Session expired due to inactivity');
-    }
+    // No-op - tokens never expire
+    return;
   }
 
   // Start idle timeout check
@@ -523,57 +519,24 @@
 
     const token = sessionStorage.getItem('backofficeToken');
     const admin = JSON.parse(sessionStorage.getItem('backofficeAdmin') || 'null');
-    const tokenExpiresAt = sessionStorage.getItem('backofficeTokenExpiresAt');
 
     // Add diagnostic logging
     console.log('[BACKOFFICE SESSION] Checking session:', {
       hasToken: !!token,
       hasAdmin: !!admin,
-      hasExpiry: !!tokenExpiresAt,
-      expiryDate: tokenExpiresAt ? new Date(tokenExpiresAt).toISOString() : null,
-      isExpired: tokenExpiresAt ? Date.now() >= new Date(tokenExpiresAt).getTime() : null,
-      currentTime: new Date().toISOString()
+      note: 'Tokens never expire - sign in forever'
     });
 
-    if (token && admin && tokenExpiresAt) {
-      // Check if token has expired
-      let expiryDate = new Date(tokenExpiresAt);
-
-      // Try to parse JWT to get exact expiry (more reliable than stored value)
-      try {
-        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-        const jwtExpiry = new Date(tokenPayload.exp * 1000);
-        // Use JWT expiry if it's different from stored expiry
-        if (Math.abs(jwtExpiry.getTime() - expiryDate.getTime()) > 1000) {
-          console.log('[BACKOFFICE SESSION] Using JWT expiry instead of stored value:', {
-            stored: expiryDate.toISOString(),
-            jwt: jwtExpiry.toISOString()
-          });
-          expiryDate = jwtExpiry;
-        }
-      } catch (e) {
-        console.warn('[BACKOFFICE SESSION] Failed to parse JWT, using stored expiry:', e);
-      }
-
-      const currentTime = Date.now();
-
-      if (currentTime < expiryDate.getTime()) {
-        // Token is still valid
-        backofficeState.isAuthenticated = true;
-        backofficeState.admin = admin;
-        backofficeState.token = token;
-        backofficeState.tokenExpiresAt = expiryDate;
-        backofficeState.lastActivity = currentTime;
-        startIdleTimeoutCheck();
-        console.log('[BACKOFFICE SESSION] Session is valid');
-        return true;
-      } else {
-        // Token expired - clear sessionStorage
-        console.log('[BACKOFFICE SESSION] Token expired, clearing session');
-        sessionStorage.removeItem('backofficeToken');
-        sessionStorage.removeItem('backofficeAdmin');
-        sessionStorage.removeItem('backofficeTokenExpiresAt');
-      }
+    if (token && admin) {
+      // Token never expires - always valid
+      backofficeState.isAuthenticated = true;
+      backofficeState.admin = admin;
+      backofficeState.token = token;
+      backofficeState.tokenExpiresAt = null; // No expiry
+      backofficeState.lastActivity = Date.now();
+      startIdleTimeoutCheck(); // No-op since tokens don't expire
+      console.log('[BACKOFFICE SESSION] Session is valid (no expiry)');
+      return true;
     }
 
     console.log('[BACKOFFICE SESSION] No valid session found');
@@ -582,15 +545,12 @@
 
   // Check if token is still valid (lightweight check without backend call)
   function isTokenValid() {
-    if (!backofficeState.tokenExpiresAt) {
-      console.log('[BACKOFFICE TOKEN] No expiry date set');
-      return false;
-    }
-    const isValid = Date.now() < new Date(backofficeState.tokenExpiresAt).getTime();
+    // Tokens never expire - always valid if present
+    const isValid = !!backofficeState.token;
     console.log('[BACKOFFICE TOKEN] Token validity check:', {
-      expiresAt: backofficeState.tokenExpiresAt.toISOString(),
-      currentTime: new Date().toISOString(),
-      isValid: isValid
+      hasToken: !!backofficeState.token,
+      isValid: isValid,
+      note: 'Token never expires'
     });
     return isValid;
   }
@@ -625,29 +585,17 @@
         backofficeState.admin = data.admin;
         backofficeState.token = data.accessToken;
         backofficeState.lastActivity = Date.now();
-
-        // Parse JWT to get exact expiry timestamp from exp claim
-        let tokenExpiresAt;
-        try {
-          const tokenPayload = JSON.parse(atob(data.accessToken.split('.')[1]));
-          tokenExpiresAt = new Date(tokenPayload.exp * 1000);
-          console.log('[BACKOFFICE LOGIN] Token expiry from JWT:', tokenExpiresAt.toISOString());
-        } catch (e) {
-          console.warn('[BACKOFFICE LOGIN] Failed to parse JWT, using fallback calculation:', e);
-          // Fallback to calculation from expiresIn if JWT parsing fails
-          tokenExpiresAt = new Date(Date.now() + data.expiresIn * 1000);
-        }
-        backofficeState.tokenExpiresAt = tokenExpiresAt;
+        backofficeState.tokenExpiresAt = null; // No expiry - sign in forever
 
         // Store in sessionStorage
         sessionStorage.setItem('backofficeToken', data.accessToken);
         sessionStorage.setItem('backofficeAdmin', JSON.stringify(data.admin));
-        sessionStorage.setItem('backofficeTokenExpiresAt', tokenExpiresAt.toISOString());
+        // No need to store expiry since tokens never expire
 
         // Set initialization flag to prevent race condition
         backofficeState.isInitializing = true;
 
-        // Start idle timeout check
+        // Start idle timeout check (no-op since tokens don't expire)
         startIdleTimeoutCheck();
 
         // Navigate to dashboard - let hash change handler handle navigation
