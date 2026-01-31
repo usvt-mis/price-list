@@ -189,6 +189,19 @@ Each HTTP function file:
 - Frontend view switching logic (in `loadInit()` callback) explicitly checks for NoRole and returns early to prevent calculator access
 - Fallback logic in `detectLocalRole()` returns 'NoRole' for unassigned users instead of defaulting to 'Sales'
 
+**NoRole State Freeze Mechanism:**
+- When `showAwaitingAssignmentScreen()` is called, the application enters a locked state (`isNoRoleState = true`)
+- All interactive elements outside the awaiting view are disabled via `disableAllInteractiveElements()`:
+  - Sets `tabindex="-1"` and `aria-disabled="true"` on all buttons, links, inputs outside awaiting view
+  - Adds visual `opacity-50 cursor-not-allowed` classes for accessibility
+  - Stores original state for restoration when role is assigned
+- Main container receives `pointer-events-none` to block all mouse/touch interactions
+- Awaiting view has `pointer-events-auto` to override the container freeze
+- Backdrop overlay (`#noroleOverlay`) provides visual separation with backdrop blur
+- `showView()` includes a guard that prevents any view switching when `isNoRoleState === true`
+- When user gets a role assigned and page refreshes, the lock is released and interactivity restored
+- Only the Sign Out button remains functional in the awaiting state
+
 ### Role-Based Access Control (RBAC)
 The application implements a 4-tier role system:
 

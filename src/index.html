@@ -494,9 +494,10 @@
     </div>
 
     <!-- Awaiting Assignment View (hidden by default) -->
-    <div id="awaitingView" class="hidden">
+    <!-- pointer-events-auto re-enables interactions for this view only -->
+    <div id="awaitingView" class="hidden pointer-events-auto" role="dialog" aria-modal="true" aria-labelledby="awaitingTitle">
       <div class="flex items-center justify-center min-h-[60vh]">
-        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 text-center relative z-50">
           <!-- Clock Icon -->
           <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg class="w-10 h-10 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -504,7 +505,7 @@
             </svg>
           </div>
 
-          <h2 class="text-2xl font-bold text-slate-900 mb-2">Account Pending</h2>
+          <h2 id="awaitingTitle" class="text-2xl font-bold text-slate-900 mb-2">Account Pending</h2>
           <p class="text-slate-600 mb-6">
             Your account is awaiting role assignment. Please contact your administrator to get access to the calculator.
           </p>
@@ -524,6 +525,10 @@
         </div>
       </div>
     </div>
+
+    <!-- NoRole State Overlay (hidden by default) -->
+    <!-- This overlay prevents interactions with background elements when in NoRole state -->
+    <div id="noroleOverlay" class="hidden fixed inset-0 bg-slate-900/5 backdrop-blur-sm z-40 pointer-events-none" aria-hidden="true"></div>
 
     <!-- Bulk Actions Bar (hidden by default) -->
     <div id="bulkActionsBar" class="hidden fixed left-0 right-0 z-40 bg-slate-900 shadow-lg">
@@ -577,6 +582,9 @@
 
   // Records view mode: "list" (table view) or "grid" (card view)
   let recordsViewMode = localStorage.getItem("pricelist-calculator-records-view") || "list";
+
+  // Track NoRole state to prevent view switching
+  let isNoRoleState = false;
 
   // Detect local development environment
   const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -664,6 +672,9 @@
    * Show the awaiting assignment screen
    */
   function showAwaitingAssignmentScreen(data) {
+    // Set NoRole state flag
+    isNoRoleState = true;
+
     // Set user email
     const emailEl = el('awaitingEmail');
     if (emailEl && data.email) {
@@ -672,6 +683,21 @@
 
     // Hide all navigation elements
     hideNavigation();
+
+    // Disable all interactive elements for accessibility
+    disableAllInteractiveElements();
+
+    // Add pointer-events-none to main container to freeze all interactions
+    const mainContainer = document.querySelector('.max-w-6xl');
+    if (mainContainer) {
+      mainContainer.classList.add('pointer-events-none');
+    }
+
+    // Show the backdrop overlay
+    const overlay = el('noroleOverlay');
+    if (overlay) {
+      overlay.classList.remove('hidden');
+    }
 
     // Show awaiting view
     showView('awaiting');
@@ -700,11 +726,87 @@
     const navElements = [
       'myRecordsBtn',
       'saveBtn',
-      'roleBadge'
+      'roleBadge',
+      'authSection' // Hide auth section when in NoRole state
     ];
     navElements.forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
+    });
+  }
+
+  function showNavigation() {
+    const navElements = [
+      'myRecordsBtn',
+      'saveBtn',
+      'roleBadge',
+      'authSection'
+    ];
+    navElements.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('hidden');
+    });
+  }
+
+  /**
+   * Disable all interactive elements outside the awaiting view
+   * This prevents keyboard navigation and provides accessibility support
+   */
+  function disableAllInteractiveElements() {
+    // Select all interactive elements outside the awaiting view
+    const selectors = [
+      'button:not(#awaitingView button)',
+      'a:not(#awaitingView a)',
+      'input:not(#awaitingView input)',
+      'select:not(#awaitingView select)',
+      'textarea:not(#awaitingView textarea)',
+      '[tabindex]:not(#awaitingView [tabindex])'
+    ];
+
+    selectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(el => {
+        // Store original tabindex and aria-disabled state
+        if (!el.hasAttribute('data-original-tabindex')) {
+          el.setAttribute('data-original-tabindex', el.getAttribute('tabindex') || '0');
+        }
+        if (!el.hasAttribute('data-original-aria-disabled')) {
+          el.setAttribute('data-original-aria-disabled', el.getAttribute('aria-disabled') || 'false');
+        }
+
+        // Disable the element
+        el.setAttribute('tabindex', '-1');
+        el.setAttribute('aria-disabled', 'true');
+        el.classList.add('opacity-50', 'cursor-not-allowed');
+      });
+    });
+  }
+
+  /**
+   * Re-enable all interactive elements
+   */
+  function enableAllInteractiveElements() {
+    const elements = document.querySelectorAll('[data-original-tabindex]');
+    elements.forEach(el => {
+      // Restore original state
+      const originalTabindex = el.getAttribute('data-original-tabindex');
+      const originalAriaDisabled = el.getAttribute('data-original-aria-disabled');
+
+      if (originalTabindex === '0' || originalTabindex === '') {
+        el.removeAttribute('tabindex');
+      } else {
+        el.setAttribute('tabindex', originalTabindex);
+      }
+
+      if (originalAriaDisabled === 'false') {
+        el.removeAttribute('aria-disabled');
+      } else {
+        el.setAttribute('aria-disabled', originalAriaDisabled);
+      }
+
+      el.classList.remove('opacity-50', 'cursor-not-allowed');
+      el.removeAttribute('data-original-tabindex');
+      el.removeAttribute('data-original-aria-disabled');
     });
   }
 
@@ -1083,6 +1185,34 @@
 
   // Navigate between views
   function showView(viewName) {
+    // Guard: Prevent any view changes when in NoRole awaiting state
+    // This provides defense-in-depth against programmatic view switching attempts
+    if (isNoRoleState && viewName !== 'awaiting') {
+      console.warn('View change blocked: User is in NoRole awaiting state');
+      return;
+    }
+
+    // If switching away from awaiting view, clear NoRole state and restore interactivity
+    if (viewName !== 'awaiting' && isNoRoleState) {
+      isNoRoleState = false;
+      enableAllInteractiveElements();
+
+      // Remove pointer-events-none from main container
+      const mainContainer = document.querySelector('.max-w-6xl');
+      if (mainContainer) {
+        mainContainer.classList.remove('pointer-events-none');
+      }
+
+      // Hide the backdrop overlay
+      const overlay = el('noroleOverlay');
+      if (overlay) {
+        overlay.classList.add('hidden');
+      }
+
+      // Restore navigation
+      showNavigation();
+    }
+
     // Hide all views
     el("calculatorView").classList.add("hidden");
     el("listView").classList.add("hidden");
@@ -2790,9 +2920,13 @@
     if (role === 'Executive') {
       badgeText.textContent = 'Executive';
       badge.className = 'px-2 py-1 text-xs font-semibold rounded border border-emerald-200 bg-emerald-50 text-emerald-700';
-    } else {
+    } else if (role === 'Sales') {
       badgeText.textContent = 'Sales';
-      badge.className = 'px-2 py-1 text-xs font-semibold rounded border border-slate-200 bg-slate-50 text-slate-600';
+      badge.className = 'px-2 py-1 text-xs font-semibold rounded border border-blue-200 bg-blue-50 text-blue-700';
+    } else {
+      // NoRole - show unassigned status
+      badgeText.textContent = 'No Role';
+      badge.className = 'px-2 py-1 text-xs font-semibold rounded border border-amber-200 bg-amber-50 text-amber-700';
     }
   }
 

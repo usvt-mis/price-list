@@ -33,9 +33,13 @@ The Price List Calculator computes total cost based on three components:
 
 ### UI Features
 - **Authentication UI**: Login/logout button in header with user avatar (initials) when signed in
-- **Role Badge Indicator**: Displays current user's role (Executive/Sales/Unassigned/Customer View) in header
+- **Role Badge Indicator**: Displays current user's role (Executive/Sales/No Role/Customer View) in header
 - **Backoffice Admin Panel**: Separate username/password authentication at `/#/backoffice` for managing user roles
 - **Awaiting Assignment Screen**: NoRole users see "Account Pending" screen with logout button
+  - All interactive elements are frozen (pointer events disabled, keyboard navigation blocked)
+  - Only the Sign Out button remains functional
+  - Backdrop blur overlay provides visual separation from locked interface
+  - Defense-in-depth: view switching is blocked at the JavaScript level
 - **Admin Panel**: Executive-only button to assign/revoke Executive roles for other users
 - **Role-based view mode**: Executive/Sales mode automatically determined from user role (no manual switching)
 - **Default landing view**: Authenticated users with roles now land on list view (not calculator)
