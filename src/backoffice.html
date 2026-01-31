@@ -797,7 +797,7 @@
             submitBtn.innerHTML = '<span>Sign In</span>';
           }
           backofficeLogout();
-          showNotification('Session expired. Please log in again.');
+          showNotification('Your session ended. Please sign in to resume.');
           return;
         }
         throw new Error(`Failed to load ${role} users`);
@@ -1070,7 +1070,7 @@
       if (!response.ok) {
         if (response.status === 401) {
           backofficeLogout();
-          showNotification('Session expired. Please log in again.', 'error');
+          showNotification('Your session ended. Please sign in to resume.', 'error');
           return;
         }
         const data = await response.json();
@@ -1113,7 +1113,7 @@
       if (!response.ok) {
         if (response.status === 401) {
           backofficeLogout();
-          showNotification('Session expired. Please log in again.');
+          showNotification('Your session ended. Please sign in to resume.');
           return;
         }
         throw new Error('Failed to load audit log');
@@ -1212,7 +1212,7 @@
       if (!response.ok) {
         if (response.status === 401) {
           backofficeLogout();
-          showNotification('Session expired. Please log in again.');
+          showNotification('Your session ended. Please sign in to resume.');
           return;
         }
         throw new Error('Failed to update role');
