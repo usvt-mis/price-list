@@ -186,6 +186,8 @@ Each HTTP function file:
 - NoRole users see "awaiting assignment" screen with no access to calculator
 - No manual mode switching - mode is purely role-based for security
 - Authenticated users with roles land on list view (not calculator) by default
+- Frontend view switching logic (in `loadInit()` callback) explicitly checks for NoRole and returns early to prevent calculator access
+- Fallback logic in `detectLocalRole()` returns 'NoRole' for unassigned users instead of defaulting to 'Sales'
 
 ### Role-Based Access Control (RBAC)
 The application implements a 4-tier role system:

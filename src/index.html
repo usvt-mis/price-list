@@ -631,15 +631,27 @@
           setMode(mode);
           return data.effectiveRole;
         } else {
-          // API failed - safe fallback to sales mode
-          setMode('sales');
-          return 'Sales';
+          // API failed - use local detection as fallback (which can return NoRole)
+          const fallbackRole = detectLocalRole();
+          if (fallbackRole === 'NoRole') {
+            showAwaitingAssignmentScreen({ email: authState.user?.email });
+          } else {
+            const mode = fallbackRole === 'Executive' ? 'executive' : 'sales';
+            setMode(mode);
+          }
+          return fallbackRole;
         }
       } catch (error) {
         console.error('Failed to fetch user role:', error);
-        // Network error - safe fallback to sales mode
-        setMode('sales');
-        return 'Sales';
+        // Network error - use local detection as fallback (which can return NoRole)
+        const fallbackRole = detectLocalRole();
+        if (fallbackRole === 'NoRole') {
+          showAwaitingAssignmentScreen({ email: authState.user?.email });
+        } else {
+          const mode = fallbackRole === 'Executive' ? 'executive' : 'sales';
+          setMode(mode);
+        }
+        return fallbackRole;
       }
     } else {
       // Unauthenticated users get sales view
@@ -2670,14 +2682,18 @@
       }
 
       // For authenticated users with roles (not NoRole), show list view as default
-      // For unauthenticated users or NoRole, show calculator view
-      if (authState.isAuthenticated && currentUserRole && currentUserRole !== 'NoRole') {
-        // Load and show list view as default landing page for authenticated users
+      // For NoRole users, the awaiting screen was already shown in initializeModeFromRole()
+      // For unauthenticated users, show calculator view
+      if (authState.isAuthenticated && currentUserRole && currentUserRole === 'NoRole') {
+        // Awaiting assignment screen was already shown - do nothing
+        return;
+      } else if (authState.isAuthenticated && currentUserRole) {
+        // Load and show list view as default landing page for authenticated users with roles
         await applyFiltersAndRender();
         updateViewToggleButtons();
         showView("list");
       } else {
-        // Default: calculator view for unauthenticated or NoRole users
+        // Default: calculator view for unauthenticated users
         materialLines = [];
         renderMaterials();
         calcAll();
@@ -2738,7 +2754,10 @@
   function detectLocalRole() {
     if (!authState.isAuthenticated) return null;
     const isExecutive = authState.user.roles.includes('PriceListExecutive');
-    return isExecutive ? 'Executive' : 'Sales';
+    const isSales = authState.user.roles.includes('PriceListSales');
+    if (isExecutive) return 'Executive';
+    if (isSales) return 'Sales';
+    return 'NoRole'; // Default to NoRole for unassigned users
   }
 
   /**
