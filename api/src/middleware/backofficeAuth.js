@@ -156,23 +156,28 @@ async function verifyBackofficeCredentials(username, password, clientInfo) {
   }
 
   // Generate JWT token with explicit timestamp
+  // Adjust iat backwards by CLOCK_TOLERANCE to account for server clock skew
+  // This ensures tokens are valid even if server clock is behind real time
   let token;
   try {
     const now = Math.floor(Date.now() / 1000);
+    const adjustedIat = now - CLOCK_TOLERANCE; // Adjust for potential clock skew
     token = jwt.sign(
       {
         adminId: admin.Id,
         username: admin.Username,
         email: admin.Email,
-        iat: now, // Explicit issued-at timestamp
-        exp: now + (8 * 60 * 60) // Explicit expiry: 8 hours from now
+        iat: adjustedIat, // Issued-at timestamp adjusted for clock skew
+        exp: now + (8 * 60 * 60) // Explicit expiry: 8 hours from now (using actual time)
       },
       JWT_SECRET
     );
     console.log('[BACKOFFICE AUTH] JWT token generated successfully', {
       adminId: admin.Id,
       username: admin.Username,
-      iat: now,
+      now: now,
+      adjustedIat: adjustedIat,
+      clockSkewAdjustment: CLOCK_TOLERANCE,
       exp: now + (8 * 60 * 60),
       expiryDate: new Date((now + (8 * 60 * 60)) * 1000).toISOString()
     });
