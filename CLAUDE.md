@@ -48,6 +48,8 @@ Set the `DATABASE_CONNECTION_STRING` environment variable in `api/local.settings
 
 **Timer Functions**: Set `ENABLE_TIMER_FUNCTIONS` to `"true"` for local development (timer functions are disabled in Azure Static Web Apps managed mode - only HTTP functions are supported). The GitHub Actions workflow automatically sets this to `"false"` during deployment.
 
+**Backoffice Authentication**: Set `BACKOFFICE_JWT_SECRET` in `api/local.settings.json` for local development (optional, as JWT validation is bypassed for localhost). **For production**, this must be configured in Azure Portal → Static Web App → Configuration → Environment variables (generate with `openssl rand -base64 32`). Without this, backoffice login will appear to succeed but subsequent API requests will fail with "Access denied."
+
 **AzureWebJobsStorage**: Set to `"UseDevelopmentStorage=true"` for timer trigger support in local development (requires Azurite Azure Storage Emulator). Install Azurite with `npm install -g azurite` and run with `azurite --silent --location <path> --debug <path>`. Alternatively, set `ENABLE_TIMER_FUNCTIONS` to `"false"` to disable timer triggers while keeping manual HTTP endpoints available.
 
 ### Direct Database Access (sqlcmd)
@@ -123,7 +125,7 @@ The `.vscode/launch.json` configuration supports debugging:
 - HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, version, admin/roles, admin/diagnostics, admin/logs, admin/health, backoffice
 - Timer functions in `src/functions/timers/`: logPurge (daily log archival - conditionally registered via `ENABLE_TIMER_FUNCTIONS` env var)
 - Utilities in `src/utils/`: logger.js (application logging), performanceTracker.js (performance metrics), circuitBreaker.js (fault tolerance)
-- Authentication middleware in `src/middleware/`: auth.js (Azure AD), twoFactorAuth.js (two-factor auth for backoffice), backofficeAuth.js (deprecated - JWT username/password), correlationId.js (request tracing), requestLogger.js (correlation propagation)
+- Authentication middleware in `src/middleware/`: auth.js (Azure AD), twoFactorAuth.js (two-factor auth for backoffice with diagnostic logging), backofficeAuth.js (deprecated - JWT username/password), correlationId.js (request tracing), requestLogger.js (correlation propagation)
 
 ### Frontend Structure (`src/`)
 - **Main Calculator** (`index.html`): Single-page HTML application with embedded JavaScript
@@ -240,6 +242,12 @@ The application implements a 4-tier role system:
 - `GET /api/backoffice/repair` - Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit/BackofficeAdmins tables)
 - `GET /api/backoffice/timezone-check` - Diagnostic endpoint to check timezone configuration (returns database and JavaScript timezone information)
 
+**Backoffice Environment Variables** (Azure Portal Configuration):
+- `BACKOFFICE_JWT_SECRET` - **Required in production**: Secret key for JWT token signing/verification (generate with `openssl rand -base64 32`)
+  - If missing, login will succeed but subsequent API requests will fail with "Access denied"
+  - Local development bypasses JWT validation entirely (localhost check)
+  - Diagnostic logs will show "CRITICAL: BACKOFFICE_JWT_SECRET not configured!" if missing in production
+
 **Auth Middleware Helpers:**
 - `getUserEffectiveRole(user)` - Get role from DB or Azure AD, returns 'Executive', 'Sales', or 'NoRole'
 - `isExecutive(user)` - Check if user has Executive role
@@ -268,6 +276,7 @@ The application implements a 4-tier role system:
 - Automated log archival via timer trigger (daily at 2 AM UTC) - disabled in Azure Static Web Apps; use manual endpoint instead
 - Manual log purge endpoint: `POST /api/adm/logs/purge/manual` (Executive only)
 - Environment variables: `LOG_LEVEL`, `LOG_BUFFER_FLUSH_MS`, `LOG_BUFFER_SIZE`, `CIRCUIT_BREAKER_THRESHOLD`, etc.
+- **Diagnostic logging**: Enhanced JWT token validation error messages with configuration detection (detects missing `BACKOFFICE_JWT_SECRET` in production)
 
 **UTC Timezone**: All database timestamps use `GETUTCDATE()` for consistent UTC timezone across all servers; JavaScript uses `Date.toISOString()` for UTC datetime parameters
 

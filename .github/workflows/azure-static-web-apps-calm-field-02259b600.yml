@@ -21,6 +21,8 @@ jobs:
           lfs: false
 
       # Disable timer functions for SWA deployment (managed mode only supports HTTP functions)
+      # NOTE: Additional environment variables must be configured in Azure Portal:
+      #   - BACKOFFICE_JWT_SECRET: Required for backoffice authentication (generate with: openssl rand -base64 32)
       - name: Configure for SWA (Disable Timer Functions)
         run: |
           echo '{"IsEncrypted":false,"Values":{"ENABLE_TIMER_FUNCTIONS":"false"}}' > api/local.swa.settings.json

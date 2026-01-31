@@ -18,6 +18,19 @@ const JWT_SECRET = process.env.BACKOFFICE_JWT_SECRET || 'change-this-secret-in-p
 const ACCESS_TOKEN_EXPIRY = '8h'; // 8-hour access token (full work day)
 const REFRESH_TOKEN_EXPIRY = '7d'; // 7-day refresh token when "Remember Me" is checked
 
+// Diagnostic: Detect if using default secret in production
+const isUsingDefaultSecret = JWT_SECRET === 'change-this-secret-in-production';
+const isProduction = !process.env.WEBSITE_SITE_NAME || // Running in Azure
+                     (process.env.WEBSITE_SITE_NAME && process.env.WEBSITE_SITE_NAME !== 'localhost');
+
+if (isUsingDefaultSecret && isProduction) {
+  logger.error('CONFIG', 'MissingJWTSecret',
+    'CRITICAL: BACKOFFICE_JWT_SECRET not configured! Using default fallback. ' +
+    'Backoffice login will fail in production. Set BACKOFFICE_JWT_SECRET environment variable.',
+    { severity: 'CRITICAL', secretLength: JWT_SECRET.length }
+  );
+}
+
 /**
  * Check if the request is from local development
  */
@@ -174,11 +187,27 @@ async function requireBackofficeSession(req) {
       throw error;
     }
     if (e.name === 'JsonWebTokenError') {
+      // Add diagnostic context for JWT secret misconfiguration
+      const diagnostics = { error: e.message, isUsingDefaultSecret };
+      if (isUsingDefaultSecret && isProduction) {
+        diagnostics.criticalWarning = 'BACKOFFICE_JWT_SECRET environment variable not configured in production';
+        diagnostics.actionRequired = 'Set BACKOFFICE_JWT_SECRET in Azure Portal (Configuration → Environment variables)';
+      }
+
       logger.warn('AUTH', 'TokenInvalid', 'Backoffice session token verification failed', {
-        serverContext: { error: e.message }
+        serverContext: diagnostics
       });
-      const error = new Error('Unauthorized: Invalid token');
+
+      // Provide clearer error message for configuration issues
+      const errorMessage = isUsingDefaultSecret && isProduction
+        ? 'Unauthorized: Configuration error - Contact administrator'
+        : 'Unauthorized: Invalid token';
+
+      const error = new Error(errorMessage);
       error.statusCode = 401;
+      if (isUsingDefaultSecret && isProduction) {
+        error.code = 'CONFIGURATION_ERROR';
+      }
       throw error;
     }
     logger.error('AUTH', 'TokenError', 'Unexpected JWT error', {
@@ -221,13 +250,30 @@ function generateTokens(email, rememberMe = false) {
   const accessToken = jwt.sign(accessTokenPayload, JWT_SECRET);
   const refreshToken = jwt.sign(refreshTokenPayload, JWT_SECRET);
 
+  const tokenLogContext = {
+    accessTokenExpiry: new Date(accessTokenExpiry * 1000).toISOString(),
+    refreshTokenExpiry: new Date(refreshTokenExpiry * 1000).toISOString(),
+    rememberMe
+  };
+
+  // Warn if using default secret in production
+  if (isUsingDefaultSecret && isProduction) {
+    logger.warn('AUTH', 'TokensGeneratedWithDefaultSecret',
+      `Tokens generated with DEFAULT secret for ${email} - This will cause validation failures!`,
+      {
+        userEmail: email,
+        serverContext: {
+          ...tokenLogContext,
+          critical: 'BACKOFFICE_JWT_SECRET not configured',
+          action: 'Set BACKOFFICE_JWT_SECRET in Azure Portal'
+        }
+      }
+    );
+  }
+
   logger.debug('AUTH', 'TokensGenerated', `Tokens generated for ${email}`, {
     userEmail: email,
-    serverContext: {
-      accessTokenExpiry: new Date(accessTokenExpiry * 1000).toISOString(),
-      refreshTokenExpiry: new Date(refreshTokenExpiry * 1000).toISOString(),
-      rememberMe
-    }
+    serverContext: tokenLogContext
   });
 
   return {
