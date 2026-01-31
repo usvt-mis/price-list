@@ -184,12 +184,30 @@ PRINT '';
 PRINT '===========================================';
 PRINT 'CURRENT ROLE DISTRIBUTION';
 PRINT '===========================================';
-SELECT
-    ISNULL(Role, 'NoRole (NULL)') AS Role,
-    COUNT(*) AS UserCount,
-    COUNT(FirstLoginAt) AS HasLoggedInCount,
-    COUNT(*) - COUNT(FirstLoginAt) AS PendingCount
-FROM UserRoles
-GROUP BY Role
-ORDER BY Role;
+
+-- Only run the detailed query if columns exist
+IF EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID('UserRoles')
+    AND name = 'FirstLoginAt'
+)
+BEGIN
+    SELECT
+        ISNULL(Role, 'NoRole (NULL)') AS Role,
+        COUNT(*) AS UserCount,
+        COUNT(FirstLoginAt) AS HasLoggedInCount,
+        COUNT(*) - COUNT(FirstLoginAt) AS PendingCount
+    FROM UserRoles
+    GROUP BY Role
+    ORDER BY Role;
+END
+ELSE
+BEGIN
+    SELECT
+        ISNULL(Role, 'NoRole (NULL)') AS Role,
+        COUNT(*) AS UserCount
+    FROM UserRoles
+    GROUP BY Role
+    ORDER BY Role;
+END
 PRINT '';
