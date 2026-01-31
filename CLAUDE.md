@@ -48,7 +48,7 @@ Set the `DATABASE_CONNECTION_STRING` environment variable in `api/local.settings
 
 **Timer Functions**: Set `ENABLE_TIMER_FUNCTIONS` to `"true"` for local development (timer functions are disabled in Azure Static Web Apps managed mode - only HTTP functions are supported). The GitHub Actions workflow automatically sets this to `"false"` during deployment.
 
-**Backoffice Authentication**: Set `BACKOFFICE_JWT_SECRET` in `api/local.settings.json` for local development (optional, as JWT validation is bypassed for localhost). **For production**, this must be configured in Azure Portal → Static Web App → Configuration → Environment variables (generate with `openssl rand -base64 32`). Without this, backoffice login will appear to succeed but subsequent API requests will fail with "Access denied."
+**Backoffice Authentication**: Backoffice access is restricted to `it@uservices-thailand.com` only. No additional environment variables needed - Azure AD authentication handles authorization automatically.
 
 **AzureWebJobsStorage**: Set to `"UseDevelopmentStorage=true"` for timer trigger support in local development (requires Azurite Azure Storage Emulator). Install Azurite with `npm install -g azurite` and run with `azurite --silent --location <path> --debug <path>`. Alternatively, set `ENABLE_TIMER_FUNCTIONS` to `"false"` to disable timer triggers while keeping manual HTTP endpoints available.
 
@@ -114,7 +114,7 @@ The `.vscode/launch.json` configuration supports debugging:
   - LastLoginAt: Updated on every login for activity tracking
 - Backoffice audit: RoleAssignmentAudit (tracks all role changes with ChangedBy email)
 - **Application Logging**: AppLogs (main logging), PerformanceMetrics (API performance), AppLogs_Archive (historical logs)
-- **Backoffice authentication**: BackofficeAdmins table for two-factor auth (Azure AD + admin password), with JWT session tokens
+- **Backoffice authentication**: BackofficeAdmins table (deprecated - no longer used for auth; kept for potential rollback)
 - Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`, `database/diagnostics_logs.sql` (log queries)
 - Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup), `database/create_app_logs.sql` (logging schema)
 - Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index), `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema)
@@ -125,7 +125,7 @@ The `.vscode/launch.json` configuration supports debugging:
 - HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, version, admin/roles, admin/diagnostics, admin/logs, admin/health, backoffice
 - Timer functions in `src/functions/timers/`: logPurge (daily log archival - conditionally registered via `ENABLE_TIMER_FUNCTIONS` env var)
 - Utilities in `src/utils/`: logger.js (application logging), performanceTracker.js (performance metrics), circuitBreaker.js (fault tolerance)
-- Authentication middleware in `src/middleware/`: auth.js (Azure AD), twoFactorAuth.js (two-factor auth for backoffice with diagnostic logging), backofficeAuth.js (deprecated - JWT username/password), correlationId.js (request tracing), requestLogger.js (correlation propagation)
+- Authentication middleware in `src/middleware/`: auth.js (Azure AD), twoFactorAuth.js (Azure AD + email authorization for backoffice), correlationId.js (request tracing), requestLogger.js (correlation propagation)
 
 ### Frontend Structure (`src/`)
 - **Main Calculator** (`index.html`): Single-page HTML application with embedded JavaScript
@@ -135,10 +135,8 @@ The `.vscode/launch.json` configuration supports debugging:
   - Azure AD authentication for Executive/Sales users
 - **Backoffice Admin** (`backoffice.html`): Standalone backoffice interface with 3-tab role management
   - Separate HTML file with complete UI independence
-  - **Two-factor authentication**: Azure AD identity verification + username/password credentials
-  - **Step 1**: Azure AD authenticates identity (no role filtering, auto-redirect)
-  - **Step 2**: Username + password from BackofficeAdmins table (username: `admin`, password from database)
-  - **8-hour access tokens** with optional 7-day "Remember Me" refresh tokens
+  - **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`
+  - No password step - Azure AD handles full authentication
   - No navigation links to main calculator
   - Uses `/api/backoffice/*` endpoints for data management
   - **3-Tab Layout**: Executives, Sales, Customers tabs for role-specific user management
@@ -146,7 +144,7 @@ The `.vscode/launch.json` configuration supports debugging:
   - **Status indicators**: Active (logged in) vs Pending (awaiting login) based on FirstLoginAt/LastLoginAt
   - **Count badges**: Each tab shows user count
   - **Audit Log tab**: View role change history with search functionality
-  - **Settings tab**: Self-service password change functionality
+  - **Settings tab**: Displays authentication info (no password change)
 
 ---
 
@@ -230,23 +228,20 @@ The application implements a 4-tier role system:
 - `GET /api/adm/logs/health` - System health check (database status, log statistics, performance metrics)
 - `POST /api/adm/logs/purge/manual` - Manually trigger log archival and cleanup
 
-**Backoffice Admin API Endpoints** (Two-factor auth - Azure AD identity + username/password):
-- `POST /api/backoffice/login` - Step 2 of two-factor auth: verify username and password (request body: `{username, password, rememberMe}`; returns 8-hour access token + optional 7-day refresh token)
-- `POST /api/backoffice/refresh` - Refresh access token using refresh token
-- `POST /api/backoffice/logout` - Logout and clear session
-- `POST /api/backoffice/change-password` - Self-service password change
+**Backoffice Admin API Endpoints** (Azure AD authentication only):
+- `POST /api/backoffice/login` - Verify backoffice access (checks if email is `it@uservices-thailand.com`)
 - `GET /api/backoffice/users?role={Executive|Sales|Customer|NoRole}&page={page}&search={query}` - List users with optional role filtering (paginated, searchable)
 - `POST /api/backoffice/users/{email}/role` - Assign/update user role (NoRole/Sales/Executive/Customer)
 - `DELETE /api/backoffice/users/{email}/role` - Remove user role (sets to NoRole)
 - `GET /api/backoffice/audit-log?email={query}` - View role change audit history with optional email filter
-- `GET /api/backoffice/repair` - Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit/BackofficeAdmins tables)
+- `GET /api/backoffice/repair` - Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit tables)
 - `GET /api/backoffice/timezone-check` - Diagnostic endpoint to check timezone configuration (returns database and JavaScript timezone information)
 
-**Backoffice Environment Variables** (Azure Portal Configuration):
-- `BACKOFFICE_JWT_SECRET` - **Required in production**: Secret key for JWT token signing/verification (generate with `openssl rand -base64 32`)
-  - If missing, login will succeed but subsequent API requests will fail with "Access denied"
-  - Local development bypasses JWT validation entirely (localhost check)
-  - Diagnostic logs will show "CRITICAL: BACKOFFICE_JWT_SECRET not configured!" if missing in production
+**Backoffice Authorization:**
+- Access restricted to `it@uservices-thailand.com` only
+- Azure AD handles authentication automatically
+- No additional environment variables needed
+- Authorization check performed via `requireBackofficeSession()` middleware in `twoFactorAuth.js`
 
 **Auth Middleware Helpers:**
 - `getUserEffectiveRole(user)` - Get role from DB or Azure AD, returns 'Executive', 'Sales', or 'NoRole'
@@ -261,10 +256,10 @@ The application implements a 4-tier role system:
 - `database/diagnostics_timezone.sql` - Timezone diagnostics (server offset, column analysis, lockout status comparison)
 - `database/diagnostics_logs.sql` - Collection of diagnostic queries for application logs (recent errors, user activity, performance, etc.)
 - `database/migrations/migrate_to_utc.sql` - Idempotent migration script to convert existing timestamps from local time to UTC
-- `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table for two-factor authentication
+- `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table (deprecated - no longer used for authentication)
 
 **Maintenance Scripts:**
-- `api/scripts/reset-admin-password.js` - Reset backoffice admin password with proper bcrypt hash (usage: `node scripts/reset-admin-password.js [new-password]`)
+- `api/scripts/reset-admin-password.js` - Reset backoffice admin password (deprecated - no longer used for authentication)
 
 **Application Logging:**
 - Logger utility (`api/src/utils/logger.js`) provides async buffered logging with graceful fallback to console
@@ -276,7 +271,6 @@ The application implements a 4-tier role system:
 - Automated log archival via timer trigger (daily at 2 AM UTC) - disabled in Azure Static Web Apps; use manual endpoint instead
 - Manual log purge endpoint: `POST /api/adm/logs/purge/manual` (Executive only)
 - Environment variables: `LOG_LEVEL`, `LOG_BUFFER_FLUSH_MS`, `LOG_BUFFER_SIZE`, `CIRCUIT_BREAKER_THRESHOLD`, etc.
-- **Diagnostic logging**: Enhanced JWT token validation error messages with configuration detection (detects missing `BACKOFFICE_JWT_SECRET` in production)
 
 **UTC Timezone**: All database timestamps use `GETUTCDATE()` for consistent UTC timezone across all servers; JavaScript uses `Date.toISOString()` for UTC datetime parameters
 

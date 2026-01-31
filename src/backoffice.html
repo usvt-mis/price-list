@@ -38,97 +38,20 @@
       </div>
     </div>
 
-    <!-- Password Login View (Step 2 of two-factor auth) -->
-    <div id="passwordLoginView" class="hidden">
+    <!-- Access Denied View (shown when user email is not authorized) -->
+    <div id="accessDeniedView" class="hidden">
       <div class="flex items-center justify-center min-h-[60vh]">
-        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4">
-          <!-- Progress Indicator -->
-          <div class="mb-6">
-            <div class="flex items-center justify-between text-sm text-gray-600">
-              <span class="font-medium">Step 2 of 2</span>
-              <span class="text-green-600">Azure AD Verified ✓</span>
-            </div>
-            <div class="mt-2 h-2 bg-gray-200 rounded-full">
-              <div class="h-2 bg-purple-600 rounded-full" style="width: 50%"></div>
-            </div>
+        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+          <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
           </div>
-
-          <!-- Instructions -->
-          <div class="mb-6 text-center">
-            <p class="text-gray-600">Enter your backoffice credentials</p>
-          </div>
-
-          <!-- Credentials Form -->
-          <form id="passwordForm" class="space-y-4">
-            <!-- Username Input -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-              <input
-                type="text"
-                id="adminUsername"
-                value="admin"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Enter username"
-                required
-                autocomplete="username"
-              />
-            </div>
-
-            <!-- Password Input -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-              <div class="relative">
-                <input
-                  type="password"
-                  id="adminPassword"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Enter password"
-                  required
-                  autofocus
-                  autocomplete="current-password"
-                />
-                <button
-                  type="button"
-                  id="togglePassword"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-purple-600 hover:text-purple-800"
-                >
-                  Show
-                </button>
-              </div>
-            </div>
-
-            <!-- Remember Me Checkbox -->
-            <div class="flex items-center">
-              <input
-                type="checkbox"
-                id="rememberMe"
-                class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-              />
-              <label for="rememberMe" class="ml-2 block text-sm text-gray-900">
-                Remember me for 7 days
-              </label>
-            </div>
-
-            <!-- Error Display -->
-            <div id="loginError" class="hidden p-3 bg-red-50 border border-red-200 rounded-md">
-              <p class="text-sm text-red-800" id="errorMessage"></p>
-            </div>
-
-            <!-- Submit Button -->
-            <button
-              type="submit"
-              id="loginButton"
-              class="w-full py-2 px-4 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Sign In
-            </button>
-          </form>
-
-          <div class="mt-4 text-center">
-            <a href="/.auth/logout?post_logout_redirect_uri=/backoffice.html" class="text-sm text-purple-600 hover:text-purple-800">
-              Not you? Sign out
-            </a>
-          </div>
+          <h1 class="text-2xl font-bold text-slate-900 mb-2">Access Denied</h1>
+          <p class="text-slate-600 mb-6">Backoffice access is restricted to authorized users only.</p>
+          <a href="/.auth/logout?post_logout_redirect_uri=/backoffice.html" class="inline-block px-6 py-3 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
+            Sign Out
+          </a>
         </div>
       </div>
     </div>
@@ -396,54 +319,9 @@
         <div id="backofficeSettingsTab" class="hidden">
           <h2 class="text-xl font-bold text-slate-900 mb-4">Settings</h2>
 
-          <!-- Password Change Section -->
           <div class="p-6 bg-white rounded-lg border border-slate-200">
-            <h3 class="text-lg font-medium text-slate-900 mb-4">Change Password</h3>
-
-            <form id="changePasswordForm" class="space-y-4 max-w-md">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-                <input
-                  type="password"
-                  id="currentPassword"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  required
-                />
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                <input
-                  type="password"
-                  id="newPassword"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  minlength="8"
-                  required
-                />
-                <p class="mt-1 text-sm text-gray-500">Minimum 8 characters</p>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  required
-                />
-              </div>
-
-              <!-- Success/Error Messages -->
-              <div id="passwordChangeMessage" class="hidden p-3 rounded-md"></div>
-
-              <button
-                type="submit"
-                id="changePasswordButton"
-                class="py-2 px-4 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Change Password
-              </button>
-            </form>
+            <p class="text-slate-600">Backoffice is configured for Azure AD authentication only.</p>
+            <p class="text-sm text-slate-500 mt-2">Access is restricted to <code>it@uservices-thailand.com</code></p>
           </div>
         </div>
       </div>
@@ -556,15 +434,15 @@
   function showView(view) {
     el('loadingView').classList.add('hidden');
     el('azureAdLoginView').classList.add('hidden');
-    el('passwordLoginView').classList.add('hidden');
+    el('accessDeniedView').classList.add('hidden');
     el('backofficeDashboardView').classList.add('hidden');
 
     if (view === 'loading') {
       el('loadingView').classList.remove('hidden');
     } else if (view === 'azure-ad-login') {
       el('azureAdLoginView').classList.remove('hidden');
-    } else if (view === 'password-login') {
-      el('passwordLoginView').classList.remove('hidden');
+    } else if (view === 'access-denied') {
+      el('accessDeniedView').classList.remove('hidden');
     } else if (view === 'dashboard') {
       el('backofficeDashboardView').classList.remove('hidden');
     }
@@ -576,7 +454,7 @@
   async function getUserInfo() {
     if (isLocalDev) {
       return {
-        userDetails: 'Dev User',
+        userDetails: 'it@uservices-thailand.com',
         userId: 'dev-user',
         userRoles: ['authenticated']
       };
@@ -588,130 +466,46 @@
     return data.clientPrincipal;
   }
 
-  // Get stored token from sessionStorage
-  function getStoredTokens() {
-    return {
-      accessToken: sessionStorage.getItem('backofficeToken'),
-      refreshToken: sessionStorage.getItem('refreshToken')
-    };
-  }
-
-  // Store tokens in sessionStorage
-  function storeTokens(accessToken, refreshToken) {
-    sessionStorage.setItem('backofficeToken', accessToken);
-    sessionStorage.setItem('refreshToken', refreshToken);
-  }
-
-  // Clear tokens from sessionStorage
-  function clearTokens() {
-    sessionStorage.removeItem('backofficeToken');
-    sessionStorage.removeItem('refreshToken');
-  }
-
-  // Refresh access token using refresh token
-  async function refreshAccessToken() {
-    const { refreshToken } = getStoredTokens();
-    if (!refreshToken) return null;
-
-    try {
-      const response = await fetch('/api/backoffice/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken })
-      });
-
-      if (!response.ok) return null;
-
-      const data = await response.json();
-      storeTokens(data.accessToken, data.refreshToken);
-      return data.accessToken;
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      clearTokens();
-      return null;
-    }
-  }
-
-  // Make authenticated API call with auto-refresh
+  // Make authenticated API call (Azure AD handles auth automatically)
   async function fetchWithAuth(url, options = {}) {
-    const { accessToken } = getStoredTokens();
-
     const headers = {
       ...options.headers,
-      'Authorization': `Bearer ${accessToken}`
+      'Content-Type': 'application/json'
     };
 
-    let response = await fetch(url, { ...options, headers });
+    const response = await fetch(url, { ...options, headers });
 
-    // Token expired - try refresh
-    if (response.status === 401) {
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        headers['Authorization'] = `Bearer ${newToken}`;
-        response = await fetch(url, { ...options, headers });
-      } else {
-        // Refresh failed - redirect to password login
-        clearTokens();
-        showView('password-login');
-        throw new Error('Session expired');
-      }
+    if (response.status === 401 || response.status === 403) {
+      // Access denied - redirect to access denied view
+      showView('access-denied');
+      throw new Error('Access denied');
     }
 
     return response;
   }
 
-  // Password login
-  async function handlePasswordLogin(username, password, rememberMe) {
-    const submitBtn = el('loginButton');
-    const errorDiv = el('loginError');
-    const errorMsg = el('errorMessage');
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Verifying...';
-    errorDiv.classList.add('hidden');
-
+  // Verify backoffice access by checking email authorization
+  async function verifyBackofficeAccess() {
     try {
       const response = await fetch('/api/backoffice/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, rememberMe })
+        headers: { 'Content-Type': 'application/json' }
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+      if (response.ok) {
+        return true;
+      } else if (response.status === 403) {
+        return false;
       }
-
-      // Store tokens
-      storeTokens(data.accessToken, data.refreshToken);
-
-      // Load main interface
-      showView('dashboard');
-      showBackofficeTab('executives');
+      return false;
     } catch (error) {
-      errorMsg.textContent = error.message;
-      errorDiv.classList.remove('hidden');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Sign In';
+      console.error('Access verification failed:', error);
+      return false;
     }
   }
 
   // Logout
-  async function handleLogout() {
-    try {
-      await fetch('/api/backoffice/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${sessionStorage.getItem('backofficeToken')}`
-        }
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-
-    clearTokens();
-
+  function handleLogout() {
     // Redirect to Azure AD logout
     window.location.href = '/.auth/logout?post_logout_redirect_uri=/backoffice.html';
   }
@@ -730,64 +524,26 @@
         return;
       }
 
-      // Step 2: Check if we have a valid backoffice token
-      const { accessToken } = getStoredTokens();
+      // Step 2: Verify backoffice access (email authorization)
+      const hasAccess = await verifyBackofficeAccess();
 
-      if (accessToken) {
-        // Verify token by making a simple API call
-        try {
-          const response = await fetchWithAuth('/api/backoffice/users?pageSize=1');
-
-          if (response.ok) {
-            // Token is valid - load dashboard
-            if (el('backofficeUserName')) {
-              el('backofficeUserName').textContent = `Logged in as ${azureUser.userDetails}`;
-            }
-            showView('dashboard');
-            showBackofficeTab('executives');
-            return;
-          }
-        } catch (error) {
-          // Token invalid - continue to password login
-        }
+      if (!hasAccess) {
+        showView('access-denied');
+        return;
       }
 
-      // Step 3: Show password form
-      if (el('userEmailDisplay')) {
-        el('userEmailDisplay').textContent = azureUser.userDetails;
+      // Step 3: Load dashboard
+      if (el('backofficeUserName')) {
+        el('backofficeUserName').textContent = `Logged in as ${azureUser.userDetails}`;
       }
-      showView('password-login');
+      showView('dashboard');
+      showBackofficeTab('executives');
 
     } catch (error) {
       console.error('Initialization error:', error);
       showView('azure-ad-login');
     }
   }
-
-  // ========== PASSWORD FORM EVENT HANDLERS ==========
-
-  // Toggle password visibility
-  el('togglePassword')?.addEventListener('click', () => {
-    const passwordInput = el('adminPassword');
-    const toggleBtn = el('togglePassword');
-
-    if (passwordInput.type === 'password') {
-      passwordInput.type = 'text';
-      toggleBtn.textContent = 'Hide';
-    } else {
-      passwordInput.type = 'password';
-      toggleBtn.textContent = 'Show';
-    }
-  });
-
-  // Password form submit
-  el('passwordForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const username = el('adminUsername').value.trim();
-    const password = el('adminPassword').value;
-    const rememberMe = el('rememberMe').checked;
-    handlePasswordLogin(username, password, rememberMe);
-  });
 
   // Logout button
   el('logoutButton')?.addEventListener('click', handleLogout);
@@ -1310,64 +1066,6 @@
     if (e.target.id === 'roleChangeModal') {
       el('roleChangeModal').classList.add('hidden');
       backofficeState.currentEmail = null;
-    }
-  });
-
-  // ========== PASSWORD CHANGE ==========
-
-  el('changePasswordForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const currentPassword = el('currentPassword').value;
-    const newPassword = el('newPassword').value;
-    const confirmPassword = el('confirmPassword').value;
-    const submitBtn = el('changePasswordButton');
-    const messageDiv = el('passwordChangeMessage');
-
-    // Validate passwords match
-    if (newPassword !== confirmPassword) {
-      messageDiv.textContent = 'New passwords do not match';
-      messageDiv.className = 'p-3 bg-red-50 border border-red-200 rounded-md text-red-800';
-      messageDiv.classList.remove('hidden');
-      return;
-    }
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Changing...';
-    messageDiv.classList.add('hidden');
-
-    try {
-      const response = await fetchWithAuth('/api/backoffice/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Password change failed');
-      }
-
-      messageDiv.textContent = 'Password changed successfully!';
-      messageDiv.className = 'p-3 bg-green-50 border border-green-200 rounded-md text-green-800';
-      messageDiv.classList.remove('hidden');
-
-      // Clear form
-      el('currentPassword').value = '';
-      el('newPassword').value = '';
-      el('confirmPassword').value = '';
-
-    } catch (error) {
-      messageDiv.textContent = error.message;
-      messageDiv.className = 'p-3 bg-red-50 border border-red-200 rounded-md text-red-800';
-      messageDiv.classList.remove('hidden');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Change Password';
     }
   });
 

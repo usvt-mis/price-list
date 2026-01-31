@@ -13,6 +13,3 @@ require("./functions/admin/health");
 require("./functions/timers/logPurge");
 require("./functions/backoffice");
 require("./functions/backoffice/login");
-require("./functions/backoffice/refresh");
-require("./functions/backoffice/logout");
-require("./functions/backoffice/changePassword");

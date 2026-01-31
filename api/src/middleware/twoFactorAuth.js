@@ -1,35 +1,13 @@
 /**
  * Two-Factor Authentication Middleware for Backoffice
- * Step 1: Azure AD authenticates identity only (no role check)
- * Step 2: Users then log in manually via admin password
+ * Azure AD authentication with single email authorization
  *
  * This middleware provides:
  * - requireAzureAuth(): Validates Azure AD identity only (no role check)
- * - requireBackofficeSession(): Validates JWT from password login
+ * - requireBackofficeSession(): Validates Azure AD and restricts access to it@uservices-thailand.com
  */
 
-const jwt = require('jsonwebtoken');
-const { getPool } = require('../db');
-const sql = require('mssql');
 const logger = require('../utils/logger');
-
-// JWT configuration
-const JWT_SECRET = process.env.BACKOFFICE_JWT_SECRET || 'change-this-secret-in-production';
-const ACCESS_TOKEN_EXPIRY = '8h'; // 8-hour access token (full work day)
-const REFRESH_TOKEN_EXPIRY = '7d'; // 7-day refresh token when "Remember Me" is checked
-
-// Diagnostic: Detect if using default secret in production
-const isUsingDefaultSecret = JWT_SECRET === 'change-this-secret-in-production';
-const isProduction = !process.env.WEBSITE_SITE_NAME || // Running in Azure
-                     (process.env.WEBSITE_SITE_NAME && process.env.WEBSITE_SITE_NAME !== 'localhost');
-
-if (isUsingDefaultSecret && isProduction) {
-  logger.error('CONFIG', 'MissingJWTSecret',
-    'CRITICAL: BACKOFFICE_JWT_SECRET not configured! Using default fallback. ' +
-    'Backoffice login will fail in production. Set BACKOFFICE_JWT_SECRET environment variable.',
-    { severity: 'CRITICAL', secretLength: JWT_SECRET.length }
-  );
-}
 
 /**
  * Check if the request is from local development
@@ -120,219 +98,49 @@ async function requireAzureAuth(req) {
 }
 
 /**
- * requireBackofficeSession - Validates JWT from password login
+ * requireBackofficeSession - Validates Azure AD authentication and restricts access
  * Returns admin user object with email from Azure AD
- * Throws 401 if token is invalid or expired
+ * Access restricted to it@uservices-thailand.com only
+ * Throws 401 if not authenticated, 403 if email not authorized
  */
 async function requireBackofficeSession(req) {
-  // Local development: return mock admin user (bypass password check)
-  if (isLocalRequest(req)) {
-    logger.debug('AUTH', 'LocalDevBypass', 'Local development bypass - using mock admin', {
-      userEmail: 'Dev User'
-    });
-    return {
-      email: 'Dev User',
-      userType: 'backoffice'
-    };
-  }
+  // Parse Azure AD client principal
+  const user = parseClientPrincipal(req);
 
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    logger.warn('AUTH', 'NoToken', 'No authorization token found', {
-      serverContext: { endpoint: req.url }
+  if (!user) {
+    logger.warn('AUTH', 'NoAzureAD', 'No valid Azure AD credentials found', {
+      serverContext: { endpoint: req.url, hasClientPrincipal: !!req.headers.get('x-ms-client-principal') }
     });
-    const error = new Error('Unauthorized: Backoffice session token required');
+    const error = new Error('Unauthorized: Azure AD authentication required');
     error.statusCode = 401;
     throw error;
   }
 
-  const token = authHeader.substring(7);
+  const email = user.userDetails;
 
-  try {
-    // Verify JWT token with 5-minute clock tolerance for Azure Functions
-    const decoded = jwt.verify(token, JWT_SECRET, {
-      clockTolerance: 300 // 5 minutes
+  // Restrict to it@uservices-thailand.com ONLY
+  const ALLOWED_EMAIL = 'it@uservices-thailand.com';
+  if (email !== ALLOWED_EMAIL) {
+    logger.warn('AUTH', 'UnauthorizedUser', `Access denied for ${email}`, {
+      userEmail: email,
+      serverContext: { allowedEmail: ALLOWED_EMAIL }
     });
-
-    // Validate token type and required fields
-    if (decoded.userType !== 'backoffice' || !decoded.email) {
-      logger.warn('AUTH', 'InvalidToken', 'Invalid backoffice token format', {
-        serverContext: { hasUserType: !!decoded.userType, hasEmail: !!decoded.email }
-      });
-      const error = new Error('Unauthorized: Invalid token format');
-      error.statusCode = 401;
-      throw error;
-    }
-
-    logger.debug('AUTH', 'SessionValid', `Backoffice session validated: ${decoded.email}`, {
-      userEmail: decoded.email
-    });
-
-    return {
-      email: decoded.email,
-      userType: 'backoffice',
-      iat: decoded.iat,
-      exp: decoded.exp
-    };
-  } catch (e) {
-    if (e.name === 'TokenExpiredError') {
-      logger.warn('AUTH', 'TokenExpired', 'Backoffice session token expired', {
-        serverContext: {
-          expiredAt: e.expiredAt ? new Date(e.expiredAt * 1000).toISOString() : 'unknown'
-        }
-      });
-      const error = new Error('Unauthorized: Session expired');
-      error.statusCode = 401;
-      error.code = 'TOKEN_EXPIRED';
-      throw error;
-    }
-    if (e.name === 'JsonWebTokenError') {
-      // Add diagnostic context for JWT secret misconfiguration
-      const diagnostics = { error: e.message, isUsingDefaultSecret };
-      if (isUsingDefaultSecret && isProduction) {
-        diagnostics.criticalWarning = 'BACKOFFICE_JWT_SECRET environment variable not configured in production';
-        diagnostics.actionRequired = 'Set BACKOFFICE_JWT_SECRET in Azure Portal (Configuration → Environment variables)';
-      }
-
-      logger.warn('AUTH', 'TokenInvalid', 'Backoffice session token verification failed', {
-        serverContext: diagnostics
-      });
-
-      // Provide clearer error message for configuration issues
-      const errorMessage = isUsingDefaultSecret && isProduction
-        ? 'Unauthorized: Configuration error - Contact administrator'
-        : 'Unauthorized: Invalid token';
-
-      const error = new Error(errorMessage);
-      error.statusCode = 401;
-      if (isUsingDefaultSecret && isProduction) {
-        error.code = 'CONFIGURATION_ERROR';
-      }
-      throw error;
-    }
-    logger.error('AUTH', 'TokenError', 'Unexpected JWT error', {
-      error: e.message,
-      name: e.name
-    });
-    throw e;
-  }
-}
-
-/**
- * Generate access and refresh tokens for backoffice session
- * @param {string} email - User email from Azure AD
- * @param {boolean} rememberMe - Whether to extend refresh token to 7 days
- * @returns {object} - { accessToken, refreshToken, expiresIn }
- */
-function generateTokens(email, rememberMe = false) {
-  const now = Math.floor(Date.now() / 1000);
-  const accessTokenExpiry = now + (8 * 60 * 60); // 8 hours
-  const refreshTokenExpiry = rememberMe ? now + (7 * 24 * 60 * 60) : accessTokenExpiry; // 7 days or 8 hours
-
-  // Access token payload
-  const accessTokenPayload = {
-    email,
-    userType: 'backoffice',
-    iat: now,
-    exp: accessTokenExpiry,
-    rememberMe
-  };
-
-  // Refresh token payload (minimal data)
-  const refreshTokenPayload = {
-    email,
-    userType: 'backoffice',
-    type: 'refresh',
-    iat: now,
-    exp: refreshTokenExpiry
-  };
-
-  const accessToken = jwt.sign(accessTokenPayload, JWT_SECRET);
-  const refreshToken = jwt.sign(refreshTokenPayload, JWT_SECRET);
-
-  const tokenLogContext = {
-    accessTokenExpiry: new Date(accessTokenExpiry * 1000).toISOString(),
-    refreshTokenExpiry: new Date(refreshTokenExpiry * 1000).toISOString(),
-    rememberMe
-  };
-
-  // Warn if using default secret in production
-  if (isUsingDefaultSecret && isProduction) {
-    logger.warn('AUTH', 'TokensGeneratedWithDefaultSecret',
-      `Tokens generated with DEFAULT secret for ${email} - This will cause validation failures!`,
-      {
-        userEmail: email,
-        serverContext: {
-          ...tokenLogContext,
-          critical: 'BACKOFFICE_JWT_SECRET not configured',
-          action: 'Set BACKOFFICE_JWT_SECRET in Azure Portal'
-        }
-      }
-    );
+    const error = new Error(`Forbidden: Backoffice access restricted to ${ALLOWED_EMAIL}`);
+    error.statusCode = 403;
+    throw error;
   }
 
-  logger.debug('AUTH', 'TokensGenerated', `Tokens generated for ${email}`, {
-    userEmail: email,
-    serverContext: tokenLogContext
+  logger.debug('AUTH', 'BackofficeAccess', `Backoffice access granted: ${email}`, {
+    userEmail: email
   });
 
   return {
-    accessToken,
-    refreshToken,
-    expiresIn: 8 * 60 * 60 // 8 hours in seconds
+    email: email,
+    userType: 'backoffice'
   };
-}
-
-/**
- * Verify refresh token and generate new access token
- * @param {string} refreshToken - Refresh token to verify
- * @returns {object} - { accessToken, refreshToken, expiresIn } or null if invalid
- */
-function verifyRefreshToken(refreshToken) {
-  try {
-    // Verify refresh token with 5-minute clock tolerance
-    const decoded = jwt.verify(refreshToken, JWT_SECRET, {
-      clockTolerance: 300
-    });
-
-    // Validate token type
-    if (decoded.type !== 'refresh' || decoded.userType !== 'backoffice') {
-      logger.warn('AUTH', 'InvalidRefreshToken', 'Invalid refresh token type', {
-        serverContext: { type: decoded.type, userType: decoded.userType }
-      });
-      return null;
-    }
-
-    // Generate new tokens
-    const rememberMe = decoded.exp - decoded.iat > (8 * 60 * 60); // More than 8 hours = remember me
-    const tokens = generateTokens(decoded.email, rememberMe);
-
-    logger.info('AUTH', 'TokenRefresh', `Token refreshed for ${decoded.email}`, {
-      userEmail: decoded.email
-    });
-
-    return tokens;
-  } catch (e) {
-    if (e.name === 'TokenExpiredError') {
-      logger.warn('AUTH', 'RefreshTokenExpired', 'Refresh token expired', {
-        serverContext: {
-          expiredAt: e.expiredAt ? new Date(e.expiredAt * 1000).toISOString() : 'unknown'
-        }
-      });
-    } else {
-      logger.warn('AUTH', 'RefreshTokenInvalid', 'Refresh token verification failed', {
-        serverContext: { error: e.message }
-      });
-    }
-    return null;
-  }
 }
 
 module.exports = {
   requireAzureAuth,
-  requireBackofficeSession,
-  generateTokens,
-  verifyRefreshToken,
-  ACCESS_TOKEN_EXPIRY,
-  REFRESH_TOKEN_EXPIRY
+  requireBackofficeSession
 };
