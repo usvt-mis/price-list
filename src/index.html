@@ -867,9 +867,9 @@
       };
     }
 
-    // Production: fetch from Azure Static Web Apps
+    // Production: fetch from App Service Easy Auth API
     try {
-      const response = await fetch('/.auth/me');
+      const response = await fetch('/api/auth/me');
       if (!response.ok) return null;
       const data = await response.json();
       return data.clientPrincipal;

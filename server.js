@@ -28,6 +28,7 @@ const adminLogsRouter = require('./api/src/routes/admin/logs');
 const adminHealthRouter = require('./api/src/routes/admin/health');
 const backofficeRouter = require('./api/src/routes/backoffice');
 const backofficeLoginRouter = require('./api/src/routes/backoffice/login');
+const authRouter = require('./api/src/routes/auth');
 
 // Import authentication middleware
 const { requireAuth } = require('./api/src/middleware/authExpress');
@@ -115,6 +116,9 @@ app.use('/api/adm/health', requireAuth, adminHealthRouter);
 app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
 // Backoffice login is a special endpoint that validates Azure AD and checks email
 app.use('/api/backoffice/login', backofficeLoginRouter);
+
+// Auth info endpoint (public - auth validation happens inside route)
+app.use('/api/auth', authRouter);
 
 // ============================================================
 // Health Check

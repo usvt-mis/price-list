@@ -130,7 +130,7 @@ The `.vscode/launch.json` configuration supports debugging:
 - Main server: `server.js` at root (Express app with static file serving and route mounting)
 - Route modules in `src/routes/`: Converted from Azure Functions to Express Router pattern
   - Core routes: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations
-  - Utility routes: ping, version
+  - Utility routes: ping, version, auth
   - Admin routes: admin/roles, admin/diagnostics, admin/logs, admin/health
   - Backoffice routes: backoffice, backoffice/login
 - Authentication middleware in `src/middleware/`: authExpress.js, twoFactorAuthExpress.js (Express-compatible)
@@ -290,6 +290,9 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 **Version API Endpoint** (no authentication):
 - `GET /api/version` - Get application version from package.json (includes environment)
 
+**Auth Info API Endpoint** (public - validates auth internally):
+- `GET /api/auth/me` - Get current user info from App Service Easy Auth (replaces deprecated `/.auth/me` Static Web Apps endpoint)
+
 **Saved Calculations API Endpoints** (Azure AD - role-based access):
 - `POST /api/saves` - Create new saved calculation (authenticated users only)
 - `GET /api/saves` - List saved calculations (Executive: all records, Sales: own records only, NoRole: 403 forbidden)
@@ -330,15 +333,16 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - Email extraction uses fallback logic (tries userDetails → claims array with 10 claim types) for robust token parsing
 
 **Azure AD Authentication Callback Fix (Static Web Apps → App Service Migration):**
-- **Problem**: After migrating from SWA to App Service, Azure AD returned tokens via URL hash fragment (`#token={...}`) instead of session cookies
+- **Problem**: After migrating from SWA to App Service, the `/.auth/me` endpoint (Static Web Apps feature) no longer works
 - **Solution implemented**:
-  1. All login URLs now include `post_login_redirect_uri=/` parameter for proper App Service redirect handling
-  2. Added `parseTokenFromHash()` function in `src/index.html` to handle legacy SWA-style URL hash tokens
-     - Extracts and stores SWA tokens from URL fragment
-     - Clears hash from URL and reloads page to trigger normal auth flow
+  1. Created new `/api/auth/me` endpoint that returns user info from App Service Easy Auth
+     - Extracts user data from `x-ms-client-principal` header (base64-encoded JSON)
+     - Returns same format as old `/.auth/me` for frontend compatibility
+     - Frontend updated to call `/api/auth/me` instead of `/.auth/me`
+  2. All login URLs now include `post_login_redirect_uri=/` parameter for proper App Service redirect handling
   3. Backend validation in `authExpress.js`:
      - Email validation before UserRoles registration prevents database errors
-     - Graceful handling when SWA tokens lack email claims
+     - Graceful handling when tokens lack email claims
 - **Azure Configuration Required**:
   - Azure AD App Registration → Authentication → Update redirect URIs to App Service format
   - App Service → Authentication → Remove `WEBSITE_AUTH_PRESERVE_URL_FRAGMENT` setting (or set to `false`)
