@@ -71,6 +71,39 @@ function parseClientPrincipal(req) {
   }
 }
 
+/**
+ * Extract email from user object with fallback to claims array
+ * Tries multiple sources: userDetails -> claims array (emailaddress, upn, email)
+ * @param {object} user - User object from Azure AD
+ * @returns {string|null} - Extracted email or null if not found
+ */
+function extractUserEmail(user) {
+  // Try userDetails first (standard App Service claim)
+  if (user.userDetails && user.userDetails !== 'undefined' && user.userDetails.trim()) {
+    return user.userDetails.trim();
+  }
+
+  // Try claims array for alternative email claim types
+  if (user.claims && Array.isArray(user.claims)) {
+    for (const claim of user.claims) {
+      const typ = claim.typ || claim.type;
+      const val = claim.val || claim.value;
+
+      // Try common email claim types
+      if (typ === 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress' ||
+          typ === 'email' ||
+          typ === 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn') {
+        if (val && val.trim() && val !== 'undefined') {
+          return val.trim();
+        }
+      }
+    }
+  }
+
+  // No email found
+  return null;
+}
+
 function validateAuth(req) {
   // Local development: return mock user
   if (isLocalRequest(req)) {
@@ -114,14 +147,38 @@ async function requireAuth(req) {
 
   // AWAIT user registration with retry logic
   try {
-    await ensureUserRegisteredWithRetry(user, 3);
-    user.registrationStatus = 'registered';
-    logger.info('AUTH', 'UserAuthenticated', `User authenticated: ${user.userDetails}`, {
-      userEmail: user.userDetails,
-      userRole: user.userRoles?.join(', ') || 'none'
-    });
+    // Extract email using fallback logic (tries userDetails then claims array)
+    const userEmail = extractUserEmail(user);
+
+    if (userEmail) {
+      // Update user object with extracted email
+      user.userDetails = userEmail;
+      await ensureUserRegisteredWithRetry(user, 3);
+      user.registrationStatus = 'registered';
+      logger.info('AUTH', 'UserAuthenticated', `User authenticated: ${userEmail}`, {
+        userEmail: userEmail,
+        userRole: user.userRoles?.join(', ') || 'none'
+      });
+    } else {
+      // User authenticated but no email available - log warning but continue
+      logger.warn('AUTH', 'UserAuthenticatedNoEmail', 'User authenticated without email - registration skipped', {
+        userId: user.userId,
+        userRoles: user.userRoles?.join(', ') || 'none',
+        claimsCount: user.claims?.length || 0
+      });
+      user.registrationStatus = 'skipped_no_email';
+
+      // Add diagnostic debug logging when email is missing
+      logger.debug('AUTH', 'TokenDetails', 'Client principal details for diagnostics', {
+        userId: user.userId,
+        hasUserDetails: !!user.userDetails,
+        userDetailsValue: user.userDetails,
+        claimsCount: user.claims?.length || 0,
+        claimsTypes: user.claims?.map(c => c.typ || c.type).join(', ') || 'none'
+      });
+    }
   } catch (err) {
-    // Log with full context but don't fail auth
+    // This should rarely happen now since we validate email before registration
     logger.error('AUTH', 'UserRegistrationFailed', 'Failed to register user in UserRoles table', {
       error: err,
       userEmail: user.userDetails
@@ -143,10 +200,15 @@ async function requireAuth(req) {
  * Ensure user is registered in UserRoles table with retry logic
  * Handles transient database errors (timeouts, connection issues)
  * Also tracks login timestamps (FirstLoginAt, LastLoginAt)
+ * NOTE: Email validation is now done before calling this function (via extractUserEmail)
  * @param {object} user - User object with userDetails (email)
  * @param {number} maxAttempts - Maximum number of retry attempts
  */
 async function ensureUserRegisteredWithRetry(user, maxAttempts = 3) {
+  // Defensive check - email should already be validated by extractUserEmail()
+  if (!user.userDetails || user.userDetails === 'undefined' || user.userDetails.trim() === '') {
+    throw new Error('User email is required for registration');
+  }
   const { getPool } = require('../db');
   const sql = require('mssql');
 
@@ -416,5 +478,6 @@ module.exports = {
   getUserEffectiveRole,
   isExecutive,
   isSales,
-  getRoleLabel
+  getRoleLabel,
+  extractUserEmail
 };

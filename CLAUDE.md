@@ -256,6 +256,29 @@ The application implements a 4-tier role system:
   - Logs warning with `UserAuthenticatedNoEmail` event for diagnostics
   - Allows authentication to continue but skips UserRoles table operations
 
+### Azure AD Email Claim Extraction
+
+The application extracts email from Azure AD tokens using multiple fallback methods:
+1. `userDetails` field (standard App Service claim)
+2. Claims array: `emailaddress`, `upn`, `email` claim types (common Azure AD claim formats)
+
+**Helper Function**: `extractUserEmail(user)` in `authExpress.js` and `auth.js`
+
+**Extraction Order**:
+1. First checks `user.userDetails` (most common source)
+2. Falls back to claims array with these claim types:
+   - `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`
+   - `email`
+   - `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn` (User Principal Name)
+3. Returns `null` if no email found (logs WARN, continues auth)
+
+**For best results**, configure Azure AD app registration to include email claims:
+- Azure Portal → Entra ID → App registrations → Your App
+- Token Configuration → Add optional claim
+- Select "ID" token type
+- Add "email" and "upn" claims
+- Ensure `accessTokenAcceptedVersion: 2` in app manifest for v2.0 tokens
+
 **Version API Endpoint** (no authentication):
 - `GET /api/version` - Get application version from package.json (includes environment)
 
@@ -316,6 +339,7 @@ The application implements a 4-tier role system:
 - `isExecutive(user)` - Check if user has Executive role
 - `isSales(user)` - Check if user has Sales role
 - `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
+- `extractUserEmail(user)` - Extract email from user object with fallback to claims array (tries userDetails → emailaddress → upn → email claims)
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
