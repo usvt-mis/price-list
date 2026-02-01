@@ -262,7 +262,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 1. `userDetails` field (standard App Service claim, validated to contain @)
 2. Claims array: 10 claim types including `emailaddress`, `upn`, `email`, `preferred_username`, `unique_name`, `name`
 
-**Helper Function**: `extractUserEmail(user)` in `authExpress.js` and `auth.js`
+**Helper Function**: `extractUserEmail(user)` in `authExpress.js`, `auth.js`, and `twoFactorAuthExpress.js`
 
 **Extraction Order** (with case-insensitive matching and @ validation):
 1. First checks `user.userDetails` (must contain @ to be valid email)
@@ -326,7 +326,8 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - Access restricted to `it@uservices-thailand.com` only
 - Azure AD handles authentication automatically
 - No additional environment variables needed
-- Authorization check performed via `requireBackofficeSession()` middleware in `twoFactorAuth.js`
+- Authorization check performed via `requireBackofficeSession()` middleware in `twoFactorAuthExpress.js`
+- Email extraction uses fallback logic (tries userDetails → claims array with 10 claim types) for robust token parsing
 
 **Azure AD Authentication Callback Fix (Static Web Apps → App Service Migration):**
 - **Problem**: After migrating from SWA to App Service, Azure AD returned tokens via URL hash fragment (`#token={...}`) instead of session cookies

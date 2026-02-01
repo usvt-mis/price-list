@@ -52,6 +52,60 @@ function parseClientPrincipal(req) {
 }
 
 /**
+ * Extract email from user object with fallback to claims array
+ * Tries multiple sources: userDetails -> claims array (emailaddress, upn, email, preferred_username, unique_name, name)
+ * @param {object} user - User object from Azure AD
+ * @returns {string|null} - Extracted email or null if not found
+ */
+function extractUserEmail(user) {
+  // Try userDetails first (standard App Service claim)
+  if (user.userDetails && user.userDetails !== 'undefined' && user.userDetails.trim()) {
+    const trimmed = user.userDetails.trim();
+    // Validate it looks like an email (contains @)
+    if (trimmed.includes('@')) {
+      return trimmed;
+    }
+  }
+
+  // Try claims array with expanded claim types
+  if (user.claims && Array.isArray(user.claims)) {
+    // Priority order: most specific to least specific
+    const emailClaimTypes = [
+      // Standard email claims (highest priority)
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
+      'email',
+      'emailaddress',
+      // Username claims that often contain email
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn',
+      'upn',
+      'preferred_username',
+      'unique_name',
+      // Display name (may contain email in some configs)
+      'name',
+      'http://schemas.microsoft.com/identity/claims/displayname',
+    ];
+
+    for (const claimType of emailClaimTypes) {
+      for (const claim of user.claims) {
+        const typ = claim.typ || claim.type;
+        const val = claim.val || claim.value;
+
+        // Case-insensitive matching for claim type
+        if (typ && typ.toLowerCase() === claimType.toLowerCase()) {
+          // Validate value exists, is not 'undefined', and contains @
+          if (val && val.trim() && val !== 'undefined' && val.includes('@')) {
+            return val.trim();
+          }
+        }
+      }
+    }
+  }
+
+  // No email found
+  return null;
+}
+
+/**
  * Express middleware to require Azure AD authentication (no role check)
  * Attaches user object to req.user
  */
@@ -110,7 +164,15 @@ async function requireBackofficeSession(req, res, next) {
     return res.status(401).json({ error: 'Unauthorized: Azure AD authentication required' });
   }
 
-  const email = user.userDetails;
+  // Extract email with fallback to claims array
+  const email = extractUserEmail(user);
+
+  if (!email) {
+    logger.warn('AUTH', 'BackofficeEmailExtractionFailed', 'Failed to extract email from Azure AD token', {
+      serverContext: { endpoint: req.path, hasUserDetails: !!user.userDetails, claimsCount: user.claims?.length || 0 }
+    });
+    return res.status(401).json({ error: 'Unauthorized: Unable to extract email from Azure AD token' });
+  }
 
   // Restrict to it@uservices-thailand.com ONLY
   const ALLOWED_EMAIL = 'it@uservices-thailand.com';
