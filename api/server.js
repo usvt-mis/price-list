@@ -68,13 +68,13 @@ app.use((req, res, next) => {
 // Static Files
 // ============================================================
 
-// Serve static files from src directory
-const staticDir = path.join(__dirname, 'src');
+// Serve static files from src directory (one level up from api/)
+const staticDir = path.join(__dirname, '..', 'src');
 app.use(express.static(staticDir));
 
 // Specific route for backoffice.html
 app.get('/backoffice', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'backoffice.html'));
+  res.sendFile(path.join(__dirname, '..', 'src', 'backoffice.html'));
 });
 
 // ============================================================
