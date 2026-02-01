@@ -258,19 +258,27 @@ The application implements a 4-tier role system:
 
 ### Azure AD Email Claim Extraction
 
-The application extracts email from Azure AD tokens using multiple fallback methods:
-1. `userDetails` field (standard App Service claim)
-2. Claims array: `emailaddress`, `upn`, `email` claim types (common Azure AD claim formats)
+The application extracts email from Azure AD tokens using multiple fallback methods with expanded claim type support:
+1. `userDetails` field (standard App Service claim, validated to contain @)
+2. Claims array: 10 claim types including `emailaddress`, `upn`, `email`, `preferred_username`, `unique_name`, `name`
 
 **Helper Function**: `extractUserEmail(user)` in `authExpress.js` and `auth.js`
 
-**Extraction Order**:
-1. First checks `user.userDetails` (most common source)
-2. Falls back to claims array with these claim types:
-   - `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`
-   - `email`
+**Extraction Order** (with case-insensitive matching and @ validation):
+1. First checks `user.userDetails` (must contain @ to be valid email)
+2. Falls back to claims array with these priority-ordered claim types:
+   - `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` (standard email)
+   - `email` (OIDC v2.0)
+   - `emailaddress` (short form)
    - `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn` (User Principal Name)
-3. Returns `null` if no email found (logs WARN, continues auth)
+   - `upn` (short form)
+   - `preferred_username` (OIDC v2.0)
+   - `unique_name` (v1.0 fallback)
+   - `name` (display name, may contain email)
+   - `http://schemas.microsoft.com/identity/claims/displayname`
+3. Returns `null` if no email found (logs WARN with full claims array for diagnostics)
+
+**Enhanced Diagnostics**: When email extraction fails, logs full claims array with typ/val properties to identify available claims.
 
 **For best results**, configure Azure AD app registration to include email claims:
 - Azure Portal → Entra ID → App registrations → Your App
@@ -339,7 +347,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - `isExecutive(user)` - Check if user has Executive role
 - `isSales(user)` - Check if user has Sales role
 - `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
-- `extractUserEmail(user)` - Extract email from user object with fallback to claims array (tries userDetails → emailaddress → upn → email claims)
+- `extractUserEmail(user)` - Extract email from user object with expanded fallback logic (tries userDetails → 10 claim types including preferred_username, unique_name, name; validates @ presence; case-insensitive matching)
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts

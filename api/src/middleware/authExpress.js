@@ -73,28 +73,49 @@ function parseClientPrincipal(req) {
 
 /**
  * Extract email from user object with fallback to claims array
- * Tries multiple sources: userDetails -> claims array (emailaddress, upn, email)
+ * Tries multiple sources: userDetails -> claims array (emailaddress, upn, email, preferred_username, unique_name, name)
  * @param {object} user - User object from Azure AD
  * @returns {string|null} - Extracted email or null if not found
  */
 function extractUserEmail(user) {
   // Try userDetails first (standard App Service claim)
   if (user.userDetails && user.userDetails !== 'undefined' && user.userDetails.trim()) {
-    return user.userDetails.trim();
+    const trimmed = user.userDetails.trim();
+    // Validate it looks like an email (contains @)
+    if (trimmed.includes('@')) {
+      return trimmed;
+    }
   }
 
-  // Try claims array for alternative email claim types
+  // Try claims array with expanded claim types
   if (user.claims && Array.isArray(user.claims)) {
-    for (const claim of user.claims) {
-      const typ = claim.typ || claim.type;
-      const val = claim.val || claim.value;
+    // Priority order: most specific to least specific
+    const emailClaimTypes = [
+      // Standard email claims (highest priority)
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
+      'email',
+      'emailaddress',
+      // Username claims that often contain email
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn',
+      'upn',
+      'preferred_username',
+      'unique_name',
+      // Display name (may contain email in some configs)
+      'name',
+      'http://schemas.microsoft.com/identity/claims/displayname',
+    ];
 
-      // Try common email claim types
-      if (typ === 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress' ||
-          typ === 'email' ||
-          typ === 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn') {
-        if (val && val.trim() && val !== 'undefined') {
-          return val.trim();
+    for (const claimType of emailClaimTypes) {
+      for (const claim of user.claims) {
+        const typ = claim.typ || claim.type;
+        const val = claim.val || claim.value;
+
+        // Case-insensitive matching for claim type
+        if (typ && typ.toLowerCase() === claimType.toLowerCase()) {
+          // Validate value exists, is not 'undefined', and contains @
+          if (val && val.trim() && val !== 'undefined' && val.includes('@')) {
+            return val.trim();
+          }
         }
       }
     }
@@ -272,7 +293,12 @@ async function requireAuth(req, res, next) {
         hasUserDetails: !!user.userDetails,
         userDetailsValue: user.userDetails,
         claimsCount: user.claims?.length || 0,
-        claimsTypes: user.claims?.map(c => c.typ || c.type).join(', ') || 'none'
+        claimsTypes: user.claims?.map(c => c.typ || c.type).join(', ') || 'none',
+        // NEW: Log full claims array for debugging
+        claimsArray: user.claims?.map(c => ({
+          typ: c.typ || c.type,
+          val: c.val || c.value
+        })) || []
       });
     }
   } catch (err) {
