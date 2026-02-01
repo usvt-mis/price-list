@@ -29,3 +29,9 @@ yarn-error.log*
 # Build outputs
 dist/
 build/
+
+# Backup files
+*.original
+*.bak
+*.backup
+*.old

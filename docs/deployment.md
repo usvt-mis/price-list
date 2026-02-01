@@ -180,6 +180,12 @@ Before deploying, verify the following:
 - `.git/` - Version control (not needed on server)
 - `.vscode/` - Editor configuration
 
+**⚠️ CRITICAL: Backup files can cause deployment failures**
+- Never deploy files with extensions: `.original`, `.bak`, `.backup`, `.old`
+- These files can cause rsync errors (Windows/Linux path handling issues)
+- Use `.gitignore` to prevent backup files from being tracked
+- Example: `src/index.html.original` (3126 lines) caused deployment failure with "failed to stat nul" error
+
 ---
 
 ## Environment Variables
