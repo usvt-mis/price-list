@@ -233,7 +233,6 @@ Use this checklist to verify the setup:
 | `api/src/middleware/twoFactorAuthExpress.js` | Backoffice authentication middleware (Express) |
 | `api/src/routes/backoffice/login.js` | Backoffice login endpoint |
 | `src/backoffice.html` | Frontend backoffice interface |
-| `.github/workflows/azure-webapp.yml` | App Service deployment workflow |
 
 ---
 

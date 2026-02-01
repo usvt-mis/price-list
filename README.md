@@ -362,9 +362,6 @@ Use the VS Code configuration in `.vscode/launch.json`:
 ├── src/
 │   ├── index.html
 │   └── backoffice.html
-├── .github/
-│   └── workflows/
-│       └── azure-webapp.yml          # App Service deployment
 ├── CLAUDE.md
 └── README.md
 ```
@@ -373,17 +370,36 @@ Use the VS Code configuration in `.vscode/launch.json`:
 
 ### Azure App Service
 
-The application is deployed to Azure App Service via GitHub Actions:
-- Workflow: `.github/workflows/azure-webapp.yml`
-- Triggers on push to `master` branch
-- Deploys Express.js server from `api/` directory
+The application is deployed to Azure App Service via manual deployment:
+
+**Deployment Method:**
+- Service: Azure App Service (pricelist-calc-usvt)
+- Manual deployment via Azure Portal, VS Code, or Azure CLI
 - Startup command: `node server.js`
-- Node version: 20
+- Node version: 22 LTS
 - Scheduled jobs (log archival) run via node-cron (always enabled)
+
+**Manual Deployment Options:**
+
+1. **Azure Portal**:
+   - Navigate to App Service → Deployment Center
+   - Use FTP or Local Git to deploy files from `api/` directory
+
+2. **VS Code**:
+   - Install "Azure App Service" extension
+   - Right-click `api/` folder → Deploy to App Service
+
+3. **Azure CLI**:
+   ```bash
+   az webapp up --name pricelist-calc-usvt --resource-group <rg-name> --location <region>
+   cd api
+   zip -r ../deploy.zip .
+   az webapp deployment source config-zip --resource-group <rg-name> --name pricelist-calc-usvt --src ../deploy.zip
+   ```
 
 **Environment Variables** (configured in App Service):
 - `DATABASE_CONNECTION_STRING` - SQL Server connection string
-- `NODE_ENV` - Set to `production`
+- `NODE_ENV` - Set to "production"
 
 **Note**: Share link generation automatically uses the App Service hostname. No additional environment variables needed.
 
