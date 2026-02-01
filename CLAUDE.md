@@ -44,6 +44,15 @@ npm run start:functions        # Start Functions host
 The Azure Functions Core Tools (`func`) CLI is required for Functions mode. Install from: https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local
 
 ### Database Configuration
+The Express.js server uses `dotenv` to load environment variables from `.env.local` file at the repository root.
+
+**For Express.js mode (Primary):**
+Create or update `.env.local` file:
+```
+DATABASE_CONNECTION_STRING=Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+```
+
+**For Azure Functions mode (Legacy):**
 Set the `DATABASE_CONNECTION_STRING` environment variable in `api/local.settings.json`:
 ```json
 {
@@ -137,6 +146,7 @@ The `.vscode/launch.json` configuration supports debugging:
 - Scheduled jobs in `src/jobs/`: node-cron for scheduled tasks (log archival)
 - Shared connection pool via `mssql` package in `src/db.js`
 - Utilities in `src/utils/`: logger.js, performanceTracker.js, circuitBreaker.js
+- Environment configuration via `dotenv` package (loads `.env.local` from repository root)
 
 **Azure Functions (Legacy - still functional):**
 - Azure Functions v4 with `@azure/functions` package
@@ -202,6 +212,11 @@ Each route module:
 3. Exports router: `module.exports = router;`
 4. Server imports and mounts at path: `app.use('/api/path', router);`
 5. Authentication applied at server level via middleware before route mounting
+
+**Environment Variables (dotenv):**
+- `server.js` loads `dotenv` at startup: `require('dotenv').config({ path: '.env.local' });`
+- Environment variables (including `DATABASE_CONNECTION_STRING`) are loaded from `.env.local` at repository root
+- `.env` files are excluded from version control via `.gitignore`
 
 ### Scheduled Jobs Pattern (node-cron)
 - Jobs defined in `src/jobs/index.js` using `node-cron` library
