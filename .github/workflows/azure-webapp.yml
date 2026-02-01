@@ -1,0 +1,48 @@
+# Deploy to Azure App Service
+# Workflow for deploying the Express.js backend to Azure App Service
+
+name: Deploy to Azure Web App
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: 'pricelist-calc-usvt'
+  AZURE_WEBAPP_PACKAGE_PATH: 'api'
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'api/package-lock.json'
+
+      - name: Install API Dependencies
+        run: |
+          cd api
+          npm ci
+
+      - name: Run Tests (if available)
+        run: |
+          cd api
+          npm test --if-present
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+          startup-command: 'node server.js'

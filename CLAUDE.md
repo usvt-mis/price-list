@@ -10,7 +10,9 @@ This is a Price List Calculator - a web application for calculating service cost
 
 ### Tech Stack
 - **Frontend**: Single-page HTML application (`src/index.html`) using vanilla JavaScript and Tailwind CSS
-- **Backend**: Azure Functions (Node.js) API providing data access to SQL Server
+- **Backend**:
+  - **Primary**: Express.js (Node.js) for Azure App Service deployment
+  - **Legacy**: Azure Functions v4 (Node.js) - still functional in `api/src/functions/`
 
 ### Cost Components
 The calculator computes total cost based on four components:
@@ -25,14 +27,23 @@ The calculator computes total cost based on four components:
 
 ## Quick Start
 
-### Backend (Azure Functions)
+### Backend (Express.js - Primary)
 ```bash
 cd api
 npm install                    # Install dependencies
-func start                     # Start local development server
+npm start                      # Start Express server (port 8080)
+# OR for development with auto-reload:
+npm run dev
 ```
 
-The Azure Functions Core Tools (`func`) CLI is required. Install from: https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local
+### Backend (Azure Functions - Legacy)
+```bash
+cd api
+npm install                    # Install dependencies
+npm run start:functions         # Start Functions host
+```
+
+The Azure Functions Core Tools (`func`) CLI is required for Functions mode. Install from: https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local
 
 ### Database Configuration
 Set the `DATABASE_CONNECTION_STRING` environment variable in `api/local.settings.json`:
@@ -120,12 +131,24 @@ The `.vscode/launch.json` configuration supports debugging:
 - Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index), `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema)
 
 ### Backend Structure (`api/`)
-- Azure Functions v4 with `@azure/functions` package
+
+**Express.js (Primary - App Service):**
+- Main server: `server.js` (Express app with static file serving and route mounting)
+- Route modules in `src/routes/`: Converted from Azure Functions to Express Router pattern
+  - Core routes: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations
+  - Utility routes: ping, version
+  - Admin routes: admin/roles, admin/diagnostics, admin/logs, admin/health
+  - Backoffice routes: backoffice, backoffice/login
+- Authentication middleware in `src/middleware/`: authExpress.js, twoFactorAuthExpress.js (Express-compatible)
+- Scheduled jobs in `src/jobs/`: node-cron replacement for Azure Functions timer triggers
 - Shared connection pool via `mssql` package in `src/db.js`
+- Utilities in `src/utils/`: logger.js, performanceTracker.js, circuitBreaker.js
+
+**Azure Functions (Legacy - still functional):**
+- Azure Functions v4 with `@azure/functions` package
 - HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, version, admin/roles, admin/diagnostics, admin/logs, admin/health, backoffice
 - Timer functions in `src/functions/timers/`: logPurge (daily log archival - conditionally registered via `ENABLE_TIMER_FUNCTIONS` env var)
-- Utilities in `src/utils/`: logger.js (application logging), performanceTracker.js (performance metrics), circuitBreaker.js (fault tolerance)
-- Authentication middleware in `src/middleware/`: auth.js (Azure AD), twoFactorAuth.js (Azure AD + email authorization for backoffice), correlationId.js (request tracing), requestLogger.js (correlation propagation)
+- Original authentication middleware in `src/middleware/`: auth.js, twoFactorAuth.js (Azure Functions format)
 
 ### Frontend Structure (`src/`)
 - **Main Calculator** (`index.html`): Single-page HTML application with embedded JavaScript
@@ -150,20 +173,32 @@ The `.vscode/launch.json` configuration supports debugging:
 
 ## Key Patterns
 
-### Function Registration Pattern
+### Express.js Route Pattern (Primary)
+Each route module:
+1. Creates Express Router: `const router = express.Router();`
+2. Defines route handlers with `router.get/post/put/delete()`
+3. Exports router: `module.exports = router;`
+4. Server imports and mounts at path: `app.use('/api/path', router);`
+5. Authentication applied at server level via middleware before route mounting
+
+### Scheduled Jobs Pattern (node-cron)
+- Jobs defined in `src/jobs/index.js` using `node-cron` library
+- Cron expressions for scheduling (e.g., `'0 2 * * *'` for daily at 2 AM UTC)
+- Jobs started via `startScheduledJobs()` in `server.js`
+- Provides same functionality as Azure Functions timer triggers without SWA limitations
+
+### Function Registration Pattern (Legacy Azure Functions)
 Each HTTP function file:
 1. Requires `@azure/functions` app and `../db` utilities
 2. Calls `app.http()` with function name and config object
 3. Exports nothing (registration happens via side effect)
-4. The main `index.js` requires all functions to register them
+4. The main `src/index.js` requires all functions to register them
 
-**Timer Functions (Conditional Registration):**
+**Timer Functions (Conditional Registration - Legacy):**
 - Timer triggers use `app.timer()` with a schedule (cron expression)
 - For Azure Static Web Apps compatibility, timer functions are conditionally registered based on `ENABLE_TIMER_FUNCTIONS` environment variable
 - Pattern: Wrap `app.timer()` call in `if (process.env.ENABLE_TIMER_FUNCTIONS !== 'false') { ... }`
 - This allows HTTP endpoints (like manual purge) to always be available while the timer trigger is disabled in SWA
-- Local development: Set `ENABLE_TIMER_FUNCTIONS: "true"` in `api/local.settings.json`
-- Production (SWA): GitHub Actions workflow creates `local.swa.settings.json` with `ENABLE_TIMER_FUNCTIONS: "false"`
 
 ### Database Connection Pooling
 - Connection pool is singleton-initialized in `api/src/db.js`
@@ -291,7 +326,8 @@ The application implements a 4-tier role system:
 - Request correlation ID propagation for tracing related operations
 - Circuit breaker pattern prevents logging failures from affecting application performance
 - Performance tracker (`api/src/utils/performanceTracker.js`) captures API response times and database latency
-- Automated log archival via timer trigger (daily at 2 AM UTC) - disabled in Azure Static Web Apps; use manual endpoint instead
+- **Express.js mode**: Automated log archival via node-cron job (daily at 2 AM UTC) - always enabled
+- **Azure Functions mode**: Automated log archival via timer trigger (disabled in SWA; use manual endpoint)
 - Manual log purge endpoint: `POST /api/adm/logs/purge/manual` (Executive only)
 - Environment variables: `LOG_LEVEL`, `LOG_BUFFER_FLUSH_MS`, `LOG_BUFFER_SIZE`, `CIRCUIT_BREAKER_THRESHOLD`, etc.
 
@@ -301,6 +337,30 @@ The application implements a 4-tier role system:
 
 ## Adding New API Endpoints
 
+### Express.js (Primary)
+1. Create new file in `api/src/routes/`
+2. Follow the pattern:
+   ```js
+   const express = require('express');
+   const router = express.Router();
+   const { getPool } = require('../db');
+
+   router.get('/', async (req, res, next) => {
+     try {
+       const pool = await getPool();
+       const result = await pool.request().query('SELECT ...');
+       res.json(result.recordset);
+     } catch (err) {
+       next(err);
+     }
+   });
+
+   module.exports = router;
+   ```
+3. Import and mount in `server.js`: `app.use('/api/your-route', requireAuth, yourRouter);`
+4. Access at `/api/your-route`
+
+### Azure Functions (Legacy)
 1. Create new file in `api/src/functions/`
 2. Follow the pattern:
    ```js

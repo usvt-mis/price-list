@@ -73,11 +73,13 @@ The Price List Calculator computes total cost based on three components:
 - **Desktop materials**: Traditional table layout with wider quantity inputs (w-32)
 
 ### Backend
-- Azure Functions v4 (Node.js)
+- **Primary**: Express.js (Node.js) for Azure App Service deployment
+- **Legacy**: Azure Functions v4 (Node.js) - still supported
 - SQL Server database
 - HTTP API endpoints for data access
-- Azure Entra ID (Azure AD) authentication via Static Web Apps Easy Auth (for both main app and backoffice)
+- Azure Entra ID (Azure AD) authentication (Easy Auth compatible)
 - Auth middleware with role-based access control support
+- Scheduled jobs via node-cron (log archival at 2 AM UTC)
 
 ## Database Schema
 
@@ -184,8 +186,8 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 ### Prerequisites
 
 - Node.js
-- Azure Functions Core Tools
 - SQL Server database
+- (Optional) Azure Functions Core Tools for Functions mode
 
 ### Backend Setup
 
@@ -194,7 +196,7 @@ cd api
 npm install
 ```
 
-Configure the database connection in `api/local.settings.json`:
+Configure the database connection. You can use environment variables or `api/local.settings.json`:
 
 ```json
 {
@@ -212,9 +214,19 @@ Configure the database connection in `api/local.settings.json`:
 
 ### Running Locally
 
+**Express.js (Primary):**
 ```bash
 cd api
-func start
+npm start              # Start Express server (port 8080)
+npm run dev            # Start with auto-reload (nodemon)
+```
+
+The API will be available at `http://localhost:8080`
+
+**Azure Functions (Legacy):**
+```bash
+cd api
+npm run start:functions  # Start Functions host
 ```
 
 The API will be available at `http://localhost:7071`
@@ -268,9 +280,9 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 
 **Local Development:**
 - **Automatic bypass**: When running on `localhost` or `127.0.0.1`, authentication is automatically bypassed
-- Mock user defaults to Executive role in local development (override with `MOCK_USER_ROLE` env var)
+- Mock user defaults to Sales role in local development (override with `MOCK_USER_ROLE` env var)
 - "DEV MODE" badge appears in the header to indicate local development
-- Simply run `func start` and open `src/index.html` in a browser - no auth configuration needed
+- Simply run `npm start` (Express) or `func start` (Functions) and open `src/index.html` in a browser - no auth configuration needed
 
 **Production Configuration:**
 - Azure AD app registration configured in `staticwebapp.config.json`
@@ -283,13 +295,16 @@ Use the VS Code configuration in `.vscode/launch.json`:
 1. Run "Attach to Node Functions" in the VS Code debugger
 2. The debugger will start the Functions host and attach to port 9229
 
+**For Express.js mode**: Use VS Code's "Attach to Process" or add a launch configuration to debug `node server.js` directly.
+
 ## Project Structure
 
 ```
 .
 ├── api/
+│   ├── server.js              # Express.js server (primary)
 │   ├── src/
-│   │   ├── functions/
+│   │   ├── routes/            # Express route modules (primary)
 │   │   │   ├── motorTypes.js
 │   │   │   ├── branches.js
 │   │   │   ├── labor.js
@@ -297,6 +312,37 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │   ├── savedCalculations.js
 │   │   │   ├── sharedCalculations.js
 │   │   │   ├── ping.js
+│   │   │   ├── version.js
+│   │   │   ├── admin/
+│   │   │   │   ├── roles.js
+│   │   │   │   ├── diagnostics.js
+│   │   │   │   ├── logs.js
+│   │   │   │   └── health.js
+│   │   │   └── backoffice/
+│   │   │       ├── index.js
+│   │   │       └── login.js
+│   │   ├── middleware/
+│   │   │   ├── authExpress.js          # Express-compatible auth
+│   │   │   ├── twoFactorAuthExpress.js # Express-compatible backoffice auth
+│   │   │   ├── auth.js                 # Azure Functions auth (legacy)
+│   │   │   ├── twoFactorAuth.js        # Azure Functions backoffice auth (legacy)
+│   │   │   ├── correlationId.js
+│   │   │   └── requestLogger.js
+│   │   ├── jobs/
+│   │   │   └── index.js               # Scheduled jobs (node-cron)
+│   │   ├── utils/
+│   │   │   ├── logger.js
+│   │   │   ├── performanceTracker.js
+│   │   │   └── circuitBreaker.js
+│   │   ├── functions/                 # Azure Functions (legacy)
+│   │   │   ├── motorTypes.js
+│   │   │   ├── branches.js
+│   │   │   ├── labor.js
+│   │   │   ├── materials.js
+│   │   │   ├── savedCalculations.js
+│   │   │   ├── sharedCalculations.js
+│   │   │   ├── ping.js
+│   │   │   ├── version.js
 │   │   │   ├── admin/
 │   │   │   │   ├── roles.js
 │   │   │   │   ├── diagnostics.js
@@ -310,16 +356,6 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │       ├── refresh.js
 │   │   │       ├── logout.js
 │   │   │       └── changePassword.js
-│   │   ├── middleware/
-│   │   │   ├── auth.js
-│   │   │   ├── twoFactorAuth.js
-│   │   │   ├── backofficeAuth.js (deprecated - no longer used)
-│   │   │   ├── correlationId.js
-│   │   │   └── requestLogger.js
-│   │   ├── utils/
-│   │   │   ├── logger.js
-│   │   │   ├── performanceTracker.js
-│   │   │   └── circuitBreaker.js
 │   │   ├── db.js
 │   │   └── index.js
 │   ├── host.json
@@ -341,18 +377,29 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   └── backoffice.html
 ├── .github/
 │   └── workflows/
-│       └── azure-static-web-apps.yml
+│       ├── azure-webapp.yml          # App Service deployment
+│       └── azure-static-web-apps.yml # Static Web Apps deployment (legacy)
 ├── CLAUDE.md
 └── README.md
 ```
 
 ## Deployment
 
-This project is configured to deploy as an Azure Static Web App with Azure Functions API backend.
+This project supports two deployment modes:
 
-The GitHub Actions workflow in `.github/workflows/azure-static-web-apps.yml` handles automatic deployment on push to the main branch.
+### Azure App Service (Primary)
+- GitHub Actions workflow in `.github/workflows/azure-webapp.yml`
+- Deploys Express.js server to Azure App Service
+- Enables always-on performance and scheduled jobs (node-cron)
+- Configure `STATIC_WEB_APP_HOST` environment variable for share link generation
 
-**Production Configuration**: After deployment, configure the `STATIC_WEB_APP_HOST` environment variable in your Azure Static Web App with your production URL (e.g., `pricelist-calculator.azurestaticapps.net`) to ensure share links are generated correctly.
+### Azure Static Web Apps (Legacy)
+- GitHub Actions workflow in `.github/workflows/azure-static-web-apps.yml`
+- Deploys Azure Functions with static frontend
+- Timer functions disabled in managed mode (use manual HTTP trigger instead)
+- Configure `STATIC_WEB_APP_HOST` environment variable for share link generation
+
+**Production Configuration**: After deployment, configure the `STATIC_WEB_APP_HOST` environment variable with your production URL to ensure share links are generated correctly.
 
 ## License
 
