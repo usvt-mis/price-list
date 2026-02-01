@@ -145,11 +145,39 @@ The `.vscode/launch.json` configuration supports debugging:
 - Original authentication middleware in `src/middleware/`: auth.js, twoFactorAuth.js (Azure Functions format)
 
 ### Frontend Structure (`src/`)
-- **Main Calculator** (`index.html`): Single-page HTML application with embedded JavaScript
-  - No build process - uses CDN for Tailwind CSS
-  - State managed in global variables
-  - API communication via `fetch()`
-  - Azure AD authentication for Executive/Sales users
+- **Main Calculator** (`index.html`): Single-page HTML application using ES6 modules
+  - **Modular JavaScript**: Code split into 15 ES6 modules in `src/js/` directory
+  - **No build process** - Uses native ES6 modules with import maps (browser support: 96%+)
+  - **Module Organization**:
+    ```
+    src/js/
+    ├── app.js                    # Main entry point, initializes all modules
+    ├── config.js                 # Constants, environment detection, API endpoints
+    ├── state.js                  # Global state management
+    ├── utils.js                  # Helper functions (DOM, formatting, UI)
+    ├── auth/                     # Authentication module
+    │   ├── index.js              # Auth exports
+    │   ├── token-handling.js     # SWA token parsing
+    │   ├── mode-detection.js     # Role-based mode logic
+    │   └── ui.js                 # Auth UI rendering
+    ├── calculator/               # Calculator logic module
+    │   ├── index.js              # Calculator exports
+    │   ├── labor.js              # Labor section logic
+    │   ├── materials.js          # Materials section logic
+    │   └── calculations.js       # Cost calculations
+    ├── saved-records/           # Saved calculations module
+    │   ├── index.js              # Saved records exports
+    │   ├── api.js                # API calls for saved calculations
+    │   ├── ui.js                 # Records list/grid rendering
+    │   └── sharing.js            # Share functionality
+    └── admin/                   # Admin role management module
+        ├── index.js              # Admin exports
+        └── role-assignment.js    # Admin panel logic
+    ```
+  - **Import Map**: Clean module resolution without relative path clutter
+  - **State Management**: Centralized in `state.js` with getters/setters
+  - **API Communication**: Via `fetch()` through utility functions
+  - **Azure AD Authentication**: For Executive/Sales users
 - **Backoffice Admin** (`backoffice.html`): Standalone backoffice interface with 3-tab role management
   - Separate HTML file with complete UI independence
   - **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`

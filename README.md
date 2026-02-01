@@ -13,8 +13,10 @@ The Price List Calculator computes total cost based on three components:
 
 ### Frontend
 - **Main Calculator** (`src/index.html`): Single-page HTML application
-  - Vanilla JavaScript with Tailwind CSS (via CDN)
-  - No build process required
+  - **ES6 Modules**: JavaScript organized into 15 modular files in `src/js/` directory
+  - **No build process**: Uses native ES6 modules with import maps (browser support: 96%+)
+  - **Modular Structure**: Clear separation of concerns - auth, calculator, saved-records, admin
+  - Tailwind CSS via CDN
   - Azure AD authentication for main app users
   - Responsive design with mobile-friendly material panel (card-based layout on screens < 768px)
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
@@ -358,8 +360,31 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │       ├── migrate_to_utc.sql
 │       └── two_factor_auth.sql
 ├── src/
-│   ├── index.html
-│   └── backoffice.html
+│   ├── index.html                # Main calculator (HTML with ES6 modules)
+│   ├── backoffice.html           # Backoffice admin interface
+│   └── js/                      # ES6 JavaScript modules
+│       ├── app.js               # Main entry point
+│       ├── config.js            # Configuration & constants
+│       ├── state.js             # State management
+│       ├── utils.js             # Helper functions
+│       ├── auth/                # Authentication module
+│       │   ├── index.js
+│       │   ├── token-handling.js
+│       │   ├── mode-detection.js
+│       │   └── ui.js
+│       ├── calculator/          # Calculator module
+│       │   ├── index.js
+│       │   ├── labor.js
+│       │   ├── materials.js
+│       │   └── calculations.js
+│       ├── saved-records/      # Saved records module
+│       │   ├── index.js
+│       │   ├── api.js
+│       │   ├── ui.js
+│       │   └── sharing.js
+│       └── admin/               # Admin module
+│           ├── index.js
+│           └── role-assignment.js
 ├── CLAUDE.md
 └── README.md
 ```
