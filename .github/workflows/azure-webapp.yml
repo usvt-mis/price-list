@@ -12,7 +12,7 @@ on:
 env:
   AZURE_WEBAPP_NAME: 'pricelist-calc-usvt'
   AZURE_WEBAPP_PACKAGE_PATH: 'api'
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   build-and-deploy:
