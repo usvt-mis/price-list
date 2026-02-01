@@ -10,8 +10,8 @@ You are a specialized agent for deploying and configuring the Price List Calcula
 - **Collaborates with**: All agents (deployment requirements)
 
 ## Key Files
-- `api/server.js` - Express.js server entry point
-- `api/package.json` - API dependencies
+- `server.js` - Express.js server entry point (at root)
+- `package.json` - Dependencies (at root)
 - `api/local.settings.json` - Local environment variables
 
 ## Architecture

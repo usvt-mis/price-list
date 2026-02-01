@@ -29,7 +29,6 @@ The calculator computes total cost based on four components:
 
 ### Backend (Express.js - Primary)
 ```bash
-cd api
 npm install                    # Install dependencies
 npm start                      # Start Express server (port 8080)
 # OR for development with auto-reload:
@@ -38,9 +37,8 @@ npm run dev
 
 ### Backend (Azure Functions - Legacy)
 ```bash
-cd api
 npm install                    # Install dependencies
-npm run start:functions         # Start Functions host
+npm run start:functions        # Start Functions host
 ```
 
 The Azure Functions Core Tools (`func`) CLI is required for Functions mode. Install from: https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local
@@ -129,7 +127,7 @@ The `.vscode/launch.json` configuration supports debugging:
 ### Backend Structure (`api/`)
 
 **Express.js (Primary - App Service):**
-- Main server: `server.js` (Express app with static file serving and route mounting)
+- Main server: `server.js` at root (Express app with static file serving and route mounting)
 - Route modules in `src/routes/`: Converted from Azure Functions to Express Router pattern
   - Core routes: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations
   - Utility routes: ping, version

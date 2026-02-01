@@ -14,27 +14,27 @@ const path = require('path');
 const cors = require('cors');
 
 // Import route modules
-const motorTypesRouter = require('./src/routes/motorTypes');
-const branchesRouter = require('./src/routes/branches');
-const laborRouter = require('./src/routes/labor');
-const materialsRouter = require('./src/routes/materials');
-const savedCalculationsRouter = require('./src/routes/savedCalculations');
-const sharedCalculationsRouter = require('./src/routes/sharedCalculations');
-const pingRouter = require('./src/routes/ping');
-const versionRouter = require('./src/routes/version');
-const adminRolesRouter = require('./src/routes/admin/roles');
-const adminDiagnosticsRouter = require('./src/routes/admin/diagnostics');
-const adminLogsRouter = require('./src/routes/admin/logs');
-const adminHealthRouter = require('./src/routes/admin/health');
-const backofficeRouter = require('./src/routes/backoffice');
-const backofficeLoginRouter = require('./src/routes/backoffice/login');
+const motorTypesRouter = require('./api/src/routes/motorTypes');
+const branchesRouter = require('./api/src/routes/branches');
+const laborRouter = require('./api/src/routes/labor');
+const materialsRouter = require('./api/src/routes/materials');
+const savedCalculationsRouter = require('./api/src/routes/savedCalculations');
+const sharedCalculationsRouter = require('./api/src/routes/sharedCalculations');
+const pingRouter = require('./api/src/routes/ping');
+const versionRouter = require('./api/src/routes/version');
+const adminRolesRouter = require('./api/src/routes/admin/roles');
+const adminDiagnosticsRouter = require('./api/src/routes/admin/diagnostics');
+const adminLogsRouter = require('./api/src/routes/admin/logs');
+const adminHealthRouter = require('./api/src/routes/admin/health');
+const backofficeRouter = require('./api/src/routes/backoffice');
+const backofficeLoginRouter = require('./api/src/routes/backoffice/login');
 
 // Import authentication middleware
-const { requireAuth } = require('./src/middleware/authExpress');
-const { requireBackofficeSession } = require('./src/middleware/twoFactorAuthExpress');
+const { requireAuth } = require('./api/src/middleware/authExpress');
+const { requireBackofficeSession } = require('./api/src/middleware/twoFactorAuthExpress');
 
 // Import scheduled jobs
-const { startScheduledJobs } = require('./src/jobs');
+const { startScheduledJobs } = require('./api/src/jobs');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -68,13 +68,13 @@ app.use((req, res, next) => {
 // Static Files
 // ============================================================
 
-// Serve static files from src directory (one level up from api/)
-const staticDir = path.join(__dirname, '..', 'src');
+// Serve static files from src directory
+const staticDir = path.join(__dirname, 'src');
 app.use(express.static(staticDir));
 
 // Specific route for backoffice.html
 app.get('/backoffice', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'src', 'backoffice.html'));
+  res.sendFile(path.join(__dirname, 'src', 'backoffice.html'));
 });
 
 // ============================================================

@@ -187,7 +187,6 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 ### Backend Setup
 
 ```bash
-cd api
 npm install
 ```
 
@@ -209,7 +208,6 @@ Configure the database connection. You can use environment variables or `api/loc
 
 **Express.js (Primary):**
 ```bash
-cd api
 npm start              # Start Express server (port 8080)
 npm run dev            # Start with auto-reload (nodemon)
 ```
@@ -218,7 +216,6 @@ The API will be available at `http://localhost:8080`
 
 **Azure Functions (Legacy):**
 ```bash
-cd api
 npm run start:functions  # Start Functions host
 ```
 
@@ -288,8 +285,10 @@ Use the VS Code configuration in `.vscode/launch.json`:
 
 ```
 .
+├── server.js                  # Express.js server (primary)
+├── package.json               # Dependencies & scripts
+├── package-lock.json          # Lock file
 ├── api/
-│   ├── server.js              # Express.js server (primary)
 │   ├── src/
 │   │   ├── routes/            # Express route modules (primary)
 │   │   │   ├── motorTypes.js
@@ -345,9 +344,8 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │       └── changePassword.js
 │   │   ├── db.js
 │   │   └── index.js
-│   ├── host.json
-│   ├── package.json
-│   └── local.settings.json
+│   ├── host.json              # Azure Functions config
+│   └── local.settings.json    # Local env vars
 ├── database/
 │   ├── diagnose_backoffice_login.sql
 │   ├── fix_backoffice_issues.sql
@@ -392,9 +390,8 @@ The application is deployed to Azure App Service via manual deployment:
 3. **Azure CLI**:
    ```bash
    az webapp up --name pricelist-calc-usvt --resource-group <rg-name> --location <region>
-   cd api
-   zip -r ../deploy.zip .
-   az webapp deployment source config-zip --resource-group <rg-name> --name pricelist-calc-usvt --src ../deploy.zip
+   zip -r deploy.zip .
+   az webapp deployment source config-zip --resource-group <rg-name> --name pricelist-calc-usvt --src deploy.zip
    ```
 
 **Environment Variables** (configured in App Service):

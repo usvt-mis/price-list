@@ -16,21 +16,21 @@ You are a specialized agent for backend development using Azure Functions v4 and
 - **Collaborates with**: Frontend Agent (API contracts), Database Agent (query patterns), Auth Agent (endpoint protection), Logging Agent (performance tracking)
 
 ## Key Files
-- `api/src/index.js` - Entry point, registers all HTTP functions
+- `server.js` - Express.js server entry point (at root)
+- `package.json` - Dependencies (at root)
+- `api/src/index.js` - Entry point, registers all HTTP functions (legacy)
 - `api/src/db.js` - Shared connection pool (singleton pattern)
-- `api/src/functions/motorTypes.js` - GET /api/motor-types
-- `api/src/functions/branches.js` - GET /api/branches
-- `api/src/functions/labor.js` - GET /api/labor?motorTypeId={id}
-- `api/src/functions/materials.js` - GET /api/materials?query={search}
-- `api/src/functions/savedCalculations.js` - Save/load/delete endpoints
-- `api/src/functions/sharedCalculations.js` - Shared link access
-- `api/src/functions/admin/roles.js` - Role management endpoints
-- `api/src/functions/admin/logs.js` - Logging and health endpoints
-- `api/src/functions/backoffice/*.js` - Backoffice admin endpoints
-- `api/src/functions/ping.js` - GET /api/ping
-- `api/src/functions/version.js` - GET /api/version
+- `api/src/routes/motorTypes.js` - GET /api/motor-types (Express route)
+- `api/src/routes/branches.js` - GET /api/branches (Express route)
+- `api/src/routes/labor.js` - GET /api/labor?motorTypeId={id} (Express route)
+- `api/src/routes/materials.js` - GET /api/materials?query={search} (Express route)
+- `api/src/routes/savedCalculations.js` - Save/load/delete endpoints (Express route)
+- `api/src/routes/sharedCalculations.js` - Shared link access (Express route)
+- `api/src/routes/admin/roles.js` - Role management endpoints (Express route)
+- `api/src/routes/admin/logs.js` - Logging and health endpoints (Express route)
+- `api/src/routes/backoffice/*.js` - Backoffice admin endpoints (Express route)
+- `api/src/functions/*.js` - Legacy Azure Functions (fallback)
 - `api/local.settings.json` - Local development config
-- `api/package.json` - Dependencies
 
 ## Core Responsibilities
 

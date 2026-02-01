@@ -158,7 +158,6 @@ Set environment variables in `api/local.settings.json` for local development:
 
 ### Install Dependencies
 ```bash
-cd api
 npm install
 ```
 

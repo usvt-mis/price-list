@@ -16,7 +16,7 @@ The Price List Calculator is deployed to Azure App Service using manual deployme
 - **Startup Command**: `node server.js`
 
 ### What Gets Deployed
-- **Backend**: Express.js server from `api/` directory
+- **Backend**: Express.js server (`server.js` at root, backend code in `api/src/`)
 - **Frontend**: Static files (`src/index.html`, `src/backoffice.html`) served by Express.js
 - **Dependencies**: Installed on server via `npm install`
 
@@ -46,7 +46,7 @@ Choose one of the following deployment methods based on your workflow preference
      - **Local Git**: Set up local Git repository and push directly
 
 4. **Deploy Files**
-   - For FTP: Upload contents of `api/` directory to `/site/wwwroot`
+   - For FTP: Upload contents of project root to `/site/wwwroot`
    - For Local Git: Push to the provided Git URL
 
 5. **Verify Deployment**
@@ -68,8 +68,8 @@ Choose one of the following deployment methods based on your workflow preference
 1. **Open Project in VS Code**
    - Open the pricelist-calculator folder
 
-2. **Deploy API Folder**
-   - Right-click on `api/` folder
+2. **Deploy Project**
+   - Right-click on project root folder
    - Select "Deploy to Web App..."
    - Choose "pricelist-calc-usvt" from the list
    - Confirm deployment
@@ -77,7 +77,7 @@ Choose one of the following deployment methods based on your workflow preference
 3. **Alternative: Command Palette**
    - Press `F1` to open Command Palette
    - Type "Azure App Service: Deploy to Web App"
-   - Follow prompts to select `api/` folder
+   - Follow prompts to select project root folder
    - Choose "pricelist-calc-usvt"
 
 4. **Monitor Progress**
@@ -110,20 +110,17 @@ az webapp up \
 #### Option B: ZIP Deploy (Recommended)
 
 ```bash
-# Navigate to api directory
-cd api
-
 # Create deployment package (excluding unnecessary files)
-zip -r ../deploy.zip . -x "*.git*" "node_modules/*" ".vscode/*" "local.settings.json"
+zip -r deploy.zip . -x "*.git*" "node_modules/*" ".vscode/*" "api/local.settings.json"
 
 # Deploy to App Service
 az webapp deployment source config-zip \
   --resource-group <your-resource-group> \
   --name pricelist-calc-usvt \
-  --src ../deploy.zip
+  --src deploy.zip
 
 # Cleanup
-rm ../deploy.zip
+rm deploy.zip
 ```
 
 #### Option C: FTP Deploy
@@ -135,7 +132,7 @@ az webapp deployment list-publishing-profiles \
   --resource-group <your-resource-group>
 
 # Use the returned FTP credentials with any FTP client
-# Upload contents of api/ directory to /site/wwwroot
+# Upload contents of project root to /site/wwwroot
 ```
 
 #### Option D: Deploy Specific Files
@@ -145,7 +142,7 @@ az webapp deployment list-publishing-profiles \
 az webapp deployment source config-zip \
   --resource-group <your-resource-group> \
   --name pricelist-calc-usvt \
-  --src <(zip - -r server.js src/routes/ src/middleware/ src/utils/)
+  --src <(zip - -r server.js api/src/routes/ api/src/middleware/ api/src/utils/)
 ```
 
 ---
@@ -156,7 +153,7 @@ Before deploying, verify the following:
 
 ### Version Control
 - [ ] All changes are committed to git (optional but recommended)
-- [ ] `api/package.json` has correct version number
+- [ ] `package.json` has correct version number
 - [ ] `src/backoffice.html` version matches `package.json`
   - Run the `/update` skill or manually update version
 
@@ -171,15 +168,15 @@ Before deploying, verify the following:
 - [ ] Authentication flow works (main app and backoffice)
 
 ### Files to Deploy
-- [ ] `api/server.js` - Express server entry point
-- [ ] `api/package.json` - Dependencies
+- [ ] `server.js` - Express server entry point
+- [ ] `package.json` - Dependencies
 - [ ] `api/src/` - All source code (routes, middleware, utils, jobs)
 - [ ] `src/index.html` - Main calculator
 - [ ] `src/backoffice.html` - Backoffice interface
 
 ### Files NOT to Deploy
 - `api/local.settings.json` - Local development only
-- `api/node_modules/` - Installed on server
+- `node_modules/` - Installed on server
 - `.git/` - Version control (not needed on server)
 - `.vscode/` - Editor configuration
 

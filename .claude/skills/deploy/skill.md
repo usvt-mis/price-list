@@ -52,7 +52,7 @@ Deploy the current state of the application to production via manual deployment 
 
 ### What Gets Deployed
 - Frontend: `src/index.html`, `src/backoffice.html`, and related static assets
-- Backend: Express.js server from `api/` directory
+- Backend: Express.js server (`server.js` at root, backend code in `api/src/`)
 - Startup command: `node server.js`
 - Node version: 22 LTS
 - Scheduled jobs (log archival) run via node-cron (always enabled)
@@ -70,14 +70,15 @@ Deploy the current state of the application to production via manual deployment 
 4. Choose deployment method:
    - **FTP**: Use FTP client (FileZilla, WinSCP) to upload files
    - **Local Git**: Set up local Git repository and push to App Service
-5. Deploy files from `api/` directory
+5. Deploy files from project root
 
 **File Structure:**
 ```
-api/
+.
 ├── server.js
 ├── package.json
 ├── src/ (all source code)
+├── api/src/ (backend routes, middleware, jobs)
 └── node_modules/ (installed on server)
 ```
 
@@ -91,7 +92,7 @@ api/
 
 **Steps:**
 1. Open project in VS Code
-2. Right-click `api/` folder
+2. Right-click project root folder
 3. Select "Deploy to Web App..."
 4. Choose existing App Service: pricelist-calc-usvt
 5. Confirm deployment
@@ -99,7 +100,7 @@ api/
 **Alternative: Deploy from workspace root**
 1. Press `F1` to open Command Palette
 2. Type "Azure App Service: Deploy to Web App"
-3. Follow prompts to select `api/` folder
+3. Follow prompts to select project root folder
 
 ---
 
@@ -119,17 +120,14 @@ az webapp up --name pricelist-calc-usvt --resource-group <rg-name> --location <r
 
 **Option B: ZIP Deploy (Recommended)**
 ```bash
-# Navigate to api directory
-cd api
-
-# Create deployment package
-zip -r ../deploy.zip . -x "*.git*" "node_modules/*" ".vscode/*"
+# Create deployment package from project root
+zip -r deploy.zip . -x "*.git*" "node_modules/*" ".vscode/*"
 
 # Deploy to App Service
 az webapp deployment source config-zip \
   --resource-group <rg-name> \
   --name pricelist-calc-usvt \
-  --src ../deploy.zip
+  --src deploy.zip
 ```
 
 **Option C: FTP Deploy**
@@ -139,7 +137,7 @@ az webapp deployment list-publishing-profiles \
   --name pricelist-calc-usvt \
   --resource-group <rg-name>
 
-# Use FTP client with retrieved credentials to upload api/ contents
+# Use FTP client with retrieved credentials to upload project contents
 ```
 
 ---
@@ -165,7 +163,7 @@ Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<database>;User ID
 Before deploying, verify:
 
 - [ ] All changes are committed to git (optional but recommended)
-- [ ] `api/package.json` has correct version
+- [ ] `package.json` has correct version
 - [ ] `src/backoffice.html` version matches `package.json` (run `update backoffice version`)
 - [ ] Database connection string is configured in App Service
 - [ ] Node.js version set to 22 LTS in App Service settings

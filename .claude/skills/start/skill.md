@@ -18,7 +18,7 @@ Run the application locally using the Express.js server to test changes before d
 - Verify API configuration (local.settings.json) exists
 
 ### Phase 2: Start Application
-- Run `cd api && npm start`
+- Run `npm start`
 - Monitor startup progress
 - Capture any errors or warnings
 - Note the local URL provided
@@ -43,7 +43,7 @@ Run the application locally using the Express.js server to test changes before d
 
 ### Prerequisites
 - Node.js must be installed
-- API dependencies must be installed (`cd api && npm install`)
+- API dependencies must be installed (`npm install`)
 
 ---
 
@@ -79,7 +79,7 @@ After starting, present:
 When user invokes `{/start}`:
 
 - [ ] Check if Node.js is available
-- [ ] Check API configuration (local.settings.json)
-- [ ] Execute `cd api && npm start`
+- [ ] Check API configuration (api/local.settings.json)
+- [ ] Execute `npm start`
 - [ ] Monitor and report startup progress
 - [ ] Report final status with local URL or error details
