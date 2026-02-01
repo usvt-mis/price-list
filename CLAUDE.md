@@ -248,9 +248,13 @@ The application implements a 4-tier role system:
 - All authenticated users are automatically registered in UserRoles table on first login
 - Registration uses synchronous await with retry logic (3 attempts, exponential backoff)
 - Transient errors (timeouts, connection issues) are automatically retried
-- Registration status is tracked in user object: `registrationStatus` ('registered' | 'failed')
+- Registration status is tracked in user object: `registrationStatus` ('registered' | 'failed' | 'skipped_no_email')
 - Failures are logged with full context but don't block authentication
 - Duplicate key errors are handled gracefully (race conditions)
+- **Email validation**: Registration is skipped if user token lacks email (SWA format tokens)
+  - Prevents database errors when authentication tokens don't contain email claims
+  - Logs warning with `UserAuthenticatedNoEmail` event for diagnostics
+  - Allows authentication to continue but skips UserRoles table operations
 
 **Version API Endpoint** (no authentication):
 - `GET /api/version` - Get application version from package.json (includes environment)
@@ -292,6 +296,20 @@ The application implements a 4-tier role system:
 - Azure AD handles authentication automatically
 - No additional environment variables needed
 - Authorization check performed via `requireBackofficeSession()` middleware in `twoFactorAuth.js`
+
+**Azure AD Authentication Callback Fix (Static Web Apps → App Service Migration):**
+- **Problem**: After migrating from SWA to App Service, Azure AD returned tokens via URL hash fragment (`#token={...}`) instead of session cookies
+- **Solution implemented**:
+  1. All login URLs now include `post_login_redirect_uri=/` parameter for proper App Service redirect handling
+  2. Added `parseTokenFromHash()` function in `src/index.html` to handle legacy SWA-style URL hash tokens
+     - Extracts and stores SWA tokens from URL fragment
+     - Clears hash from URL and reloads page to trigger normal auth flow
+  3. Backend validation in `authExpress.js`:
+     - Email validation before UserRoles registration prevents database errors
+     - Graceful handling when SWA tokens lack email claims
+- **Azure Configuration Required**:
+  - Azure AD App Registration → Authentication → Update redirect URIs to App Service format
+  - App Service → Authentication → Remove `WEBSITE_AUTH_PRESERVE_URL_FRAGMENT` setting (or set to `false`)
 
 **Auth Middleware Helpers:**
 - `getUserEffectiveRole(user)` - Get role from DB or Azure AD, returns 'Executive', 'Sales', or 'NoRole'

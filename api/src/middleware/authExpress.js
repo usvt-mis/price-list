@@ -100,6 +100,11 @@ function validateAuth(req) {
  * Also tracks login timestamps (FirstLoginAt, LastLoginAt)
  */
 async function ensureUserRegisteredWithRetry(user, maxAttempts = 3) {
+  // Validate user has email before proceeding
+  if (!user.userDetails || user.userDetails === 'undefined' || user.userDetails.trim() === '') {
+    throw new Error('User email is required for registration');
+  }
+
   const { getPool } = require('../db');
   const sql = require('mssql');
 
@@ -206,12 +211,22 @@ async function requireAuth(req, res, next) {
 
   // Ensure user registration with retry logic
   try {
-    await ensureUserRegisteredWithRetry(user, 3);
-    user.registrationStatus = 'registered';
-    logger.info('AUTH', 'UserAuthenticated', `User authenticated: ${user.userDetails}`, {
-      userEmail: user.userDetails,
-      userRole: user.userRoles?.join(', ') || 'none'
-    });
+    // Skip registration if no email available (SWA tokens may not have email)
+    if (user.userDetails && user.userDetails !== 'undefined' && user.userDetails.trim() !== '') {
+      await ensureUserRegisteredWithRetry(user, 3);
+      user.registrationStatus = 'registered';
+      logger.info('AUTH', 'UserAuthenticated', `User authenticated: ${user.userDetails}`, {
+        userEmail: user.userDetails,
+        userRole: user.userRoles?.join(', ') || 'none'
+      });
+    } else {
+      // User authenticated but no email available - log warning but continue
+      logger.warn('AUTH', 'UserAuthenticatedNoEmail', 'User authenticated without email (SWA token?)', {
+        userId: user.userId,
+        userRoles: user.userRoles?.join(', ') || 'none'
+      });
+      user.registrationStatus = 'skipped_no_email';
+    }
   } catch (err) {
     // Log with full context but don't fail auth
     logger.error('AUTH', 'UserRegistrationFailed', 'Failed to register user in UserRoles table', {

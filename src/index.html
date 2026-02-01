@@ -596,6 +596,41 @@
     isLoading: true
   };
 
+  // ---------- URL hash token handling (SWA compatibility fallback) ----------
+  function parseTokenFromHash() {
+    const hash = window.location.hash.substring(1); // Remove '#'
+    const params = new URLSearchParams(hash);
+    const tokenParam = params.get('token');
+
+    if (tokenParam) {
+      try {
+        const tokenData = JSON.parse(decodeURIComponent(tokenParam));
+        console.log('[AUTH] Found SWA-style token in URL hash');
+        console.log('[AUTH] Token:', tokenData.authenticationToken?.substring(0, 20) + '...');
+        console.log('[AUTH] User ID:', tokenData.user?.userId);
+
+        // Store for potential use
+        if (tokenData.authenticationToken) {
+          sessionStorage.setItem('swa_auth_token', tokenData.authenticationToken);
+        }
+        if (tokenData.user?.userId) {
+          sessionStorage.setItem('swa_user_id', tokenData.user.userId);
+        }
+
+        // Clear hash from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        // Reload page to trigger normal auth flow
+        console.log('[AUTH] Reloading page to pick up session...');
+        setTimeout(() => window.location.reload(), 500);
+        return tokenData;
+      } catch (e) {
+        console.error('[AUTH] Failed to parse token from hash:', e);
+      }
+    }
+    return null;
+  }
+
   // Save feature state
   let currentSavedRecord = null; // null = new calculation, object = editing existing
   let savedRecordsList = []; // cached list of saved records
@@ -897,7 +932,7 @@
       authState.user = null;
 
       container.innerHTML = `
-        <a href="/.auth/login/aad" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors">
+        <a href="/.auth/login/aad?post_login_redirect_uri=/" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
           </svg>
@@ -925,6 +960,9 @@
   async function initAuth() {
     // Clean up stale localStorage mode preference
     localStorage.removeItem("pricelist-calculator-mode");
+
+    // Check for SWA-style token in URL hash (migration fallback)
+    parseTokenFromHash();
 
     await renderAuthSection();
   }
@@ -2000,7 +2038,7 @@
         setStatus("Authentication required. Redirecting to login...");
         if (!isLocalDev) {
           setTimeout(() => {
-            window.location.href = '/.auth/login/aad';
+            window.location.href = '/.auth/login/aad?post_login_redirect_uri=/';
           }, 1500);
         } else {
           setStatus("Authentication error in local dev. Check backend auth bypass.");
@@ -2836,7 +2874,7 @@
         if (!isLocalDev) {
           setStatus("Authentication required. Redirecting to login...");
           setTimeout(() => {
-            window.location.href = '/.auth/login/aad';
+            window.location.href = '/.auth/login/aad?post_login_redirect_uri=/';
           }, 1500);
         } else {
           setStatus("Authentication error in local dev. Check backend auth bypass.");
