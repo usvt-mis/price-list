@@ -83,7 +83,7 @@ You are a specialized agent for authentication and security in this dual-authent
 #### CORS and Headers
 - Azure Easy Auth handles user identity via headers
 - Local dev bypass via `x-local-dev: true` header or localhost detection
-- Static Web App configuration for production
+- App Service configuration for production
 
 ### Database Tables
 

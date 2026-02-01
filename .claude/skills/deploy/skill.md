@@ -1,12 +1,12 @@
 # Deploy Skill (`/deploy`)
 
-Deploy the application to Azure Static Web Apps Production environment.
+Deploy the application to Azure App Service Production environment.
 
 ## Usage
 `{/deploy}`
 
 ## Purpose
-Deploy the current state of the application to production by running the Azure Static Web Apps CLI deployment command.
+Deploy the current state of the application to production via git push to master, which triggers the GitHub Actions workflow that deploys to Azure App Service.
 
 ---
 
@@ -14,24 +14,23 @@ Deploy the current state of the application to production by running the Azure S
 
 ### Phase 1: Pre-Deploy Checks
 - Verify working directory is clean (optional, warn if uncommitted changes)
-- Check if `swa` CLI is installed
 - Verify project is in valid state for deployment
 
 ### Phase 2: Update Backoffice Version
 - Run task: `update backoffice version`
 - This updates the version in `backoffice.html` to match `package.json`
 
-### Phase 3: Build Application
-- Run `swa build --auto`
-- Monitor build progress
+### Phase 3: Commit and Push Changes
+- Stage all changes: `git add .`
+- Create commit: `git commit -m "chore: prepare for deployment"`
+- Push to master: `git push origin master`
+
+### Phase 4: Monitor Deployment
+- Report GitHub Actions workflow status
+- Monitor deployment progress via workflow URL
 - Capture any errors or warnings
 
-### Phase 4: Execute Deployment
-- Run `swa deploy --env Production`
-- Monitor deployment progress
-- Capture any errors or warnings
-
-### Phase 3: Report Results
+### Phase 5: Report Results
 - Report deployment status (success/failure)
 - Provide deployment URL if available
 - Highlight any errors or warnings that occurred
@@ -41,16 +40,16 @@ Deploy the current state of the application to production by running the Azure S
 ## Project Context
 
 ### Deployment Target
-- **Service**: Azure Static Web Apps
+- **Service**: Azure App Service
 - **Environment**: Production
-- **Commands**:
-  1. Update backoffice version
-  2. `swa build --auto`
-  3. `swa deploy --env Production`
+- **Trigger**: Git push to master branch
+- **Workflow**: `.github/workflows/azure-webapp.yml`
 
 ### What Gets Deployed
-- Frontend: `src/index.html` and related static assets
-- Backend: Azure Functions (deployed separately via the Static Web Apps integration)
+- Frontend: `src/index.html`, `src/backoffice.html`, and related static assets
+- Backend: Express.js server from `api/` directory
+- Startup command: `node server.js`
+- Node version: 20
 
 ---
 
@@ -60,18 +59,20 @@ After deployment, present:
 
 ### 1. Pre-Deploy Status
 - Working directory state (clean/dirty)
-- CLI availability check
+- Git status summary
 
 ### 2. Version Update
 - Backoffice version update status
 
-### 3. Build Progress
-- Build command being executed
-- Progress output from `swa build --auto`
+### 3. Git Operations
+- Files staged for commit
+- Commit hash
+- Push status
 
 ### 4. Deployment Progress
-- Deploy command being executed
-- Progress output from `swa deploy --env Production`
+- GitHub Actions workflow URL
+- Progress summary
+- Logs if available
 
 ### 5. Deployment Result
 - **Success**: Deployment URL, confirmation message
@@ -91,10 +92,10 @@ After deployment, present:
 
 When user invokes `{/deploy}`:
 
-- [ ] Check if `swa` CLI is available
 - [ ] Check git status (warn if uncommitted changes exist)
 - [ ] Run task: update backoffice version
-- [ ] Execute `swa build --auto`
-- [ ] Execute `swa deploy --env Production`
-- [ ] Monitor and report deployment progress
-- [ ] Report final status with URL or error details
+- [ ] Stage all changes: `git add .`
+- [ ] Create commit: `git commit -m "chore: prepare for deployment"`
+- [ ] Push to master: `git push origin master`
+- [ ] Monitor GitHub Actions workflow
+- [ ] Report deployment status with URL or error details

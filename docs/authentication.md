@@ -7,7 +7,7 @@ See [CLAUDE.md](../CLAUDE.md) for project overview and navigation.
 
 ## Overview
 
-This application uses **Azure Static Web Apps Easy Auth** for authentication with Azure Entra ID (Azure AD). It includes a local development bypass for streamlined development.
+This application uses **Azure App Service Easy Auth** for authentication with Azure Entra ID (Azure AD). It includes a local development bypass for streamlined development.
 
 ---
 
@@ -34,7 +34,7 @@ When running on localhost or 127.0.0.1, authentication is automatically bypassed
 
 ## Production Authentication
 
-Full authentication required when deployed to Azure.
+Full authentication required when deployed to Azure App Service.
 
 ### Auth State Management
 
@@ -70,26 +70,11 @@ Login/logout handled via Azure's native authentication endpoints:
 
 ---
 
-## Routing Configuration
-
-`staticwebapp.config.json` defines Azure Static Web Apps routing:
-
-### Routes Array
-- `/api/*` requires `authenticated` role
-
-### Navigation Fallback
-- Configured with `rewrite: "/index.html"` for SPA support
-
-### Response Overrides
-- 401 responses redirect to `/.auth/login/aad?post_login_redirect_uri=.referrer`
-
----
-
 ## API Authentication
 
 ### All API Endpoints
 
-- Require authentication via `x-ms-client-principal` header
+- Require authentication via `x-ms-client-principal` header (App Service Easy Auth)
 - Exception: `/api/ping` (public health check)
 - Bypassed in local development
 
@@ -99,7 +84,7 @@ Login/logout handled via Azure's native authentication endpoints:
 
 ---
 
-## Backend Middleware (`api/src/middleware/auth.js`)
+## Backend Middleware (`api/src/middleware/authExpress.js`)
 
 ### Functions
 
@@ -120,3 +105,26 @@ Login/logout handled via Azure's native authentication endpoints:
 - Only creators can edit their own records
 - **Delete operations**: Creators can delete their own records; Executives can delete any record
 - Shared records are view-only for authenticated users
+
+### Backoffice Access
+
+- **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`
+- No password step - Azure AD handles full authentication
+- Backoffice can assign roles (Executive, Sales, Customer, NoRole) to Azure AD users
+
+---
+
+## App Service Easy Auth
+
+Azure App Service Easy Auth provides:
+
+- Automatic authentication via `/.auth/me` endpoint
+- `x-ms-client-principal` header containing user information
+- Built-in login/logout endpoints
+- Role-based access control via Azure AD groups
+
+### Easy Auth Endpoints
+
+- `/.auth/me` - Get current user information
+- `/.auth/login/aad` - Initiate Azure AD login
+- `/.auth/logout` - Logout and redirect

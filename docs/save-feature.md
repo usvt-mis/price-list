@@ -269,10 +269,9 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
 
 ### Share Link URL Generation
 - Backend uses `getBaseURL()` helper to generate correct share URLs
-- Checks `STATIC_WEB_APP_HOST` environment variable first (production override)
-- Falls back to `WEBSITE_HOSTNAME` (Azure default)
+- Checks `WEBSITE_SITE_NAME` environment variable (automatically set by App Service)
 - Falls back to `host` header (local development)
-- Configure `STATIC_WEB_APP_HOST` in Azure Portal or `api/local.settings.json` for local testing
+- No manual configuration needed for App Service deployment
 
 ---
 

@@ -1,12 +1,12 @@
 # Start Skill (`/start`)
 
-Start the Azure Static Web Apps application locally for development.
+Start the Express.js application locally for development.
 
 ## Usage
 `{/start}`
 
 ## Purpose
-Run the application locally using the Azure Static Web Apps CLI to test changes before deployment.
+Run the application locally using the Express.js server to test changes before deployment.
 
 ---
 
@@ -14,11 +14,11 @@ Run the application locally using the Azure Static Web Apps CLI to test changes 
 
 ### Phase 1: Pre-Start Checks
 - Verify working directory state
-- Check if `swa` CLI is installed
+- Check if Node.js is installed
 - Verify API configuration (local.settings.json) exists
 
 ### Phase 2: Start Application
-- Run `swa start`
+- Run `cd api && npm start`
 - Monitor startup progress
 - Capture any errors or warnings
 - Note the local URL provided
@@ -33,18 +33,17 @@ Run the application locally using the Azure Static Web Apps CLI to test changes 
 ## Project Context
 
 ### Development Server
-- **CLI**: Azure Static Web Apps CLI (`swa`)
-- **Command**: `swa start`
-- **Purpose**: Local development with hot-reload and API proxy
+- **Server**: Express.js (`node server.js`)
+- **Command**: `npm start` (runs on port 8080)
+- **Purpose**: Local development with API and static file serving
 
 ### What Gets Started
-- Frontend: Serves `src/index.html` and static assets
-- Backend API: Proxies requests to Azure Functions running on `http://localhost:7071`
+- Frontend: Serves `src/index.html`, `src/backoffice.html`, and static assets
+- Backend API: Express.js routes at `/api/*`
 
 ### Prerequisites
-- Azure Functions Core Tools must be installed
+- Node.js must be installed
 - API dependencies must be installed (`cd api && npm install`)
-- API should be running (`func start` or via VS Code debugger)
 
 ---
 
@@ -54,12 +53,12 @@ After starting, present:
 
 ### 1. Pre-Start Status
 - Working directory state
-- CLI availability check
+- Node.js availability check
 - API configuration check
 
 ### 2. Startup Progress
 - Command being executed
-- Progress output from `swa` CLI
+- Progress output from Express.js server
 
 ### 3. Startup Result
 - **Success**: Local development URL, confirmation message
@@ -79,8 +78,8 @@ After starting, present:
 
 When user invokes `{/start}`:
 
-- [ ] Check if `swa` CLI is available
+- [ ] Check if Node.js is available
 - [ ] Check API configuration (local.settings.json)
-- [ ] Execute `swa start`
+- [ ] Execute `cd api && npm start`
 - [ ] Monitor and report startup progress
 - [ ] Report final status with local URL or error details

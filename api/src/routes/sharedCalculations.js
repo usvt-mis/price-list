@@ -11,12 +11,11 @@ const logger = require('../utils/logger');
 
 // Helper function to get the base URL for share links (Express format)
 const getBaseURL = (req) => {
-  // 1. Check environment variable (production override)
-  if (process.env.STATIC_WEB_APP_HOST) {
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    return `${protocol}://${process.env.STATIC_WEB_APP_HOST}`;
+  // 1. Check Azure WEBSITE_SITE_NAME (App Service)
+  if (process.env.WEBSITE_SITE_NAME) {
+    return `https://${process.env.WEBSITE_SITE_NAME}.azurewebsites.net`;
   }
-  // 2. Check Azure WEBSITE_HOSTNAME
+  // 2. Check Azure WEBSITE_HOSTNAME (alternative App Service variable)
   if (process.env.WEBSITE_HOSTNAME) {
     return `https://${process.env.WEBSITE_HOSTNAME}`;
   }

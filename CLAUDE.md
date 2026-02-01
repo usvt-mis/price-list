@@ -55,13 +55,9 @@ Set the `DATABASE_CONNECTION_STRING` environment variable in `api/local.settings
 }
 ```
 
-**Optional**: Set `STATIC_WEB_APP_HOST` environment variable for share link URL generation (useful in production where the host header may not match the actual application URL). For local development, set to `"localhost:7071"`.
-
-**Timer Functions**: Set `ENABLE_TIMER_FUNCTIONS` to `"true"` for local development (timer functions are disabled in Azure Static Web Apps managed mode - only HTTP functions are supported). The GitHub Actions workflow automatically sets this to `"false"` during deployment.
-
 **Backoffice Authentication**: Backoffice access is restricted to `it@uservices-thailand.com` only. No additional environment variables needed - Azure AD authentication handles authorization automatically.
 
-**AzureWebJobsStorage**: Set to `"UseDevelopmentStorage=true"` for timer trigger support in local development (requires Azurite Azure Storage Emulator). Install Azurite with `npm install -g azurite` and run with `azurite --silent --location <path> --debug <path>`. Alternatively, set `ENABLE_TIMER_FUNCTIONS` to `"false"` to disable timer triggers while keeping manual HTTP endpoints available.
+**AzureWebJobsStorage** (Azure Functions mode only): Set to `"UseDevelopmentStorage=true"` for timer trigger support in local development (requires Azurite Azure Storage Emulator). Install Azurite with `npm install -g azurite` and run with `azurite --silent --location <path> --debug <path>`.
 
 ### Direct Database Access (sqlcmd)
 
@@ -140,14 +136,14 @@ The `.vscode/launch.json` configuration supports debugging:
   - Admin routes: admin/roles, admin/diagnostics, admin/logs, admin/health
   - Backoffice routes: backoffice, backoffice/login
 - Authentication middleware in `src/middleware/`: authExpress.js, twoFactorAuthExpress.js (Express-compatible)
-- Scheduled jobs in `src/jobs/`: node-cron replacement for Azure Functions timer triggers
+- Scheduled jobs in `src/jobs/`: node-cron for scheduled tasks (log archival)
 - Shared connection pool via `mssql` package in `src/db.js`
 - Utilities in `src/utils/`: logger.js, performanceTracker.js, circuitBreaker.js
 
 **Azure Functions (Legacy - still functional):**
 - Azure Functions v4 with `@azure/functions` package
 - HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, version, admin/roles, admin/diagnostics, admin/logs, admin/health, backoffice
-- Timer functions in `src/functions/timers/`: logPurge (daily log archival - conditionally registered via `ENABLE_TIMER_FUNCTIONS` env var)
+- Timer functions in `src/functions/timers/`: logPurge (daily log archival)
 - Original authentication middleware in `src/middleware/`: auth.js, twoFactorAuth.js (Azure Functions format)
 
 ### Frontend Structure (`src/`)
@@ -185,7 +181,7 @@ Each route module:
 - Jobs defined in `src/jobs/index.js` using `node-cron` library
 - Cron expressions for scheduling (e.g., `'0 2 * * *'` for daily at 2 AM UTC)
 - Jobs started via `startScheduledJobs()` in `server.js`
-- Provides same functionality as Azure Functions timer triggers without SWA limitations
+- Provides scheduled task functionality in App Service (always enabled)
 
 ### Function Registration Pattern (Legacy Azure Functions)
 Each HTTP function file:
@@ -194,11 +190,9 @@ Each HTTP function file:
 3. Exports nothing (registration happens via side effect)
 4. The main `src/index.js` requires all functions to register them
 
-**Timer Functions (Conditional Registration - Legacy):**
+**Timer Functions (Legacy Azure Functions):**
 - Timer triggers use `app.timer()` with a schedule (cron expression)
-- For Azure Static Web Apps compatibility, timer functions are conditionally registered based on `ENABLE_TIMER_FUNCTIONS` environment variable
-- Pattern: Wrap `app.timer()` call in `if (process.env.ENABLE_TIMER_FUNCTIONS !== 'false') { ... }`
-- This allows HTTP endpoints (like manual purge) to always be available while the timer trigger is disabled in SWA
+- Manual HTTP endpoints available for triggering scheduled tasks
 
 ### Database Connection Pooling
 - Connection pool is singleton-initialized in `api/src/db.js`
@@ -327,7 +321,7 @@ The application implements a 4-tier role system:
 - Circuit breaker pattern prevents logging failures from affecting application performance
 - Performance tracker (`api/src/utils/performanceTracker.js`) captures API response times and database latency
 - **Express.js mode**: Automated log archival via node-cron job (daily at 2 AM UTC) - always enabled
-- **Azure Functions mode**: Automated log archival via timer trigger (disabled in SWA; use manual endpoint)
+- **Azure Functions mode**: Automated log archival via timer trigger
 - Manual log purge endpoint: `POST /api/adm/logs/purge/manual` (Executive only)
 - Environment variables: `LOG_LEVEL`, `LOG_BUFFER_FLUSH_MS`, `LOG_BUFFER_SIZE`, `CIRCUIT_BREAKER_THRESHOLD`, etc.
 
@@ -412,4 +406,4 @@ Custom slash commands for automating workflows:
 - Located in `.claude/skills/`
 - `update` skill: Automatically updates documentation and creates git commits
 - `bs` skill: Coordinates brainstorming sessions across multiple agents
-- `deploy` skill: Deploys application to Azure Static Web Apps Production environment
+- `deploy` skill: Deploys application to Azure App Service Production environment

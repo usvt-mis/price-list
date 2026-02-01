@@ -80,9 +80,9 @@ Orchestrator reports final status to user
 
 ### Technology Stack
 - **Frontend**: Single-page HTML (`src/index.html`), vanilla JavaScript, Tailwind CSS
-- **Backend**: Azure Functions v4, Node.js, SQL Server
+- **Backend**: Express.js, Node.js, SQL Server
 - **Database**: Azure SQL with 5 main tables
-- **Deployment**: Azure Static Web Apps + Azure Functions
+- **Deployment**: Azure App Service
 
 ### Core Features
 1. **Labor Cost Calculation**: Job manhours × branch-specific cost per hour with multipliers

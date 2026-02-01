@@ -19,22 +19,20 @@ The Price List Calculator computes total cost based on three components:
   - Responsive design with mobile-friendly material panel (card-based layout on screens < 768px)
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
   - Separate HTML file with complete UI independence
-  - **Two-factor authentication**: Azure AD identity verification + admin password
-  - **Step 1**: Azure AD authenticates identity (no role filtering)
-  - **Step 2**: Admin password from BackofficeAdmins table
-  - **8-hour access tokens** with optional 7-day "Remember Me" refresh tokens
+  - **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`
+  - No password step - Azure AD handles full authentication
   - No navigation links to main calculator
   - **3-Tab Role Management**: Executives, Sales, Customers tabs for pre-assigning roles by email
   - **Inline Add Forms**: Add users directly in each tab with real-time validation
   - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
   - **Count Badges**: User count displayed on each tab
   - **Audit Log Tab**: View complete role change history
-  - **Settings Tab**: Self-service password change
+  - **Settings Tab**: Displays authentication info
 
 ### UI Features
 - **Authentication UI**: Login/logout button in header with user avatar (initials) when signed in
 - **Role Badge Indicator**: Displays current user's role (Executive/Sales/No Role/Customer View) in header
-- **Backoffice Admin Panel**: Separate username/password authentication at `/#/backoffice` for managing user roles
+- **Backoffice Admin Panel**: Azure AD authentication at `/#/backoffice` for managing user roles
 - **Awaiting Assignment Screen**: NoRole users see "Account Pending" screen with logout button
   - All interactive elements are frozen (pointer events disabled, keyboard navigation blocked)
   - Only the Sign Out button remains functional
@@ -73,8 +71,7 @@ The Price List Calculator computes total cost based on three components:
 - **Desktop materials**: Traditional table layout with wider quantity inputs (w-32)
 
 ### Backend
-- **Primary**: Express.js (Node.js) for Azure App Service deployment
-- **Legacy**: Azure Functions v4 (Node.js) - still supported
+- **Express.js** (Node.js) for Azure App Service deployment
 - SQL Server database
 - HTTP API endpoints for data access
 - Azure Entra ID (Azure AD) authentication (Easy Auth compatible)
@@ -97,13 +94,13 @@ The application expects these SQL Server tables:
 | `SavedCalculationMaterials` | Materials associated with each saved calculation |
 | `RunNumberSequence` | Tracks year-based sequential run numbers |
 | `UserRoles` | Role assignments (Email, Role [Executive/Sales/Customer/NULL], AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt) |
-| `BackofficeAdmins` | Backoffice admin accounts for two-factor authentication (Username, Email, PasswordHash, IsActive, FailedLoginAttempts, LockoutUntil, LastPasswordChangeAt) |
+| `BackofficeAdmins` | Backoffice admin accounts (deprecated - no longer used for authentication) |
 | `RoleAssignmentAudit` | Immutable audit log of all role changes |
 | `AppLogs` | Application logging (errors, events, performance tracking) |
 | `PerformanceMetrics` | API performance metrics (response times, database latency) |
 | `AppLogs_Archive` | Historical application logs (archived after 30 days) |
 
-**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table for two-factor authentication.
+**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback).
 
 **Method 3: Run Migration Scripts**
 ```bash
@@ -117,7 +114,7 @@ This will:
 
 For quick fixes:
 - `database/fix_backoffice_issues.sql` - Unlock accounts, enable disabled accounts, clear expired sessions
-- `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table for two-factor authentication
+- `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table (deprecated)
 
 **Timezone Diagnostics:**
 - `database/diagnostics_timezone.sql` - Check server timezone configuration, column types, and identify mixed timezone sources (GETDATE vs GETUTCDATE)
@@ -168,10 +165,7 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/adm/logs/purge` | DELETE | Purge logs older than X days | Executive only |
 | `/api/adm/logs/health` | GET | System health check (database, log stats, performance) | Executive only |
 | `/api/adm/logs/purge/manual` | POST | Manually trigger log archival | Executive only |
-| `/api/backoffice/login` | POST | Two-factor auth step 2: Verify admin password (returns 8-hour access token + optional 7-day refresh token) | Azure AD + backoffice password |
-| `/api/backoffice/refresh` | POST | Refresh access token using refresh token | No |
-| `/api/backoffice/logout` | POST | Logout and clear session | Backoffice session |
-| `/api/backoffice/change-password` | POST | Self-service password change | Backoffice session |
+| `/api/backoffice/login` | POST | Verify backoffice access (Azure AD only) | Azure AD (it@uservices-thailand.com) |
 | `/api/backoffice/users` | GET | List users with optional role filtering (?role=Executive|Sales|Customer|NoRole) | Backoffice session |
 | `/api/backoffice/users/{email}/role` | POST | Assign/update user role (NoRole/Sales/Executive/Customer) | Backoffice session |
 | `/api/backoffice/users/{email}/role` | DELETE | Remove user role | Backoffice session |
@@ -179,7 +173,8 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/backoffice/repair` | GET | Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit/BackofficeAdmins tables) | Backoffice session |
 | `/api/backoffice/timezone-check` | GET | Diagnostic endpoint for timezone configuration (returns database and JavaScript timezone info) | Backoffice session |
 | `/api/ping` | GET | Health check endpoint | No |
-| `/.auth/me` | GET | Get current user info from Static Web Apps | No |
+| `/api/version` | GET | Application version info | No |
+| `/.auth/me` | GET | Get current user info from App Service Easy Auth | No |
 
 ## Development
 
@@ -203,9 +198,7 @@ Configure the database connection. You can use environment variables or `api/loc
   "Values": {
     "DATABASE_CONNECTION_STRING": "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
     "MOCK_USER_EMAIL": "Dev User",
-    "MOCK_USER_ROLE": "PriceListSales",
-    "STATIC_WEB_APP_HOST": "localhost:7071",
-    "BACKOFFICE_JWT_SECRET": "your-secret-key-here"
+    "MOCK_USER_ROLE": "PriceListSales"
   }
 }
 ```
@@ -237,7 +230,7 @@ Open `src/index.html` in a browser to use the application.
 
 ### Authentication
 
-The application uses **Azure Entra ID (Azure AD)** authentication via Static Web Apps Easy Auth for all users (both main app and backoffice).
+The application uses **Azure Entra ID (Azure AD)** authentication via App Service Easy Auth.
 
 **Main App Features:**
 - Login: `/.auth/login/aad` (Azure native authentication endpoint)
@@ -263,10 +256,9 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - Use `/api/adm/diagnostics/registration` (Executive only) to verify user registration health
 
 **Backoffice Admin Features:**
-- Separate interface at `/backoffice` with two-factor authentication
-- **Step 1**: Azure AD identity verification (no role filtering)
-- **Step 2**: Admin password from BackofficeAdmins table
-- **8-hour access tokens** with optional 7-day "Remember Me" refresh tokens
+- Separate interface at `/backoffice` with Azure AD authentication only
+- Access restricted to `it@uservices-thailand.com`
+- No password step - Azure AD handles full authentication
 - Clean URL routing: `/backoffice` and `/backoffice/` both serve `backoffice.html`
 - Can assign NoRole, Sales, Executive, or Customer roles to Azure AD users
 - Full audit log of all role changes
@@ -276,18 +268,13 @@ The application uses **Azure Entra ID (Azure AD)** authentication via Static Web
 - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
 - **Count Badges**: Each tab shows total user count
 - **Search**: Filter users within each role tab
-- **Settings Tab**: Self-service password change functionality
+- **Settings Tab**: Displays authentication info
 
 **Local Development:**
 - **Automatic bypass**: When running on `localhost` or `127.0.0.1`, authentication is automatically bypassed
 - Mock user defaults to Sales role in local development (override with `MOCK_USER_ROLE` env var)
 - "DEV MODE" badge appears in the header to indicate local development
 - Simply run `npm start` (Express) or `func start` (Functions) and open `src/index.html` in a browser - no auth configuration needed
-
-**Production Configuration:**
-- Azure AD app registration configured in `staticwebapp.config.json`
-- Tenant ID: `2c64826f-cc97-46b5-85a9-0685f81334e0`
-- Auth state managed via `/.auth/me` endpoint
 
 ### Debugging
 
@@ -377,29 +364,28 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   └── backoffice.html
 ├── .github/
 │   └── workflows/
-│       ├── azure-webapp.yml          # App Service deployment
-│       └── azure-static-web-apps.yml # Static Web Apps deployment (legacy)
+│       └── azure-webapp.yml          # App Service deployment
 ├── CLAUDE.md
 └── README.md
 ```
 
 ## Deployment
 
-This project supports two deployment modes:
+### Azure App Service
 
-### Azure App Service (Primary)
-- GitHub Actions workflow in `.github/workflows/azure-webapp.yml`
-- Deploys Express.js server to Azure App Service
-- Enables always-on performance and scheduled jobs (node-cron)
-- Configure `STATIC_WEB_APP_HOST` environment variable for share link generation
+The application is deployed to Azure App Service via GitHub Actions:
+- Workflow: `.github/workflows/azure-webapp.yml`
+- Triggers on push to `master` branch
+- Deploys Express.js server from `api/` directory
+- Startup command: `node server.js`
+- Node version: 20
+- Scheduled jobs (log archival) run via node-cron (always enabled)
 
-### Azure Static Web Apps (Legacy)
-- GitHub Actions workflow in `.github/workflows/azure-static-web-apps.yml`
-- Deploys Azure Functions with static frontend
-- Timer functions disabled in managed mode (use manual HTTP trigger instead)
-- Configure `STATIC_WEB_APP_HOST` environment variable for share link generation
+**Environment Variables** (configured in App Service):
+- `DATABASE_CONNECTION_STRING` - SQL Server connection string
+- `NODE_ENV` - Set to `production`
 
-**Production Configuration**: After deployment, configure the `STATIC_WEB_APP_HOST` environment variable with your production URL to ensure share links are generated correctly.
+**Note**: Share link generation automatically uses the App Service hostname. No additional environment variables needed.
 
 ## License
 
