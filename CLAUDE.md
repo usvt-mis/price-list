@@ -201,19 +201,23 @@ Each HTTP function file:
 
 ### Local Development Bypass
 - When running on localhost, authentication is automatically bypassed
-- Mock user defaults to `PriceListSales` role (override with `MOCK_USER_ROLE` env var)
+- Mock user defaults to `dev-user@localhost` email with `PriceListSales` role
+- Override mock email with `MOCK_USER_EMAIL` env var (default: `dev-user@localhost`)
+- Override mock role with `MOCK_USER_ROLE` env var (default: `PriceListSales`)
 - Frontend detects local dev via `window.location.hostname`
 - Backend checks for localhost in headers or special `x-local-dev: true` header
 - Local dev defaults to Executive mode; production mode is determined from user's role
 
 ### Mode Determination
-- View mode (Executive/Sales) is automatically determined from user's role via `/api/admin/roles/current` API
+- View mode (Executive/Sales) is automatically determined from user's `effectiveRole` via `/api/auth/me` API
+- The `/api/auth/me` endpoint returns `effectiveRole` from UserRoles database lookup
 - Executive users see cost details (overhead, raw costs, multipliers)
 - Sales users see simplified view without cost breakdowns
 - NoRole users see "awaiting assignment" screen with no access to calculator
 - No manual mode switching - mode is purely role-based for security
 - Authenticated users with roles land on list view (not calculator) by default
-- Frontend view switching logic (in `loadInit()` callback) explicitly checks for NoRole and returns early to prevent calculator access
+- Frontend prefers `effectiveRole` from `/api/auth/me` (single API call)
+- Falls back to `/api/adm/roles/current` if `effectiveRole` is not available
 - Fallback logic in `detectLocalRole()` returns 'NoRole' for unassigned users instead of defaulting to 'Sales'
 
 **NoRole State Freeze Mechanism:**
@@ -239,10 +243,12 @@ The application implements a 4-tier role system:
 - **Customer**: No login required; view-only access via shared links (already implemented)
 
 **Role Detection:**
-1. Check UserRoles database table first (allows backoffice to assign roles)
-2. Auto-create UserRoles entry with Role = NULL (NoRole) for new users on first login
-3. Fall back to Azure AD role claims (`PriceListExecutive` → Executive)
-4. Default to NoRole for all new authenticated users
+1. Frontend calls `/api/auth/me` which returns `effectiveRole` from UserRoles database lookup
+2. Backend checks UserRoles database table first (allows backoffice to assign roles)
+3. Auto-create UserRoles entry with Role = NULL (NoRole) for new users on first login
+4. Email extraction guard prevents SQL errors when email is missing from tokens
+5. Fall back to Azure AD role claims (`PriceListExecutive` → Executive, `PriceListSales` → Sales)
+6. Default to NoRole for all new authenticated users
 
 **User Registration:**
 - All authenticated users are automatically registered in UserRoles table on first login
@@ -292,6 +298,10 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 
 **Auth Info API Endpoint** (public - validates auth internally):
 - `GET /api/auth/me` - Get current user info from App Service Easy Auth (replaces deprecated `/.auth/me` Static Web Apps endpoint)
+  - Returns `clientPrincipal` object with user details (userId, userDetails, userRoles, claims)
+  - Returns `effectiveRole` field from UserRoles database lookup ('Executive', 'Sales', or 'NoRole')
+  - Performs email extraction with fallback logic before database lookup
+  - Falls back to Azure AD roles if database is unavailable
 
 **Saved Calculations API Endpoints** (Azure AD - role-based access):
 - `POST /api/saves` - Create new saved calculation (authenticated users only)
@@ -337,7 +347,8 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - **Solution implemented**:
   1. Created new `/api/auth/me` endpoint that returns user info from App Service Easy Auth
      - Extracts user data from `x-ms-client-principal` header (base64-encoded JSON)
-     - Returns same format as old `/.auth/me` for frontend compatibility
+     - Returns `clientPrincipal` object (same format as old `/.auth/me` for compatibility)
+     - Returns `effectiveRole` field from UserRoles database lookup
      - Frontend updated to call `/api/auth/me` instead of `/.auth/me`
   2. All login URLs now include `post_login_redirect_uri=/` parameter for proper App Service redirect handling
   3. Backend validation in `authExpress.js`:
@@ -349,6 +360,9 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 
 **Auth Middleware Helpers:**
 - `getUserEffectiveRole(user)` - Get role from DB or Azure AD, returns 'Executive', 'Sales', or 'NoRole'
+  - Includes email extraction guard to prevent SQL errors when email is missing
+  - Updates user.userDetails with extracted email before database lookup
+  - Returns 'NoRole' if email extraction fails (with warning log)
 - `isExecutive(user)` - Check if user has Executive role
 - `isSales(user)` - Check if user has Sales role
 - `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)

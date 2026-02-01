@@ -41,7 +41,8 @@ function isLocalRequest(req) {
  * Create mock user for local development
  */
 function createMockUser() {
-  const mockEmail = process.env.MOCK_USER_EMAIL || 'Dev User';
+  // Use a proper email format for local dev to enable database role lookup
+  const mockEmail = process.env.MOCK_USER_EMAIL || 'dev-user@localhost';
   const mockRole = process.env.MOCK_USER_ROLE || 'PriceListSales';
   return {
     userId: 'dev-user',
@@ -374,6 +375,20 @@ async function getUserEffectiveRole(user) {
   const sql = require('mssql');
   const now = new Date().toISOString();
 
+  // CRITICAL FIX: Extract email with fallback logic before database lookup
+  const email = extractUserEmail(user);
+  if (!email) {
+    logger.warn('AUTH', 'RoleLookupFailed', 'No email found for role lookup', {
+      userId: user.userId,
+      hasUserDetails: !!user.userDetails,
+      claimsCount: user.claims?.length || 0
+    });
+    return 'NoRole';
+  }
+
+  // Update user.userDetails with extracted email
+  user.userDetails = email;
+
   try {
     // Check UserRoles table first (database override)
     const pool = await getPool();
@@ -458,6 +473,9 @@ async function getUserEffectiveRole(user) {
   const userRoles = user.userRoles || [];
   if (userRoles.includes('PriceListExecutive')) {
     return 'Executive';
+  }
+  if (userRoles.includes('PriceListSales')) {
+    return 'Sales';
   }
 
   // Default to NoRole for all new authenticated users

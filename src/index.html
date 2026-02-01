@@ -658,6 +658,19 @@
     }
 
     if (authState.isAuthenticated || isViewOnly) {
+      // PREFER effectiveRole from /api/auth/me (already fetched)
+      if (authState.user.effectiveRole) {
+        const role = authState.user.effectiveRole;
+        if (role === 'NoRole') {
+          showAwaitingAssignmentScreen({ email: authState.user.email });
+          return 'NoRole';
+        }
+        const mode = role === 'Executive' ? 'executive' : 'sales';
+        setMode(mode);
+        return role;
+      }
+
+      // FALLBACK: Call /api/adm/roles/current
       try {
         const response = await fetch('/api/adm/roles/current');
         if (response.status === 403) {
@@ -670,6 +683,7 @@
         }
         if (response.ok) {
           const data = await response.json();
+          authState.user.effectiveRole = data.effectiveRole;
           const mode = data.effectiveRole === 'Executive' ? 'executive' : 'sales';
           setMode(mode);
           return data.effectiveRole;
@@ -863,7 +877,8 @@
       return {
         userDetails: 'Dev User',
         userId: 'dev-user',
-        userRoles: ['PriceListExecutive', 'authenticated']
+        userRoles: ['PriceListExecutive', 'authenticated'],
+        effectiveRole: 'Executive'
       };
     }
 
@@ -872,7 +887,7 @@
       const response = await fetch('/api/auth/me');
       if (!response.ok) return null;
       const data = await response.json();
-      return data.clientPrincipal;
+      return data; // Return full response including clientPrincipal AND effectiveRole
     } catch (e) {
       console.error('Failed to fetch user info:', e);
       return null;
@@ -891,18 +906,21 @@
   // Render auth section in header
   async function renderAuthSection() {
     const container = el('authSection');
-    const user = await getUserInfo();
+    const userInfo = await getUserInfo();
 
-    if (user) {
+    if (userInfo) {
       authState.isAuthenticated = true;
+      const clientPrincipal = userInfo.clientPrincipal || userInfo;
       authState.user = {
-        name: user.userDetails,
-        email: user.userDetails,
-        initials: extractInitials(user.userDetails),
-        roles: user.userRoles || []
+        name: clientPrincipal.userDetails,
+        email: clientPrincipal.userDetails,
+        initials: extractInitials(clientPrincipal.userDetails),
+        roles: clientPrincipal.userRoles || [],
+        effectiveRole: userInfo.effectiveRole // Use effectiveRole from backend
       };
 
-      const isExecutive = authState.user.roles.includes('PriceListExecutive');
+      // Use effectiveRole instead of checking Azure AD roles
+      const isExecutive = authState.user.effectiveRole === 'Executive';
 
       container.innerHTML = `
         <div class="flex items-center gap-3">
@@ -921,7 +939,7 @@
         </div>
       `;
 
-      // Initialize mode based on user's role from backend
+      // Initialize mode based on user's effectiveRole from backend
       const effectiveRole = await initializeModeFromRole();
       currentUserRole = effectiveRole; // Store for later use
 
@@ -2920,6 +2938,13 @@
    */
   function detectLocalRole() {
     if (!authState.isAuthenticated) return null;
+
+    // PREFER effectiveRole from backend (already fetched)
+    if (authState.user.effectiveRole) {
+      return authState.user.effectiveRole;
+    }
+
+    // FALLBACK: Azure AD roles (for backwards compatibility)
     const isExecutive = authState.user.roles.includes('PriceListExecutive');
     const isSales = authState.user.roles.includes('PriceListSales');
     if (isExecutive) return 'Executive';
