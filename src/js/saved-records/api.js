@@ -4,7 +4,7 @@
  */
 
 import { fetchJson, fetchWithAuth, showNotification, el } from '../utils.js';
-import { authState, currentSavedRecord, isDirty, isViewOnly } from '../state.js';
+import { appState, authState, currentSavedRecord, isDirty, isViewOnly } from '../state.js';
 import { getApiHeaders } from '../config.js';
 import { renderLabor, renderMaterials, calcAll } from '../calculator/index.js';
 
@@ -13,7 +13,6 @@ import { renderLabor, renderMaterials, calcAll } from '../calculator/index.js';
  * @returns {Object} Serialized state
  */
 export function serializeCalculatorState() {
-  const { appState } = require('../state.js');
   return {
     branchId: Number(el('branch').value),
     motorTypeId: Number(el('motorType').value),
