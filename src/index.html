@@ -149,7 +149,7 @@
 
     <!-- GRAND TOTAL -->
     <section class="space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         <!-- Left Card: Sub Grand Total + Sales Profit -->
         <div class="bg-slate-900 text-white rounded-2xl shadow p-6">
@@ -208,6 +208,40 @@
                 <span class="text-base font-medium text-emerald-400">Sales Commission</span>
                 <span id="grandCommission" class="text-2xl font-bold text-emerald-400">—</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Percentage Breakdown Card (Executive Only) -->
+        <div id="percentageBreakdownCard" class="bg-slate-900 text-white rounded-2xl shadow p-6 hidden">
+          <h3 class="text-base font-semibold text-white mb-4">Percentage Breakdown</h3>
+          <div class="space-y-3">
+            <!-- Labor % -->
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-300">Labor</span>
+              <span id="laborPercent" class="font-semibold text-cyan-400">—</span>
+            </div>
+            <!-- Materials % -->
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-300">Materials</span>
+              <span id="materialsPercent" class="font-semibold text-cyan-400">—</span>
+            </div>
+            <!-- Overhead + Policy Profit % -->
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-300">Ovh+PP</span>
+              <span id="overheadPercent" class="font-semibold text-cyan-400">—</span>
+            </div>
+            <!-- Commission % -->
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-300">Commission</span>
+              <span id="commissionPercentOfTotal" class="font-semibold text-cyan-400">—</span>
+            </div>
+            <!-- Separator -->
+            <div class="border-t border-slate-700 pt-3 mt-3"></div>
+            <!-- Gross Profit % -->
+            <div class="flex justify-between items-center">
+              <span class="text-base font-medium text-emerald-400">Gross Profit</span>
+              <span id="grossProfitPercent" class="text-lg font-bold text-emerald-400">—</span>
             </div>
           </div>
         </div>

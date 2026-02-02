@@ -31,6 +31,16 @@ export function fmt(n) {
 }
 
 /**
+ * Format a number as a percentage with 2 decimal places
+ * @param {number} value - The value to format
+ * @returns {string} Formatted percentage string (e.g., "25.50%")
+ */
+export function fmtPercent(value) {
+  if (!Number.isFinite(value)) return '0.00%';
+  return value.toFixed(2) + '%';
+}
+
+/**
  * Format date for display
  * @param {string|Date} dateStr - Date string or Date object
  * @returns {string} Formatted date

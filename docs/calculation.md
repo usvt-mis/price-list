@@ -211,7 +211,65 @@ Commission = Commission% × Sub Grand Total
 
 ---
 
-## Helper Functions (`src/index.html`, lines ~206-239)
+## Percentage Breakdown Calculations (Executive Only)
+
+### Overview
+The Percentage Breakdown panel displays each cost component as a percentage of the Grand Total. This helps Executives understand the composition of the total price at a glance.
+
+### Percentage Formulas
+
+All percentages are calculated as **% of Grand Total**:
+
+```
+Labor % = (Labor Final Prices Sum / Grand Total) × 100
+```
+
+```
+Materials % = (Materials Final Prices Sum / Grand Total) × 100
+```
+
+```
+Ovh+PP % = (Overhead / Grand Total) × 100
+```
+
+```
+Commission % = (Commission Amount / Grand Total) × 100
+```
+
+```
+Gross Profit % = (Gross Profit / Grand Total) × 100
+```
+
+Where:
+- **Gross Profit** = Grand Total - (Total Labor + Total Materials) = Travel Cost
+- May be negative if travel cost is zero
+
+### Edge Cases
+- **Zero Grand Total**: All percentages show "0.00%" (handled via `Number.isFinite()` check)
+- **Negative values**: Gross Profit may be negative (displayed with "-" prefix)
+- **Formatting**: Uses `fmtPercent(value)` helper for 2 decimal places with "%" suffix
+
+### Implementation
+- Calculation performed in `calcAll()` function (`src/js/calculator/calculations.js`)
+- Visibility controlled by `isExecutiveMode()` check (hidden in Sales mode)
+- Card uses `hidden` class by default, removed only in Executive mode
+- Element IDs: `laborPercent`, `materialsPercent`, `overheadPercent`, `commissionPercentOfTotal`, `grossProfitPercent`
+
+---
+
+## Helper Functions (`src/js/utils.js`)
+
+- `fmt(value)` - Format number with locale string (2 decimal places)
+- `fmtPercent(value)` - Format number as percentage with 2 decimal places (e.g., "25.50%")
+- `el(id)` - Get DOM element by ID
+- `formatDate(dateStr)` - Format date for display
+- `extractInitials(emailOrName)` - Extract initials from email/name
+- `setStatus(msg)` - Set status message
+- `setDbLoadingModal(show)` - Show/hide database loading modal
+- `showNotification(message)` - Show notification message
+- `showView(viewName, isNoRoleState)` - Navigate between views
+
+### Helper Functions (`src/index.html`, lines ~206-239)
 
 - `getBranchMultiplier()` - Returns `(1 + OverheadPercent/100) × (1 + PolicyProfit/100)`
 - `getSalesProfitMultiplier()` - Returns `(1 + SalesProfit%/100)`

@@ -167,9 +167,10 @@ See [CLAUDE.md](../CLAUDE.md) for project overview and navigation.
 ## Grand Total Panel
 
 ### Layout Structure
-- Three-tier layout: side-by-side cards on top (Sub Grand Total + Breakdown), with Grand Total at bottom
-- Uses CSS Grid with `grid grid-cols-1 md:grid-cols-2 gap-6`
+- Three-tier layout: side-by-side cards on top (Sub Grand Total + Breakdown + Percentage Breakdown), with Grand Total at bottom
+- Uses CSS Grid with `grid grid-cols-1 md:grid-cols-3 gap-6`
 - On mobile: All cards stack vertically
+- **Percentage Breakdown card** is Executive-only (hidden in Sales mode)
 
 ### Top Row: Left Card (Sub Grand Total)
 - **Sub Grand Total** display at `text-5xl font-extrabold` (48px)
@@ -189,11 +190,42 @@ Progressive typography sizing:
 - Commission Section: `text-base font-medium text-emerald-400` labels with `text-2xl font-bold text-emerald-400` values (24px)
 - Visual separators using `border-t border-slate-700` between sections
 
+### Top Row: Third Card (Percentage Breakdown - Executive Only)
+**Executive-only feature** - Hidden in Sales mode via `isExecutiveMode()` check
+
+Displays percentage breakdown of Grand Total components:
+- **Labor %**: Labor Final Prices Sum ÷ Grand Total × 100 (cyan color)
+- **Materials %**: Materials Final Prices Sum ÷ Grand Total × 100 (cyan color)
+- **Ovh+PP %**: Overhead (from branch multipliers) ÷ Grand Total × 100 (cyan color)
+- **Commission %**: Commission amount ÷ Grand Total × 100 (cyan color)
+- **Gross Profit %**: Gross Profit ÷ Grand Total × 100 (emerald color, highlighted)
+  - Gross Profit = Grand Total - (Total Labor + Total Materials) = Travel Cost
+  - May be negative if travel cost is zero
+
+**Formatting**: Uses `fmtPercent(value)` helper to display 2 decimal places with % sign (e.g., "25.50%")
+
+**Edge cases**:
+- Zero/negative Grand Total shows "0.00%" for all values
+- Uses `Number.isFinite()` check to prevent divide-by-zero errors
+
+**Visibility control**: Card is hidden by default (`class="hidden"`) and shown only when `isExecutiveMode()` returns true
+
 ### Bottom Card (New Grand Total)
 - Sum of all Final Prices including commission
 - Displayed at `text-6xl font-extrabold` (60px) with gradient background
 - Formula: `Grand Total = sum(labor Final Prices) + sum(materials Final Prices) + travel Final Price`
 - Uses `bg-gradient-to-r from-slate-900 to-slate-800` for visual distinction
+
+### Helper Functions (`src/js/utils.js`)
+- `fmt(value)` - Format number with locale string (2 decimal places)
+- `fmtPercent(value)` - Format number as percentage with 2 decimal places (e.g., "25.50%")
+- `el(id)` - Get DOM element by ID
+- `formatDate(dateStr)` - Format date for display
+- `extractInitials(emailOrName)` - Extract initials from email/name
+- `setStatus(msg)` - Set status message
+- `setDbLoadingModal(show)` - Show/hide database loading modal
+- `showNotification(message)` - Show notification message
+- `showView(viewName, isNoRoleState)` - Navigate between views
 
 ### Helper Functions (`src/index.html`, lines ~206-239)
 - `getBranchMultiplier()` - Returns `(1 + OverheadPercent/100) × (1 + PolicyProfit/100)`
@@ -215,6 +247,15 @@ Progressive typography sizing:
 - **Commission%**: Based on Sub Grand Total vs STC ratio (displayed with `text-2xl font-bold text-emerald-400`)
 - **Commission**: Commission amount = Commission% × Sub Grand Total
 
+### Percentage Breakdown Displays (Executive Only)
+All percentages calculated as **% of Grand Total**:
+- **Labor %**: Labor Final Prices Sum ÷ Grand Total × 100
+- **Materials %**: Materials Final Prices Sum ÷ Grand Total × 100
+- **Ovh+PP %**: Overhead ÷ Grand Total × 100
+- **Commission %**: Commission amount ÷ Grand Total × 100
+- **Gross Profit %**: Gross Profit ÷ Grand Total × 100 (where Gross Profit = Grand Total - Total Labor - Total Materials)
+
+
 ---
 
 ## Mode Switcher (Executive vs Sales)
@@ -233,6 +274,7 @@ A segmented control in the header allows switching between two display modes:
 - Overhead + Policy Profit
 - Total Raw Cost
 - Sub Total Cost
+- Percentage Breakdown card (with Labor%, Materials%, Ovh+PP%, Commission%, Gross Profit%)
 
 **Sales Mode Hides**:
 - Labor Raw Cost
@@ -242,6 +284,7 @@ A segmented control in the header allows switching between two display modes:
 - Overhead + Policy Profit
 - Total Raw Cost
 - Sub Total Cost
+- Percentage Breakdown card (entire card hidden)
 
 **Both Modes Show**:
 - Sub Grand Total

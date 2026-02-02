@@ -3,8 +3,8 @@
  * Handles all cost calculations and grand totals
  */
 
-import { el, fmt } from '../utils.js';
-import { appState } from '../state.js';
+import { el, fmt, fmtPercent } from '../utils.js';
+import { appState, isExecutiveMode } from '../state.js';
 import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
 import { materialSubtotalBase, materialSubtotal } from './materials.js';
 import { COMMISSION_TIERS } from '../config.js';
@@ -93,5 +93,38 @@ export function calcAll() {
   el('grandSubTotalBeforeSalesProfit').textContent = fmt(subTotalBeforeSalesProfit);
   el('grandCommissionPercent').textContent = appState.commissionPercent + '%';
   el('grandCommission').textContent = fmt(commission);
+
+  // === Percentage Breakdown (Executive Only) ===
+  let laborPercent = 0, materialsPercent = 0, overheadPercent = 0;
+  let commissionPercentOfTotal = 0, grossProfitPercent = 0;
+
+  if (Number.isFinite(newGrandTotal) && newGrandTotal > 0) {
+    laborPercent = (laborFinalPricesSum / newGrandTotal) * 100;
+    materialsPercent = (materialsFinalPricesSum / newGrandTotal) * 100;
+    overheadPercent = (overhead / newGrandTotal) * 100;
+    commissionPercentOfTotal = (commission / newGrandTotal) * 100;
+
+    // Gross Profit = Grand Total - (Total Labor + Total Materials)
+    // Using subGrandTotal (before commission) minus (l + m) = travelCost
+    const grossProfit = subGrandTotal - (l + m);
+    grossProfitPercent = (grossProfit / newGrandTotal) * 100;
+  }
+
+  // Update percentage display elements
+  el('laborPercent').textContent = fmtPercent(laborPercent);
+  el('materialsPercent').textContent = fmtPercent(materialsPercent);
+  el('overheadPercent').textContent = fmtPercent(overheadPercent);
+  el('commissionPercentOfTotal').textContent = fmtPercent(commissionPercentOfTotal);
+  el('grossProfitPercent').textContent = fmtPercent(grossProfitPercent);
+
+  // Show/hide percentage card based on Executive mode
+  const percentCard = el('percentageBreakdownCard');
+  if (percentCard) {
+    if (isExecutiveMode()) {
+      percentCard.classList.remove('hidden');
+    } else {
+      percentCard.classList.add('hidden');
+    }
+  }
 }
 
