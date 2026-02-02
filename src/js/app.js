@@ -336,20 +336,33 @@ async function initApp() {
   const urlParams = new URLSearchParams(window.location.search);
   const shareToken = urlParams.get('share');
 
+  // If share token exists, load it immediately (skip normal initialization)
+  // This prevents the flicker effect by loading the shared record before
+  // any view initialization occurs. Customer View doesn't require auth.
+  if (shareToken) {
+    try {
+      console.log('[Shared Record] Share token detected, loading immediately...');
+      await loadSharedRecord(shareToken);
+      setDbLoadingModal(false);  // Hide modal AFTER shared record loads
+      // Clean URL by removing share parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+      console.log('[Shared Record] Loaded successfully, skipping normal initialization');
+      return;  // Early return to skip normal initialization
+    } catch (e) {
+      console.error('[Shared Record] Failed to load:', e);
+      setDbLoadingModal(false);
+      showNotification('Failed to load shared record');
+      // Fall through to normal initialization on error
+    }
+  }
+
+  // Normal initialization flow (no share token)
   try {
     await loadInit();
     setDbLoadingModal(false);  // Hide modal on success
 
     // Update mode buttons after auth is initialized
     updateModeButtons();
-
-    // If shared token exists, load shared record
-    if (shareToken) {
-      await loadSharedRecord(shareToken);
-      // Clean URL by removing share parameter
-      window.history.replaceState({}, document.title, window.location.pathname);
-      return;
-    }
 
     // Check if user just completed login and should be redirected to My Records
     const urlParams = new URLSearchParams(window.location.search);

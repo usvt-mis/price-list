@@ -267,6 +267,13 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
 - Shared records are **truly view-only** - all inputs, dropdowns, and mode switchers are disabled
 - URL parameter is cleaned after loading (via `history.replaceState`)
 
+### Share Link Initialization
+- Share tokens are processed **before** normal initialization (`loadInit()`)
+- This prevents a UI flicker where the default view briefly shows before the shared record loads
+- For shared links: `loadInit()` is skipped entirely (unnecessary for Customer View)
+- Loading modal stays visible until the shared record is fully loaded
+- If shared record fails to load, falls back to normal initialization with error notification
+
 ### Share Link URL Generation
 - Backend uses `getBaseURL()` helper to generate correct share URLs
 - Checks `WEBSITE_SITE_NAME` environment variable (automatically set by App Service)
