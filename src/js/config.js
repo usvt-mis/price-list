@@ -48,7 +48,8 @@ export const COMMISSION_TIERS = [
 // Mode constants
 export const MODE = {
   EXECUTIVE: 'executive',
-  SALES: 'sales'
+  SALES: 'sales',
+  CUSTOMER: 'customer'
 };
 
 // Role constants

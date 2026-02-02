@@ -4,7 +4,7 @@
  */
 
 import { el, fmt, fmtPercent } from '../utils.js';
-import { appState, isExecutiveMode } from '../state.js';
+import { appState, isExecutiveMode, isCustomerMode } from '../state.js';
 import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
 import { materialSubtotalBase, materialSubtotal } from './materials.js';
 import { COMMISSION_TIERS } from '../config.js';
@@ -117,7 +117,7 @@ export function calcAll() {
   el('commissionPercentOfTotal').textContent = fmtPercent(commissionPercentOfTotal);
   el('grossProfitPercent').textContent = fmtPercent(grossProfitPercent);
 
-  // Show/hide percentage card based on Executive mode
+  // Show/hide percentage card based on Executive mode (hidden for Sales and Customer modes)
   const percentCard = el('percentageBreakdownCard');
   if (percentCard) {
     if (isExecutiveMode()) {

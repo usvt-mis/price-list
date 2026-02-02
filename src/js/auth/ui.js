@@ -4,7 +4,7 @@
  */
 
 import { isLocalDev, AUTH_ENDPOINTS } from '../config.js';
-import { authState, setCurrentUserRole } from '../state.js';
+import { authState, setCurrentUserRole, isViewOnly } from '../state.js';
 import { extractInitials, setStatus } from '../utils.js';
 import { initializeModeFromRole } from './mode-detection.js';
 
@@ -142,7 +142,7 @@ function updateRoleBadge() {
   if (!badge) return;
 
   // Handle Customer view (shared links)
-  if (authState.isViewOnly) {
+  if (isViewOnly) {
     badge.classList.remove('hidden');
     badgeText.textContent = 'Customer View';
     badge.className = 'px-2 py-1 text-xs font-semibold rounded border border-blue-200 bg-blue-50 text-blue-700';
@@ -200,7 +200,7 @@ function updateSaveButtonsVisibility() {
   const saveBtn = document.getElementById('saveBtn');
   const myRecordsBtn = document.getElementById('myRecordsBtn');
 
-  if (authState.isAuthenticated && !authState.isViewOnly) {
+  if (authState.isAuthenticated && !isViewOnly) {
     saveBtn?.classList.remove('hidden');
     myRecordsBtn?.classList.remove('hidden');
   } else {

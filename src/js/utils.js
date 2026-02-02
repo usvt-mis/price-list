@@ -4,7 +4,7 @@
  */
 
 import { getApiHeaders } from './config.js';
-import { isExecutiveMode } from './state.js';
+import { isExecutiveMode, isCustomerMode } from './state.js';
 
 // ========== DOM Helpers ==========
 
@@ -294,23 +294,35 @@ export function updateModeButtons() {
   const overheadSection = el('grandOverhead')?.parentElement;
   const subTotalCostSection = el('subTotalCostSection');
   const totalRawCostSection = el('totalRawCostSection');
+  const commissionSection = el('grandCommission')?.closest('.border-t');
 
   if (!grandTotalEl) return;
 
   if (isExecutiveMode()) {
-    // Executive mode: show cost details
+    // Executive mode: show cost details + commission
     grandTotalEl.classList.remove('text-6xl');
     grandTotalEl.classList.add('text-5xl', 'mb-6');
     if (overheadSection) overheadSection.classList.remove('hidden');
     if (subTotalCostSection) subTotalCostSection.classList.remove('hidden');
     if (totalRawCostSection) totalRawCostSection.classList.remove('hidden');
-  } else {
-    // Sales mode: hide cost details
+    if (commissionSection) commissionSection.classList.remove('hidden');
+  } else if (isCustomerMode()) {
+    // Customer mode: show ONLY grand totals breakdown (Labor, Materials, Travel)
+    // Hide all cost breakdowns, overhead, raw costs, AND commission
     grandTotalEl.classList.remove('text-5xl', 'mb-6');
     grandTotalEl.classList.add('text-6xl');
     if (overheadSection) overheadSection.classList.add('hidden');
     if (subTotalCostSection) subTotalCostSection.classList.add('hidden');
     if (totalRawCostSection) totalRawCostSection.classList.add('hidden');
+    if (commissionSection) commissionSection.classList.add('hidden');
+  } else {
+    // Sales mode: hide cost details but show commission
+    grandTotalEl.classList.remove('text-5xl', 'mb-6');
+    grandTotalEl.classList.add('text-6xl');
+    if (overheadSection) overheadSection.classList.add('hidden');
+    if (subTotalCostSection) subTotalCostSection.classList.add('hidden');
+    if (totalRawCostSection) totalRawCostSection.classList.add('hidden');
+    if (commissionSection) commissionSection.classList.remove('hidden');
   }
 }
 

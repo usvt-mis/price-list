@@ -63,6 +63,10 @@ export function isSalesMode() {
   return currentMode === MODE.SALES;
 }
 
+export function isCustomerMode() {
+  return currentMode === MODE.CUSTOMER;
+}
+
 export function getSelectedBranch() {
   const branchId = Number(document.getElementById('branch')?.value);
   return appState.branches.find(b => b.BranchId === branchId) || null;

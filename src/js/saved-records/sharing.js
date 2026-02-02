@@ -89,11 +89,11 @@ export async function loadSharedRecord(shareToken) {
   try {
     const record = await fetchJson(`/api/shared/${shareToken}`);
     setViewOnly(true);
-    setMode(MODE.SALES);
+    setMode(MODE.CUSTOMER);
 
-    // Update role badge to show Customer View
+    // Update role badge to show Customer View (pass isViewOnly=true)
     if (window.updateRoleBadge) {
-      window.updateRoleBadge();
+      window.updateRoleBadge(true);
     }
 
     await deserializeCalculatorState(record);

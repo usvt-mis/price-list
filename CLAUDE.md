@@ -210,7 +210,7 @@ The application includes comprehensive debug logging for troubleshooting initial
     │   ├── index.js              # Saved records exports
     │   ├── api.js                # API calls for saved calculations
     │   ├── ui.js                 # Records list/grid rendering
-    │   └── sharing.js            # Share functionality
+    │   └── sharing.js            # Share functionality (loads Customer mode for shared links)
     └── admin/                   # Admin role management module
         ├── index.js              # Admin exports
         └── role-assignment.js    # Admin panel logic
@@ -219,6 +219,7 @@ The application includes comprehensive debug logging for troubleshooting initial
   - **State Management**: Centralized in `state.js` with getters/setters
   - **API Communication**: Via `fetch()` through utility functions
   - **Azure AD Authentication**: For Executive/Sales users
+  - **Customer View Mode**: Activated via share links, read-only with minimal details (grand totals only)
 - **Backoffice Admin** (`backoffice.html`): Standalone backoffice interface with 3-tab role management
   - Separate HTML file with complete UI independence
   - **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`
@@ -283,10 +284,11 @@ Each HTTP function file:
 - **Backoffice local bypass**: The `requireBackofficeSession()` middleware and `/api/backoffice/login` endpoint both bypass Azure AD in local development, using mock email from environment variables
 
 ### Mode Determination
-- View mode (Executive/Sales) is automatically determined from user's `effectiveRole` via `/api/auth/me` API
+- View mode (Executive/Sales/Customer) is automatically determined from user's `effectiveRole` via `/api/auth/me` API
 - The `/api/auth/me` endpoint returns `effectiveRole` from UserRoles database lookup
-- Executive users see cost details (overhead, raw costs, multipliers)
-- Sales users see simplified view without cost breakdowns
+- Executive users see cost details (overhead, raw costs, multipliers) + commission section
+- Sales users see simplified view with commission but no cost breakdowns
+- Customer mode activates when users open share links (`?share={token}`) - read-only view showing only grand totals breakdown (Labor, Materials, Travel)
 - NoRole users see "awaiting assignment" screen with no access to calculator
 - No manual mode switching - mode is purely role-based for security
 - Authenticated users with roles land on list view (not calculator) by default
@@ -312,9 +314,9 @@ The application implements a 4-tier role system:
 
 **Roles:**
 - **Executive**: Full access to costs, margins, multipliers; can assign Executive roles to others
-- **Sales**: Restricted view (no cost data), can only see own records
+- **Sales**: Restricted view (no cost data, shows commission), can only see own records
 - **NoRole**: New authenticated users default to NoRole; see "awaiting assignment" screen, no access to calculator or records
-- **Customer**: No login required; view-only access via shared links (already implemented)
+- **Customer**: No login required; view-only access via shared links (read-only, shows only grand totals breakdown - no cost breakdowns, no commission, no percentage breakdown)
 
 **Role Detection:**
 1. Frontend calls `/api/auth/me` which returns `effectiveRole` from UserRoles database lookup
@@ -443,6 +445,12 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - `extractUserEmail(user)` - Extract email from user object with expanded fallback logic (tries userDetails → 10 claim types including preferred_username, unique_name, name; validates @ presence; case-insensitive matching)
 - `mapMockRoleToEffective(mockRole)` - Map Azure AD role format to effective role format (`PriceListExecutive` → `Executive`, `PriceListSales` → `Sales`)
 - `isLocalRequest(req)` - Check if request is from local development (localhost detection or `x-local-dev: true` header) - exported from `twoFactorAuthExpress.js`
+
+**Frontend State Management:**
+- `isViewOnly` - Standalone export from `state.js` (not part of `authState`), used to track view-only mode for shared records
+- `isCustomerMode()` - Checker function to determine if current mode is Customer (activated via share links)
+- `setViewOnly(enabled)` - Setter for view-only mode state
+- `updateRoleBadge(isViewOnly)` - Function in `admin/role-assignment.js` that accepts optional `isViewOnly` parameter to display "Customer View" badge for shared links
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
