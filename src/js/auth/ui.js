@@ -13,8 +13,10 @@ import { initializeModeFromRole } from './mode-detection.js';
  * @returns {Promise<Object|null>} User info or null
  */
 export async function getUserInfo() {
+  console.log('[AUTH-USERINFO-1] getUserInfo: STARTED');
   // Local development: return mock user with Executive role
   if (isLocalDev) {
+    console.log('[AUTH-USERINFO-2] Local dev detected, returning mock user');
     return {
       userDetails: 'Dev User',
       userId: 'dev-user',
@@ -25,12 +27,18 @@ export async function getUserInfo() {
 
   // Production: fetch from App Service Easy Auth API
   try {
+    console.log('[AUTH-USERINFO-3] Fetching from /api/auth/me...');
     const response = await fetch('/api/auth/me');
-    if (!response.ok) return null;
+    console.log('[AUTH-USERINFO-4] Response status:', response.status);
+    if (!response.ok) {
+      console.log('[AUTH-USERINFO-5] Response not OK, returning null');
+      return null;
+    }
     const data = await response.json();
+    console.log('[AUTH-USERINFO-6] Data received:', data);
     return data; // Return full response including clientPrincipal AND effectiveRole
   } catch (e) {
-    console.error('Failed to fetch user info:', e);
+    console.error('[AUTH-USERINFO-ERROR] Failed to fetch user info:', e);
     return null;
   }
 }
@@ -40,12 +48,20 @@ export async function getUserInfo() {
  * @returns {Promise<void>}
  */
 export async function renderAuthSection() {
+  console.log('[AUTH-RENDER-1] renderAuthSection: STARTED');
   const container = document.getElementById('authSection');
-  if (!container) return;
+  console.log('[AUTH-RENDER-2] authSection container found:', !!container);
+  if (!container) {
+    console.error('[AUTH-RENDER-3] authSection container NOT FOUND!');
+    return;
+  }
 
+  console.log('[AUTH-RENDER-4] Calling getUserInfo...');
   const userInfo = await getUserInfo();
+  console.log('[AUTH-RENDER-5] getUserInfo returned:', userInfo);
 
   if (userInfo) {
+    console.log('[AUTH-RENDER-6] User authenticated, processing user data');
     authState.isAuthenticated = true;
     const clientPrincipal = userInfo.clientPrincipal || userInfo;
     authState.user = {
@@ -55,9 +71,11 @@ export async function renderAuthSection() {
       roles: clientPrincipal.userRoles || [],
       effectiveRole: userInfo.effectiveRole // Use effectiveRole from backend
     };
+    console.log('[AUTH-RENDER-7] authState.user set:', authState.user);
 
     // Use effectiveRole instead of checking Azure AD roles
     const isExecutive = authState.user.effectiveRole === 'Executive';
+    console.log('[AUTH-RENDER-8] isExecutive:', isExecutive);
 
     container.innerHTML = `
       <div class="flex items-center gap-3">
@@ -75,14 +93,19 @@ export async function renderAuthSection() {
         ` : ''}
       </div>
     `;
+    console.log('[AUTH-RENDER-9] Auth UI rendered');
 
     // Initialize mode based on user's effectiveRole from backend
+    console.log('[AUTH-RENDER-10] Calling initializeModeFromRole...');
     const effectiveRole = await initializeModeFromRole();
+    console.log('[AUTH-RENDER-11] initializeModeFromRole returned:', effectiveRole);
     setCurrentUserRole(effectiveRole); // Store for later use
 
     // Update role badge
     updateRoleBadge();
+    console.log('[AUTH-RENDER-12] Role badge updated');
   } else {
+    console.log('[AUTH-RENDER-13] No userInfo, showing login button');
     authState.isAuthenticated = false;
     authState.user = null;
 
@@ -94,15 +117,19 @@ export async function renderAuthSection() {
         <span>Sign In</span>
       </a>
     `;
+    console.log('[AUTH-RENDER-14] Login button rendered');
 
     // Unauthenticated users get sales view
+    console.log('[AUTH-RENDER-15] Calling initializeModeFromRole for unauthenticated user...');
     const effectiveRole = await initializeModeFromRole();
+    console.log('[AUTH-RENDER-16] initializeModeFromRole returned:', effectiveRole);
     setCurrentUserRole(effectiveRole); // Store for later use
     updateRoleBadge();
   }
 
   authState.isLoading = false;
   updateSaveButtonsVisibility();
+  console.log('[AUTH-RENDER-17] renderAuthSection COMPLETED');
 }
 
 /**
@@ -187,11 +214,17 @@ function updateSaveButtonsVisibility() {
  * @returns {Promise<void>}
  */
 export async function initAuth() {
+  console.log('[AUTH-INIT-1] initAuth: STARTED');
   // Clean up stale localStorage mode preference
   localStorage.removeItem('pricelist-calculator-mode');
+  console.log('[AUTH-INIT-2] LocalStorage cleaned');
 
   // Check for SWA-style token in URL hash (migration fallback)
+  console.log('[AUTH-INIT-3] Checking for token in URL hash...');
   await import('./token-handling.js').then(m => m.parseTokenFromHash());
+  console.log('[AUTH-INIT-4] Token parsing completed');
 
+  console.log('[AUTH-INIT-5] Calling renderAuthSection...');
   await renderAuthSection();
+  console.log('[AUTH-INIT-6] initAuth COMPLETED');
 }

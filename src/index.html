@@ -587,7 +587,19 @@
 </script>
 
 <!-- Main Application Entry Point -->
-<script type="module" src="js/app.js"></script>
+<script type="module">
+  // Add global error handlers for debugging
+  window.addEventListener('error', (event) => {
+    console.error('[GLOBAL ERROR]', event.error);
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[UNHANDLED PROMISE REJECTION]', event.reason);
+  });
+
+  // Load the main app
+  import('./js/app.js');
+</script>
 
 </body>
 </html>

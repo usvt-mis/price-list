@@ -37,31 +37,42 @@ function setGlobalExports() {
  * Load initial data (motor types and branches)
  */
 async function loadInit() {
+  console.log('[APP-INIT-1] loadInit: STARTED');
   setDbLoadingModal(true);
+  console.log('[APP-INIT-2] Loading modal shown');
   setStatus('Checking authentication...');
 
   // Check auth first
+  console.log('[APP-INIT-3] Calling initAuth...');
   await initAuth();
+  console.log('[APP-INIT-4] initAuth completed successfully');
 
   setStatus('Loading motor types & branches...');
   try {
+    console.log('[APP-INIT-5] Starting fetch of motor types and branches...');
     // Helper function to handle fetch with auth error checking
     const fetchWithAuthCheck = async (url) => {
+      console.log(`[APP-INIT-FETCH] Fetching: ${url}`);
       const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
       const response = await fetch(url, { headers });
+      console.log(`[APP-INIT-FETCH] Response status for ${url}:`, response.status);
       if (response.status === 401) {
         throw new Error('AUTH_REQUIRED');
       }
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      return response.json();
+      const data = await response.json();
+      console.log(`[APP-INIT-FETCH] Data received from ${url}:`, Array.isArray(data) ? `${data.length} items` : typeof data);
+      return data;
     };
 
     const [motorTypes, branches] = await Promise.all([
       fetchWithAuthCheck('/api/motor-types'),
       fetchWithAuthCheck('/api/branches')
     ]);
+    console.log('[APP-INIT-6] Both fetch requests completed');
+    console.log('[APP-INIT-7] Motor types count:', motorTypes?.length, 'Branches count:', branches?.length);
 
     appState.branches = branches;
 
@@ -71,15 +82,19 @@ async function loadInit() {
     if (motorTypeEl) {
       motorTypeEl.innerHTML = `<option value="">Select…</option>` + motorTypes
         .map(x => `<option value="${x.MotorTypeId}">${x.MotorTypeName}</option>`).join('');
+      console.log('[APP-INIT-8] Motor types dropdown populated');
     }
 
     if (branchEl) {
       branchEl.innerHTML = `<option value="">Select…</option>` + branches
         .map(x => `<option value="${x.BranchId}">${x.BranchName}</option>`).join('');
+      console.log('[APP-INIT-9] Branches dropdown populated');
     }
 
     setStatus('');
+    console.log('[APP-INIT-10] loadInit COMPLETED SUCCESSFULLY');
   } catch (e) {
+    console.log('[APP-INIT-ERROR] Error in loadInit:', e);
     // Let the outer .catch() handle the error
     throw e;
   }
