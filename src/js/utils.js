@@ -100,6 +100,39 @@ export function showNotification(message) {
   setTimeout(() => setStatus(''), 5000);
 }
 
+// ========== Customer View Read-Only Helpers ==========
+
+/**
+ * Make all calculator inputs read-only in Customer View
+ * Disables all interactive elements in the calculator form
+ */
+export function makeInputsReadOnly() {
+  const inputs = document.querySelectorAll('#calculatorView input:not([type="hidden"]), #calculatorView button, #calculatorView select');
+  inputs.forEach(input => {
+    // Store original state for restoration
+    if (!input.hasAttribute('data-customer-readonly')) {
+      input.setAttribute('data-customer-readonly', 'true');
+      input.setAttribute('readonly', 'true');
+      input.setAttribute('disabled', 'true');
+      input.classList.add('opacity-75', 'cursor-not-allowed');
+    }
+  });
+}
+
+/**
+ * Remove read-only state from calculator inputs
+ * Restores interactivity when exiting Customer View
+ */
+export function removeReadOnly() {
+  const inputs = document.querySelectorAll('[data-customer-readonly]');
+  inputs.forEach(input => {
+    input.removeAttribute('readonly');
+    input.removeAttribute('disabled');
+    input.classList.remove('opacity-75', 'cursor-not-allowed');
+    input.removeAttribute('data-customer-readonly');
+  });
+}
+
 // ========== View Management ==========
 
 /**

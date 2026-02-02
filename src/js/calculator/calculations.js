@@ -3,11 +3,48 @@
  * Handles all cost calculations and grand totals
  */
 
-import { el, fmt, fmtPercent } from '../utils.js';
+import { el, fmt, fmtPercent, makeInputsReadOnly, removeReadOnly } from '../utils.js';
 import { appState, isExecutiveMode, isCustomerMode } from '../state.js';
 import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
 import { materialSubtotalBase, materialSubtotal } from './materials.js';
 import { COMMISSION_TIERS } from '../config.js';
+
+/**
+ * Get branch name by ID for Customer View display
+ * @param {number} branchId - Branch ID
+ * @returns {string} Branch name or '—'
+ */
+function getBranchName(branchId) {
+  const branch = appState.branches.find(b => b.BranchId === Number(branchId));
+  return branch ? branch.BranchName : '—';
+}
+
+/**
+ * Update job summary list for Customer View
+ */
+function updateJobSummary() {
+  if (!isCustomerMode()) return;
+
+  const jobs = appState.labor.filter(j => j.checked !== false);
+  const listEl = el('jobSummaryList');
+
+  if (!listEl) return;
+
+  if (jobs.length === 0) {
+    listEl.innerHTML = '<li class="text-sm text-gray-500">No jobs selected</li>';
+    return;
+  }
+
+  listEl.innerHTML = jobs.map(job => {
+    const quantity = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
+    return `
+      <li class="text-sm text-gray-700 flex items-center justify-between py-1">
+        <span class="font-medium">${job.JobName}</span>
+        <span class="text-gray-500">${quantity} hr${quantity !== 1 ? 's' : ''}</span>
+      </li>
+    `;
+  }).join('');
+}
 
 /**
  * Calculate all totals and update display
@@ -125,6 +162,80 @@ export function calcAll() {
     } else {
       percentCard.classList.add('hidden');
     }
+  }
+
+  // === Customer View: Hide sensitive information, show only Grand Total ===
+  if (isCustomerMode()) {
+    // Hide Branch dropdown, show Branch info card
+    const branchDropdown = el('branchDropdown');
+    const branchInfoCard = el('branchInfoCard');
+    if (branchDropdown) branchDropdown.classList.add('customer-hidden');
+    if (branchInfoCard) {
+      branchInfoCard.classList.remove('customer-hidden');
+      // Update branch info display
+      const branchSelect = el('branch');
+      if (branchSelect) {
+        el('branchInfoName').textContent = getBranchName(branchSelect.value);
+      }
+    }
+
+    // Show job summary card
+    const jobSummaryCard = el('jobSummaryCard');
+    if (jobSummaryCard) {
+      jobSummaryCard.classList.remove('customer-hidden');
+      updateJobSummary();
+    }
+
+    // Hide cost breakdown panels
+    const totalRawCostSection = el('totalRawCostSection');
+    const subTotalCostSection = el('subTotalCostSection');
+    const commissionSection = el('commissionSection');
+    const grandTotalWithoutCommission = el('grandTotalWithoutCommission');
+    const salesProfitCard = el('salesProfitCard');
+
+    if (totalRawCostSection) totalRawCostSection.classList.add('customer-hidden');
+    if (subTotalCostSection) subTotalCostSection.classList.add('customer-hidden');
+    if (commissionSection) commissionSection.classList.add('customer-hidden');
+    if (grandTotalWithoutCommission) grandTotalWithoutCommission.classList.add('customer-hidden');
+
+    // Hide the entire left card (Grand Total without Commission + Sales Profit)
+    const leftCard = el('grandTotalWithoutCommission');
+    if (leftCard) leftCard.classList.add('customer-hidden');
+
+    // Hide the percentage breakdown card (already hidden via CSS but ensure it)
+    if (percentCard) percentCard.classList.add('customer-hidden');
+
+    // Make all inputs read-only
+    makeInputsReadOnly();
+
+    // Add customer-view class to body for styling
+    document.body.classList.add('customer-view');
+  } else {
+    // Show Branch dropdown, hide Branch info card
+    const branchDropdown = el('branchDropdown');
+    const branchInfoCard = el('branchInfoCard');
+    const jobSummaryCard = el('jobSummaryCard');
+
+    if (branchDropdown) branchDropdown.classList.remove('customer-hidden');
+    if (branchInfoCard) branchInfoCard.classList.add('customer-hidden');
+    if (jobSummaryCard) jobSummaryCard.classList.add('customer-hidden');
+
+    // Show all elements (for Executive/Sales modes)
+    const totalRawCostSection = el('totalRawCostSection');
+    const subTotalCostSection = el('subTotalCostSection');
+    const commissionSection = el('commissionSection');
+    const grandTotalWithoutCommission = el('grandTotalWithoutCommission');
+
+    if (totalRawCostSection) totalRawCostSection.classList.remove('customer-hidden');
+    if (subTotalCostSection) subTotalCostSection.classList.remove('customer-hidden');
+    if (commissionSection) commissionSection.classList.remove('customer-hidden');
+    if (grandTotalWithoutCommission) grandTotalWithoutCommission.classList.remove('customer-hidden');
+
+    // Remove read-only
+    removeReadOnly();
+
+    // Remove customer-view class from body
+    document.body.classList.remove('customer-view');
   }
 }
 

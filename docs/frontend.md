@@ -346,3 +346,83 @@ When updating table headers dynamically, use `el("id").previousElementSibling` d
 - Desktop search dropdown uses fixed positioning
 - Empty state displays as centered message with dashed border
 - Initialization shows "Connecting to Database" modal while loading
+
+---
+
+## Customer View (Shared Links)
+
+### Overview
+Customer View is a read-only mode activated when users open shared links (`?share={token}`). It displays a simplified version of the Calculation Form with minimal information appropriate for customers.
+
+### Activation
+- Triggered via `loadSharedRecord()` in `sharing.js`
+- Sets `currentMode = MODE.CUSTOMER` and `isViewOnly = true`
+- Calls `deserializeCalculatorState()` to populate calculator data
+- Shows calculator view directly (not the detail preview)
+
+### UI Components
+
+#### Branch Info Card (`#branchInfoCard`)
+- Read-only display of selected branch name
+- Hidden by default (`.customer-hidden`), shown in Customer View
+- Located at top of calculator, before Labor section
+- Contains: Branch icon (building), label "Branch", branch name
+
+#### Job Summary Card (`#jobSummaryCard`)
+- Simplified list of selected jobs with hours
+- Hidden by default (`.customer-hidden`), shown in Customer View
+- Located after Branch info card
+- Displays: Job icon (clipboard), label "Jobs", list of jobs with hours
+- Format: "Job Name 2 hrs" (pluralized)
+
+#### Hidden Elements
+All cost breakdown panels are hidden in Customer View via `.customer-hidden` CSS class:
+- Branch dropdown (`#branchDropdown`)
+- Total Raw Cost section (`#totalRawCostSection`)
+- Total Cost+Ovh+PP section (`#subTotalCostSection`)
+- Commission section (`#commissionSection`)
+- Grand Total without Commission card (`#grandTotalWithoutCommission`)
+- Sales Profit input (`#salesProfitCard`)
+- Percentage Breakdown card (`#percentageBreakdownCard`)
+
+#### Visible Elements
+Only these elements remain visible in Customer View:
+- Branch info card (read-only)
+- Job summary card (read-only)
+- Labor section (hidden via CSS, but job summary shown separately)
+- Materials section (disabled)
+- Travel section (disabled)
+- Grand Total card with final price only
+
+### Read-Only State
+All interactive elements are disabled via `makeInputsReadOnly()` utility in `utils.js`:
+- Adds `readonly` and `disabled` attributes to all inputs
+- Adds `opacity-75` and `cursor-not-allowed` classes
+- Stores state in `data-customer-readonly` attribute for restoration
+- Restoration happens via `removeReadOnly()` when exiting Customer View
+
+### Styling
+- Body receives `customer-view` class for styling disabled inputs
+- Disabled inputs have gray background (`#f3f4f6`) and muted text (`#6b7280`)
+- Background color changes to `#f9fafb` for visual distinction
+
+### Navigation Guard
+- View-only guard in `showView()` prevents navigation away from calculator
+- "My Records" and "Save" buttons hidden in Customer View
+- Role badge displays "Customer View"
+
+### Implementation Details
+**File**: `src/js/calculator/calculations.js`
+- `getBranchName(branchId)` - Look up branch name from appState.branches
+- `updateJobSummary()` - Populate job summary list with selected jobs
+- Customer View logic in `calcAll()` - Toggles visibility of elements
+
+**File**: `src/js/utils.js`
+- `makeInputsReadOnly()` - Disable all calculator inputs
+- `removeReadOnly()` - Restore interactivity
+
+**File**: `src/index.html`
+- CSS classes: `.customer-hidden`, `body.customer-view`
+- HTML elements: `#branchInfoCard`, `#jobSummaryCard`
+- IDs added: `#branchDropdown`, `#grandTotalWithoutCommission`, `#salesProfitCard`, `#commissionSection`
+

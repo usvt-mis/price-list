@@ -4,7 +4,7 @@
  */
 
 import { API, MODE, ROLE } from '../config.js';
-import { authState, setMode, setNoRoleState } from '../state.js';
+import { authState, setMode, setNoRoleState, isCustomerMode } from '../state.js';
 import { showAwaitingAssignmentScreen } from '../utils.js';
 
 /**

@@ -55,7 +55,11 @@ The Price List Calculator computes total cost based on three components:
   - Grid view: card-based layout with same information in visual format
   - Record cards/rows display creator name, branch, motor type, job/material counts, and amount
   - Batch operations: select multiple records for deletion with bulk actions bar
-  - Share records via generated links (public access, no authentication required, read-only view in Sales mode with all inputs disabled)
+  - Share records via generated links (public access, no authentication required, Customer View mode):
+    - Read-only Calculation Form with Branch info card and Job summary
+    - Grand totals only (Labor, Materials, Travel breakdown)
+    - All cost breakdowns, commission, and sales profit hidden
+    - All interactive elements disabled
   - Role-based visibility: Sales users see own records, Executive users see all records
   - Only creators can edit their records; Executives can delete any record, creators can delete their own
   - Delete operation is idempotent and shows success modal immediately

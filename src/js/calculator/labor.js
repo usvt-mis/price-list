@@ -4,7 +4,7 @@
  */
 
 import { el, fmt, fetchJson, setStatus } from '../utils.js';
-import { appState, getSelectedBranch, isExecutiveMode } from '../state.js';
+import { appState, getSelectedBranch, isExecutiveMode, isCustomerMode } from '../state.js';
 import { TRAVEL_RATE } from '../config.js';
 
 /**

@@ -288,7 +288,12 @@ Each HTTP function file:
 - The `/api/auth/me` endpoint returns `effectiveRole` from UserRoles database lookup
 - Executive users see cost details (overhead, raw costs, multipliers) + commission section
 - Sales users see simplified view with commission but no cost breakdowns
-- Customer mode activates when users open share links (`?share={token}`) - read-only view showing only grand totals breakdown (Labor, Materials, Travel)
+- Customer mode activates when users open share links (`?share={token}`) - read-only view showing:
+  - Branch information (read-only display card with branch name)
+  - Job summary (simplified list of job names and hours)
+  - Grand Total only (Labor, Materials, Travel breakdown)
+  - All cost breakdowns hidden (Raw Cost, Overhead, Policy Profit, Commission)
+  - All interactive elements disabled (inputs, buttons, dropdowns)
 - NoRole users see "awaiting assignment" screen with no access to calculator
 - No manual mode switching - mode is purely role-based for security
 - Authenticated users with roles land on list view (not calculator) by default
@@ -316,7 +321,11 @@ The application implements a 4-tier role system:
 - **Executive**: Full access to costs, margins, multipliers; can assign Executive roles to others
 - **Sales**: Restricted view (no cost data, shows commission), can only see own records
 - **NoRole**: New authenticated users default to NoRole; see "awaiting assignment" screen, no access to calculator or records
-- **Customer**: No login required; view-only access via shared links (shows Calculation Form with grand totals breakdown - no cost breakdowns, no commission, no percentage breakdown)
+- **Customer**: No login required; view-only access via shared links
+  - Shows Calculation Form with read-only Branch info card and Job summary
+  - Grand totals breakdown only (Labor, Materials, Travel)
+  - No cost breakdowns, commission, sales profit, or percentage breakdown
+  - All inputs and controls disabled
 
 **Role Detection:**
 1. Frontend calls `/api/auth/me` which returns `effectiveRole` from UserRoles database lookup
@@ -456,6 +465,12 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - Shared links (`?share={token}`) display the Calculation Form in Customer View mode (not the Preview Record detail view)
 - View-only guard in `showView()` prevents navigation away from calculator while in shared link mode
 - `loadSharedRecord()` in `sharing.js` deserializes calculator state and shows calculator view directly
+- **Customer View UI Components:**
+  - Branch info card (`#branchInfoCard`): Read-only display of selected branch name
+  - Job summary card (`#jobSummaryCard`): Simplified list of selected jobs with hours
+  - All cost breakdowns hidden via `.customer-hidden` CSS class
+  - All interactive elements disabled via `makeInputsReadOnly()` utility
+  - Body receives `customer-view` class for styling disabled inputs
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
