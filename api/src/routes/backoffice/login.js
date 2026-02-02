@@ -9,6 +9,28 @@ const { requireAzureAuth } = require('../../middleware/twoFactorAuthExpress');
 const logger = require('../../utils/logger');
 
 /**
+ * Check if the request is from local development
+ */
+function isLocalRequest(req) {
+  // Check for special header from frontend
+  if (req.headers['x-local-dev'] === 'true') {
+    return true;
+  }
+
+  // Check origin or referer for localhost
+  const origin = req.headers.origin || '';
+  const referer = req.headers.referer || '';
+  const host = req.headers.host || '';
+
+  return host.includes('localhost') ||
+         host.includes('127.0.0.1') ||
+         origin.includes('localhost') ||
+         origin.includes('127.0.0.1') ||
+         referer.includes('localhost') ||
+         referer.includes('127.0.0.1');
+}
+
+/**
  * Helper to get client IP address for audit logging (Express format)
  */
 function getClientIP(req) {
@@ -35,6 +57,20 @@ function getClientIP(req) {
  */
 router.post('/', async (req, res, next) => {
   const clientIP = getClientIP(req);
+
+  // Local development bypass
+  if (isLocalRequest(req)) {
+    const mockEmail = process.env.BACKOFFICE_MOCK_EMAIL || process.env.MOCK_USER_EMAIL || 'it@uservices-thailand.com';
+    logger.info('AUTH', 'BackofficeLoginSuccess', `Local dev bypass - ${mockEmail}`, {
+      userEmail: mockEmail,
+      userRole: 'Backoffice',
+      serverContext: { clientIP, localDev: true }
+    });
+    return res.status(200).json({
+      message: 'Login successful',
+      email: mockEmail
+    });
+  }
 
   try {
     // Step 1: Get Azure AD user identity

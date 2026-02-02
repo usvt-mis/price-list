@@ -154,6 +154,19 @@ async function requireAzureAuth(req, res, next) {
  * Attaches admin user object to req.session
  */
 async function requireBackofficeSession(req, res, next) {
+  // Local development: use mock backoffice user (bypass Azure AD)
+  if (isLocalRequest(req)) {
+    const mockEmail = process.env.BACKOFFICE_MOCK_EMAIL || process.env.MOCK_USER_EMAIL || 'it@uservices-thailand.com';
+    logger.debug('AUTH', 'LocalDevBypass', 'Local development bypass for backoffice', {
+      userEmail: mockEmail
+    });
+    req.session = {
+      email: mockEmail,
+      userType: 'backoffice'
+    };
+    return next();
+  }
+
   // Parse Azure AD client principal
   const user = parseClientPrincipal(req);
 

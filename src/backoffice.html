@@ -473,6 +473,11 @@
       'Content-Type': 'application/json'
     };
 
+    // Add local dev header for bypass
+    if (isLocalDev) {
+      headers['x-local-dev'] = 'true';
+    }
+
     const response = await fetch(url, { ...options, headers });
 
     if (response.status === 401 || response.status === 403) {
@@ -487,9 +492,14 @@
   // Verify backoffice access by checking email authorization
   async function verifyBackofficeAccess() {
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (isLocalDev) {
+        headers['x-local-dev'] = 'true';
+      }
+
       const response = await fetch('/api/backoffice/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers
       });
 
       if (response.ok) {

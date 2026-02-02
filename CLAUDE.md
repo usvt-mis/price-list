@@ -272,6 +272,7 @@ Each HTTP function file:
 - Mock user defaults to `it@uservices-thailand.com` email with `PriceListSales` role
 - Override mock email with `MOCK_USER_EMAIL` env var (default: `it@uservices-thailand.com`)
 - Override mock role with `MOCK_USER_ROLE` env var (default: `PriceListSales`)
+- **Backoffice local dev**: Set `BACKOFFICE_MOCK_EMAIL` env var to override backoffice mock email (defaults to `MOCK_USER_EMAIL` or `it@uservices-thailand.com`)
 - **Database Role Lookup**: Set `LOCAL_DEV_DB_LOOKUP=true` to query UserRoles table for mock user's email instead of using hardcoded role
   - When enabled, queries UserRoles table for `MOCK_USER_EMAIL` and returns the actual role from database
   - Falls back to `MOCK_USER_ROLE` if email not found or on database error
@@ -279,6 +280,7 @@ Each HTTP function file:
 - Frontend detects local dev via `window.location.hostname`
 - Backend checks for localhost in headers or special `x-local-dev: true` header
 - Local dev defaults to Executive mode; production mode is determined from user's role
+- **Backoffice local bypass**: The `requireBackofficeSession()` middleware and `/api/backoffice/login` endpoint both bypass Azure AD in local development, using mock email from environment variables
 
 ### Mode Determination
 - View mode (Executive/Sales) is automatically determined from user's `effectiveRole` via `/api/auth/me` API
@@ -402,9 +404,10 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 **Backoffice Authorization:**
 - Access restricted to `it@uservices-thailand.com` only
 - Azure AD handles authentication automatically
-- No additional environment variables needed
+- **Local development**: Uses `BACKOFFICE_MOCK_EMAIL` env var (defaults to `MOCK_USER_EMAIL` or `it@uservices-thailand.com`)
 - Authorization check performed via `requireBackofficeSession()` middleware in `twoFactorAuthExpress.js`
 - Email extraction uses fallback logic (tries userDetails → claims array with 10 claim types) for robust token parsing
+- Frontend sends `x-local-dev: true` header when on localhost for backend bypass detection
 
 **Azure AD Authentication Callback Fix (Static Web Apps → App Service Migration):**
 - **Problem**: After migrating from SWA to App Service, the `/.auth/me` endpoint (Static Web Apps feature) no longer works

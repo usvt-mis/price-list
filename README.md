@@ -271,12 +271,14 @@ The application uses **Azure Entra ID (Azure AD)** authentication via App Servic
 - **Count Badges**: Each tab shows total user count
 - **Search**: Filter users within each role tab
 - **Settings Tab**: Displays authentication info
+- **Local Development**: Automatic bypass when running on localhost - no Azure AD required
 
 **Local Development:**
 - **Automatic bypass**: When running on `localhost` or `127.0.0.1`, authentication is automatically bypassed
 - Mock user defaults to Sales role in local development (override with `MOCK_USER_ROLE` env var)
 - "DEV MODE" badge appears in the header to indicate local development
 - Simply run `npm start` (Express) or `func start` (Functions) and open `src/index.html` in a browser - no auth configuration needed
+- **Backoffice local dev**: Automatically uses mock email from `BACKOFFICE_MOCK_EMAIL` env var (defaults to `it@uservices-thailand.com`). Navigate to `http://localhost:8080/backoffice.html` for local backoffice development without Azure AD.
 
 ### Debugging
 
