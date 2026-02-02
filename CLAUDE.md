@@ -50,6 +50,11 @@ The Express.js server uses `dotenv` to load environment variables from `.env.loc
 Create or update `.env.local` file:
 ```
 DATABASE_CONNECTION_STRING=Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+
+# Local Development Database Role Lookup (optional)
+LOCAL_DEV_DB_LOOKUP=false  # Set to 'true' to query UserRoles table for MOCK_USER_EMAIL
+MOCK_USER_EMAIL=it@uservices-thailand.com  # User email for local development
+MOCK_USER_ROLE=PriceListSales  # Fallback role (used when DB lookup disabled or fails)
 ```
 
 **For Azure Functions mode (Legacy):**
@@ -264,9 +269,13 @@ Each HTTP function file:
 
 ### Local Development Bypass
 - When running on localhost, authentication is automatically bypassed
-- Mock user defaults to `dev-user@localhost` email with `PriceListSales` role
-- Override mock email with `MOCK_USER_EMAIL` env var (default: `dev-user@localhost`)
+- Mock user defaults to `it@uservices-thailand.com` email with `PriceListSales` role
+- Override mock email with `MOCK_USER_EMAIL` env var (default: `it@uservices-thailand.com`)
 - Override mock role with `MOCK_USER_ROLE` env var (default: `PriceListSales`)
+- **Database Role Lookup**: Set `LOCAL_DEV_DB_LOOKUP=true` to query UserRoles table for mock user's email instead of using hardcoded role
+  - When enabled, queries UserRoles table for `MOCK_USER_EMAIL` and returns the actual role from database
+  - Falls back to `MOCK_USER_ROLE` if email not found or on database error
+  - Production-safe: Only active when `isLocalRequest()` returns true and `LOCAL_DEV_DB_LOOKUP=true`
 - Frontend detects local dev via `window.location.hostname`
 - Backend checks for localhost in headers or special `x-local-dev: true` header
 - Local dev defaults to Executive mode; production mode is determined from user's role
@@ -423,10 +432,12 @@ The application extracts email from Azure AD tokens using multiple fallback meth
   - Includes email extraction guard to prevent SQL errors when email is missing
   - Updates user.userDetails with extracted email before database lookup
   - Returns 'NoRole' if email extraction fails (with warning log)
+  - **Local dev DB lookup**: When `user._localDevDbLookup=true`, queries UserRoles table for mock user's email
 - `isExecutive(user)` - Check if user has Executive role
 - `isSales(user)` - Check if user has Sales role
 - `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
 - `extractUserEmail(user)` - Extract email from user object with expanded fallback logic (tries userDetails → 10 claim types including preferred_username, unique_name, name; validates @ presence; case-insensitive matching)
+- `mapMockRoleToEffective(mockRole)` - Map Azure AD role format to effective role format (`PriceListExecutive` → `Executive`, `PriceListSales` → `Sales`)
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts

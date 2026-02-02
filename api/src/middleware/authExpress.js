@@ -41,14 +41,16 @@ function isLocalRequest(req) {
  * Create mock user for local development
  */
 function createMockUser() {
-  // Use a proper email format for local dev to enable database role lookup
-  const mockEmail = process.env.MOCK_USER_EMAIL || 'dev-user@localhost';
+  const mockEmail = process.env.MOCK_USER_EMAIL || 'it@uservices-thailand.com';
   const mockRole = process.env.MOCK_USER_ROLE || 'PriceListSales';
+  const dbLookupEnabled = process.env.LOCAL_DEV_DB_LOOKUP === 'true';
   return {
     userId: 'dev-user',
     userDetails: mockEmail,
     userRoles: [mockRole, 'authenticated'],
-    claims: []
+    claims: [],
+    // Flag to enable DB lookup in getUserEffectiveRole
+    _localDevDbLookup: dbLookupEnabled
   };
 }
 
@@ -375,6 +377,44 @@ async function getUserEffectiveRole(user) {
   const sql = require('mssql');
   const now = new Date().toISOString();
 
+  // NEW: Check if local dev with database lookup enabled
+  if (user._localDevDbLookup === true) {
+    logger.info('AUTH', 'LocalDevDbLookup', 'Local dev database lookup enabled', {
+      userEmail: user.userDetails
+    });
+
+    try {
+      const pool = await getPool();
+      const result = await pool.request()
+        .input('email', sql.NVarChar, user.userDetails)
+        .query('SELECT Role FROM UserRoles WHERE Email = @email');
+
+      if (result.recordset.length > 0) {
+        const role = result.recordset[0].Role;
+
+        if (role === null) {
+          logger.debug('AUTH', 'LocalDevDbLookup', 'User has NoRole in database');
+          return 'NoRole';
+        }
+
+        logger.info('AUTH', 'LocalDevDbLookup', `Role found in database: ${role}`);
+        return role;
+      }
+
+      // Email not found - fall back to MOCK_USER_ROLE
+      logger.warn('AUTH', 'LocalDevDbLookup', 'Email not found in UserRoles table');
+      const fallbackRole = mapMockRoleToEffective(process.env.MOCK_USER_ROLE || 'PriceListSales');
+      logger.info('AUTH', 'LocalDevDbLookup', `Using MOCK_USER_ROLE fallback: ${fallbackRole}`);
+      return fallbackRole;
+
+    } catch (error) {
+      logger.error('AUTH', 'LocalDevDbLookup', 'Database query failed, using MOCK_USER_ROLE fallback');
+      const fallbackRole = mapMockRoleToEffective(process.env.MOCK_USER_ROLE || 'PriceListSales');
+      return fallbackRole;
+    }
+  }
+
+  // REST OF FUNCTION REMAINS UNCHANGED (production path)
   // CRITICAL FIX: Extract email with fallback logic before database lookup
   const email = extractUserEmail(user);
   if (!email) {
@@ -540,6 +580,22 @@ function getRoleLabel(role) {
   return roleLabels[role] || role;
 }
 
+/**
+ * Map Azure AD role format to effective role format
+ * @param {string} mockRole - Azure AD role format (e.g., 'PriceListExecutive')
+ * @returns {string} - Effective role ('Executive', 'Sales', or 'NoRole')
+ */
+function mapMockRoleToEffective(mockRole) {
+  const roleMap = {
+    'PriceListExecutive': 'Executive',
+    'PriceListSales': 'Sales',
+    'Executive': 'Executive',
+    'Sales': 'Sales',
+    'NoRole': 'NoRole'
+  };
+  return roleMap[mockRole] || 'Sales';
+}
+
 module.exports = {
   validateAuth,
   requireAuth,
@@ -548,5 +604,6 @@ module.exports = {
   isExecutive,
   isSales,
   getRoleLabel,
-  extractUserEmail
+  extractUserEmail,
+  mapMockRoleToEffective
 };
