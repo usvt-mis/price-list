@@ -1,8 +1,7 @@
 // ============================================================
-// Correlation ID Middleware - Phase 2 Enhanced Logging
+// Correlation ID Middleware
 // ============================================================
 // Generates and propagates correlation IDs through the request chain
-// Integrates with logger for request tracing
 // ============================================================
 
 const logger = require('../utils/logger');

@@ -5,12 +5,29 @@
  * This server handles:
  * - Static file serving (index.html, backoffice.html)
  * - API routes (converted from Azure Functions)
- * - Scheduled jobs (node-cron replacement for timer triggers)
  * - Authentication middleware (Azure AD Easy Auth compatible)
+ * - Application Insights integration (Azure native logging)
  */
 
 // Load environment variables from .env.local file
 require('dotenv').config({ path: '.env.local' });
+
+// Initialize Application Insights (if connection string is available)
+if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
+    const applicationInsights = require('applicationinsights');
+    applicationInsights.setup()
+        .setAutoDependencyCorrelation(true)
+        .setAutoCollectRequests(true)
+        .setAutoCollectPerformance(true)
+        .setAutoCollectExceptions(true)
+        .setAutoCollectDependencies(true)
+        .setAutoCollectConsole(true, true)
+        .setUseDiskRetryCaching(true)
+        .start();
+    console.log('[AppInsights] Application Insights initialized');
+} else {
+    console.log('[AppInsights] APPLICATIONINSIGHTS_CONNECTION_STRING not set - logging to console only');
+}
 
 const express = require('express');
 const path = require('path');
@@ -26,9 +43,6 @@ const sharedCalculationsRouter = require('./api/src/routes/sharedCalculations');
 const pingRouter = require('./api/src/routes/ping');
 const versionRouter = require('./api/src/routes/version');
 const adminRolesRouter = require('./api/src/routes/admin/roles');
-const adminDiagnosticsRouter = require('./api/src/routes/admin/diagnostics');
-const adminLogsRouter = require('./api/src/routes/admin/logs');
-const adminHealthRouter = require('./api/src/routes/admin/health');
 const backofficeRouter = require('./api/src/routes/backoffice');
 const backofficeLoginRouter = require('./api/src/routes/backoffice/login');
 const authRouter = require('./api/src/routes/auth');
@@ -36,9 +50,6 @@ const authRouter = require('./api/src/routes/auth');
 // Import authentication middleware
 const { requireAuth } = require('./api/src/middleware/authExpress');
 const { requireBackofficeSession } = require('./api/src/middleware/twoFactorAuthExpress');
-
-// Import scheduled jobs
-const { startScheduledJobs } = require('./api/src/jobs');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -111,9 +122,6 @@ app.use('/api/version', versionRouter);
 
 // Admin routes (requires authentication + Executive role checked in routes)
 app.use('/api/adm/roles', requireAuth, adminRolesRouter);
-app.use('/api/adm/diagnostics', requireAuth, adminDiagnosticsRouter);
-app.use('/api/adm/logs', requireAuth, adminLogsRouter);
-app.use('/api/adm/health', requireAuth, adminHealthRouter);
 
 // Backoffice routes (requires Azure AD + email authorization)
 app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
@@ -168,9 +176,6 @@ app.use((err, req, res, next) => {
 // ============================================================
 
 if (require.main === module) {
-  // Start scheduled jobs (node-cron)
-  startScheduledJobs();
-
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
