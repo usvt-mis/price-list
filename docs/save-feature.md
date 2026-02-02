@@ -123,6 +123,12 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
 
 #### `deserializeCalculatorState(data)`
 - Restores saved data and populates calculator
+- **Motor Type Loading Fix**: Ensures motor type dropdown is populated before setting value
+  - Checks if dropdown is empty (only has "Select..." option) and reloads motor types from API if needed
+  - Validates that the saved `motorTypeId` exists in available options
+  - Handles deleted motor types gracefully by creating temporary option so jobs can still load
+  - Only then calls `loadLabor()` which now has a valid motor type value
+- This fix resolves issues where Motor Type dropdown showed "Select..." and Jobs section was empty when loading saved/shared records
 
 ### Save/Load Operations
 

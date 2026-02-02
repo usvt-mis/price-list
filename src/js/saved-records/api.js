@@ -44,11 +44,38 @@ export function serializeCalculatorState() {
 export async function deserializeCalculatorState(data) {
   const { appState } = await import('../state.js');
 
-  // Set branch and motor type
+  // Set branch
   el('branch').value = data.branchId;
-  el('motorType').value = data.motorTypeId;
 
-  // Load labor for this motor type
+  // IMPORTANT: Ensure motor type dropdown is populated before setting value
+  const motorTypeEl = el('motorType');
+  const currentOptions = motorTypeEl.querySelectorAll('option[value]:not([value=""])');
+
+  // If dropdown is empty (only has "Select..." option), reload motor types
+  if (currentOptions.length === 0) {
+    const { fetchJson } = await import('../utils.js');
+    const motorTypes = await fetchJson('/api/motor-types');
+    motorTypeEl.innerHTML = `<option value="">Select…</option>` + motorTypes
+      .map(x => `<option value="${x.MotorTypeId}">${x.MotorTypeName}</option>`).join('');
+  }
+
+  // Now set the motor type value
+  motorTypeEl.value = data.motorTypeId;
+
+  // Validate that the motor type was actually set (option exists)
+  // If not, the saved motor type may have been deleted - handle gracefully
+  if (!motorTypeEl.value && data.motorTypeId) {
+    console.warn(`Motor type ID ${data.motorTypeId} not found in available options`);
+    // Create the missing option temporarily so jobs can load
+    const motorTypeName = data.motorTypeName || `Unknown (${data.motorTypeId})`;
+    const missingOption = document.createElement('option');
+    missingOption.value = data.motorTypeId;
+    missingOption.textContent = motorTypeName;
+    motorTypeEl.appendChild(missingOption);
+    motorTypeEl.value = data.motorTypeId;
+  }
+
+  // Load labor for this motor type (now guaranteed to have a valid value)
   const { loadLabor } = await import('../calculator/labor.js');
   await loadLabor();
 
