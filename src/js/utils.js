@@ -365,6 +365,20 @@ export function updateModeButtons() {
   }
 }
 
+// ========== Security ==========
+
+/**
+ * Escape HTML to prevent XSS attacks
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string safe for HTML content
+ */
+export function escapeHtml(str) {
+  if (typeof str !== 'string') return str;
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 // ========== API Helpers ==========
 
 /**

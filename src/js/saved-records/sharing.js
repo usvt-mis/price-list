@@ -3,7 +3,7 @@
  * Handles sharing and shared record loading
  */
 
-import { el, showView, showNotification, fetchJson, fetchWithAuth } from '../utils.js';
+import { el, showView, showNotification, fetchJson, fetchWithAuth, escapeHtml } from '../utils.js';
 import { setViewOnly, setCurrentSavedRecord, setDirty, setMode } from '../state.js';
 import { deserializeCalculatorState, loadSavedRecords } from './api.js';
 import { displayRecordDetail } from './ui.js';
@@ -97,6 +97,40 @@ export async function loadSharedRecord(shareToken) {
     }
 
     await deserializeCalculatorState(record);
+
+    // Populate Customer View display cards (Branch info and Job summary)
+    const { appState } = await import('../state.js');
+
+    // Show Branch info card
+    const branchInfoName = el('branchInfoName');
+    if (branchInfoName && record.branchName) {
+      branchInfoName.textContent = record.branchName;
+      const branchInfoCard = el('branchInfoCard');
+      if (branchInfoCard) {
+        branchInfoCard.classList.remove('customer-hidden');
+      }
+    }
+
+    // Show Job summary card
+    const jobSummaryList = el('jobSummaryList');
+    if (jobSummaryList) {
+      // Get jobs from appState.labor (populated by deserializeCalculatorState)
+      const jobs = appState.labor.filter(j => j.checked !== false);
+      if (jobs.length > 0) {
+        const jobsHtml = jobs.map(job => `
+          <div class="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+            <span class="font-medium text-gray-800">${escapeHtml(job.JobName || '')}</span>
+            <span class="text-gray-600">${Number.isFinite(job.effectiveManHours) ? job.effectiveManHours.toFixed(2) : '0.00'} hrs</span>
+          </div>
+        `).join('');
+        jobSummaryList.innerHTML = jobsHtml;
+        const jobSummaryCard = el('jobSummaryCard');
+        if (jobSummaryCard) {
+          jobSummaryCard.classList.remove('customer-hidden');
+        }
+      }
+    }
+
     // Skip displayRecordDetail() - we show the calculator form, not preview
     showView('calculator');
 

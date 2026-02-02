@@ -195,7 +195,7 @@ The application includes comprehensive debug logging for troubleshooting initial
     ├── app.js                    # Main entry point, initializes all modules
     ├── config.js                 # Constants, environment detection, API endpoints
     ├── state.js                  # Global state management
-    ├── utils.js                  # Helper functions (DOM, formatting, UI)
+    ├── utils.js                  # Helper functions (DOM, formatting, UI, security)
     ├── auth/                     # Authentication module
     │   ├── index.js              # Auth exports
     │   ├── token-handling.js     # SWA token parsing
@@ -464,13 +464,14 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 **Shared Link Navigation:**
 - Shared links (`?share={token}`) display the Calculation Form in Customer View mode (not the Preview Record detail view)
 - View-only guard in `showView()` prevents navigation away from calculator while in shared link mode
-- `loadSharedRecord()` in `sharing.js` deserializes calculator state and shows calculator view directly
+- `loadSharedRecord()` in `sharing.js` deserializes calculator state, populates Customer View cards, and shows calculator view directly
 - **Customer View UI Components:**
-  - Branch info card (`#branchInfoCard`): Read-only display of selected branch name
-  - Job summary card (`#jobSummaryCard`): Simplified list of selected jobs with hours
+  - Branch info card (`#branchInfoCard`): Read-only display of selected branch name (populated from `record.branchName`)
+  - Job summary card (`#jobSummaryCard`): Simplified list of selected jobs with hours (populated from `appState.labor`)
   - All cost breakdowns hidden via `.customer-hidden` CSS class
   - All interactive elements disabled via `makeInputsReadOnly()` utility
   - Body receives `customer-view` class for styling disabled inputs
+  - Job names are HTML-escaped via `escapeHtml()` utility to prevent XSS attacks
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
