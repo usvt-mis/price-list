@@ -368,17 +368,37 @@ async function initApp() {
       const cleanUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, document.title, cleanUrl);
 
-      await setViewOnly(false);
-      if (globalExports.setViewOnlyMode) await globalExports.setViewOnlyMode(false);
-      await globalExports.applyFiltersAndRender();
-      if (globalExports.updateViewToggleButtons) globalExports.updateViewToggleButtons();
-      showView('list');
+      try {
+        await setViewOnly(false);
+        if (globalExports.setViewOnlyMode) await globalExports.setViewOnlyMode(false);
+        await globalExports.applyFiltersAndRender();
+        if (globalExports.updateViewToggleButtons) globalExports.updateViewToggleButtons();
+        showView('list');
+      } catch (error) {
+        console.error('[Post-login redirect] Failed:', error);
+        // Fallback: show calculator view on error
+        const { appState } = await import('./state.js');
+        appState.materialLines = [];
+        renderMaterials();
+        calcAll();
+        showView('calculator');
+      }
       return;
     } else if (authState.isAuthenticated && currentUserRole) {
       // Load and show list view as default landing page for authenticated users with roles
-      await applyFiltersAndRender();
-      updateViewToggleButtons();
-      showView('list');
+      try {
+        await applyFiltersAndRender();
+        updateViewToggleButtons();
+        showView('list');
+      } catch (error) {
+        console.error('[Load records on init] Failed:', error);
+        // Fallback: show calculator view on error
+        const { appState } = await import('./state.js');
+        appState.materialLines = [];
+        renderMaterials();
+        calcAll();
+        showView('calculator');
+      }
     } else {
       // Default: calculator view for unauthenticated users
       const { appState } = await import('./state.js');

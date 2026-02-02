@@ -5,7 +5,7 @@
 
 import { el, showView, showNotification, fetchJson, fetchWithAuth } from '../utils.js';
 import { setViewOnly, setCurrentSavedRecord, setDirty, setMode } from '../state.js';
-import { deserializeCalculatorState } from './api.js';
+import { deserializeCalculatorState, loadSavedRecords } from './api.js';
 import { displayRecordDetail } from './ui.js';
 import { MODE } from '../config.js';
 import { renderLabor, renderMaterials, calcAll } from '../calculator/index.js';
@@ -369,62 +369,68 @@ export async function bulkDeleteRecords() {
  * Apply filters and render records
  */
 export async function applyFiltersAndRender() {
-  const { renderRecords } = await import('./ui.js');
-  let records = await loadSavedRecords();
+  try {
+    const { renderRecords } = await import('./ui.js');
+    let records = await loadSavedRecords();
 
-  // Apply filters
-  const searchTerm = el('searchRunNumber')?.value.toLowerCase().trim() || '';
-  const sortBy = el('sortBy')?.value || 'date-desc';
-  const dateRange = el('dateRange')?.value || 'all';
+    // Apply filters
+    const searchTerm = el('searchRunNumber')?.value.toLowerCase().trim() || '';
+    const sortBy = el('sortBy')?.value || 'date-desc';
+    const dateRange = el('dateRange')?.value || 'all';
 
-  // Filter by search term
-  if (searchTerm) {
-    records = records.filter(r => r.RunNumber.toLowerCase().includes(searchTerm));
+    // Filter by search term
+    if (searchTerm) {
+      records = records.filter(r => r.RunNumber.toLowerCase().includes(searchTerm));
+    }
+
+    // Filter by date range
+    if (dateRange !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const monthAgo = new Date(today);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      const yearAgo = new Date(today);
+      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+
+      records = records.filter(r => {
+        const recordDate = new Date(r.CreatedAt);
+        switch (dateRange) {
+          case 'today':
+            return recordDate >= today;
+          case 'week':
+            return recordDate >= weekAgo;
+          case 'month':
+            return recordDate >= monthAgo;
+          case 'year':
+            return recordDate >= yearAgo;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Sort
+    switch (sortBy) {
+      case 'date-asc':
+        records.sort((a, b) => new Date(a.CreatedAt) - new Date(b.CreatedAt));
+        break;
+      case 'date-desc':
+        records.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+        break;
+      case 'amount-asc':
+        records.sort((a, b) => (a.GrandTotal || 0) - (b.GrandTotal || 0));
+        break;
+      case 'amount-desc':
+        records.sort((a, b) => (b.GrandTotal || 0) - (a.GrandTotal || 0));
+        break;
+    }
+
+    renderRecords(records);
+  } catch (error) {
+    console.error('[applyFiltersAndRender] Error:', error);
+    showNotification('Failed to load records', 'error');
+    throw error; // Re-throw for caller handling
   }
-
-  // Filter by date range
-  if (dateRange !== 'all') {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const monthAgo = new Date(today);
-    monthAgo.setMonth(monthAgo.getMonth() - 1);
-    const yearAgo = new Date(today);
-    yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-
-    records = records.filter(r => {
-      const recordDate = new Date(r.CreatedAt);
-      switch (dateRange) {
-        case 'today':
-          return recordDate >= today;
-        case 'week':
-          return recordDate >= weekAgo;
-        case 'month':
-          return recordDate >= monthAgo;
-        case 'year':
-          return recordDate >= yearAgo;
-        default:
-          return true;
-      }
-    });
-  }
-
-  // Sort
-  switch (sortBy) {
-    case 'date-asc':
-      records.sort((a, b) => new Date(a.CreatedAt) - new Date(b.CreatedAt));
-      break;
-    case 'date-desc':
-      records.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
-      break;
-    case 'amount-asc':
-      records.sort((a, b) => (a.GrandTotal || 0) - (b.GrandTotal || 0));
-      break;
-    case 'amount-desc':
-      records.sort((a, b) => (b.GrandTotal || 0) - (a.GrandTotal || 0));
-      break;
-  }
-
-  renderRecords(records);
 }

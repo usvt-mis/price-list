@@ -127,6 +127,9 @@ The application includes comprehensive debug logging for troubleshooting initial
 - `[MODE-*]` - Role detection and mode setting
 - `[GLOBAL ERROR]` - Uncaught errors
 - `[UNHANDLED PROMISE REJECTION]` - Unhandled promise rejections
+- `[Post-login redirect]` - Post-login redirect errors
+- `[Load records on init]` - Records loading errors on initialization
+- `[applyFiltersAndRender]` - Record filtering/rendering errors
 
 **Usage:**
 1. Open browser DevTools (F12) → Console tab

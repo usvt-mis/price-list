@@ -377,6 +377,11 @@ document.getElementById('saveBtn')?.dispatchEvent(new Event('click'));
 **Cause:** JavaScript error before API call
 **Solution:** Check Console tab for errors, verify `saveCalculation` function is called
 
+### Issue 9: "ReferenceError: loadSavedRecords is not defined"
+**Cause:** Missing import in `sharing.js` module
+**Solution:** Fixed in version - `loadSavedRecords` is now properly imported from `./api.js`
+**Note:** This error occurs during post-login redirect when loading saved records
+
 ---
 
 ## Next Steps After Diagnosis
