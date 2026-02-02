@@ -5,7 +5,8 @@
 
 import { el, showView, showNotification, fetchJson, fetchWithAuth } from '../utils.js';
 import { setViewOnly, setCurrentSavedRecord, setDirty, setMode } from '../state.js';
-import { deserializeCalculatorState, displayRecordDetail } from './ui.js';
+import { deserializeCalculatorState } from './api.js';
+import { displayRecordDetail } from './ui.js';
 import { MODE } from '../config.js';
 import { renderLabor, renderMaterials, calcAll } from '../calculator/index.js';
 
