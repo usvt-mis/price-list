@@ -4,7 +4,7 @@
  */
 
 import { getApiHeaders } from './config.js';
-import { isExecutiveMode, isCustomerMode } from './state.js';
+import { isExecutiveMode, isCustomerMode, isViewOnly } from './state.js';
 
 // ========== DOM Helpers ==========
 
@@ -111,6 +111,12 @@ export function showView(viewName, isNoRoleState = false) {
   // Guard: Prevent any view changes when in NoRole awaiting state
   if (isNoRoleState && viewName !== 'awaiting') {
     console.warn('View change blocked: User is in NoRole awaiting state');
+    return;
+  }
+
+  // Guard: Prevent navigation away from calculator when in view-only mode (shared links)
+  if (isViewOnly && viewName !== 'calculator') {
+    console.warn('View change blocked: User is in view-only mode (shared link)');
     return;
   }
 

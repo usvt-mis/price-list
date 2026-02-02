@@ -97,8 +97,8 @@ export async function loadSharedRecord(shareToken) {
     }
 
     await deserializeCalculatorState(record);
-    displayRecordDetail(record);
-    showView('detail');
+    // Skip displayRecordDetail() - we show the calculator form, not preview
+    showView('calculator');
 
     // Update breadcrumb for shared record
     const breadcrumbCurrent = el('breadcrumbCurrent');

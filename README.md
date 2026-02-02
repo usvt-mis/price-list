@@ -242,7 +242,7 @@ The application uses **Azure Entra ID (Azure AD)** authentication via App Servic
 - Role-based access control with 4 tiers:
   - **Executive**: Full access to costs, can view all records, can assign Executive roles to others via backoffice
   - **Sales**: Restricted view (no cost data), can only see own records
-  - **Customer**: Pre-registered for shared link access only (view-only, no login required)
+  - **Customer**: Pre-registered for shared link access only (view-only Calculation Form, no login required)
   - **NoRole**: New authenticated users default to NoRole; see "awaiting assignment" screen, no access to calculator or records
 
 **Role Detection Priority:**

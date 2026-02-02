@@ -316,7 +316,7 @@ The application implements a 4-tier role system:
 - **Executive**: Full access to costs, margins, multipliers; can assign Executive roles to others
 - **Sales**: Restricted view (no cost data, shows commission), can only see own records
 - **NoRole**: New authenticated users default to NoRole; see "awaiting assignment" screen, no access to calculator or records
-- **Customer**: No login required; view-only access via shared links (read-only, shows only grand totals breakdown - no cost breakdowns, no commission, no percentage breakdown)
+- **Customer**: No login required; view-only access via shared links (shows Calculation Form with grand totals breakdown - no cost breakdowns, no commission, no percentage breakdown)
 
 **Role Detection:**
 1. Frontend calls `/api/auth/me` which returns `effectiveRole` from UserRoles database lookup
@@ -451,6 +451,11 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - `isCustomerMode()` - Checker function to determine if current mode is Customer (activated via share links)
 - `setViewOnly(enabled)` - Setter for view-only mode state
 - `updateRoleBadge(isViewOnly)` - Function in `admin/role-assignment.js` that accepts optional `isViewOnly` parameter to display "Customer View" badge for shared links
+
+**Shared Link Navigation:**
+- Shared links (`?share={token}`) display the Calculation Form in Customer View mode (not the Preview Record detail view)
+- View-only guard in `showView()` prevents navigation away from calculator while in shared link mode
+- `loadSharedRecord()` in `sharing.js` deserializes calculator state and shows calculator view directly
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
