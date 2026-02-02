@@ -40,7 +40,7 @@ function generateUUID() {
  * Generate share token for a saved calculation
  * Requires: Authentication
  */
-router.post('/saves/:id/share', async (req, res, next) => {
+router.post('/saves/:id/share', requireAuth, async (req, res, next) => {
   const correlationId = req.headers['x-correlation-id'] || logger.getCorrelationId();
   const scopedLogger = logger.withCorrelationId(correlationId);
   const timer = logger.startTimer(correlationId);
@@ -48,6 +48,15 @@ router.post('/saves/:id/share', async (req, res, next) => {
   try {
     // Validate auth (user attached to req by middleware)
     const user = req.user;
+
+    // Defensive null check
+    if (!user) {
+      scopedLogger.warn('AUTH', 'AuthenticationRequired', 'Authentication required for generating share token', {
+        serverContext: { endpoint: '/api/shared/saves/:id/share' }
+      });
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     const saveId = Number(req.params.id);
     const userEmail = user.userDetails;
     const userRole = user.userRoles?.includes('PriceListExecutive') ? 'Executive' : 'Sales';
