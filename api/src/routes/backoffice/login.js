@@ -112,7 +112,14 @@ router.post('/', async (req, res, next) => {
     // Any unexpected errors - log and return 500
     logger.error('AUTH', 'BackofficeLoginError', 'Unexpected error', {
       error: e.message,
-      stack: e.stack
+      stack: e.stack,
+      // Add request context for debugging
+      serverContext: {
+        path: req.path,
+        method: req.method,
+        hasClientPrincipal: !!req.headers['x-ms-client-principal'],
+        principalHeaderLength: req.headers['x-ms-client-principal']?.length || 0
+      }
     });
     return res.status(500).json({
       error: 'Login failed. Please try again.',

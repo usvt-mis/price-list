@@ -123,10 +123,11 @@ app.use('/api/version', versionRouter);
 // Admin routes (requires authentication + Executive role checked in routes)
 app.use('/api/adm/roles', requireAuth, adminRolesRouter);
 
-// Backoffice routes (requires Azure AD + email authorization)
-app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
-// Backoffice login is a special endpoint that validates Azure AD and checks email
+// Backoffice login is a SPECIAL PUBLIC ENDPOINT - must be registered BEFORE the protected route
+// Express matches routes in order, so specific routes must come before general ones
 app.use('/api/backoffice/login', backofficeLoginRouter);
+// All other backoffice routes require Azure AD + email authorization
+app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
 
 // Auth info endpoint (public - auth validation happens inside route)
 app.use('/api/auth', authRouter);

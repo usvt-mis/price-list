@@ -46,7 +46,12 @@ function parseClientPrincipal(req) {
     const decoded = Buffer.from(principalHeader, 'base64').toString('utf-8');
     return JSON.parse(decoded);
   } catch (e) {
-    console.error('Failed to parse client principal:', e);
+    // Enhanced logging for debugging (sanitized to avoid logging sensitive data)
+    console.error('Failed to parse client principal:', {
+      error: e.message,
+      headerLength: principalHeader.length,
+      headerPreview: principalHeader.substring(0, 100)
+    });
     return null;
   }
 }
@@ -212,5 +217,6 @@ async function requireBackofficeSession(req, res, next) {
 module.exports = {
   requireAzureAuth,
   requireBackofficeSession,
+  isLocalRequest,
   extractUserEmail
 };

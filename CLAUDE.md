@@ -408,6 +408,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - Authorization check performed via `requireBackofficeSession()` middleware in `twoFactorAuthExpress.js`
 - Email extraction uses fallback logic (tries userDetails → claims array with 10 claim types) for robust token parsing
 - Frontend sends `x-local-dev: true` header when on localhost for backend bypass detection
+- **Backoffice Login 500 Fix**: The `/api/backoffice/login` endpoint is registered BEFORE the general `/api/backoffice/*` route in `server.js` to prevent the `requireBackofficeSession` middleware from running on the public login endpoint
 
 **Azure AD Authentication Callback Fix (Static Web Apps → App Service Migration):**
 - **Problem**: After migrating from SWA to App Service, the `/.auth/me` endpoint (Static Web Apps feature) no longer works
@@ -441,6 +442,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
 - `extractUserEmail(user)` - Extract email from user object with expanded fallback logic (tries userDetails → 10 claim types including preferred_username, unique_name, name; validates @ presence; case-insensitive matching)
 - `mapMockRoleToEffective(mockRole)` - Map Azure AD role format to effective role format (`PriceListExecutive` → `Executive`, `PriceListSales` → `Sales`)
+- `isLocalRequest(req)` - Check if request is from local development (localhost detection or `x-local-dev: true` header) - exported from `twoFactorAuthExpress.js`
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
@@ -492,6 +494,21 @@ The application extracts email from Azure AD tokens using multiple fallback meth
    ```
 3. Import and mount in `server.js`: `app.use('/api/your-route', requireAuth, yourRouter);`
 4. Access at `/api/your-route`
+
+**IMPORTANT: Route Registration Order**
+- Express matches routes in the order they are registered with `app.use()`
+- If you have both a specific route (e.g., `/api/backoffice/login`) and a general route (e.g., `/api/backoffice/*`), the **specific route must be registered first**
+- Otherwise, the general route's middleware will run before the specific route handler is reached
+- Example:
+  ```js
+  // CORRECT: Specific route before general route
+  app.use('/api/backoffice/login', backofficeLoginRouter);  // Public endpoint
+  app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);  // Protected routes
+
+  // WRONG: General route before specific route - middleware will run on /api/backoffice/login too!
+  app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
+  app.use('/api/backoffice/login', backofficeLoginRouter);
+  ```
 
 ### Azure Functions (Legacy)
 1. Create new file in `api/src/functions/`
