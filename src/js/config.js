@@ -29,7 +29,7 @@ export const API = {
 
 // Auth endpoints
 export const AUTH_ENDPOINTS = {
-  LOGIN: '/.auth/login/aad?post_login_redirect_uri=/',
+  LOGIN: '/.auth/login/aad?post_login_redirect_uri=/?post_login=true',
   LOGOUT: '/.auth/logout?post_logout_redirect_uri=/'
 };
 

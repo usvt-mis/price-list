@@ -33,6 +33,9 @@ The Price List Calculator computes total cost based on three components:
 
 ### UI Features
 - **Authentication UI**: Login/logout button in header with user avatar (initials) when signed in
+- **Post-login redirect**: After successful authentication, users are automatically redirected to "My Records" page
+  - NoRole users see "awaiting assignment" screen instead
+  - URL is cleaned up after redirect to prevent loops on refresh
 - **Role Badge Indicator**: Displays current user's role (Executive/Sales/No Role/Customer View) in header
 - **Backoffice Admin Panel**: Azure AD authentication at `/#/backoffice` for managing user roles
 - **Awaiting Assignment Screen**: NoRole users see "Account Pending" screen with logout button

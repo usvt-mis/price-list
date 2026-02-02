@@ -351,6 +351,10 @@ async function initApp() {
       return;
     }
 
+    // Check if user just completed login and should be redirected to My Records
+    const urlParams = new URLSearchParams(window.location.search);
+    const justLoggedIn = urlParams.get('post_login') === 'true';
+
     // For authenticated users with roles (not NoRole), show list view as default
     // For NoRole users, the awaiting screen was already shown in initializeModeFromRole()
     // For unauthenticated users, show calculator view
@@ -358,6 +362,17 @@ async function initApp() {
 
     if (authState.isAuthenticated && currentUserRole && currentUserRole === 'NoRole') {
       // Awaiting assignment screen was already shown - do nothing
+      return;
+    } else if (justLoggedIn && authState.isAuthenticated && currentUserRole && currentUserRole !== 'NoRole') {
+      // User just completed login - clean URL and redirect to My Records
+      const cleanUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, cleanUrl);
+
+      await setViewOnly(false);
+      if (globalExports.setViewOnlyMode) await globalExports.setViewOnlyMode(false);
+      await globalExports.applyFiltersAndRender();
+      if (globalExports.updateViewToggleButtons) globalExports.updateViewToggleButtons();
+      showView('list');
       return;
     } else if (authState.isAuthenticated && currentUserRole) {
       // Load and show list view as default landing page for authenticated users with roles
