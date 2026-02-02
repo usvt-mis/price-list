@@ -112,12 +112,10 @@ export async function deserializeCalculatorState(data) {
  * @returns {Promise<Array>} List of saved records
  */
 export async function loadSavedRecords() {
-  const { savedRecordsList } = await import('../state.js');
-
   try {
     const records = await fetchJson('/api/saves');
-    const state = await import('../state.js');
-    state.savedRecordsList = records;
+    const { setSavedRecordsList } = await import('../state.js');
+    setSavedRecordsList(records);
     return records;
   } catch (e) {
     console.error(e);

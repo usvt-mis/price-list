@@ -101,6 +101,10 @@ export function setViewOnly(value) {
   isViewOnly = value;
 }
 
+export function setSavedRecordsList(records) {
+  savedRecordsList = records;
+}
+
 // ========== Utility Functions ==========
 
 export function resetCalculatorState() {
