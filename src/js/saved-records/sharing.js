@@ -27,7 +27,7 @@ export async function shareRecord(saveId, existingShareToken) {
 
   // Generate new share token
   try {
-    const response = await fetchWithAuth(`/api/saves/${saveId}/share`, {
+    const response = await fetchWithAuth(`/api/shared/saves/${saveId}/share`, {
       method: 'POST'
     });
 
