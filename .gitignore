@@ -35,3 +35,41 @@ build/
 *.bak
 *.backup
 *.old
+
+# Sensitive credentials (prevent accidental commits)
+*.key
+*.pem
+*.p12
+*.pfx
+*.cert
+*.crt
+*.secrets
+*secrets.json
+appsettings.*.json
+local.settings.*.json
+*.user
+*.suo
+*.cache
+
+# Azure deployment configs (may contain service principals)
+.azure/
+ServicePrincipal.json
+deploy*.json
+publish*.json
+
+# Database connection files
+connectionStrings.config
+connections.json
+database.json
+db.json
+
+# Documentation files with sensitive examples
+CLAUDE.md
+database.md
+auth.md
+backoffice.md
+logging.md
+
+# Database scripts with sensitive info
+create_app_log.sql
+diagnostic_log.sql
