@@ -211,5 +211,6 @@ async function requireBackofficeSession(req, res, next) {
 
 module.exports = {
   requireAzureAuth,
-  requireBackofficeSession
+  requireBackofficeSession,
+  extractUserEmail
 };

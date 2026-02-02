@@ -5,30 +5,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { requireAzureAuth } = require('../../middleware/twoFactorAuthExpress');
+const { extractUserEmail, isLocalRequest } = require('../../middleware/twoFactorAuthExpress');
 const logger = require('../../utils/logger');
-
-/**
- * Check if the request is from local development
- */
-function isLocalRequest(req) {
-  // Check for special header from frontend
-  if (req.headers['x-local-dev'] === 'true') {
-    return true;
-  }
-
-  // Check origin or referer for localhost
-  const origin = req.headers.origin || '';
-  const referer = req.headers.referer || '';
-  const host = req.headers.host || '';
-
-  return host.includes('localhost') ||
-         host.includes('127.0.0.1') ||
-         origin.includes('localhost') ||
-         origin.includes('127.0.0.1') ||
-         referer.includes('localhost') ||
-         referer.includes('127.0.0.1');
-}
 
 /**
  * Helper to get client IP address for audit logging (Express format)
@@ -73,51 +51,70 @@ router.post('/', async (req, res, next) => {
   }
 
   try {
-    // Step 1: Get Azure AD user identity
-    const azureUser = await requireAzureAuth(req, res, () => {});
-    const email = azureUser.userDetails;
-
-    // Step 2: Validate email (only it@uservices-thailand.com allowed)
-    const ALLOWED_EMAIL = 'it@uservices-thailand.com';
-    if (email !== ALLOWED_EMAIL) {
-      logger.warn('AUTH', 'AccessDenied', `Backoffice access denied for ${email}`, {
-        serverContext: { clientIP, email, allowedEmail: ALLOWED_EMAIL }
-      });
-      return res.status(403).json({
-        error: `Access restricted to ${ALLOWED_EMAIL}`,
-        code: 'USER_RESTRICTED'
-      });
-    }
-
-    logger.info('AUTH', 'BackofficeLoginSuccess', `Backoffice login successful - ${email}`, {
-      userEmail: email,
-      userRole: 'Backoffice',
-      serverContext: { clientIP }
-    });
-
-    // Return success (no tokens needed - Azure AD handles auth)
-    res.status(200).json({
-      message: 'Login successful',
-      email: email
-    });
-
-  } catch (e) {
-    if (e.statusCode === 401) {
+    // Step 1: Parse Azure AD client principal from header
+    const principalHeader = req.headers['x-ms-client-principal'];
+    if (!principalHeader) {
+      logger.warn('AUTH', 'NoClientPrincipal', 'Missing x-ms-client-principal header');
       return res.status(401).json({
         error: 'Unauthorized: Azure AD authentication required',
         code: 'AZURE_AD_REQUIRED'
       });
     }
 
-    console.error(e);
-    logger.error('AUTH', 'BackofficeLoginError', 'Backoffice login error', {
-      error: e.message,
-      errorCode: e.code,
-      errorClass: e.name,
-      stackTrace: e.stack
+    // Step 2: Decode and parse the user object
+    let user;
+    try {
+      const decoded = Buffer.from(principalHeader, 'base64').toString('utf-8');
+      user = JSON.parse(decoded);
+    } catch (e) {
+      logger.error('AUTH', 'ParseError', 'Failed to parse x-ms-client-principal', { error: e.message });
+      return res.status(401).json({
+        error: 'Unauthorized: Invalid Azure AD token',
+        code: 'INVALID_TOKEN'
+      });
+    }
+
+    // Step 3: Extract email with fallback to claims
+    const email = extractUserEmail(user);
+    if (!email) {
+      logger.warn('AUTH', 'EmailExtractionFailed', 'Could not extract email from Azure AD token');
+      return res.status(401).json({
+        error: 'Unauthorized: Unable to extract email from Azure AD token',
+        code: 'NO_EMAIL'
+      });
+    }
+
+    // Step 4: Validate email (only it@uservices-thailand.com allowed)
+    const ALLOWED_EMAIL = 'it@uservices-thailand.com';
+    if (email !== ALLOWED_EMAIL) {
+      logger.warn('AUTH', 'AccessDenied', `Backoffice access denied for ${email}`, {
+        serverContext: { clientIP, email, allowedEmail: ALLOWED_EMAIL }
+      });
+      return res.status(403).json({
+        error: `Forbidden: Backoffice access restricted to ${ALLOWED_EMAIL}`,
+        code: 'USER_RESTRICTED'
+      });
+    }
+
+    // Success!
+    logger.info('AUTH', 'BackofficeLoginSuccess', `Backoffice login successful - ${email}`, {
+      userEmail: email,
+      userRole: 'Backoffice',
+      serverContext: { clientIP }
     });
 
-    res.status(500).json({
+    return res.status(200).json({
+      message: 'Login successful',
+      email: email
+    });
+
+  } catch (e) {
+    // Any unexpected errors - log and return 500
+    logger.error('AUTH', 'BackofficeLoginError', 'Unexpected error', {
+      error: e.message,
+      stack: e.stack
+    });
+    return res.status(500).json({
       error: 'Login failed. Please try again.',
       code: 'LOGIN_ERROR'
     });
