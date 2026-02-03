@@ -56,9 +56,9 @@ The Price List Calculator computes total cost based on three components:
   - Record cards/rows display creator name, branch, motor type, job/material counts, and amount
   - Batch operations: select multiple records for deletion with bulk actions bar
   - Share records via generated links (public access, no authentication required, Customer View mode):
-    - Read-only Calculation Form with Branch info card and Job summary
-    - Grand totals only (Labor, Materials, Travel breakdown)
-    - All cost breakdowns, commission, and sales profit hidden
+    - Read-only Calculation Form with Branch dropdown and Job summary
+    - All cost breakdown cards hidden (Labor/Materials/Ovh+PP breakdown, bottom Grand Total, cost details)
+    - No commission, sales profit, or percentage breakdown cards shown
     - All interactive elements disabled
   - Role-based visibility: Sales users see own records, Executive users see all records
   - Only creators can edit their records; Executives can delete any record, creators can delete their own
@@ -246,7 +246,7 @@ The application uses **Azure Entra ID (Azure AD)** authentication via App Servic
 - Role-based access control with 4 tiers:
   - **Executive**: Full access to costs, can view all records, can assign Executive roles to others via backoffice
   - **Sales**: Restricted view (no cost data), can only see own records
-  - **Customer**: Pre-registered for shared link access only (view-only Calculation Form, no login required)
+  - **Customer**: Pre-registered for shared link access only (view-only Calculation Form with simplified UI, no login required)
   - **NoRole**: New authenticated users default to NoRole; see "awaiting assignment" screen, no access to calculator or records
 
 **Role Detection Priority:**
