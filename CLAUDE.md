@@ -478,14 +478,19 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - **Customer View UI Components:**
   - Branch dropdown visible in Labor panel (populated from saved calculation state)
   - Labor table displays selected jobs with hours (same as Executive/Sales modes)
-  - Grand Total card visible at bottom (shows final calculated amount from `GrandTotal` field)
+  - Grand Total card visible at bottom (shows final calculated amount from database-stored `GrandTotal` field)
   - All cost breakdowns hidden via `.customer-hidden` CSS class
   - All interactive elements disabled via `makeInputsReadOnly()` utility
   - Body receives `customer-view` class for styling disabled inputs
+- **Grand Total Display Consistency**: Shared links use database-stored `GrandTotal` value instead of recalculating
+  - `deserializeCalculatorState()` accepts `skipGrandTotalCalculation` option to override frontend recalculation
+  - `loadSharedRecord()` passes this option to ensure displayed Grand Total matches database exactly
+  - Prevents discrepancies due to frontend/backend rounding or calculation order differences
 
 **State Deserialization Pattern:**
 - When loading saved calculations, dropdowns (branch, motor type) must be populated before setting values
 - `deserializeCalculatorState()` in `src/js/saved-records/api.js` validates dropdown population:
+  - Accepts optional `options` parameter with `skipGrandTotalCalculation` flag for shared links
   - Checks if dropdown has options beyond the default "Select…" option
   - **Branch dropdown**: Populates from `appState.branches` first (performance), falls back to `/api/branches` API call
   - **Motor Type dropdown**: Fetches from `/api/motor-types` API if empty
@@ -496,6 +501,9 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - **Commission calculation order**: `calcAll()` must be called BEFORE `renderLabor()` and `renderMaterials()` to ensure Final Price values include the correct commission percentage (5%, 7.5%, or 10%)
   - If rendering happens before `calcAll()`, Final Prices display with 0% commission, showing incorrect values in Customer View Mode
   - This pattern is enforced in both `loadLabor()` (`src/js/calculator/labor.js`) and `deserializeCalculatorState()` (`src/js/saved-records/api.js`) to prevent race conditions
+- **Shared link Grand Total**: When `skipGrandTotalCalculation` is true, uses database-stored `GrandTotal` instead of recalculated value
+  - Still calls `calcAll()` to calculate Final Prices for labor/materials rows
+  - Overrides `#newGrandTotal` element with database value after rendering
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts

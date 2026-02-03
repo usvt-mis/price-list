@@ -97,7 +97,9 @@ export async function loadSharedRecord(shareToken) {
       window.updateRoleBadge(true);
     }
 
-    await deserializeCalculatorState(record);
+    // Pass skipGrandTotalCalculation to use database-stored GrandTotal value
+    // This ensures the displayed value matches the stored value exactly
+    await deserializeCalculatorState(record, { skipGrandTotalCalculation: true });
 
     // Skip displayRecordDetail() - we show the calculator form, not preview
     showView('calculator');

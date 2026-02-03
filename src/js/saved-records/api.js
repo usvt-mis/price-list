@@ -40,9 +40,12 @@ export function serializeCalculatorState() {
 /**
  * Deserialize saved state and populate the calculator
  * @param {Object} data - Saved calculation data
+ * @param {Object} options - Options for deserialization
+ * @param {boolean} options.skipGrandTotalCalculation - Skip Grand Total recalculation and use database value
  */
-export async function deserializeCalculatorState(data) {
+export async function deserializeCalculatorState(data, options = {}) {
   const { appState } = await import('../state.js');
+  const { skipGrandTotalCalculation = false } = options;
 
   // IMPORTANT: Ensure branch dropdown is populated before setting value
   const branchEl = el('branch');
@@ -163,6 +166,14 @@ export async function deserializeCalculatorState(data) {
   calcAll();
   renderLabor();
   renderMaterials();
+
+  // If this is a shared record or we're skipping Grand Total calculation,
+  // use the database-stored GrandTotal instead of the recalculated value
+  // This ensures consistency between what's displayed and what's stored
+  if (skipGrandTotalCalculation && data.grandTotal != null) {
+    const { fmt } = await import('../utils.js');
+    el('newGrandTotal').textContent = fmt(data.grandTotal);
+  }
 }
 
 /**
