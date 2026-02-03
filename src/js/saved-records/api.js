@@ -159,10 +159,10 @@ export async function deserializeCalculatorState(data) {
   el('salesProfitPct').value = data.salesProfitPct;
   el('travelKm').value = data.travelKm;
 
-  // Re-render everything
+  // Calculate commission first, then render with correct values
+  calcAll();
   renderLabor();
   renderMaterials();
-  calcAll();
 }
 
 /**

@@ -488,6 +488,8 @@ The application extracts email from Azure AD tokens using multiple fallback meth
   - Only sets value after ensuring the option exists in the dropdown
 - This prevents silent failures where saved values don't display because dropdowns weren't initialized
 - Mirrors pattern between Branch and Motor Type dropdowns for consistency
+- **Commission calculation order**: `calcAll()` must be called BEFORE `renderLabor()` and `renderMaterials()` to ensure Final Price values include the correct commission percentage (5%, 7.5%, or 10%)
+  - If rendering happens before `calcAll()`, Final Prices display with 0% commission, showing incorrect values in Customer View Mode
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts

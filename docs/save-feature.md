@@ -129,6 +129,10 @@ Year-based sequential format (e.g., 2024-001, 2024-002)
   - Handles deleted motor types gracefully by creating temporary option so jobs can still load
   - Only then calls `loadLabor()` which now has a valid motor type value
 - This fix resolves issues where Motor Type dropdown showed "Select..." and Jobs section was empty when loading saved/shared records
+- **Commission Calculation Order Fix**: Ensures `calcAll()` is called BEFORE `renderLabor()` and `renderMaterials()`
+  - Commission tier (5%, 7.5%, or 10%) must be calculated before rendering tables
+  - Prevents Final Price values from displaying with 0% commission in Customer View Mode (shared links)
+  - Order: `calcAll()` → `renderLabor()` → `renderMaterials()`
 
 ### Save/Load Operations
 
