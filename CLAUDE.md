@@ -293,7 +293,8 @@ Each HTTP function file:
 - Customer mode activates when users open share links (`?share={token}`) - read-only view showing:
   - Branch dropdown (visible in Labor panel, same as Executive/Sales modes)
   - Labor table with selected jobs and hours (same as Executive/Sales modes)
-  - All cost breakdown cards hidden (Labor/Materials/Ovh+PP breakdown card, bottom Grand Total card, cost detail sections)
+  - All cost breakdown cards hidden (Labor/Materials/Ovh+PP breakdown card, cost detail sections)
+  - Grand Total card visible at bottom (shows final calculated amount)
   - All interactive elements disabled (inputs, buttons, dropdowns)
 - NoRole users see "awaiting assignment" screen with no access to calculator
 - No manual mode switching - mode is purely role-based for security
@@ -325,7 +326,8 @@ The application implements a 4-tier role system:
 - **Customer**: No login required; view-only access via shared links
   - Shows Calculation Form with Branch dropdown in Labor panel (read-only)
   - Labor table displays selected jobs and hours (same as other modes)
-  - All cost breakdown cards hidden (Labor/Materials/Ovh+PP breakdown, bottom Grand Total, cost details)
+  - All cost breakdown cards hidden (Labor/Materials/Ovh+PP breakdown, cost details)
+  - Grand Total card visible at bottom (shows final calculated amount)
   - No commission, sales profit, or percentage breakdown cards
   - All inputs and controls disabled
 

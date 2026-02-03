@@ -153,10 +153,6 @@ export function calcAll() {
     const breakdownCard = el('breakdownCard');
     if (breakdownCard) breakdownCard.classList.add('customer-hidden');
 
-    // Hide the bottom Grand Total card
-    const grandTotalBottomCard = el('grandTotalBottomCard');
-    if (grandTotalBottomCard) grandTotalBottomCard.classList.add('customer-hidden');
-
     // Make all inputs read-only
     makeInputsReadOnly();
 
@@ -177,10 +173,6 @@ export function calcAll() {
     // Show the right breakdown card (Labor, Materials, Total Ovh+PP)
     const breakdownCard = el('breakdownCard');
     if (breakdownCard) breakdownCard.classList.remove('customer-hidden');
-
-    // Show the bottom Grand Total card
-    const grandTotalBottomCard = el('grandTotalBottomCard');
-    if (grandTotalBottomCard) grandTotalBottomCard.classList.remove('customer-hidden');
 
     // Remove read-only
     removeReadOnly();
