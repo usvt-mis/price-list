@@ -472,6 +472,14 @@ The application extracts email from Azure AD tokens using multiple fallback meth
   - All interactive elements disabled via `makeInputsReadOnly()` utility
   - Body receives `customer-view` class for styling disabled inputs
 
+**State Deserialization Pattern:**
+- When loading saved calculations, dropdowns (branch, motor type) must be populated before setting values
+- `deserializeCalculatorState()` in `src/js/saved-records/api.js` validates dropdown population:
+  - Checks if dropdown has options beyond the default "Select…" option
+  - If empty, populates from `appState.branches` or fetches from API
+  - Only sets value after ensuring the option exists in the dropdown
+- This prevents silent failures where saved values don't display because dropdowns weren't initialized
+
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
 - `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions

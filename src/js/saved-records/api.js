@@ -44,8 +44,21 @@ export function serializeCalculatorState() {
 export async function deserializeCalculatorState(data) {
   const { appState } = await import('../state.js');
 
-  // Set branch
-  el('branch').value = data.branchId;
+  // IMPORTANT: Ensure branch dropdown is populated before setting value
+  const branchEl = el('branch');
+  if (data.branchId) {
+    // Check if dropdown is populated (has more than just "Select..." option)
+    const currentOptions = Array.from(branchEl.querySelectorAll('option[value]:not([value=""])'));
+
+    if (currentOptions.length === 0) {
+      // Dropdown is empty - populate from appState if available
+      if (appState.branches && appState.branches.length > 0) {
+        branchEl.innerHTML = `<option value="">Select…</option>` + appState.branches
+          .map(x => `<option value="${x.BranchId}">${x.BranchName}</option>`).join('');
+      }
+    }
+    branchEl.value = data.branchId;
+  }
 
   // IMPORTANT: Ensure motor type dropdown is populated before setting value
   const motorTypeEl = el('motorType');
