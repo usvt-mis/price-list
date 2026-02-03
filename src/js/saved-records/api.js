@@ -55,9 +55,28 @@ export async function deserializeCalculatorState(data) {
       if (appState.branches && appState.branches.length > 0) {
         branchEl.innerHTML = `<option value="">Select…</option>` + appState.branches
           .map(x => `<option value="${x.BranchId}">${x.BranchName}</option>`).join('');
+      } else {
+        // Fallback: fetch branches from API (mirrors Motor Type dropdown logic)
+        const { fetchJson } = await import('../utils.js');
+        const branches = await fetchJson('/api/branches');
+        branchEl.innerHTML = `<option value="">Select…</option>` + branches
+          .map(x => `<option value="${x.BranchId}">${x.BranchName}</option>`).join('');
       }
     }
     branchEl.value = data.branchId;
+
+    // Validate that the branch was actually set (option exists)
+    // If not, the saved branch may have been deleted - handle gracefully
+    if (!branchEl.value && data.branchId) {
+      console.warn(`Branch ID ${data.branchId} not found in available options`);
+      // Create the missing option temporarily so the value can be displayed
+      const branchName = data.branchName || `Unknown Branch (${data.branchId})`;
+      const missingOption = document.createElement('option');
+      missingOption.value = data.branchId;
+      missingOption.textContent = branchName;
+      branchEl.appendChild(missingOption);
+      branchEl.value = data.branchId;
+    }
   }
 
   // IMPORTANT: Ensure motor type dropdown is populated before setting value

@@ -482,9 +482,12 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - When loading saved calculations, dropdowns (branch, motor type) must be populated before setting values
 - `deserializeCalculatorState()` in `src/js/saved-records/api.js` validates dropdown population:
   - Checks if dropdown has options beyond the default "Select…" option
-  - If empty, populates from `appState.branches` or fetches from API
+  - **Branch dropdown**: Populates from `appState.branches` first (performance), falls back to `/api/branches` API call
+  - **Motor Type dropdown**: Fetches from `/api/motor-types` API if empty
+  - **Graceful handling for deleted records**: Creates temporary option with "Unknown (ID)" fallback if saved value no longer exists
   - Only sets value after ensuring the option exists in the dropdown
 - This prevents silent failures where saved values don't display because dropdowns weren't initialized
+- Mirrors pattern between Branch and Motor Type dropdowns for consistency
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
