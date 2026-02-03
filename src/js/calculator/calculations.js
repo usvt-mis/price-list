@@ -9,42 +9,6 @@ import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, g
 import { materialSubtotalBase, materialSubtotal } from './materials.js';
 import { COMMISSION_TIERS } from '../config.js';
 
-/**
- * Get branch name by ID for Customer View display
- * @param {number} branchId - Branch ID
- * @returns {string} Branch name or '—'
- */
-function getBranchName(branchId) {
-  const branch = appState.branches.find(b => b.BranchId === Number(branchId));
-  return branch ? branch.BranchName : '—';
-}
-
-/**
- * Update job summary list for Customer View
- */
-function updateJobSummary() {
-  if (!isCustomerMode()) return;
-
-  const jobs = appState.labor.filter(j => j.checked !== false);
-  const listEl = el('jobSummaryList');
-
-  if (!listEl) return;
-
-  if (jobs.length === 0) {
-    listEl.innerHTML = '<li class="text-sm text-gray-500">No jobs selected</li>';
-    return;
-  }
-
-  listEl.innerHTML = jobs.map(job => {
-    const quantity = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
-    return `
-      <li class="text-sm text-gray-700 flex items-center justify-between py-1">
-        <span class="font-medium">${job.JobName}</span>
-        <span class="text-gray-500">${quantity} hr${quantity !== 1 ? 's' : ''}</span>
-      </li>
-    `;
-  }).join('');
-}
 
 /**
  * Calculate all totals and update display
@@ -166,26 +130,6 @@ export function calcAll() {
 
   // === Customer View: Hide sensitive information, show only Grand Total ===
   if (isCustomerMode()) {
-    // Hide Branch dropdown, show Branch info card
-    const branchDropdown = el('branchDropdown');
-    const branchInfoCard = el('branchInfoCard');
-    if (branchDropdown) branchDropdown.classList.add('customer-hidden');
-    if (branchInfoCard) {
-      branchInfoCard.classList.remove('customer-hidden');
-      // Update branch info display
-      const branchSelect = el('branch');
-      if (branchSelect) {
-        el('branchInfoName').textContent = getBranchName(branchSelect.value);
-      }
-    }
-
-    // Show job summary card
-    const jobSummaryCard = el('jobSummaryCard');
-    if (jobSummaryCard) {
-      jobSummaryCard.classList.remove('customer-hidden');
-      updateJobSummary();
-    }
-
     // Hide cost breakdown panels
     const totalRawCostSection = el('totalRawCostSection');
     const subTotalCostSection = el('subTotalCostSection');
@@ -211,14 +155,9 @@ export function calcAll() {
     // Add customer-view class to body for styling
     document.body.classList.add('customer-view');
   } else {
-    // Show Branch dropdown, hide Branch info card
+    // Show Branch dropdown (it's visible in all non-Customer modes)
     const branchDropdown = el('branchDropdown');
-    const branchInfoCard = el('branchInfoCard');
-    const jobSummaryCard = el('jobSummaryCard');
-
     if (branchDropdown) branchDropdown.classList.remove('customer-hidden');
-    if (branchInfoCard) branchInfoCard.classList.add('customer-hidden');
-    if (jobSummaryCard) jobSummaryCard.classList.add('customer-hidden');
 
     // Show all elements (for Executive/Sales modes)
     const totalRawCostSection = el('totalRawCostSection');

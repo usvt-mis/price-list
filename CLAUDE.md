@@ -289,8 +289,8 @@ Each HTTP function file:
 - Executive users see cost details (overhead, raw costs, multipliers) + commission section
 - Sales users see simplified view with commission but no cost breakdowns
 - Customer mode activates when users open share links (`?share={token}`) - read-only view showing:
-  - Branch information (read-only display card with branch name)
-  - Job summary (simplified list of job names and hours)
+  - Branch dropdown (visible in Labor panel, same as Executive/Sales modes)
+  - Labor table with selected jobs and hours (same as Executive/Sales modes)
   - Grand Total only (Labor, Materials, Travel breakdown)
   - All cost breakdowns hidden (Raw Cost, Overhead, Policy Profit, Commission)
   - All interactive elements disabled (inputs, buttons, dropdowns)
@@ -322,7 +322,8 @@ The application implements a 4-tier role system:
 - **Sales**: Restricted view (no cost data, shows commission), can only see own records
 - **NoRole**: New authenticated users default to NoRole; see "awaiting assignment" screen, no access to calculator or records
 - **Customer**: No login required; view-only access via shared links
-  - Shows Calculation Form with read-only Branch info card and Job summary
+  - Shows Calculation Form with Branch dropdown in Labor panel (read-only)
+  - Labor table displays selected jobs and hours (same as other modes)
   - Grand totals breakdown only (Labor, Materials, Travel)
   - No cost breakdowns, commission, sales profit, or percentage breakdown
   - All inputs and controls disabled
@@ -464,14 +465,13 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 **Shared Link Navigation:**
 - Shared links (`?share={token}`) display the Calculation Form in Customer View mode (not the Preview Record detail view)
 - View-only guard in `showView()` prevents navigation away from calculator while in shared link mode
-- `loadSharedRecord()` in `sharing.js` deserializes calculator state, populates Customer View cards, and shows calculator view directly
+- `loadSharedRecord()` in `sharing.js` deserializes calculator state and shows calculator view directly
 - **Customer View UI Components:**
-  - Branch info card (`#branchInfoCard`): Read-only display of selected branch name (populated from `record.branchName`)
-  - Job summary card (`#jobSummaryCard`): Simplified list of selected jobs with hours (populated from `appState.labor`)
+  - Branch dropdown visible in Labor panel (populated from saved calculation state)
+  - Labor table displays selected jobs with hours (same as Executive/Sales modes)
   - All cost breakdowns hidden via `.customer-hidden` CSS class
   - All interactive elements disabled via `makeInputsReadOnly()` utility
   - Body receives `customer-view` class for styling disabled inputs
-  - Job names are HTML-escaped via `escapeHtml()` utility to prevent XSS attacks
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
