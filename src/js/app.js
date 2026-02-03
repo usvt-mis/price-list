@@ -249,13 +249,7 @@ function setupEventListeners() {
     if (globalExports.bulkDeleteRecords) await globalExports.bulkDeleteRecords();
   });
 
-  // Filter event listeners
-  el('searchRunNumber')?.addEventListener('input', () => {
-    if (globalExports.applyFiltersAndRender) globalExports.applyFiltersAndRender();
-  });
-  el('sortBy')?.addEventListener('change', () => {
-    if (globalExports.applyFiltersAndRender) globalExports.applyFiltersAndRender();
-  });
+  // Filter event listeners (date range only - search and sort are now handled separately)
   el('dateRange')?.addEventListener('change', () => {
     if (globalExports.applyFiltersAndRender) globalExports.applyFiltersAndRender();
   });
@@ -289,7 +283,8 @@ async function initApp() {
     toggleRecordSelection,
     selectAllRecords,
     deselectAllRecords,
-    updateViewToggleButtons
+    updateViewToggleButtons,
+    setupSearchHandlers
   } = await import('./saved-records/index.js');
 
   // Import admin functions
@@ -328,6 +323,9 @@ async function initApp() {
 
   // Set up admin panel listeners
   initAdminPanelListeners();
+
+  // Set up search handlers
+  setupSearchHandlers();
 
   // Set up event listeners
   setupEventListeners();

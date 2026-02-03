@@ -8,6 +8,7 @@ const router = express.Router();
 const { sql, getPool } = require('../db');
 const { getUserEffectiveRole } = require('../middleware/authExpress');
 const logger = require('../utils/logger');
+const { calculateGrandTotal } = require('../utils/calculator');
 
 /**
  * POST /api/saves
@@ -134,6 +135,25 @@ router.post('/', async (req, res, next) => {
           `);
       }
 
+      // Calculate GrandTotal
+      const grandTotal = await calculateGrandTotal(pool, {
+        branchId,
+        jobs,
+        materials,
+        salesProfitPct,
+        travelKm
+      });
+
+      // Update the saved calculation with GrandTotal
+      await new sql.Request(transaction)
+        .input('saveId', sql.Int, saveId)
+        .input('grandTotal', sql.Decimal(18, 2), grandTotal)
+        .query(`
+          UPDATE SavedCalculations
+          SET GrandTotal = @grandTotal
+          WHERE SaveId = @saveId
+        `);
+
       await transaction.commit();
 
       // Fetch the complete saved calculation with related data
@@ -202,6 +222,7 @@ router.get('/', async (req, res, next) => {
                sc.BranchId, b.BranchName,
                sc.MotorTypeId, mt.MotorTypeName,
                sc.SalesProfitPct, sc.TravelKm,
+               sc.GrandTotal,
                COUNT(DISTINCT scj.JobId) as JobCount,
                COUNT(DISTINCT scm.MaterialId) as MaterialCount
         FROM SavedCalculations sc
@@ -213,7 +234,7 @@ router.get('/', async (req, res, next) => {
         GROUP BY sc.SaveId, sc.RunNumber, sc.CreatorName, sc.CreatorEmail,
                  sc.CreatedAt, sc.ModifiedAt, sc.ShareToken,
                  sc.BranchId, b.BranchName, sc.MotorTypeId, mt.MotorTypeName,
-                 sc.SalesProfitPct, sc.TravelKm
+                 sc.SalesProfitPct, sc.TravelKm, sc.GrandTotal
         ORDER BY sc.CreatedAt DESC
       `);
 
@@ -383,6 +404,25 @@ router.put('/:id', async (req, res, next) => {
             VALUES (@saveId, @materialId, @unitCost, @quantity)
           `);
       }
+
+      // Calculate GrandTotal
+      const grandTotal = await calculateGrandTotal(pool, {
+        branchId,
+        jobs,
+        materials,
+        salesProfitPct,
+        travelKm
+      });
+
+      // Update the saved calculation with GrandTotal
+      await new sql.Request(transaction)
+        .input('saveId', sql.Int, saveId)
+        .input('grandTotal', sql.Decimal(18, 2), grandTotal)
+        .query(`
+          UPDATE SavedCalculations
+          SET GrandTotal = @grandTotal
+          WHERE SaveId = @saveId
+        `);
 
       await transaction.commit();
 

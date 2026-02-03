@@ -39,5 +39,6 @@ export {
   editRecord,
   deleteRecord,
   bulkDeleteRecords,
-  applyFiltersAndRender
+  applyFiltersAndRender,
+  setupSearchHandlers
 } from './sharing.js';

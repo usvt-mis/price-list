@@ -155,6 +155,7 @@ The application includes comprehensive debug logging for troubleshooting initial
 ### Database Schema
 - Core tables: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
+  - SavedCalculations includes GrandTotal column (pre-calculated for sorting)
 - Role management: UserRoles (stores role assignments - can be Executive, Sales, Customer, or NULL/NoRole)
   - Columns: Email (PK), Role, AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt
   - FirstLoginAt: Tracks when user first logged in
@@ -163,7 +164,7 @@ The application includes comprehensive debug logging for troubleshooting initial
 - **Backoffice authentication**: BackofficeAdmins table (deprecated - no longer used for auth; kept for potential rollback)
 - Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`
 - Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup)
-- Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index), `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema), `database/migrations/remove_database_logging.sql` (removes legacy logging tables)
+- Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index), `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema), `database/migrations/remove_database_logging.sql` (removes legacy logging tables), `database/migrations/add_grandtotal_column.sql` (adds GrandTotal column with index for sorting)
 - **Deprecated scripts**: `database/deprecated/create_app_logs.sql`, `database/deprecated/diagnostics_logs.sql` (moved after Application Insights migration)
 
 ### Backend Structure (`api/`)
@@ -177,7 +178,7 @@ The application includes comprehensive debug logging for troubleshooting initial
   - Backoffice routes: backoffice, backoffice/login
 - Authentication middleware in `src/middleware/`: authExpress.js, twoFactorAuthExpress.js (Express-compatible)
 - Shared connection pool via `mssql` package in `src/db.js`
-- Utilities in `src/utils/`: logger.js (console-based with correlation ID support)
+- Utilities in `src/utils/`: logger.js (console-based with correlation ID support), calculator.js (GrandTotal calculation)
 - Environment configuration via `dotenv` package (loads `.env.local` from repository root)
 
 **Azure Functions (Legacy - still functional):**
@@ -209,7 +210,8 @@ The application includes comprehensive debug logging for troubleshooting initial
     ├── saved-records/           # Saved calculations module
     │   ├── index.js              # Saved records exports
     │   ├── api.js                # API calls for saved calculations
-    │   ├── ui.js                 # Records list/grid rendering
+    │   ├── ui.js                 # Records list/grid rendering with sortable headers
+    │   ├── filters.js            # Universal search and sort utilities
     │   └── sharing.js            # Share functionality (loads Customer mode for shared links)
     └── admin/                   # Admin role management module
         ├── index.js              # Admin exports
@@ -390,11 +392,15 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 
 **Saved Calculations API Endpoints** (Azure AD - role-based access):
 - `POST /api/saves` - Create new saved calculation (authenticated users only)
+  - Returns `GrandTotal` field (pre-calculated total including labor, materials, travel, sales profit, and commission)
 - `GET /api/saves` - List saved calculations (Executive: all records, Sales: own records only, NoRole: 403 forbidden)
+  - Returns `GrandTotal` field for display and sorting
 - `GET /api/saves/{id}` - Get single saved calculation by ID
 - `PUT /api/saves/{id}` - Update saved calculation (creator only)
+  - Recalculates `GrandTotal` on update
 - `DELETE /api/saves/{id}` - Delete saved calculation (creator or Executive only)
 - **Role Detection**: All endpoints use `getUserEffectiveRole()` to check UserRoles database table for role determination (Executive/Sales/NoRole)
+- **GrandTotal Calculation**: Performed by `calculateGrandTotal()` in `api/src/utils/calculator.js`
 
 **Admin API Endpoints** (Azure AD - Executive only):
 - `GET /api/adm/roles` - List all role assignments
@@ -503,6 +509,26 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - Environment variables: `APPLICATIONINSIGHTS_CONNECTION_STRING` (optional - enables Application Insights)
 
 **UTC Timezone**: All database timestamps use `GETUTCDATE()` for consistent UTC timezone across all servers; JavaScript uses `Date.toISOString()` for UTC datetime parameters
+
+**My Records Sortable Headers & Universal Search:**
+- **Sortable Column Headers**: Click any table header to sort records by that column (Run Number, Date, Created By, Branch, Motor, Jobs, Materials, Amount)
+  - Click again to toggle ascending/descending order
+  - Active sort column highlighted with visual sort indicator
+  - Sort state managed in `state.js` with `_recordsSortColumn` and `_recordsSortDirection`
+  - Sorting handled by `sortRecords()` utility in `src/js/saved-records/filters.js`
+- **Universal Search**: Single search bar filters across all record columns simultaneously
+  - Searches: Run Number, Date (formatted), Creator Name/Email, Branch, Motor Type, Job/Material counts, Amount (formatted)
+  - Debounced with 300ms delay to prevent excessive re-renders
+  - Results counter shows "Showing X of Y records"
+  - Clear button appears when typing to reset search
+  - Keyboard shortcut: Ctrl+F focuses search bar
+  - Search state managed in `state.js` with `_recordsSearchQuery`
+  - Searching handled by `searchRecords()` utility in `src/js/saved-records/filters.js`
+- **GrandTotal Display**: Amount column shows pre-calculated Grand Total from database
+  - Stored in SavedCalculations table to enable efficient sorting
+  - Calculated on save/update via `calculateGrandTotal()` in `api/src/utils/calculator.js`
+  - Includes labor, materials, travel, sales profit, and commission
+  - Database migration: `database/migrations/add_grandtotal_column.sql`
 
 ---
 

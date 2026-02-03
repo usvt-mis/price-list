@@ -4,11 +4,12 @@
  */
 
 import { el, showView, showNotification, fetchJson, fetchWithAuth } from '../utils.js';
-import { setViewOnly, setCurrentSavedRecord, setDirty, setMode } from '../state.js';
+import { setViewOnly, setCurrentSavedRecord, setDirty, setMode, getRecordsSortColumn, getRecordsSortDirection, getRecordsSearchQuery } from '../state.js';
 import { deserializeCalculatorState, loadSavedRecords } from './api.js';
 import { displayRecordDetail } from './ui.js';
 import { MODE } from '../config.js';
 import { renderLabor, renderMaterials, calcAll } from '../calculator/index.js';
+import { searchRecords, sortRecords } from './filters.js';
 
 /**
  * Share a record
@@ -375,14 +376,13 @@ export async function applyFiltersAndRender() {
     let records = await loadSavedRecords();
 
     // Apply filters
-    const searchTerm = el('searchRunNumber')?.value.toLowerCase().trim() || '';
-    const sortBy = el('sortBy')?.value || 'date-desc';
+    const searchTerm = getRecordsSearchQuery();
+    const sortBy = getRecordsSortColumn();
+    const sortDirection = getRecordsSortDirection();
     const dateRange = el('dateRange')?.value || 'all';
 
-    // Filter by search term
-    if (searchTerm) {
-      records = records.filter(r => r.RunNumber.toLowerCase().includes(searchTerm));
-    }
+    // Apply universal search
+    records = searchRecords(records, searchTerm);
 
     // Filter by date range
     if (dateRange !== 'all') {
@@ -412,21 +412,8 @@ export async function applyFiltersAndRender() {
       });
     }
 
-    // Sort
-    switch (sortBy) {
-      case 'date-asc':
-        records.sort((a, b) => new Date(a.CreatedAt) - new Date(b.CreatedAt));
-        break;
-      case 'date-desc':
-        records.sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
-        break;
-      case 'amount-asc':
-        records.sort((a, b) => (a.GrandTotal || 0) - (b.GrandTotal || 0));
-        break;
-      case 'amount-desc':
-        records.sort((a, b) => (b.GrandTotal || 0) - (a.GrandTotal || 0));
-        break;
-    }
+    // Apply sort using state-based sorting
+    records = sortRecords(records, sortBy, sortDirection);
 
     renderRecords(records);
   } catch (error) {
@@ -434,4 +421,60 @@ export async function applyFiltersAndRender() {
     showNotification('Failed to load records', 'error');
     throw error; // Re-throw for caller handling
   }
+}
+
+/**
+ * Setup search handlers for universal search
+ */
+export function setupSearchHandlers() {
+  const searchInput = el('searchRecords');
+  const clearBtn = el('clearSearch');
+  const resultsDiv = el('searchResults');
+
+  if (!searchInput) return;
+
+  let searchDebounceTimer;
+
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(async () => {
+      const { setRecordsSearchQuery } = await import('../state.js');
+      setRecordsSearchQuery(e.target.value);
+
+      // Show/hide clear button
+      clearBtn?.classList.toggle('hidden', !e.target.value);
+
+      // Update results count
+      if (resultsDiv) {
+        const totalRecords = (await loadSavedRecords()).length;
+        const filteredRecords = searchRecords(await loadSavedRecords(), e.target.value);
+        if (e.target.value) {
+          resultsDiv.textContent = `Showing ${filteredRecords.length} of ${totalRecords} records`;
+        } else {
+          resultsDiv.textContent = '';
+        }
+      }
+
+      // Re-render with new search
+      applyFiltersAndRender();
+    }, 300);
+  });
+
+  clearBtn?.addEventListener('click', async () => {
+    searchInput.value = '';
+    const { setRecordsSearchQuery } = await import('../state.js');
+    setRecordsSearchQuery('');
+    clearBtn.classList.add('hidden');
+    if (resultsDiv) resultsDiv.textContent = '';
+    applyFiltersAndRender();
+    searchInput.focus();
+  });
+
+  // Keyboard shortcut: Ctrl+F
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault();
+      searchInput.focus();
+    }
+  });
 }

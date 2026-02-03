@@ -48,6 +48,15 @@ export let isDirty = false; // track unsaved changes
 export let isViewOnly = false; // view-only mode for shared records
 export let selectedRecords = new Set(); // selected record IDs for batch operations
 
+// ========== Sort & Search State ==========
+
+// Sort state for saved records
+let _recordsSortColumn = 'CreatedAt';
+let _recordsSortDirection = 'desc'; // 'asc' or 'desc'
+
+// Search state for saved records
+let _recordsSearchQuery = '';
+
 // ========== Material Search State ==========
 
 // Track search timeouts for cleanup
@@ -107,6 +116,32 @@ export function setViewOnly(value) {
 
 export function setSavedRecordsList(records) {
   savedRecordsList = records;
+}
+
+// ========== Sort & Search State Getters/Setters ==========
+
+export function getRecordsSortColumn() {
+  return _recordsSortColumn;
+}
+
+export function setRecordsSortColumn(column) {
+  _recordsSortColumn = column;
+}
+
+export function getRecordsSortDirection() {
+  return _recordsSortDirection;
+}
+
+export function setRecordsSortDirection(dir) {
+  _recordsSortDirection = dir;
+}
+
+export function getRecordsSearchQuery() {
+  return _recordsSearchQuery;
+}
+
+export function setRecordsSearchQuery(query) {
+  _recordsSearchQuery = query;
 }
 
 // ========== Utility Functions ==========

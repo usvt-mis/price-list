@@ -307,20 +307,27 @@
         </div>
 
         <!-- Filters -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Search by Run Number</label>
-            <input id="searchRunNumber" type="text" placeholder="2024-001" class="w-full rounded-lg border-slate-200 px-3 py-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <!-- Universal Search -->
+          <div class="md:col-span-1">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Search Records</label>
+            <div class="relative">
+              <input type="text" id="searchRecords"
+                     class="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                     placeholder="Search all columns..."
+                     autocomplete="off">
+              <svg class="absolute left-3 top-2.5 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <button type="button" id="clearSearch" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 hidden" aria-label="Clear search">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <div id="searchResults" class="text-sm text-slate-500 mt-1"></div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Sort By</label>
-            <select id="sortBy" class="w-full rounded-lg border-slate-200 px-3 py-2">
-              <option value="date-desc">Date (Newest First)</option>
-              <option value="date-asc">Date (Oldest First)</option>
-              <option value="amount-desc">Amount (Highest First)</option>
-              <option value="amount-asc">Amount (Lowest First)</option>
-            </select>
-          </div>
+          <!-- Date Range -->
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Date Range</label>
             <select id="dateRange" class="w-full rounded-lg border-slate-200 px-3 py-2">
@@ -331,6 +338,15 @@
               <option value="year">This Year</option>
             </select>
           </div>
+        </div>
+        <!-- Sort hint -->
+        <div class="mb-4 text-sm text-slate-500">
+          <span class="inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Click any column header to sort
+          </span>
         </div>
 
         <!-- Records Grid -->

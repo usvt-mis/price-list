@@ -4,7 +4,7 @@
  */
 
 import { el, fmt, formatDate, showView } from '../utils.js';
-import { selectedRecords, recordsViewMode, setRecordsViewMode } from '../state.js';
+import { selectedRecords, recordsViewMode, setRecordsViewMode, getRecordsSortColumn, getRecordsSortDirection, setRecordsSortColumn, setRecordsSortDirection } from '../state.js';
 import { authState } from '../state.js';
 import { loadSavedRecords } from './api.js';
 
@@ -62,6 +62,71 @@ export function renderRecordsGrid(records) {
 }
 
 /**
+ * Render a sortable table header
+ * @param {string} columnId - Column ID for sorting
+ * @param {string} label - Column label text
+ * @param {string} alignClass - Additional alignment classes (e.g., 'text-center', 'text-right')
+ * @returns {string} HTML for the sortable header
+ */
+function renderSortableHeader(columnId, label, alignClass = '') {
+  const currentSort = getRecordsSortColumn();
+  const currentDir = getRecordsSortDirection();
+  const isActive = currentSort === columnId;
+
+  // Determine sort icon
+  let sortIcon = '';
+  if (isActive) {
+    sortIcon = currentDir === 'asc'
+      ? '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>'
+      : '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+  } else {
+    sortIcon = '<svg class="w-4 h-4 opacity-30" fill="currentColor" viewBox="0 0 20 20"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/></svg>';
+  }
+
+  const activeClass = isActive ? 'text-blue-600 bg-blue-50' : 'text-slate-700 hover:bg-slate-100';
+  const ariaSort = isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none';
+
+  return `
+    <th class="p-3 font-semibold cursor-pointer select-none ${activeClass} ${alignClass}"
+        data-sort-column="${columnId}"
+        role="columnheader"
+        aria-sort="${ariaSort}"
+        tabindex="0">
+      <div class="flex items-center justify-${alignClass.includes('right') ? 'end' : alignClass.includes('center') ? 'center' : 'start'} gap-2">
+        <span>${label}</span>
+        <span class="sort-icon">${sortIcon}</span>
+      </div>
+    </th>
+  `;
+}
+
+/**
+ * Handle header click for sorting
+ * @param {Event} event - Click event
+ */
+export function handleHeaderClick(event) {
+  const header = event.target.closest('[data-sort-column]');
+  if (!header) return;
+
+  const column = header.dataset.sortColumn;
+  const currentSort = getRecordsSortColumn();
+  const currentDir = getRecordsSortDirection();
+
+  // Cycle: asc → desc → asc (or set to asc if new column)
+  if (currentSort === column) {
+    setRecordsSortDirection(currentDir === 'asc' ? 'desc' : 'asc');
+  } else {
+    setRecordsSortColumn(column);
+    setRecordsSortDirection('asc'); // Default to asc for new column
+  }
+
+  // Re-render with new sort
+  if (window.applyFiltersAndRender) {
+    window.applyFiltersAndRender();
+  }
+}
+
+/**
  * Render records as a table list view
  * @param {Array} records - Records to render
  */
@@ -77,19 +142,19 @@ export function renderRecordsListView(records) {
   grid.innerHTML = `
     <div class="overflow-x-auto">
       <table class="w-full text-left">
-        <thead>
+        <thead id="recordsTableHeader">
           <tr class="bg-slate-50 border-b border-slate-200">
             <th class="p-3 w-12">
               <input type="checkbox" id="selectAllRecordsList" onchange="window.selectAllRecords && window.selectAllRecords()" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" aria-label="Select all records">
             </th>
-            <th class="p-3 font-semibold text-slate-700">Run Number</th>
-            <th class="p-3 font-semibold text-slate-700">Date</th>
-            <th class="p-3 font-semibold text-slate-700">Created By</th>
-            <th class="p-3 font-semibold text-slate-700">Branch</th>
-            <th class="p-3 font-semibold text-slate-700">Motor</th>
-            <th class="p-3 font-semibold text-slate-700 text-center">Jobs</th>
-            <th class="p-3 font-semibold text-slate-700 text-center">Materials</th>
-            <th class="p-3 font-semibold text-slate-700 text-right">Amount</th>
+            ${renderSortableHeader('RunNumber', 'Run Number')}
+            ${renderSortableHeader('CreatedAt', 'Date')}
+            ${renderSortableHeader('CreatorName', 'Created By')}
+            ${renderSortableHeader('BranchName', 'Branch')}
+            ${renderSortableHeader('MotorTypeName', 'Motor')}
+            ${renderSortableHeader('JobCount', 'Jobs', 'text-center')}
+            ${renderSortableHeader('MaterialCount', 'Materials', 'text-center')}
+            ${renderSortableHeader('GrandTotal', 'Amount', 'text-right')}
             <th class="p-3 font-semibold text-slate-700 text-right">Actions</th>
           </tr>
         </thead>
@@ -138,6 +203,13 @@ export function renderRecordsListView(records) {
       </table>
     </div>
   `;
+
+  // Attach header click handler
+  const headerEl = el('recordsTableHeader');
+  if (headerEl) {
+    headerEl.removeEventListener('click', handleHeaderClick);
+    headerEl.addEventListener('click', handleHeaderClick);
+  }
 
   toggleBulkActions();
 }

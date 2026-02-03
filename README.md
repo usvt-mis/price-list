@@ -50,10 +50,19 @@ The Price List Calculator computes total cost based on three components:
   - Save button to create/update calculation records with year-based run numbers (e.g., 2024-001)
   - Success confirmation modal with run number display and View Record/Close actions
   - My Records list view with toggle between list (table) and grid (card) layouts (preference persisted)
-  - Filtering: search by run number, sort by date/amount, filter by date range
+  - **Sortable Column Headers**: Click any column header to sort (Run Number, Date, Created By, Branch, Motor, Jobs, Materials, Amount)
+    - Toggle ascending/descending by clicking again
+    - Active sort column highlighted with visual indicator
+  - **Universal Search**: Single search bar filters across all columns simultaneously
+    - Searches: Run Number, Date, Creator, Branch, Motor, Job/Material counts, Amount
+    - Debounced with 300ms delay for performance
+    - Results counter shows "Showing X of Y records"
+    - Clear button to reset search
+    - Keyboard shortcut: Ctrl+F focuses search bar
+  - Date range filter: All Time, Today, This Week, This Month, This Year
   - List view: compact table with columns for checkbox, run number, date, creator, branch, motor, jobs, materials, amount, actions
   - Grid view: card-based layout with same information in visual format
-  - Record cards/rows display creator name, branch, motor type, job/material counts, and amount
+  - Record cards/rows display creator name, branch, motor type, job/material counts, and amount (GrandTotal)
   - Batch operations: select multiple records for deletion with bulk actions bar
   - Share records via generated links (public access, no authentication required, Customer View mode):
     - Read-only Calculation Form with Branch dropdown and Job summary
@@ -98,7 +107,7 @@ The application expects these SQL Server tables:
 | `Jobs` | Job definitions with JobCode, JobName, SortOrder |
 | `Jobs2MotorType` | Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours) |
 | `Materials` | Material catalog with MaterialCode, MaterialName, UnitCost, IsActive |
-| `SavedCalculations` | Saved calculation records with run numbers (e.g., 2024-001) |
+| `SavedCalculations` | Saved calculation records with run numbers (e.g., 2024-001), GrandTotal (pre-calculated for sorting) |
 | `SavedCalculationJobs` | Jobs associated with each saved calculation |
 | `SavedCalculationMaterials` | Materials associated with each saved calculation |
 | `RunNumberSequence` | Tracks year-based sequential run numbers |
@@ -109,7 +118,7 @@ The application expects these SQL Server tables:
 | `PerformanceMetrics` | API performance metrics (response times, database latency) |
 | `AppLogs_Archive` | Historical application logs (archived after 30 days) |
 
-**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback).
+**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting.
 
 **Method 3: Run Migration Scripts**
 ```bash
@@ -297,6 +306,7 @@ Use the VS Code configuration in `.vscode/launch.json`:
 ```
 .
 ├── server.js                  # Express.js server (primary)
+├── config.js                  # Application configuration (commission tiers, travel rate)
 ├── package.json               # Dependencies & scripts
 ├── package-lock.json          # Lock file
 ├── api/
@@ -328,6 +338,7 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   ├── jobs/
 │   │   │   └── index.js               # Scheduled jobs (node-cron)
 │   │   ├── utils/
+│   │   │   ├── calculator.js         # GrandTotal calculation utility
 │   │   │   ├── logger.js
 │   │   │   ├── performanceTracker.js
 │   │   │   └── circuitBreaker.js
@@ -365,6 +376,7 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── diagnostics_timezone.sql
 │   ├── diagnostics_logs.sql
 │   └── migrations/
+│       ├── add_grandtotal_column.sql
 │       ├── phase1_backoffice_3tabs.sql
 │       ├── migrate_to_utc.sql
 │       └── two_factor_auth.sql
@@ -389,6 +401,7 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │       ├── saved-records/      # Saved records module
 │       │   ├── index.js
 │       │   ├── api.js
+│       │   ├── filters.js       # Universal search and sort utilities
 │       │   ├── ui.js
 │       │   └── sharing.js
 │       └── admin/               # Admin module
