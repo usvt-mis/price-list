@@ -520,7 +520,8 @@ async function fetchSavedCalculationById(pool, saveId) {
              sc.CreatedAt, sc.ModifiedAt, sc.ShareToken,
              sc.BranchId, b.BranchName,
              sc.MotorTypeId, mt.MotorTypeName,
-             sc.SalesProfitPct, sc.TravelKm
+             sc.SalesProfitPct, sc.TravelKm,
+             sc.GrandTotal
       FROM SavedCalculations sc
       LEFT JOIN Branches b ON sc.BranchId = b.BranchId
       LEFT JOIN MotorTypes mt ON sc.MotorTypeId = mt.MotorTypeId
@@ -568,6 +569,7 @@ async function fetchSavedCalculationById(pool, saveId) {
     motorTypeName: save.MotorTypeName,
     salesProfitPct: save.SalesProfitPct,
     travelKm: save.TravelKm,
+    grandTotal: save.GrandTotal,
     jobs: jobsResult.recordset.map(j => ({
       savedJobId: j.SavedJobId,
       jobId: j.JobId,

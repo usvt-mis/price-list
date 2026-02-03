@@ -398,6 +398,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - `GET /api/saves` - List saved calculations (Executive: all records, Sales: own records only, NoRole: 403 forbidden)
   - Returns `GrandTotal` field for display and sorting
 - `GET /api/saves/{id}` - Get single saved calculation by ID
+  - Returns `GrandTotal` field for display and validation
 - `PUT /api/saves/{id}` - Update saved calculation (creator only)
   - Recalculates `GrandTotal` on update
 - `DELETE /api/saves/{id}` - Delete saved calculation (creator or Executive only)
@@ -471,11 +472,13 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 
 **Shared Link Navigation:**
 - Shared links (`?share={token}`) display the Calculation Form in Customer View mode (not the Preview Record detail view)
+- Public GET `/api/shared/{token}` endpoint returns complete saved calculation including `GrandTotal` field
 - View-only guard in `showView()` prevents navigation away from calculator while in shared link mode
 - `loadSharedRecord()` in `sharing.js` deserializes calculator state and shows calculator view directly
 - **Customer View UI Components:**
   - Branch dropdown visible in Labor panel (populated from saved calculation state)
   - Labor table displays selected jobs with hours (same as Executive/Sales modes)
+  - Grand Total card visible at bottom (shows final calculated amount from `GrandTotal` field)
   - All cost breakdowns hidden via `.customer-hidden` CSS class
   - All interactive elements disabled via `makeInputsReadOnly()` utility
   - Body receives `customer-view` class for styling disabled inputs
