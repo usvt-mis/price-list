@@ -164,7 +164,7 @@ The application includes comprehensive debug logging for troubleshooting initial
 - **Backoffice authentication**: BackofficeAdmins table (deprecated - no longer used for auth; kept for potential rollback)
 - Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`
 - Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup)
-- Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index), `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema), `database/migrations/remove_database_logging.sql` (removes legacy logging tables), `database/migrations/add_grandtotal_column.sql` (adds GrandTotal column with index for sorting)
+- Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index), `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema), `database/migrations/remove_database_logging.sql` (removes legacy logging tables), `database/migrations/add_grandtotal_column.sql` (adds GrandTotal column with index for sorting), `database/migrations/populate_grandtotal_for_existing_records.sql` (populates GrandTotal for existing records after schema migration)
 - **Deprecated scripts**: `database/deprecated/create_app_logs.sql`, `database/deprecated/diagnostics_logs.sql` (moved after Application Insights migration)
 
 ### Backend Structure (`api/`)
