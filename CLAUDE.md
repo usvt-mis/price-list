@@ -490,6 +490,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - Mirrors pattern between Branch and Motor Type dropdowns for consistency
 - **Commission calculation order**: `calcAll()` must be called BEFORE `renderLabor()` and `renderMaterials()` to ensure Final Price values include the correct commission percentage (5%, 7.5%, or 10%)
   - If rendering happens before `calcAll()`, Final Prices display with 0% commission, showing incorrect values in Customer View Mode
+  - This pattern is enforced in both `loadLabor()` (`src/js/calculator/labor.js`) and `deserializeCalculatorState()` (`src/js/saved-records/api.js`) to prevent race conditions
 
 **Database Diagnostics:**
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts

@@ -15,9 +15,9 @@ export async function loadLabor() {
   const motorTypeId = Number(el('motorType').value);
   if (!motorTypeId) {
     appState.labor = [];
-    renderLabor();
-    // Import calcAll dynamically to avoid circular dependency
+    // Import calcAll dynamically to avoid circular dependency - calculate FIRST
     (await import('./calculations.js')).calcAll();
+    renderLabor();  // Then render with correct commission percent
     return;
   }
 
@@ -26,9 +26,9 @@ export async function loadLabor() {
     const labor = await fetchJson(`/api/labor?motorTypeId=${motorTypeId}`);
     appState.labor = labor;
     setStatus('');
-    renderLabor();
-    // Import calcAll dynamically to avoid circular dependency
+    // Import calcAll dynamically to avoid circular dependency - calculate FIRST
     (await import('./calculations.js')).calcAll();
+    renderLabor();  // Then render with correct commission percent
   } catch (e) {
     console.error(e);
     setStatus('Failed to load labor. Please try again.');
