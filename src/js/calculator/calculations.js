@@ -153,6 +153,11 @@ export function calcAll() {
     const breakdownCard = el('breakdownCard');
     if (breakdownCard) breakdownCard.classList.add('customer-hidden');
 
+    // Hide the Manhours column in Labor panel
+    document.querySelectorAll('.manhours-col').forEach(el => {
+      el.classList.add('customer-hidden-manhours');
+    });
+
     // Make all inputs read-only
     makeInputsReadOnly();
 
@@ -173,6 +178,11 @@ export function calcAll() {
     // Show the right breakdown card (Labor, Materials, Total Ovh+PP)
     const breakdownCard = el('breakdownCard');
     if (breakdownCard) breakdownCard.classList.remove('customer-hidden');
+
+    // Show the Manhours column in Labor panel
+    document.querySelectorAll('.manhours-col').forEach(el => {
+      el.classList.remove('customer-hidden-manhours');
+    });
 
     // Remove read-only
     removeReadOnly();

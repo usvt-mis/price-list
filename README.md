@@ -68,6 +68,7 @@ The Price List Calculator computes total cost based on three components:
     - Read-only Calculation Form with Branch dropdown and Job summary
     - All cost breakdown cards hidden (Labor/Materials/Ovh+PP breakdown, bottom Grand Total, cost details)
     - No commission, sales profit, or percentage breakdown cards shown
+    - Manhours column hidden in Labor panel (Executive/Sales modes show Manhours)
     - All interactive elements disabled
   - Role-based visibility: Sales users see own records, Executive users see all records
   - Only creators can edit their records; Executives can delete any record, creators can delete their own

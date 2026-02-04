@@ -152,6 +152,7 @@ Shared links (`?share={token}`) display the Calculation Form in Customer View mo
 - Commission card
 - Sales Profit card
 - Percentage breakdown cards
+- Manhours column in Labor panel (hidden via `.customer-hidden-manhours` CSS class)
 
 **Disabled Elements:**
 - All inputs (readonly)

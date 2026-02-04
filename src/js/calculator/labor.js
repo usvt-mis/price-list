@@ -56,7 +56,7 @@ export function renderLabor() {
       <tr class="border-b">
         <th class="w-10 py-2"></th>
         <th class="text-left py-2">Job</th>
-        <th class="text-right py-2">Manhours</th>
+        <th class="text-right py-2 manhours-col">Manhours</th>
         ${isExecutiveMode() ? '<th class="text-right py-2">Raw Cost</th>' : ''}
         ${isExecutiveMode() ? '<th class="text-right py-2">Cost+Ovh+PP</th>' : ''}
         <th class="text-right py-2">Final Price</th>
@@ -102,7 +102,7 @@ export function renderLabor() {
                data-idx="${originalIdx}" ${isChecked ? 'checked' : ''}>
       </td>
       <td class="py-2 ${textClass}">${j.JobName}</td>
-      <td class="py-2 text-right ${textClass}">
+      <td class="py-2 text-right ${textClass} manhours-col">
         <input type="number" min="0" step="0.25" data-mh="${originalIdx}"
                class="w-20 text-right rounded border-slate-200 px-2 py-1 ${!isChecked ? 'bg-slate-100' : ''}"
                value="${j.effectiveManHours}" ${!isChecked ? 'disabled' : ''}>

@@ -288,6 +288,10 @@ See [docs/patterns.md](docs/patterns.md) for complete state management patterns 
 - Uses database-stored `GrandTotal` for consistency
 - All interactive elements disabled
 - View-only guard prevents navigation away from calculator
+- **Customer View UI hiding pattern**: Uses `.customer-hidden` CSS class to hide sensitive information
+  - Cost breakdown cards (Labor/Materials/Ovh+PP, commission, sales profit)
+  - Manhours column in Labor panel (hidden via `.customer-hidden-manhours` class)
+  - Executive-only columns (Raw Cost, Cost+Ovh+PP) already hidden via `isExecutiveMode()` checks
 
 See [docs/patterns.md](docs/patterns.md) for complete shared link navigation pattern and [docs/api-reference.md](docs/api-reference.md) for shared calculations API.
 
