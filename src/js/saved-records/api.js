@@ -62,6 +62,7 @@ export async function deserializeCalculatorState(data, options = {}) {
         // Fallback: fetch branches from API (mirrors Motor Type dropdown logic)
         const { fetchJson } = await import('../utils.js');
         const branches = await fetchJson('/api/branches');
+        appState.branches = branches; // Store in appState for later use
         branchEl.innerHTML = `<option value="">Select…</option>` + branches
           .map(x => `<option value="${x.BranchId}">${x.BranchName}</option>`).join('');
       }
@@ -79,6 +80,22 @@ export async function deserializeCalculatorState(data, options = {}) {
       missingOption.textContent = branchName;
       branchEl.appendChild(missingOption);
       branchEl.value = data.branchId;
+    }
+
+    // IMPORTANT: Ensure appState.branches contains the complete branch object
+    // with CostPerHour for calculations. This is critical for Customer View Mode
+    // where getSelectedBranch() needs the full branch data.
+    const branchInState = appState.branches?.find(b => b.BranchId === data.branchId);
+    if (!branchInState) {
+      // Branch not in appState - fetch it from API
+      const { fetchJson } = await import('../utils.js');
+      try {
+        const branches = await fetchJson('/api/branches');
+        appState.branches = branches;
+        console.log(`[Deserialize] Loaded ${branches.length} branches into appState for calculation`);
+      } catch (e) {
+        console.error('[Deserialize] Failed to load branches for calculation:', e);
+      }
     }
   }
 

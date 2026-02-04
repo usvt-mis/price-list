@@ -39,6 +39,8 @@ When loading saved calculations, dropdowns (branch, motor type) must be populate
 ### Branch Dropdown
 - Populates from `appState.branches` first (performance optimization)
 - Falls back to `/api/branches` API call if not cached
+- **Critical for Customer View Mode**: After setting dropdown value, ensures `appState.branches` contains complete branch object with `CostPerHour` for calculations
+- If branch not found in `appState.branches`, fetches from API to enable `getSelectedBranch()` to return valid data for price calculations
 
 ### Motor Type Dropdown
 - Fetches from `/api/motor-types` API if empty
