@@ -62,6 +62,15 @@ See [CLAUDE.md](../CLAUDE.md) for project overview and navigation.
 - Toggling a checkbox triggers `renderLabor()` to re-render the table and `calcAll()` to update totals
 - Checkbox uses `data-idx` attribute to map to the job index in the original `labor` array (not the display position)
 
+### Customer View Mode Behavior
+When in Customer View Mode (accessed via shared links):
+- **Checkboxes are disabled**: No cursor pointer, non-interactive, preserves checked/unchecked state
+- **Manhour inputs are disabled**: Gray background, non-editable, displays original values
+- **Event listeners not attached**: Prevents any JavaScript interaction with the labor table
+- **Read-only experience**: Customers can view job data but cannot modify selections or hours
+
+---
+
 ---
 
 ## Editable Manhours
@@ -73,7 +82,7 @@ See [CLAUDE.md](../CLAUDE.md) for project overview and navigation.
 ### Input Attributes
 - `type="number"` with `min="0"` and `step="0.25"` (allows quarter-hour increments)
 - `data-mh` attribute maps to the job index in the `labor` array
-- `disabled` when job is unchecked (grey background `bg-slate-100`)
+- `disabled` when job is unchecked OR in Customer View Mode (grey background `bg-slate-100`)
 
 ### Event Handler
 - Updates `labor[i].effectiveManHours` with the new value

@@ -160,6 +160,9 @@ Shared links (`?share={token}`) display the Calculation Form in Customer View mo
 - All inputs (readonly)
 - All buttons (disabled)
 - All dropdowns (disabled)
+- Labor table checkboxes (disabled, no cursor pointer)
+- Labor table manhour inputs (disabled with gray background)
+- Event listeners are not attached in Customer View Mode
 - Body receives `customer-view` class for styling
 
 ### View-Only Guard
@@ -173,6 +176,57 @@ Shared links (`?share={token}`) display the Calculation Form in Customer View mo
 **Related:**
 - [Save Feature](save-feature.md) - Save/load and sharing workflows
 - [API Reference](api-reference.md) - Shared Calculations API endpoint
+
+### Customer View Mode Labor Table Freeze
+
+**Location:** `src/js/calculator/labor.js`
+
+**Function:** `renderLabor()`
+
+#### Implementation
+
+Prevents editing or unchecking of jobs in the labor panel when in Customer View Mode (accessed via shared links). The table remains visible but all interactive elements are disabled.
+
+**State Detection:**
+```javascript
+const isCustomer = isCustomerMode();
+const isDisabled = !isChecked || isCustomer;
+```
+
+**Checkbox Freezing:**
+- Removes `cursor-pointer` CSS class when in Customer Mode
+- Adds `disabled` HTML attribute
+- Checkboxes remain visible but non-interactive
+- Preserves checked/unchecked state from saved calculation
+
+**Manhour Input Freezing:**
+- Applies `bg-slate-100` gray background when `isDisabled` is true
+- Adds `disabled` HTML attribute
+- Inputs display original manhour values but cannot be edited
+- Combines existing unchecked state logic with Customer Mode check
+
+**Event Listener Prevention:**
+```javascript
+// Only attach event listeners if not in Customer View Mode
+if (!isCustomerMode()) {
+  // Attach event listeners to checkboxes
+  document.querySelectorAll('.job-checkbox').forEach(cb => { ... });
+
+  // Attach event listeners to manhour inputs
+  document.querySelectorAll('[data-mh]').forEach(inp => { ... });
+}
+```
+
+#### Benefits
+
+- **Complete read-only experience**: Customers viewing shared calculations cannot modify labor table
+- **Consistent with Customer View philosophy**: All interactive elements disabled across the application
+- **Performance optimization**: Event listeners not attached when not needed
+- **Preserves data integrity**: Jobs remain in their original state from saved calculation
+- **Visual feedback**: Disabled styling provides clear indication of read-only state
+
+**Related:**
+- [Frontend](frontend.md) - Jobs Panel UX and Editable Manhours sections
 
 ---
 

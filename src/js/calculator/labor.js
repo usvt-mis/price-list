@@ -80,6 +80,8 @@ export function renderLabor() {
     const originalIdx = appState.labor.indexOf(j);
 
     const isChecked = j.checked;
+    const isCustomer = isCustomerMode();
+    const isDisabled = !isChecked || isCustomer;
     const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
     const rawCost = Number.isFinite(cph) ? mh * cph : NaN;
     const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
@@ -98,14 +100,14 @@ export function renderLabor() {
 
     return `<tr class="${rowClass}" data-idx="${originalIdx}">
       <td class="py-2">
-        <input type="checkbox" class="job-checkbox w-5 h-5 cursor-pointer"
-               data-idx="${originalIdx}" ${isChecked ? 'checked' : ''}>
+        <input type="checkbox" class="job-checkbox w-5 h-5 ${isCustomer ? '' : 'cursor-pointer'}"
+               data-idx="${originalIdx}" ${isChecked ? 'checked' : ''} ${isCustomer ? 'disabled' : ''}>
       </td>
       <td class="py-2 ${textClass}">${j.JobName}</td>
       <td class="py-2 text-right ${textClass} manhours-col">
         <input type="number" min="0" step="0.25" data-mh="${originalIdx}"
-               class="w-20 text-right rounded border-slate-200 px-2 py-1 ${!isChecked ? 'bg-slate-100' : ''}"
-               value="${j.effectiveManHours}" ${!isChecked ? 'disabled' : ''}>
+               class="w-20 text-right rounded border-slate-200 px-2 py-1 ${isDisabled ? 'bg-slate-100' : ''}"
+               value="${j.effectiveManHours}" ${isDisabled ? 'disabled' : ''}>
       </td>
       ${isExecutiveMode() ? `<td class="py-2 text-right ${textClass}">${fmt(rawCost)}</td>` : ''}
       ${isExecutiveMode() ? `<td class="py-2 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>` : ''}
@@ -119,28 +121,31 @@ export function renderLabor() {
     laborRowsEl.innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="${colspan}">Select Motor Type to load jobs.</td></tr>`;
   }
 
-  // Attach event listeners to checkboxes
-  document.querySelectorAll('.job-checkbox').forEach(cb => {
-    cb.addEventListener('click', async (e) => {
-      const idx = Number(e.target.dataset.idx);
-      appState.labor[idx].checked = e.target.checked;
-      renderLabor();
-      (await import('./calculations.js')).calcAll();
+  // Only attach event listeners if not in Customer View Mode
+  if (!isCustomerMode()) {
+    // Attach event listeners to checkboxes
+    document.querySelectorAll('.job-checkbox').forEach(cb => {
+      cb.addEventListener('click', async (e) => {
+        const idx = Number(e.target.dataset.idx);
+        appState.labor[idx].checked = e.target.checked;
+        renderLabor();
+        (await import('./calculations.js')).calcAll();
+      });
     });
-  });
 
-  // Attach event listeners to manhour inputs
-  document.querySelectorAll('[data-mh]').forEach(inp => {
-    inp.addEventListener('input', async () => {
-      const i = Number(inp.dataset.mh);
-      const v = Math.max(0, parseFloat(Number(inp.value).toFixed(2))); // Allow decimals, 2 decimal places
-      inp.value = v;
-      appState.labor[i].effectiveManHours = v;
-      const { calcAll } = await import('./calculations.js');
-      calcAll(); // Update totals
-      renderLabor(); // Refresh display (shows updated costs)
+    // Attach event listeners to manhour inputs
+    document.querySelectorAll('[data-mh]').forEach(inp => {
+      inp.addEventListener('input', async () => {
+        const i = Number(inp.dataset.mh);
+        const v = Math.max(0, parseFloat(Number(inp.value).toFixed(2))); // Allow decimals, 2 decimal places
+        inp.value = v;
+        appState.labor[i].effectiveManHours = v;
+        const { calcAll } = await import('./calculations.js');
+        calcAll(); // Update totals
+        renderLabor(); // Refresh display (shows updated costs)
+      });
     });
-  });
+  }
 }
 
 /**
