@@ -382,6 +382,15 @@ document.getElementById('saveBtn')?.dispatchEvent(new Event('click'));
 **Solution:** Fixed in version - `loadSavedRecords` is now properly imported from `./api.js`
 **Note:** This error occurs during post-login redirect when loading saved records
 
+### Issue 10: GrandTotal mismatch between calculator and saved records
+**Cause:** Backend used incorrect branch multiplier formula (additive instead of compound)
+**Details:**
+- Frontend (correct): `BranchMultiplier = (1 + Overhead%/100) × (1 + PolicyProfit%/100)`
+- Backend (was incorrect): `BranchMultiplier = 1 + (Overhead% + PolicyProfit%) / 100`
+**Solution:** Fixed in version - Backend now uses compound formula matching frontend
+**Migration:** Run `node database/migrations/recalculate-grandtotal.js` to fix existing records
+**Note:** For branches with both Overhead% and PolicyProfit non-zero, the compound formula yields higher multipliers (e.g., 30%+30% = 1.69 instead of 1.60)
+
 ---
 
 ## Next Steps After Diagnosis

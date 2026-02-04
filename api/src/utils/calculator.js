@@ -14,7 +14,7 @@ const { COMMISSION_TIERS } = require('../../config');
  * 1. Labor Subtotal = Sum(Job Hours × CostPerHour × BranchMultiplier)
  * 2. Materials Subtotal = Sum(Quantity × UnitCost × BranchMultiplier)
  * 3. Travel Cost = TravelKm × 15 × SalesProfitMultiplier
- * 4. Branch Multiplier = 1 + (OverheadPercent + PolicyProfit) / 100
+ * 4. Branch Multiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)
  * 5. Sales Profit Multiplier = 1 + SalesProfitPct / 100
  * 6. Subtotal Before Sales Profit = (Labor + Materials) × BranchMultiplier + Travel Cost
  * 7. Sub Grand Total = Subtotal Before Sales Profit × SalesProfitMultiplier
@@ -43,7 +43,8 @@ async function calculateGrandTotal(pool, saveData) {
   }
 
   const branch = branchResult.recordset[0];
-  const branchMultiplier = 1 + (branch.OverheadPercent + branch.PolicyProfit) / 100;
+  // Compound multiplier: (1 + O%/100) × (1 + P%/100)
+  const branchMultiplier = (1 + ((branch.OverheadPercent || 0) / 100)) * (1 + ((branch.PolicyProfit || 0) / 100));
   const salesProfitMultiplier = 1 + ((salesProfitPct || 0) / 100);
 
   // Calculate labor subtotal from jobs
