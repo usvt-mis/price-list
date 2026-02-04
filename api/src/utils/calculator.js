@@ -11,7 +11,7 @@ const { COMMISSION_TIERS } = require('../../config');
  * This replicates the frontend calculation logic in backend
  *
  * Formula:
- * 1. Labor Subtotal = Sum(Job Hours × CostPerHour × BranchMultiplier)
+ * 1. Labor Subtotal = Sum(Job Hours × CostPerHour × BranchMultiplier) [Only isChecked=true jobs]
  * 2. Materials Subtotal = Sum(Quantity × UnitCost × BranchMultiplier)
  * 3. Travel Cost = TravelKm × 15 × SalesProfitMultiplier
  * 4. Branch Multiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)
@@ -24,7 +24,7 @@ const { COMMISSION_TIERS } = require('../../config');
  * @param {Object} pool - SQL connection pool
  * @param {Object} saveData - Calculation data
  * @param {number} saveData.branchId - Branch ID
- * @param {Array} saveData.jobs - Array of jobs with effectiveManHours
+ * @param {Array} saveData.jobs - Array of jobs with effectiveManHours and isChecked (only checked jobs are calculated)
  * @param {Array} saveData.materials - Array of materials with quantity and unitCost
  * @param {number} saveData.salesProfitPct - Sales profit percentage
  * @param {number} saveData.travelKm - Travel distance in km
@@ -47,11 +47,14 @@ async function calculateGrandTotal(pool, saveData) {
   const branchMultiplier = (1 + ((branch.OverheadPercent || 0) / 100)) * (1 + ((branch.PolicyProfit || 0) / 100));
   const salesProfitMultiplier = 1 + ((salesProfitPct || 0) / 100);
 
-  // Calculate labor subtotal from jobs
+  // Calculate labor subtotal from jobs (only checked jobs)
   let laborSubtotal = 0;
   for (const job of jobs) {
-    const jobHours = job.effectiveManHours || job.manHours || 0;
-    laborSubtotal += jobHours * branch.CostPerHour * branchMultiplier;
+    // Only include checked jobs in calculation (matching frontend behavior)
+    if (job.isChecked !== false) {
+      const jobHours = job.effectiveManHours || job.manHours || 0;
+      laborSubtotal += jobHours * branch.CostPerHour * branchMultiplier;
+    }
   }
 
   // Calculate materials subtotal

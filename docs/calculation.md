@@ -66,6 +66,12 @@ Where `Selling_Price` = `effectiveManHours × CostPerHour × CompleteMultiplier`
 Labor Subtotal = sum of all Final Prices (for checked jobs only)
 ```
 
+**Important**: Only jobs with `isChecked !== false` are included in labor calculations. Unchecked jobs are excluded from:
+- Labor Subtotal
+- Grand Total
+- Commission calculations
+- All database-stored GrandTotal values (calculated in backend `calculateGrandTotal` function)
+
 ---
 
 ## Material Calculations
