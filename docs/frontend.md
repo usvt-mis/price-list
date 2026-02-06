@@ -176,10 +176,14 @@ When in Customer View Mode (accessed via shared links):
 ## Grand Total Panel
 
 ### Layout Structure
-- Three-tier layout: side-by-side cards on top (Sub Grand Total + Breakdown + Percentage Breakdown), with Grand Total at bottom
-- Uses CSS Grid with `grid grid-cols-1 md:grid-cols-3 gap-6`
-- On mobile: All cards stack vertically
-- **Percentage Breakdown card** is Executive-only (hidden in Sales mode)
+- **Dynamic grid layout** that adjusts based on user mode for optimal visual balance:
+  - **Executive mode**: 3-column grid (`md:grid-cols-3`) - Sub Grand Total + Breakdown + Percentage Breakdown
+  - **Sales mode**: 2-column grid (`md:grid-cols-2`) - Sub Grand Total + Breakdown (Percentage Breakdown hidden)
+  - **Customer mode**: All cards hidden (only final Grand Total card shown)
+- Three-tier layout: side-by-side cards on top, with Grand Total at bottom
+- On mobile: All cards stack vertically (`grid-cols-1`)
+- Grid container has ID `bottomSummaryGrid` for dynamic layout updates via `updateBottomGridLayout()` function
+- **Percentage Breakdown card** is Executive-only (hidden in Sales mode via `isExecutiveMode()` check)
 
 ### Top Row: Left Card (Sub Grand Total)
 - **Sub Grand Total** display at `text-5xl font-extrabold` (48px)
@@ -294,6 +298,7 @@ A segmented control in the header allows switching between two display modes:
 - Total Raw Cost
 - Sub Total Cost
 - Percentage Breakdown card (entire card hidden)
+- **Grid layout switches to 2-column** for balanced visual presentation (via `updateBottomGridLayout()`)
 
 **Both Modes Show**:
 - Sub Grand Total

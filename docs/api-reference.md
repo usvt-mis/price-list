@@ -6,15 +6,33 @@
 
 ## Table of Contents
 
+- [System Endpoints](#system-endpoints)
+- [Data Reference Endpoints](#data-reference-endpoints)
 - [Authentication Endpoints](#authentication-endpoints)
 - [Saved Calculations API](#saved-calculations-api)
+- [Shared Calculations API](#shared-calculations-api)
 - [Admin API Endpoints](#admin-api-endpoints)
 - [Backoffice Admin API](#backoffice-admin-api)
 - [Auth Middleware Helpers](#auth-middleware-helpers)
 
 ---
 
-## Authentication Endpoints
+## System Endpoints
+
+### Ping API
+
+**`GET /api/ping`** (No authentication required)
+
+Simple health check endpoint.
+
+**Response:**
+```
+ok
+```
+
+**Returns:** Plain text "ok" status
+
+---
 
 ### Version API
 
@@ -31,6 +49,120 @@ Get application version from package.json.
 ```
 
 ---
+
+## Data Reference Endpoints
+
+All endpoints require Azure AD authentication (applied at server level).
+
+### Get Motor Types
+
+**`GET /api/motor-types`** (Authenticated users only)
+
+Get all motor types from the database.
+
+**Response:**
+```json
+[
+  {
+    "MotorTypeId": 1,
+    "MotorTypeName": "Motorcycle"
+  },
+  {
+    "MotorTypeId": 2,
+    "MotorTypeName": "Car"
+  }
+]
+```
+
+**Returns:** Array of motor types ordered by MotorTypeName
+
+---
+
+### Get Branches
+
+**`GET /api/branches`** (Authenticated users only)
+
+Get all branches with cost and multiplier data.
+
+**Response:**
+```json
+[
+  {
+    "BranchId": 1,
+    "BranchName": "Bangkok",
+    "CostPerHour": 500,
+    "OverheadPercent": 20,
+    "PolicyProfit": 10
+  }
+]
+```
+
+**Returns:** Array of branches ordered by BranchName
+
+**Fields:**
+- `CostPerHour`: Labor cost per hour for this branch
+- `OverheadPercent`: Branch overhead percentage (applied silently in calculations)
+- `PolicyProfit`: Branch policy profit percentage (applied silently in calculations)
+
+---
+
+### Get Labor (Jobs)
+
+**`GET /api/labor?motorTypeId={id}`** (Authenticated users only)
+
+Get jobs for a specific motor type with default manhours.
+
+**Query Parameters:**
+- `motorTypeId` (required): Motor type ID
+
+**Response:**
+```json
+[
+  {
+    "JobId": 100,
+    "JobCode": "LAB001",
+    "JobName": "Oil Change",
+    "SortOrder": 1,
+    "ManHours": 1.5
+  }
+]
+```
+
+**Returns:** Jobs ordered by SortOrder. ManHours defaults to 0 if not set for motor type.
+
+---
+
+### Search Materials
+
+**`GET /api/materials?query={search}`** (Authenticated users only)
+
+Search materials by code or name.
+
+**Query Parameters:**
+- `query` (required): Search term - must be at least 2 characters
+
+**Response:**
+```json
+[
+  {
+    "MaterialId": 500,
+    "MaterialCode": "OIL-001",
+    "MaterialName": "Engine Oil 4L",
+    "UnitCost": 350
+  }
+]
+```
+
+**Returns:** Top 20 active materials matching the search query, ordered by MaterialCode
+
+**Search Behavior:** Searches both MaterialCode and MaterialName fields (case-insensitive partial match)
+
+**Related:**
+- [Calculation](calculation.md) - How materials factor into pricing formulas
+
+---
+
+## Authentication Endpoints
 
 ### Auth Info API
 
@@ -197,6 +329,79 @@ Delete a saved calculation.
 - [Calculation](calculation.md) - Pricing formulas and GrandTotal calculation
 - [Save Feature](save-feature.md) - Save/load workflows and sharing
 - [Backend](backend.md) - Express.js/Azure Functions patterns
+
+---
+
+## Shared Calculations API
+
+### Generate Share Token
+
+**`POST /api/shared/saves/{id}/share`** (Creator only)
+
+Generate a share token for a saved calculation. Creates a public link that can be accessed without authentication.
+
+**URL Parameters:**
+- `id` (required): Saved calculation ID
+
+**Response:**
+```json
+{
+  "shareToken": "550e8400-e29b-41d4-a716-446655440000",
+  "shareUrl": "https://example.com/?share=550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Features:**
+- Generates UUID v4 share token
+- Reuses existing token if already generated
+- Returns full share URL for easy sharing
+- Validates ownership before generating token
+
+**Error Responses:**
+- `400`: Invalid save ID
+- `403`: Not the creator, or record has been deleted
+- `404`: Saved calculation not found
+
+---
+
+### Access Shared Calculation
+
+**`GET /api/shared/{token}`** (Public - no authentication required)
+
+Access a shared calculation via share token. Loads in Customer View mode (read-only).
+
+**URL Parameters:**
+- `token` (required): UUID share token
+
+**Response:**
+```json
+{
+  "id": 123,
+  "runNumber": "R-2024-001",
+  "BranchID": 1,
+  "MotorTypeID": 2,
+  "DistanceKm": 50,
+  "SalesProfitPercent": 10,
+  "Jobs": [...],
+  "Materials": [...],
+  "GrandTotal": 15000.00,
+  "isShared": true
+}
+```
+
+**Features:**
+- No authentication required
+- Returns `isShared: true` flag for view-only mode in frontend
+- Uses database-stored `GrandTotal` for consistency
+- Returns 404 if token not found or record has been deleted
+
+**Error Responses:**
+- `404`: Shared calculation not found or has been deleted
+
+**Related:**
+- [Save Feature](save-feature.md) - Shared links and Customer View mode
+- [Patterns](patterns.md) - Shared link navigation pattern
+- [Frontend](frontend.md) - Customer View UI hiding pattern
 
 ---
 

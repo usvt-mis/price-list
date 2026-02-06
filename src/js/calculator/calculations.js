@@ -4,10 +4,32 @@
  */
 
 import { el, fmt, fmtPercent, makeInputsReadOnly, removeReadOnly } from '../utils.js';
-import { appState, isExecutiveMode, isCustomerMode } from '../state.js';
+import { appState, isExecutiveMode, isSalesMode, isCustomerMode } from '../state.js';
 import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
 import { materialSubtotalBase, materialSubtotal } from './materials.js';
 import { COMMISSION_TIERS } from '../config.js';
+
+
+/**
+ * Update bottom summary grid layout based on mode
+ * Executive mode: 3 columns
+ * Sales mode: 2 columns (percentage breakdown card is hidden)
+ */
+function updateBottomGridLayout() {
+  const grid = document.getElementById('bottomSummaryGrid');
+  if (!grid) return;
+
+  if (isExecutiveMode()) {
+    // Executive mode: 3 columns
+    grid.classList.remove('md:grid-cols-2');
+    grid.classList.add('md:grid-cols-3');
+  } else if (isSalesMode()) {
+    // Sales mode: 2 columns
+    grid.classList.remove('md:grid-cols-3');
+    grid.classList.add('md:grid-cols-2');
+  }
+  // Customer mode: grid layout doesn't matter since all cards are hidden
+}
 
 
 /**
@@ -127,6 +149,9 @@ export function calcAll() {
       percentCard.classList.add('hidden');
     }
   }
+
+  // Update grid layout based on mode (2-column for Sales, 3-column for Executive)
+  updateBottomGridLayout();
 
   // === Customer View: Hide sensitive information, show only Grand Total ===
   if (isCustomerMode()) {
