@@ -22,7 +22,7 @@ router.get('/', async (req, res, next) => {
     const result = await pool.request().query(`
       SELECT MotorTypeId, MotorTypeName
       FROM dbo.MotorTypes
-      ORDER BY MotorTypeName;
+      ORDER BY CAST(LEFT(MotorTypeName, CHARINDEX(' ', MotorTypeName) - 1) AS DECIMAL(10,2));
     `);
 
     res.status(200).json(result.recordset);

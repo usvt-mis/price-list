@@ -16,7 +16,7 @@ app.http("motorTypes", {
       const r = await pool.request().query(`
         SELECT MotorTypeId, MotorTypeName
         FROM dbo.MotorTypes
-        ORDER BY MotorTypeName;
+        ORDER BY CAST(LEFT(MotorTypeName, CHARINDEX(' ', MotorTypeName) - 1) AS DECIMAL(10,2));
       `);
       return { status: 200, jsonBody: r.recordset };
     } catch (e) {
