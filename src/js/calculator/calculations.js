@@ -29,6 +29,24 @@ function updateBottomGridLayout() {
     grid.classList.add('md:grid-cols-2');
   }
   // Customer mode: grid layout doesn't matter since all cards are hidden
+
+  // Update card padding based on mode
+  const grandTotalCard = document.getElementById('grandTotalWithoutCommission');
+  const breakdownCard = document.getElementById('breakdownCard');
+
+  if (isSalesMode()) {
+    // Sales mode: increased padding (p-6 -> p-8)
+    grandTotalCard?.classList.remove('p-6');
+    grandTotalCard?.classList.add('p-8');
+    breakdownCard?.classList.remove('p-6');
+    breakdownCard?.classList.add('p-8');
+  } else {
+    // Executive mode: standard padding (p-8 -> p-6)
+    grandTotalCard?.classList.remove('p-8');
+    grandTotalCard?.classList.add('p-6');
+    breakdownCard?.classList.remove('p-8');
+    breakdownCard?.classList.add('p-6');
+  }
 }
 
 
