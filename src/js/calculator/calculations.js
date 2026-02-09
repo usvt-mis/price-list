@@ -101,7 +101,7 @@ export function calcAll() {
 
   let cp = 0;
   for (const tier of COMMISSION_TIERS) {
-    if (gtToStcRatio <= tier.maxRatio) {
+    if (gtToStcRatio >= tier.minRatio && gtToStcRatio < tier.maxRatio) {
       cp = tier.percent;
       break;
     }

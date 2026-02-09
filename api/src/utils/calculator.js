@@ -18,7 +18,7 @@ const { COMMISSION_TIERS } = require('../../config');
  * 5. Sales Profit Multiplier = 1 + SalesProfitPct / 100
  * 6. Subtotal Before Sales Profit = (Labor + Materials) × BranchMultiplier + Travel Cost
  * 7. Sub Grand Total = Subtotal Before Sales Profit × SalesProfitMultiplier
- * 8. Commission % based on ratio (tiered: 10% if ratio > 1.3, 7.5% if > 1.2, 5% if > 1.1)
+ * 8. Commission % based on ratio (tiered: 0%, 1%, 2%, 2.5%, 5%)
  * 9. Grand Total = Sub Grand Total × (1 + Commission% / 100)
  *
  * @param {Object} pool - SQL connection pool
@@ -83,7 +83,7 @@ async function calculateGrandTotal(pool, saveData) {
   const ratio = subGrandTotal / (subTotalBeforeSalesProfit || 1);
   let commissionPercent = 0;
   for (const tier of COMMISSION_TIERS) {
-    if (ratio <= tier.maxRatio) {
+    if (ratio >= tier.minRatio && ratio < tier.maxRatio) {
       commissionPercent = tier.percent;
       break;
     }

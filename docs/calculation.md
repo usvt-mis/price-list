@@ -148,13 +148,15 @@ Commission is calculated based on the ratio of Sub Grand Total (SGT) to Sub Tota
 
 ### Commission Percentage
 
-| SGT vs STC Condition | Commission% |
-|---------------------|-------------|
-| SGT < 80% of STC | 0% |
-| 80% ≤ SGT < 100% of STC | 1% |
-| 100% ≤ SGT ≤ 105% of STC | 2% |
-| 105% < SGT ≤ 120% of STC | 2.5% |
-| SGT > 120% of STC | 5% |
+| SGT vs STC Ratio | Commission% |
+|------------------|-------------|
+| 0 ≤ ratio < 0.8 (80%) | 0% |
+| 0.8 (80%) ≤ ratio < 1.0 (100%) | 1% |
+| 1.0 (100%) ≤ ratio < 1.05 (105%) | 2% |
+| 1.05 (105%) ≤ ratio < 1.20 (120%) | 2.5% |
+| ratio ≥ 1.20 (120%) | 5% |
+
+**Note**: Tier boundaries use inclusive lower bound and exclusive upper bound. For example, exactly 80% (0.8) ratio earns 1% commission, not 0%.
 
 ### Commission Value
 ```
