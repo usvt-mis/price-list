@@ -1,3 +1,10 @@
+---
+name: Backend
+description: "API endpoints and business logic for the Price List Calculator"
+model: opus
+color: green
+---
+
 # Backend Agent
 
 Specializes in Azure Functions API endpoints and business logic for the Price List Calculator.

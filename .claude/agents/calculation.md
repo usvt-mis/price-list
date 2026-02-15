@@ -1,3 +1,10 @@
+---
+name: Calculation
+description: "Pricing calculations, commission logic, and cost multipliers"
+model: opus
+color: indigo
+---
+
 # Calculation Agent
 
 Specializes in pricing calculations, commission logic, and cost multipliers for the Price List Calculator.

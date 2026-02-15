@@ -1,3 +1,10 @@
+---
+name: Orchestrator
+description: "Top-level coordinator that routes tasks to appropriate specialist agents"
+model: opus
+color: purple
+---
+
 # Orchestrator Agent
 
 Top-level coordinator for the Price List Calculator agent team.

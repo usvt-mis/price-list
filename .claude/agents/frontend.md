@@ -1,3 +1,10 @@
+---
+name: Frontend
+description: "UI components, responsive design, and interactions for the main calculator"
+model: opus
+color: blue
+---
+
 # Frontend Agent
 
 Specializes in UI components, responsive design, and frontend interactions for the **main calculator** of the Price List Calculator.

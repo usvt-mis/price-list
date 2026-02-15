@@ -50,11 +50,6 @@ The Express.js server uses `dotenv` to load environment variables from `.env.loc
 Create or update `.env.local` file:
 ```
 DATABASE_CONNECTION_STRING=Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
-
-# Local Development Database Role Lookup (optional)
-LOCAL_DEV_DB_LOOKUP=false  # Set to 'true' to query UserRoles table for MOCK_USER_EMAIL
-MOCK_USER_EMAIL=it@uservices-thailand.com  # User email for local development
-MOCK_USER_ROLE=PriceListSales  # Fallback role (used when DB lookup disabled or fails)
 ```
 
 **For Azure Functions mode (Legacy):**
@@ -132,9 +127,6 @@ The application includes comprehensive debug logging for troubleshooting initial
 - `[MODE-*]` - Role detection and mode setting
 - `[GLOBAL ERROR]` - Uncaught errors
 - `[UNHANDLED PROMISE REJECTION]` - Unhandled promise rejections
-- `[Post-login redirect]` - Post-login redirect errors
-- `[Load records on init]` - Records loading errors on initialization
-- `[applyFiltersAndRender]` - Record filtering/rendering errors
 
 **Usage:**
 1. Open browser DevTools (F12) → Console tab
@@ -155,44 +147,86 @@ The application includes comprehensive debug logging for troubleshooting initial
 ### Database Schema
 - Core tables: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
-  - SavedCalculations includes GrandTotal column (pre-calculated for sorting)
 - Role management: UserRoles (stores role assignments - can be Executive, Sales, Customer, or NULL/NoRole)
   - Columns: Email (PK), Role, AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt
+  - FirstLoginAt: Tracks when user first logged in
+  - LastLoginAt: Updated on every login for activity tracking
 - Backoffice audit: RoleAssignmentAudit (tracks all role changes with ChangedBy email)
-- See [docs/architecture.md](docs/architecture.md) for complete schema
+- **Backoffice authentication**: BackofficeAdmins table (deprecated - no longer used for auth; kept for potential rollback)
+- Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`
+- Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup)
+- Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index), `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema), `database/migrations/remove_database_logging.sql` (removes legacy logging tables)
+- **Deprecated scripts**: `database/deprecated/create_app_logs.sql`, `database/deprecated/diagnostics_logs.sql` (moved after Application Insights migration)
 
 ### Backend Structure (`api/`)
 
 **Express.js (Primary - App Service):**
 - Main server: `server.js` at root (Express app with static file serving and route mounting)
-- Route modules in `src/routes/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, version, auth, admin/roles, admin/diagnostics, backoffice, backoffice/login
-- Authentication middleware in `src/middleware/`: authExpress.js, twoFactorAuthExpress.js
+- Route modules in `src/routes/`: Converted from Azure Functions to Express Router pattern
+  - Core routes: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations
+  - Utility routes: ping, version, auth
+  - Admin routes: admin/roles, admin/diagnostics
+  - Backoffice routes: backoffice, backoffice/login
+- Authentication middleware in `src/middleware/`: authExpress.js, twoFactorAuthExpress.js (Express-compatible)
 - Shared connection pool via `mssql` package in `src/db.js`
+- Utilities in `src/utils/`: logger.js (console-based with correlation ID support)
 - Environment configuration via `dotenv` package (loads `.env.local` from repository root)
 
 **Azure Functions (Legacy - still functional):**
 - Azure Functions v4 with `@azure/functions` package
-- HTTP handlers in `src/functions/`
-- Original authentication middleware in `src/middleware/`: auth.js, twoFactorAuth.js
-
-See [docs/backend.md](docs/backend.md) for complete backend patterns and middleware documentation.
+- HTTP handlers in `src/functions/`: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations, ping, version, admin/roles, admin/diagnostics, backoffice
+- Original authentication middleware in `src/middleware/`: auth.js, twoFactorAuth.js (Azure Functions format)
 
 ### Frontend Structure (`src/`)
 - **Main Calculator** (`index.html`): Single-page HTML application using ES6 modules
-  - Modular JavaScript in `src/js/` directory (15 modules)
-  - Import maps for clean module resolution
-  - State management via `state.js`
-  - Azure AD Authentication for Executive/Sales users
-  - Customer View Mode for shared links (read-only)
+  - **Modular JavaScript**: Code split into 15 ES6 modules in `src/js/` directory
+  - **No build process** - Uses native ES6 modules with import maps (browser support: 96%+)
+  - **Module Organization**:
+    ```
+    src/js/
+    ├── app.js                    # Main entry point, initializes all modules
+    ├── config.js                 # Constants, environment detection, API endpoints
+    ├── state.js                  # Global state management
+    ├── utils.js                  # Helper functions (DOM, formatting, UI)
+    ├── auth/                     # Authentication module
+    │   ├── index.js              # Auth exports
+    │   ├── token-handling.js     # SWA token parsing
+    │   ├── mode-detection.js     # Role-based mode logic
+    │   └── ui.js                 # Auth UI rendering
+    ├── calculator/               # Calculator logic module
+    │   ├── index.js              # Calculator exports
+    │   ├── labor.js              # Labor section logic
+    │   ├── materials.js          # Materials section logic
+    │   └── calculations.js       # Cost calculations
+    ├── saved-records/           # Saved calculations module
+    │   ├── index.js              # Saved records exports
+    │   ├── api.js                # API calls for saved calculations
+    │   ├── ui.js                 # Records list/grid rendering
+    │   └── sharing.js            # Share functionality
+    └── admin/                   # Admin role management module
+        ├── index.js              # Admin exports
+        └── role-assignment.js    # Admin panel logic
+    ```
+  - **Import Map**: Clean module resolution without relative path clutter
+  - **State Management**: Centralized in `state.js` with getters/setters
+  - **API Communication**: Via `fetch()` through utility functions
+  - **Azure AD Authentication**: For Executive/Sales users
 - **Backoffice Admin** (`backoffice.html`): Standalone backoffice interface with 3-tab role management
-  - Azure AD authentication only (restricted to `it@uservices-thailand.com`)
+  - Separate HTML file with complete UI independence
+  - **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`
+  - No password step - Azure AD handles full authentication
+  - No navigation links to main calculator
   - Uses `/api/backoffice/*` endpoints for data management
-
-See [docs/frontend.md](docs/frontend.md) for complete frontend implementation details.
+  - **3-Tab Layout**: Executives, Sales, Customers tabs for role-specific user management
+  - **Inline add forms**: Add users directly in each tab with real-time email validation
+  - **Status indicators**: Active (logged in) vs Pending (awaiting login) based on FirstLoginAt/LastLoginAt
+  - **Count badges**: Each tab shows user count
+  - **Audit Log tab**: View role change history with search functionality
+  - **Settings tab**: Displays authentication info (no password change)
 
 ---
 
-## Essential Patterns
+## Key Patterns
 
 ### Express.js Route Pattern (Primary)
 Each route module:
@@ -202,9 +236,10 @@ Each route module:
 4. Server imports and mounts at path: `app.use('/api/path', router);`
 5. Authentication applied at server level via middleware before route mounting
 
-**Environment Variables**: `server.js` loads `dotenv` at startup from `.env.local` at repository root.
-
-See [docs/backend.md](docs/backend.md) for complete Express.js patterns and route registration order.
+**Environment Variables (dotenv):**
+- `server.js` loads `dotenv` at startup: `require('dotenv').config({ path: '.env.local' });`
+- Environment variables (including `DATABASE_CONNECTION_STRING`) are loaded from `.env.local` at repository root
+- `.env` files are excluded from version control via `.gitignore`
 
 ### Function Registration Pattern (Legacy Azure Functions)
 Each HTTP function file:
@@ -213,105 +248,264 @@ Each HTTP function file:
 3. Exports nothing (registration happens via side effect)
 4. The main `src/index.js` requires all functions to register them
 
-See [docs/backend.md](docs/backend.md) for complete Azure Functions patterns.
+**Timer Functions (Legacy Azure Functions):**
+- Timer triggers use `app.timer()` with a schedule (cron expression)
+- Manual HTTP endpoints available for triggering scheduled tasks
 
 ### Database Connection Pooling
 - Connection pool is singleton-initialized in `api/src/db.js`
 - All functions use `getPool()` to get the shared pool
 - Uses parameterized queries to prevent SQL injection
-- For direct database access, use sqlcmd (see Quick Start above)
-
-See [docs/architecture.md](docs/architecture.md) for complete database schema and patterns.
+- When using transactions with stored procedures, ensure stored procedures don't create nested transactions
+- For direct database access (diagnostics, troubleshooting), use sqlcmd (see Quick Start above)
 
 ### Local Development Bypass
 - When running on localhost, authentication is automatically bypassed
-- Mock user defaults to `it@uservices-thailand.com` email with `PriceListSales` role
-- Override mock email with `MOCK_USER_EMAIL` env var
-- Override mock role with `MOCK_USER_ROLE` env var
-- **Database Role Lookup**: Set `LOCAL_DEV_DB_LOOKUP=true` to query UserRoles table for mock user's email
-- **Backoffice local dev**: Set `BACKOFFICE_MOCK_EMAIL` env var to override backoffice mock email
-
-See [docs/authentication.md](docs/authentication.md) for complete local development bypass documentation.
+- Mock user defaults to `dev-user@localhost` email with `PriceListSales` role
+- Override mock email with `MOCK_USER_EMAIL` env var (default: `dev-user@localhost`)
+- Override mock role with `MOCK_USER_ROLE` env var (default: `PriceListSales`)
+- Frontend detects local dev via `window.location.hostname`
+- Backend checks for localhost in headers or special `x-local-dev: true` header
+- Local dev defaults to Executive mode; production mode is determined from user's role
 
 ### Mode Determination
-- View mode (Executive/Sales/Customer) is automatically determined from user's `effectiveRole` via `/api/auth/me` API
-- Executive users see cost details + commission section
-- Sales users see simplified view with commission but no cost breakdowns
-- Customer mode activates for share links (read-only view)
-- NoRole users see "awaiting assignment" screen
+- View mode (Executive/Sales) is automatically determined from user's `effectiveRole` via `/api/auth/me` API
+- The `/api/auth/me` endpoint returns `effectiveRole` from UserRoles database lookup
+- Executive users see cost details (overhead, raw costs, multipliers)
+- Sales users see simplified view without cost breakdowns
+- NoRole users see "awaiting assignment" screen with no access to calculator
 - No manual mode switching - mode is purely role-based for security
+- Authenticated users with roles land on list view (not calculator) by default
+- Frontend prefers `effectiveRole` from `/api/auth/me` (single API call)
+- Falls back to `/api/adm/roles/current` if `effectiveRole` is not available
+- Fallback logic in `detectLocalRole()` returns 'NoRole' for unassigned users instead of defaulting to 'Sales'
 
-See [docs/authentication.md](docs/authentication.md) for complete RBAC and mode determination documentation.
-
----
-
-## Key Concepts
+**NoRole State Freeze Mechanism:**
+- When `showAwaitingAssignmentScreen()` is called, the application enters a locked state (`isNoRoleState = true`)
+- All interactive elements outside the awaiting view are disabled via `disableAllInteractiveElements()`:
+  - Sets `tabindex="-1"` and `aria-disabled="true"` on all buttons, links, inputs outside awaiting view
+  - Adds visual `opacity-50 cursor-not-allowed` classes for accessibility
+  - Stores original state for restoration when role is assigned
+- Main container receives `pointer-events-none` to block all mouse/touch interactions
+- Awaiting view has `pointer-events-auto` to override the container freeze
+- Backdrop overlay (`#noroleOverlay`) provides visual separation with backdrop blur
+- `showView()` includes a guard that prevents any view switching when `isNoRoleState === true`
+- When user gets a role assigned and page refreshes, the lock is released and interactivity restored
+- Only the Sign Out button remains functional in the awaiting state
 
 ### Role-Based Access Control (RBAC)
 The application implements a 4-tier role system:
 
 **Roles:**
 - **Executive**: Full access to costs, margins, multipliers; can assign Executive roles to others
-- **Sales**: Restricted view (no cost data, shows commission), can only see own records
-- **NoRole**: New authenticated users default to NoRole; see "awaiting assignment" screen
-- **Customer**: No login required; view-only access via shared links
+- **Sales**: Restricted view (no cost data), can only see own records
+- **NoRole**: New authenticated users default to NoRole; see "awaiting assignment" screen, no access to calculator or records
+- **Customer**: No login required; view-only access via shared links (already implemented)
 
 **Role Detection:**
 1. Frontend calls `/api/auth/me` which returns `effectiveRole` from UserRoles database lookup
 2. Backend checks UserRoles database table first (allows backoffice to assign roles)
 3. Auto-create UserRoles entry with Role = NULL (NoRole) for new users on first login
-4. Fall back to Azure AD role claims if database unavailable
+4. Email extraction guard prevents SQL errors when email is missing from tokens
+5. Fall back to Azure AD role claims (`PriceListExecutive` → Executive, `PriceListSales` → Sales)
+6. Default to NoRole for all new authenticated users
 
-See [docs/authentication.md](docs/authentication.md) for complete RBAC documentation.
+**User Registration:**
+- All authenticated users are automatically registered in UserRoles table on first login
+- Registration uses synchronous await with retry logic (3 attempts, exponential backoff)
+- Transient errors (timeouts, connection issues) are automatically retried
+- Registration status is tracked in user object: `registrationStatus` ('registered' | 'failed' | 'skipped_no_email')
+- Failures are logged with full context but don't block authentication
+- Duplicate key errors are handled gracefully (race conditions)
+- **Email validation**: Registration is skipped if user token lacks email (SWA format tokens)
+  - Prevents database errors when authentication tokens don't contain email claims
+  - Logs warning with `UserAuthenticatedNoEmail` event for diagnostics
+  - Allows authentication to continue but skips UserRoles table operations
 
-### Authentication Flow
-- Azure AD authentication for Executive/Sales users
-- App Service Easy Auth (x-ms-client-principal header)
-- `/api/auth/me` endpoint returns user info and effectiveRole
-- Email extraction with 10-claim fallback for robust token parsing
-- Post-login redirect to "My Records" page for authenticated users with roles
+### Azure AD Email Claim Extraction
 
-See [docs/authentication.md](docs/authentication.md) and [docs/api-reference.md](docs/api-reference.md) for complete authentication documentation.
+The application extracts email from Azure AD tokens using multiple fallback methods with expanded claim type support:
+1. `userDetails` field (standard App Service claim, validated to contain @)
+2. Claims array: 10 claim types including `emailaddress`, `upn`, `email`, `preferred_username`, `unique_name`, `name`
 
-### State Management
-- Centralized in `src/js/state.js` with getters/setters
-- Modular state for auth, calculator, and saved records
-- View-only mode for shared links
-- Customer mode detection
-- NoRole state freeze mechanism
+**Helper Function**: `extractUserEmail(user)` in `authExpress.js`, `auth.js`, and `twoFactorAuthExpress.js`
 
-See [docs/patterns.md](docs/patterns.md) for complete state management patterns including NoRole freeze, state deserialization, and shared link navigation.
+**Extraction Order** (with case-insensitive matching and @ validation):
+1. First checks `user.userDetails` (must contain @ to be valid email)
+2. Falls back to claims array with these priority-ordered claim types:
+   - `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` (standard email)
+   - `email` (OIDC v2.0)
+   - `emailaddress` (short form)
+   - `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn` (User Principal Name)
+   - `upn` (short form)
+   - `preferred_username` (OIDC v2.0)
+   - `unique_name` (v1.0 fallback)
+   - `name` (display name, may contain email)
+   - `http://schemas.microsoft.com/identity/claims/displayname`
+3. Returns `null` if no email found (logs WARN with full claims array for diagnostics)
 
-### Shared Links
-- Public GET `/api/shared/{token}` endpoint (no authentication required)
-- Loads saved calculation in Customer View mode (read-only)
-- Uses database-stored `GrandTotal` for consistency
-- All interactive elements disabled
-- View-only guard prevents navigation away from calculator
-- **Customer View UI hiding pattern**: Uses `.customer-hidden` CSS class to hide sensitive information
-  - Cost breakdown cards (Labor/Materials/Ovh+PP, commission, sales profit)
-  - Manhours column in Labor panel (hidden via `.customer-hidden-manhours` class)
-  - Executive-only columns (Raw Cost, Cost+Ovh+PP) already hidden via `isExecutiveMode()` checks
+**Enhanced Diagnostics**: When email extraction fails, logs full claims array with typ/val properties to identify available claims.
 
-See [docs/patterns.md](docs/patterns.md) for complete shared link navigation pattern and [docs/api-reference.md](docs/api-reference.md) for shared calculations API.
+**For best results**, configure Azure AD app registration to include email claims:
+- Azure Portal → Entra ID → App registrations → Your App
+- Token Configuration → Add optional claim
+- Select "ID" token type
+- Add "email" and "upn" claims
+- Ensure `accessTokenAcceptedVersion: 2` in app manifest for v2.0 tokens
+
+**Version API Endpoint** (no authentication):
+- `GET /api/version` - Get application version from package.json (includes environment)
+
+**Auth Info API Endpoint** (public - validates auth internally):
+- `GET /api/auth/me` - Get current user info from App Service Easy Auth (replaces deprecated `/.auth/me` Static Web Apps endpoint)
+  - Returns `clientPrincipal` object with user details (userId, userDetails, userRoles, claims)
+  - Returns `effectiveRole` field from UserRoles database lookup ('Executive', 'Sales', or 'NoRole')
+  - Performs email extraction with fallback logic before database lookup
+  - Falls back to Azure AD roles if database is unavailable
+
+**Saved Calculations API Endpoints** (Azure AD - role-based access):
+- `POST /api/saves` - Create new saved calculation (authenticated users only)
+- `GET /api/saves` - List saved calculations (Executive: all records, Sales: own records only, NoRole: 403 forbidden)
+- `GET /api/saves/{id}` - Get single saved calculation by ID
+- `PUT /api/saves/{id}` - Update saved calculation (creator only)
+- `DELETE /api/saves/{id}` - Delete saved calculation (creator or Executive only)
+- **Role Detection**: All endpoints use `getUserEffectiveRole()` to check UserRoles database table for role determination (Executive/Sales/NoRole)
+
+**Admin API Endpoints** (Azure AD - Executive only):
+- `GET /api/adm/roles` - List all role assignments
+- `POST /api/adm/roles/assign` - Assign Executive or Sales role to user
+- `DELETE /api/adm/roles/{email}` - Remove role assignment (sets to NoRole)
+- `GET /api/adm/roles/current` - Get current user's effective role (returns 403 for NoRole)
+- `GET /api/adm/diagnostics/registration` - User registration diagnostics (total users, role breakdown, recent registrations, database write test)
+
+**Backoffice Admin API Endpoints** (Azure AD authentication only):
+- `POST /api/backoffice/login` - Verify backoffice access (checks if email is `it@uservices-thailand.com`)
+- `GET /api/backoffice/users?role={Executive|Sales|Customer|NoRole}&page={page}&search={query}` - List users with optional role filtering (paginated, searchable)
+- `POST /api/backoffice/users/{email}/role` - Assign/update user role (NoRole/Sales/Executive/Customer)
+- `DELETE /api/backoffice/users/{email}/role` - Remove user role (sets to NoRole)
+- `GET /api/backoffice/audit-log?email={query}` - View role change audit history with optional email filter
+- `GET /api/backoffice/repair` - Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit tables)
+- `GET /api/backoffice/timezone-check` - Diagnostic endpoint to check timezone configuration (returns database and JavaScript timezone information)
+
+**Backoffice Authorization:**
+- Access restricted to `it@uservices-thailand.com` only
+- Azure AD handles authentication automatically
+- No additional environment variables needed
+- Authorization check performed via `requireBackofficeSession()` middleware in `twoFactorAuthExpress.js`
+- Email extraction uses fallback logic (tries userDetails → claims array with 10 claim types) for robust token parsing
+
+**Azure AD Authentication Callback Fix (Static Web Apps → App Service Migration):**
+- **Problem**: After migrating from SWA to App Service, the `/.auth/me` endpoint (Static Web Apps feature) no longer works
+- **Solution implemented**:
+  1. Created new `/api/auth/me` endpoint that returns user info from App Service Easy Auth
+     - Extracts user data from `x-ms-client-principal` header (base64-encoded JSON)
+     - Returns `clientPrincipal` object (same format as old `/.auth/me` for compatibility)
+     - Returns `effectiveRole` field from UserRoles database lookup
+     - Frontend updated to call `/api/auth/me` instead of `/.auth/me`
+  2. All login URLs now include `post_login_redirect_uri=/` parameter for proper App Service redirect handling
+  3. Backend validation in `authExpress.js`:
+     - Email validation before UserRoles registration prevents database errors
+     - Graceful handling when tokens lack email claims
+- **Azure Configuration Required**:
+  - Azure AD App Registration → Authentication → Update redirect URIs to App Service format
+  - App Service → Authentication → Remove `WEBSITE_AUTH_PRESERVE_URL_FRAGMENT` setting (or set to `false`)
+
+**Auth Middleware Helpers:**
+- `getUserEffectiveRole(user)` - Get role from DB or Azure AD, returns 'Executive', 'Sales', or 'NoRole'
+  - Includes email extraction guard to prevent SQL errors when email is missing
+  - Updates user.userDetails with extracted email before database lookup
+  - Returns 'NoRole' if email extraction fails (with warning log)
+- `isExecutive(user)` - Check if user has Executive role
+- `isSales(user)` - Check if user has Sales role
+- `getRoleLabel(role)` - Map internal role names to display labels (includes 'Unassigned' for NoRole)
+- `extractUserEmail(user)` - Extract email from user object with expanded fallback logic (tries userDetails → 10 claim types including preferred_username, unique_name, name; validates @ presence; case-insensitive matching)
+
+**Database Diagnostics:**
+- `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
+- `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions
+- `database/ensure_backoffice_schema.sql` - Create all missing backoffice tables (comprehensive schema setup)
+- `database/diagnostics_timezone.sql` - Timezone diagnostics (server offset, column analysis, lockout status comparison)
+- `database/migrations/migrate_to_utc.sql` - Idempotent migration script to convert existing timestamps from local time to UTC
+- `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table (deprecated - no longer used for authentication)
+- `database/migrations/remove_database_logging.sql` - Remove legacy database logging tables after Application Insights migration
+
+**Maintenance Scripts:**
+- `api/scripts/reset-admin-password.js` - Reset backoffice admin password (deprecated - no longer used for authentication)
+
+**Application Logging:**
+- Logger utility (`api/src/utils/logger.js`) provides console-based logging with correlation ID support
+- Supports log levels: DEBUG, INFO, WARN, ERROR, CRITICAL
+- Request correlation ID propagation for tracing related operations
+- **Application Insights**: Azure-native logging via `applicationinsights` package
+  - Logs automatically sent to Application Insights when `APPLICATIONINSIGHTS_CONNECTION_STRING` is configured
+  - View logs in Azure Portal: Application Insights → Logs
+  - App Service Log Stream also captures console output for real-time monitoring
+- Environment variables: `APPLICATIONINSIGHTS_CONNECTION_STRING` (optional - enables Application Insights)
+
+**UTC Timezone**: All database timestamps use `GETUTCDATE()` for consistent UTC timezone across all servers; JavaScript uses `Date.toISOString()` for UTC datetime parameters
 
 ---
 
-## Reference Documentation
+## Adding New API Endpoints
+
+### Express.js (Primary)
+1. Create new file in `api/src/routes/`
+2. Follow the pattern:
+   ```js
+   const express = require('express');
+   const router = express.Router();
+   const { getPool } = require('../db');
+
+   router.get('/', async (req, res, next) => {
+     try {
+       const pool = await getPool();
+       const result = await pool.request().query('SELECT ...');
+       res.json(result.recordset);
+     } catch (err) {
+       next(err);
+     }
+   });
+
+   module.exports = router;
+   ```
+3. Import and mount in `server.js`: `app.use('/api/your-route', requireAuth, yourRouter);`
+4. Access at `/api/your-route`
+
+### Azure Functions (Legacy)
+1. Create new file in `api/src/functions/`
+2. Follow the pattern:
+   ```js
+   const { app } = require("@azure/functions");
+   const { getPool } = require("../db");
+
+   app.http("functionName", {
+     methods: ["GET"], // or ["POST"], etc.
+     authLevel: "anonymous",
+     route: "your-route",
+     handler: async (req, ctx) => {
+       // Use try/catch for error handling
+       // Use ctx.error() for logging
+       // Return { status, jsonBody } or { status, body }
+     }
+   });
+   ```
+3. Require it in `api/src/index.js`: `require("./functions/yourFile");`
+4. Access at `/api/your-route`
+
+---
+
+## Detailed Documentation
 
 | Document | Description |
 |----------|-------------|
 | [Architecture](docs/architecture.md) | Database schema, backend/frontend structure |
-| [Authentication](docs/authentication.md) | Azure AD, RBAC, local bypass, email extraction |
-| [Backend](docs/backend.md) | Express.js/Azure Functions patterns, middleware |
+| [Authentication](docs/authentication.md) | Azure Easy Auth, local dev bypass, RBAC |
 | [Frontend](docs/frontend.md) | UI/UX implementation, responsive design |
+| [Backend](docs/backend.md) | Azure Functions, middleware, patterns |
 | [Calculation](docs/calculation.md) | Pricing formulas, multipliers, commission |
 | [Save Feature](docs/save-feature.md) | Save/load, sharing, batch operations |
-| [API Reference](docs/api-reference.md) | Complete API endpoint catalog |
-| [Patterns](docs/patterns.md) | State deserialization, shared links, NoRole freeze, email extraction |
-| [Deployment](docs/deployment.md) | Azure deployment guide |
-| [Troubleshooting: Save/My Records Buttons](docs/troubleshooting-save-buttons.md) | Debug save/records buttons |
-| [Backoffice Production Setup](docs/backoffice-production-setup.md) | Production deployment & troubleshooting |
+| [Troubleshooting: Save/My Records Buttons](docs/troubleshooting-save-buttons.md) | Diagnose and fix unresponsive Save and My Records buttons |
+| [Backoffice Production Setup](docs/backoffice-production-setup.md) | Production deployment & troubleshooting guide |
 
 ---
 
