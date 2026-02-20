@@ -1,21 +1,32 @@
+---
+name: update
+description: Automatically updates project documentation based on code changes and creates a git commit with conventional commit message
+version: 1.0.0
+user-invocable: true
+---
+
 # Update Documentation and Commit Skill (`/update`)
 
 Automatically updates project documentation based on code changes and creates a git commit with conventional commit message.
 
-## Usage
-`{/update [optional commit message]}`
+## 使用场景 (When to Use)
 
-## Purpose
-Streamline the documentation and commit workflow by:
-1. Analyzing code changes to understand impact
-2. Automatically updating CLAUDE.md and README.md
-3. Staging all related changes
-4. Generating conventional commit message
-5. Creating git commit with co-author tag
+Use this skill when:
+- You've made code changes and want to update documentation
+- You want to create a git commit with conventional commit format
+- You want to ensure CLAUDE.md and README.md are in sync with code changes
+- You want to automate the documentation update workflow
+- You've completed a feature, bug fix, or refactoring
 
----
+## 核心原则 (Core Principles)
 
-## Session Structure
+1. **Read first** - Always read existing documentation before making changes
+2. **Maintain consistency** - Match existing style, tone, and structure
+3. **Be specific** - Update only relevant sections, don't rewrite entire docs
+4. **Conventional commits** - Use feat/fix/docs/chore/refactor prefixes
+5. **Always co-author** - Include `Co-Authored-By: Claude <noreply@anthropic.com>`
+
+## 执行步骤 (Execution Steps)
 
 ### Phase 1: Analyze Changes
 - Run `git status` to detect modified/untracked files
@@ -82,9 +93,14 @@ Based on the analyzed changes, update documentation:
 - Execute `git commit` with generated message using heredoc format
 - Report commit SHA and summary
 
----
+## 项目上下文 (Project Context)
 
-## Project Context
+### Technology Stack
+- **Frontend**: Single-page HTML (`src/index.html`), vanilla JavaScript, Tailwind CSS
+- **Backoffice**: Standalone HTML (`src/backoffice.html`) with 3-tab role management
+- **Backend**: Express.js (primary), Azure Functions v4 (legacy)
+- **Database**: Azure SQL Server with connection pooling
+- **Deployment**: Azure App Service (serverless)
 
 ### Documentation Files
 
@@ -105,13 +121,6 @@ Based on the analyzed changes, update documentation:
 - Project Structure
 - Deployment
 
-### Technology Stack
-- **Frontend**: Single-page HTML (`src/index.html`), vanilla JavaScript, Tailwind CSS
-- **Backend**: Azure Functions v4, Node.js
-- **Database**: SQL Server with connection pooling
-- **Direct DB Access**: sqlcmd for diagnostics and troubleshooting
-- **Deployment**: Azure (serverless)
-
 ### Common Change Scenarios
 
 | Change Type | Documentation Update |
@@ -126,9 +135,7 @@ Based on the analyzed changes, update documentation:
 | **Database script** | CLAUDE.md: Update Database Diagnostics section<br>README.md: Note in troubleshooting section if applicable |
 | **Schema change** | CLAUDE.md: Update Database Schema section |
 
----
-
-## Output Format
+## 输出格式 (Output Format)
 
 After completing, present:
 
@@ -155,52 +162,21 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 Commit SHA: (hash from git commit)
 
----
-
-## Example Usage Patterns
+## 示例用法 (Example Usage)
 
 ```
-{/update}
-{/update add new material search feature}
-{/update fix labor calculation overflow}
-{/update refactor database connection pooling}
-{/update docs: update API endpoint documentation}
-{/update tool: add sqlcmd connection info to database agent}
-{/update schema: add backoffice sessions table}
+/update
+/update add new material search feature
+/update fix labor calculation overflow
+/update refactor database connection pooling
+/update docs: update API endpoint documentation
+/update tool: add sqlcmd connection info to database agent
+/update schema: add backoffice sessions table
 ```
 
----
+## 检查清单 (Checklist)
 
-## Guidelines
-
-### During Analysis
-1. **Check git status first**: Identify all modified/untracked files
-2. **Read git diff carefully**: Understand what actually changed
-3. **Categorize accurately**: Use conventional commit types correctly
-4. **Consider impact**: Determine which documentation sections are affected
-
-### During Documentation Updates
-1. **Read before writing**: Always read existing docs before updating
-2. **Maintain consistency**: Match existing style, tone, and structure
-3. **Be specific**: Update only relevant sections, don't rewrite entire docs
-4. **Preserve formatting**: Keep existing markdown structure and headers
-
-### During Commit Creation
-1. **Use conventional commits**: feat/fix/docs/chore/refactor prefixes
-2. **Write clear descriptions**: Concisely describe what changed and why
-3. **Include co-author**: Always add `Co-Authored-By: Claude <noreply@anthropic.com>`
-4. **Skip empty commits**: Don't create commits if no actual changes exist
-
-### When User Provides Message
-1. **Use as description**: Treat user's message as the commit description
-2. **Determine type**: Still analyze changes to determine commit type (feat/fix/etc)
-3. **Add co-author**: Always include the Co-Authored-By tag
-
----
-
-## Skill Behavior Checklist
-
-When user invokes `{/update [message]}`:
+When user invokes `/update [message]`:
 
 - [ ] Run `git status` to detect modified/untracked files
 - [ ] Run `git diff` to analyze actual changes
@@ -217,3 +193,28 @@ When user invokes `{/update [message]}`:
 - [ ] Include Co-Authored-By tag
 - [ ] Create git commit
 - [ ] Report commit SHA and summary with analysis
+
+## 注意事项 (Best Practices)
+
+### During Analysis
+1. Check git status first - Identify all modified/untracked files
+2. Read git diff carefully - Understand what actually changed
+3. Categorize accurately - Use conventional commit types correctly
+4. Consider impact - Determine which documentation sections are affected
+
+### During Documentation Updates
+1. Read before writing - Always read existing docs before updating
+2. Maintain consistency - Match existing style, tone, and structure
+3. Be specific - Update only relevant sections, don't rewrite entire docs
+4. Preserve formatting - Keep existing markdown structure and headers
+
+### During Commit Creation
+1. Use conventional commits - feat/fix/docs/chore/refactor prefixes
+2. Write clear descriptions - Concisely describe what changed and why
+3. Include co-author - Always add `Co-Authored-By: Claude <noreply@anthropic.com>`
+4. Skip empty commits - Don't create commits if no actual changes exist
+
+### When User Provides Message
+1. Use as description - Treat user's message as the commit description
+2. Determine type - Still analyze changes to determine commit type (feat/fix/etc)
+3. Add co-author - Always include the Co-Authored-By tag

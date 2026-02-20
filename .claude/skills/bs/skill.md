@@ -1,29 +1,41 @@
-# Brainstorming Skill (`/bs`)
-
-Meta-skill for coordinating creative brainstorming sessions across multiple agents to explore diverse solutions before implementation.
-
-## Usage
-`{/bs [topic or problem description]}`
-
-## Purpose
-Facilitate structured brainstorming sessions by:
-1. Clarifying the brainstorming goal and context
-2. Generating diverse ideas from multiple specialized perspectives
-3. Organizing and categorizing ideas thematically
-4. Evaluating feasibility and impact for the current tech stack
-5. Creating actionable outputs with recommended next steps
-
+---
+name: bs
+description: Coordinate brainstorming sessions across specialist agents to explore diverse solutions before implementation
+version: 1.0.0
+user-invocable: true
 ---
 
-## Session Structure
+# Brainstorming Skill (`/bs`)
+
+Meta-skill for coordinating creative brainstorming sessions across multiple specialist agents to explore diverse solutions before implementation.
+
+## 使用场景 (When to Use)
+
+Use this skill when:
+- You need to explore multiple approaches before implementing a feature
+- You want diverse perspectives from domain specialists
+- You're unsure which architecture or design pattern to choose
+- You need creative solutions for complex problems
+- You want to evaluate feasibility before committing to implementation
+
+## 核心原则 (Core Principles)
+
+1. **Encourage diversity** - Get perspectives from multiple specialized domains
+2. **Think expansively** - Include wild ideas alongside practical ones
+3. **Stay relevant** - Keep ideas connected to Price List Calculator context
+4. **Document everything** - Capture all ideas before filtering
+5. **Evaluate objectively** - Assess based on current tech stack constraints
+
+## 执行步骤 (Execution Steps)
 
 ### Phase 1: Clarify Goal
-- Parse the user's brainstorming request
-- Identify the core problem or opportunity
-- Determine relevant domains (frontend, backend, calculation, database, architecture)
+- Parse user's brainstorming request
+- Identify core problem or opportunity
+- Determine relevant domains (frontend, backoffice, backend, calculation, database, architecture)
 - Clarify any constraints or requirements
 
 ### Phase 2: Generate Ideas
+- Spawn relevant specialist agents in parallel
 - Encourage wild, creative solutions from each perspective
 - Leverage domain expertise from specialist agents
 - Explore multiple approaches, not just obvious ones
@@ -35,7 +47,7 @@ Facilitate structured brainstorming sessions by:
 - Highlight particularly innovative or high-impact concepts
 
 ### Phase 4: Evaluate
-- Assess feasibility for the current tech stack (HTML/JS + Azure Functions)
+- Assess feasibility for current tech stack
 - Estimate implementation complexity
 - Identify potential risks or blockers
 - Prioritize based on impact vs effort
@@ -46,33 +58,52 @@ Facilitate structured brainstorming sessions by:
 - Recommend specific next steps
 - Suggest which agent(s) to involve for implementation
 
----
+## 项目上下文 (Project Context)
+
+### Technology Stack
+- **Frontend**: Single-page HTML (`src/index.html`), vanilla JavaScript, Tailwind CSS
+- **Backoffice**: Standalone HTML (`src/backoffice.html`) with 3-tab role management
+- **Backend**: Express.js (primary), Azure Functions v4 (legacy)
+- **Database**: Azure SQL Server with connection pooling
+- **Deployment**: Azure App Service (serverless)
+
+### Core Features
+- Labor calculation (manhours × branch cost × multipliers)
+- Materials management (search, add, quantity, cost calculation)
+- Sales Profit % (user-editable, can be negative for discounts)
+- Travel/Shipping (Km × 15 baht/km rate)
+- Commission calculation (tiered based on Sub Grand Total vs Sub Total Cost ratio)
+- Mode switching (Executive vs Sales - hides sensitive cost data)
+- Saved calculations with sharing capabilities
+- Role-based access control (Executive, Sales, NoRole, Customer)
+- Backoffice admin for role management
+
+### Specialist Agent Team
+
+| Agent | Expertise | Relevant For |
+|-------|-----------|--------------|
+| Orchestrator | Task routing, conflict resolution, progress tracking | All multi-domain sessions |
+| Architect | Cross-layer architecture, technical decisions | System design, refactoring |
+| Frontend | Main Calculator UI, responsive design, interactions | `src/index.html` changes |
+| Backoffice | Backoffice admin UI, role management, audit logs | `src/backoffice.html` changes |
+| Backend | API endpoints, error handling, middleware | `api/src/routes/` changes |
+| Auth & Security | Dual auth (Azure AD + JWT), RBAC, security policies | Authentication, authorization |
+| Logging & Monitoring | Application logging, performance tracking, health checks | Diagnostics, monitoring |
+| Calculation | Pricing formulas, multipliers, commission, business logic | Cost calculation changes |
+| Database | Schema, queries, normalization, diagnostic scripts | SQL, tables, migrations |
+| Deployment | Azure deployment, CI/CD, configuration | Deployment, infrastructure |
+| Planner | Task breakdown, dependencies, sequencing | Implementation planning |
 
 ## Agent Coordination Pattern
 
 This skill **spawns existing agents** from `.claude/agents/` to gather diverse perspectives, then synthesizes the results.
-
-### Relevant Agents by Domain
-
-| Domain | Agent | Expertise |
-|--------|-------|-----------|
-| UI/UX (Main Calculator) | Frontend Agent | Responsive design, component architecture, interactions |
-| UI/UX (Backoffice) | Backoffice Agent | Backoffice admin UI, role management, audit logs |
-| API & Data Access | Backend Agent | Azure Functions, endpoints, error handling |
-| Authentication & Security | Auth & Security Agent | Dual auth (Azure AD + JWT), rate limiting, security policies |
-| Logging & Monitoring | Logging & Monitoring Agent | Application logging, performance tracking, health checks |
-| Pricing Logic | Calculation Agent | Formulas, multipliers, commission, business logic |
-| Data Structure | Database Agent | Schema, queries, normalization, diagnostic scripts |
-| Deployment | Deployment Agent | Azure deployment, CI/CD, configuration |
-| System Design | Architect Agent | Cross-layer architecture, technical decisions |
-| Implementation Planning | Planner Agent | Task breakdown, dependencies, sequencing |
 
 ### Spawning Strategy
 
 **Spawn agents in parallel** based on identified domains:
 
 ```
-User Request: "{/bs How can we improve mobile material entry?"
+User Request: "/bs How can we improve mobile material entry?"
 
 Relevant Domains: Frontend + Calculation
 
@@ -83,30 +114,10 @@ Spawn in parallel:
 Synthesize results into organized categories
 ```
 
-**Frontend vs Backoffice example:**
-
-```
-User Request: "{/bs Ideas for improving the calculator UI"
-
-Relevant Domain: Frontend (main calculator only)
-
-Spawn:
-    └── Frontend Agent → "UI improvements for src/index.html"
-```
-
-```
-User Request: "{/bs Ideas for improving the backoffice admin UI"
-
-Relevant Domain: Backoffice (backoffice only)
-
-Spawn:
-    └── Backoffice Agent → "UI improvements for src/backoffice.html"
-```
-
 **Multi-domain example:**
 
 ```
-User Request: "{/bs Ideas for adding customer quotes and saving them"
+User Request: "/bs Ideas for adding customer quotes and saving them"
 
 Relevant Domains: Frontend + Backend + Database + Architect
 
@@ -119,84 +130,12 @@ Spawn in parallel:
 Synthesize and present organized options
 ```
 
-**Backoffice-specific example:**
+## 输出格式 (Output Format)
 
-```
-User Request: "{/bs How can we improve the backoffice role management?"
-
-Relevant Domains: Backoffice + Backend + Auth & Security
-
-Spawn in parallel:
-    ├── Backoffice Agent → "UX improvements for role assignment UI"
-    ├── Backend Agent → "API endpoints for role CRUD operations"
-    └── Auth & Security Agent → "RBAC security considerations"
-
-Synthesize and present organized options
-```
-
-**Logging & monitoring example:**
-
-```
-User Request: "{/bs Ideas for better performance tracking"
-
-Relevant Domains: Logging & Monitoring + Backend + Database
-
-Spawn in parallel:
-    ├── Logging & Monitoring Agent → "Performance metrics and dashboards"
-    ├── Backend Agent → "API instrumentation and response tracking"
-    └── Database Agent → "Query performance optimization"
-
-Synthesize and present organized options
-```
-
----
-
-## Project Context
-
-### Technology Stack
-- **Frontend**: Single-page HTML (`src/index.html`), vanilla JavaScript, Tailwind CSS
-- **Backend**: Azure Functions v4, Node.js
-- **Database**: SQL Server with connection pooling
-- **Deployment**: Azure (serverless)
-
-### Core Features
-- Labor calculation (manhours × branch cost × multipliers)
-- Materials management (search, add, quantity, cost calculation)
-- Sales Profit % (user-editable, can be negative for discounts)
-- Travel/Shipping (Km × 15 baht/km rate)
-- Commission calculation (tiered based on Sub Grand Total vs Sub Total Cost ratio)
-- Mode switching (Executive vs Sales - hides sensitive cost data)
-
-### Existing Patterns
-- Responsive design: Mobile cards (< md breakpoint), desktop tables (md+)
-- State management: Global variables with reactive updates
-- Mode visibility: `isExecutiveMode()` for conditional display
-- Fixed positioning: Desktop dropdowns use `fixed z-50`
-- Database loading modal: Connection status with spinner
-- Editable inputs: Manhours, quantities, Sales Profit %
-
-### Agent Team Hierarchy
-```
-Orchestrator Agent (Coordinator)
-    ├── Architect Agent (Technical Lead)
-    └── Planner Agent (Implementation Lead)
-        ├── Frontend Agent (UI Specialist - Main Calculator)
-        ├── Backoffice Agent (UI Specialist - Backoffice Admin)
-        ├── Backend Agent (API Specialist)
-        ├── Auth & Security Agent (Authentication & Security)
-        ├── Logging & Monitoring Agent (Logging & Performance)
-        ├── Calculation Agent (Formula Specialist)
-        ├── Database Agent (Data Specialist)
-        └── Deployment Agent (Azure Deployment)
-```
-
----
-
-## Output Format
-
-After the brainstorming session, present:
+After brainstorming session, present:
 
 ### 1. Idea Summary by Category
+
 Organize ideas into thematic groups:
 - **Quick Wins**: Low-effort, high-impact improvements
 - **Feature Enhancements**: New capabilities or extensions
@@ -205,6 +144,7 @@ Organize ideas into thematic groups:
 - **Process/Workflow**: Better ways of working
 
 ### 2. Feasibility Assessment
+
 For each category, assess:
 - Technical feasibility (High/Medium/Low)
 - Implementation complexity (Simple/Moderate/Complex)
@@ -212,65 +152,61 @@ For each category, assess:
 - Dependencies on other changes
 
 ### 3. Recommended Next Steps
+
 - Which idea(s) to pursue first
 - Which agent(s) to involve for implementation
 - Suggested implementation order
 - Whether to involve Planner Agent for detailed planning
 
----
-
-## Example Usage Patterns
+## 示例用法 (Example Usage)
 
 ```
-{/bs How can we improve the mobile experience for adding materials?}
-{/bs Explore different approaches for implementing a discount feature}
-{/bs Ideas for better visual feedback when calculation errors occur}
-{/bs How might we add batch editing for materials?}
-{/bs Brainstorm ways to add quote history and versioning}
-{/bs Ideas for improving performance on large material searches}
-{/bs How could we add multi-currency support?}
-{/bs Explore options for exporting calculations to PDF}
-{/bs Ideas for improving backoffice role assignment workflow}
-{/bs How can we add better security to the backoffice login?}
-{/bs Brainstorm approaches for comprehensive audit logging}
-{/bs Ideas for real-time performance monitoring dashboards}
+/bs How can we improve mobile material entry?
+/bs Explore different approaches for implementing a discount feature
+/bs Ideas for better visual feedback when calculation errors occur
+/bs How might we add batch editing for materials?
+/bs Explore options for exporting calculations to PDF
+/bs Ideas for improving backoffice role assignment workflow
+/bs How could we add quote history and versioning?
+/bs Brainstorm ways to add multi-currency support?
+/bs Ideas for improving performance on large material searches
+/bs How can we add better security to backoffice login?
+/bs Brainstorm approaches for comprehensive audit logging
+/bs Ideas for real-time performance monitoring dashboards
 ```
 
----
+## 检查清单 (Checklist)
 
-## Guidelines
+When user invokes `/bs [topic]`:
 
-### During Brainstorming
-1. **Encourage diversity**: Get perspectives from multiple domains
-2. **Think expansively**: Include wild ideas alongside practical ones
-3. **Stay relevant**: Keep ideas connected to the Price List Calculator context
-4. **Document everything**: Capture all ideas before filtering
-
-### During Synthesis
-1. **Organize thoughtfully**: Group by theme, not by agent
-2. **Evaluate objectively**: Assess feasibility based on actual tech stack constraints
-3. **Prioritize strategically**: Consider impact, effort, and dependencies
-4. **Be specific**: Next steps should name specific agents and suggest starting points
-
-### When Recommending Next Steps
-1. **Match agent to domain**: Frontend/Backoffice for UI, Backend for API, Auth & Security for authentication, Logging & Monitoring for logging, Calculation for formulas, Database for schema, Deployment for Azure
-2. **Simplify first**: Recommend quick wins before complex changes
-3. **Consider dependencies**: Some ideas require architectural work first
-4. **Invite Planner involvement**: For multi-step implementations, suggest Planner Agent
-
----
-
-## Skill Behavior Checklist
-
-When user invokes `{/bs [topic]}`:
-
-- [ ] Parse the brainstorming request and clarify the goal
+- [ ] Parse brainstorming request and clarify goal
 - [ ] Identify relevant domains (frontend, backoffice, backend, auth & security, logging & monitoring, calculation, database, architecture)
 - [ ] Spawn appropriate agents in parallel to gather diverse perspectives
 - [ ] Collect all ideas from each agent
 - [ ] Organize ideas into thematic categories
-- [ ] Evaluate feasibility for the tech stack (HTML/JS + Azure Functions + SQL Server)
+- [ ] Evaluate feasibility for current tech stack (HTML/JS + Express.js + SQL Server)
 - [ ] Present organized summary with:
   - [ ] Ideas grouped by category
   - [ ] Feasibility assessment for each category
   - [ ] Recommended next steps with specific agent(s) to involve
+- [ ] Suggest whether Planner Agent should be involved for detailed implementation planning
+
+## 注意事项 (Best Practices)
+
+### During Brainstorming
+1. Spawn multiple agents when domains overlap
+2. Let each agent explore their domain fully
+3. Don't filter ideas too early - capture everything first
+4. Consider the Price List Calculator's existing patterns and constraints
+
+### During Synthesis
+1. Organize by theme, not by agent
+2. Be honest about technical limitations
+3. Prioritize quick wins alongside ambitious ideas
+4. Always provide specific next steps
+
+### When Recommending Next Steps
+1. Match agent to domain (Frontend/Backoffice for UI, Backend for API, etc.)
+2. Recommend simple solutions before complex ones
+3. Consider dependencies between ideas
+4. Suggest Planner Agent involvement for multi-step implementations
