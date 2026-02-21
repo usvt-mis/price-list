@@ -578,6 +578,18 @@ Hierarchical agent team for coordinating complex tasks across domains.
 - Team structure: Orchestrator → Architect/Planner → Specialists
 - See `.claude/agents/TEAM.md` for coordination protocols and decision tree
 
+**Agent Categories:**
+- **Translation Agents**: `english-to-chinese-translator.md` (FanYi) - Translation-only agent for Chinese-language workflows
+- **Coordination Agents**: `orchestrator.md`, `planner.md`, `chinese-foreman.md` (工头/Gongtou) - Translation + agent orchestration
+- **Leadership Agents**: `architect.md` - Technical lead for system architecture
+- **Domain Specialist Agents**: frontend, backend, auth, database, calculation, deployment, logging, backoffice
+- **Utility Agents**: `internet-researcher.md` (Scout) - Web research, `Template.md` - Universal agent template
+
+**Skill Template System:**
+- `.claude/skills/template/` - Base template for creating new skills
+- `.claude/skills/add-agents/` - Template for creating new agents
+- `.claude/skills/add-skills/` - Template for creating new skills
+
 ---
 
 ## Custom Skills
@@ -587,3 +599,8 @@ Custom slash commands for automating workflows:
 - `update` skill: Automatically updates documentation and creates git commits
 - `bs` skill: Coordinates brainstorming sessions across multiple agents
 - `deploy` skill: Deploys application to Azure App Service Production environment
+
+**Skill Templates:**
+- `template/` - Base template for creating new skills
+- `add-agents/` - Template for creating new agents
+- `add-skills/` - Template for creating new skills

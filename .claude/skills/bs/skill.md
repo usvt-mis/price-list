@@ -243,3 +243,35 @@ Use these prefixes for clear logging:
 4. Fetch community discussions (Stack Overflow, GitHub)
 5. Synthesize findings into comparison table
 6. Provide recommendation with sources
+
+---
+
+## Agent List (All in `.claude/agents/` root)
+
+### Translation Agent (1)
+- `english-to-chinese-translator.md` (FanYi) - Translate English prompts to Chinese for commanding Chinese-language agents
+
+### Coordination Agents (3)
+- `orchestrator.md` (Orchestrator) - Top-level coordinator that routes tasks to appropriate specialist agents
+- `planner.md` (Planner) - Implementation lead for detailed implementation planning and task breakdown
+- `chinese-foreman.md` (工头/Gongtou) - Translate English to Chinese and coordinate all Chinese-language agents (translation + agent summoning + task distribution)
+
+### Leadership Agents (1)
+- `architect.md` (Architect) - Technical lead for system architecture and technical decisions
+
+### Domain Specialist Agents (10)
+- `frontend.md` (Frontend) - UI components, responsive design, and interactions for the main calculator
+- `backoffice.md` (Backoffice) - Backoffice admin system UI for user role management and administration
+- `backend.md` (Backend) - API endpoints and business logic for the Price List Calculator
+- `auth.md` (Auth & Security) - Authentication systems, authorization, security policies, and access control
+- `logging.md` (Logging & Monitoring) - Application logging, performance tracking, system monitoring, and diagnostics
+- `calculation.md` (Calculation) - Pricing calculations, commission logic, and cost multipliers
+- `database.md` (Database) - SQL Server schema, queries, and data integrity
+- `deploy.md` (Deployment) - Azure deployment, CI/CD, and configuration
+
+### Utility Agents (2)
+- `internet-researcher.md` (Scout) - Research information from the internet to present new perspectives to other agents to help them make decisions
+- `Template.md` (N/A) - Universal template for all agents
+
+### Reference Files (1)
+- `TEAM.md` (N/A) - Hierarchical agent team coordination protocols and decision tree
