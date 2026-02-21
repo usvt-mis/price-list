@@ -43,13 +43,8 @@ export function serializeCalculatorState() {
   if (currentType === CALCULATOR_TYPE.ONSITE) {
     baseState.customerLocation = el('customerLocation')?.value || null;
     baseState.siteAccessNotes = el('siteAccessNotes')?.value || null;
-  } else if (currentType === CALCULATOR_TYPE.WORKSHOP) {
-    baseState.equipmentUsed = el('equipmentUsed')?.value || null;
-    baseState.machineHours = Number(el('machineHours')?.value) || null;
-    baseState.priorityLevel = el('priorityLevel')?.value || null;
-    baseState.pickupDeliveryOption = el('pickupDeliveryOption')?.value || null;
-    baseState.qualityCheckRequired = el('qualityCheckRequired')?.checked || false;
   }
+  // Workshop type has no type-specific fields (uses original calculator layout)
 
   return baseState;
 }
@@ -206,13 +201,8 @@ export async function deserializeCalculatorState(data, options = {}) {
   if (data.calculatorType === CALCULATOR_TYPE.ONSITE) {
     if (el('customerLocation')) el('customerLocation').value = data.customerLocation || '';
     if (el('siteAccessNotes')) el('siteAccessNotes').value = data.siteAccessNotes || '';
-  } else if (data.calculatorType === CALCULATOR_TYPE.WORKSHOP) {
-    if (el('equipmentUsed')) el('equipmentUsed').value = data.equipmentUsed || '';
-    if (el('machineHours')) el('machineHours').value = data.machineHours || '';
-    if (el('priorityLevel')) el('priorityLevel').value = data.priorityLevel || 'standard';
-    if (el('pickupDeliveryOption')) el('pickupDeliveryOption').value = data.pickupDeliveryOption || 'customer_pickup';
-    if (el('qualityCheckRequired')) el('qualityCheckRequired').checked = data.qualityCheckRequired || false;
   }
+  // Workshop type has no type-specific fields to restore
 
   // Calculate commission first, then render with correct values
   calcAll();

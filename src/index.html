@@ -164,61 +164,6 @@
       </div>
     </section>
 
-    <!-- Workshop-Specific Fields (hidden by default, shown for Workshop calculator) -->
-    <section id="workshopEquipmentSection" class="hidden bg-white rounded-2xl shadow p-8">
-      <h2 class="text-xl font-semibold mb-4">Workshop Service Details</h2>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Equipment/Machine Used -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700">Equipment/Machine Used</label>
-          <select id="equipmentUsed" class="mt-1 w-full rounded-lg border-slate-200 px-3 py-2">
-            <option value="">Select equipment...</option>
-            <option value="lathe">Lathe Machine</option>
-            <option value="milling">Milling Machine</option>
-            <option value="cnc">CNC Machine</option>
-            <option value="welder">Welding Equipment</option>
-            <option value="press">Hydraulic Press</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-
-        <!-- Machine Hours -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700">Machine Hours</label>
-          <input id="machineHours" type="number" step="0.25" min="0" class="mt-1 w-full rounded-lg border-slate-200 px-3 py-2"
-                 placeholder="Enter machine hours">
-        </div>
-
-        <!-- Priority Level -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700">Priority Level</label>
-          <select id="priorityLevel" class="mt-1 w-full rounded-lg border-slate-200 px-3 py-2">
-            <option value="standard">Standard (no additional charge)</option>
-            <option value="express">Express (+20%)</option>
-            <option value="urgent">Urgent (+50%)</option>
-          </select>
-        </div>
-
-        <!-- Pickup/Delivery Option -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700">Pickup/Delivery Option</label>
-          <select id="pickupDeliveryOption" class="mt-1 w-full rounded-lg border-slate-200 px-3 py-2">
-            <option value="customer_pickup">Customer Pickup (no charge)</option>
-            <option value="standard_delivery">Standard Delivery (within 3 days)</option>
-            <option value="express_delivery">Express Delivery (next day)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Quality Check Required -->
-      <div class="mt-4">
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input id="qualityCheckRequired" type="checkbox" class="w-4 h-4 rounded border-slate-300">
-          <span class="text-sm font-medium text-slate-700">Quality Check Required (+5% to total)</span>
-        </label>
-      </div>
-    </section>
 
     <!-- PART 2: Materials -->
     <section class="bg-white rounded-2xl shadow p-8">

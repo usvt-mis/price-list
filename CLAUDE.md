@@ -19,7 +19,7 @@ The calculator computes total cost based on four components:
 1. **Labor**: Job manhours × branch-specific cost per hour
 2. **Materials**: User-selected materials with quantities
 3. **Sales Profit**: User-editable percentage applied after branch multipliers (can be negative for discounts)
-4. **Travel/Shipping**: Distance in Km multiplied by 15 baht/km rate (Onsite calculator only)
+4. **Travel/Shipping**: Distance in Km multiplied by 15 baht/km rate (both calculator types)
 
 **Note**: Branch defaults (OverheadPercent and PolicyProfit) are applied silently in the calculation and are not user-editable.
 
@@ -30,12 +30,12 @@ The application supports two distinct calculator modes selected via tab navigati
 - For field/onsite service calculations
 - Includes travel distance (km × 15 baht/km rate)
 - Onsite-specific fields: Customer Location, Site Access Notes
+- Travel section is visible (shared with Workshop)
 
 **Workshop Calculator (Monitor)**:
 - For workshop/facility-based service calculations
-- Workshop-specific fields: Equipment/Machine Used, Machine Hours, Priority Level, Pickup/Delivery Option, Quality Check Required
-- Priority surcharges: Express (+20%), Urgent (+50%)
-- Quality Check Required adds +5% to total
+- Uses original calculator layout (Labor, Materials, Travel sections)
+- No type-specific fields (simplified from previous version)
 
 ---
 
@@ -496,9 +496,9 @@ export const CALCULATOR_TYPE = {
 - `getCalculatorTypeColorClass()`: Returns Tailwind color classes for badges (blue for Onsite, orange for Workshop)
 
 **Field Visibility**:
-- **Onsite fields**: Customer Location, Site Access Notes, Travel Section
-- **Workshop fields**: Equipment Used, Machine Hours, Priority Level, Pickup/Delivery Option, Quality Check Required
-- Travel section is hidden for Workshop calculator
+- **Onsite fields**: Customer Location, Site Access Notes
+- **Workshop fields**: None (uses original calculator layout)
+- Travel section is always visible for both calculator types
 
 **Saved Calculations Display**:
 - Calculator type badges shown in both Grid and List views

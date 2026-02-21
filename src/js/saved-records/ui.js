@@ -392,11 +392,7 @@ export function displayRecordDetail(record) {
               ${record.customerLocation ? `<div><strong>Customer Location:</strong> ${record.customerLocation}</div>` : ''}
               ${record.siteAccessNotes ? `<div><strong>Site Access Notes:</strong> ${record.siteAccessNotes}</div>` : ''}
             ` : `
-              ${record.equipmentUsed ? `<div><strong>Equipment:</strong> ${record.equipmentUsed}</div>` : ''}
-              ${record.machineHours ? `<div><strong>Machine Hours:</strong> ${record.machineHours}</div>` : ''}
-              ${record.priorityLevel ? `<div><strong>Priority:</strong> ${record.priorityLevel}</div>` : ''}
-              ${record.pickupDeliveryOption ? `<div><strong>Pickup/Delivery:</strong> ${record.pickupDeliveryOption}</div>` : ''}
-              ${record.qualityCheckRequired ? `<div><strong>Quality Check:</strong> Required</div>` : ''}
+              <div><strong>Travel Distance:</strong> ${record.travelKm} km</div>
             `}
           </div>
         </div>

@@ -83,33 +83,18 @@ function updateFieldVisibility() {
     el('siteAccessNotes')
   ].filter(Boolean);
 
-  // Workshop-specific fields
-  const workshopFields = [
-    el('workshopEquipmentSection'),
-    el('equipmentUsed'),
-    el('machineHours'),
-    el('priorityLevel'),
-    el('pickupDeliveryOption'),
-    el('qualityCheckRequired')
-  ].filter(Boolean);
-
-  // Travel section is shown for Onsite, hidden for Workshop
+  // Travel section is always shown (original calculator behavior)
   const travelSection = el('travelSection');
   if (travelSection) {
-    if (currentType === CALCULATOR_TYPE.ONSITE) {
-      travelSection.classList.remove('hidden');
-    } else {
-      travelSection.classList.add('hidden');
-    }
+    travelSection.classList.remove('hidden');
   }
 
-  // Show/hide type-specific fields
+  // Show/hide Onsite-specific fields
   if (currentType === CALCULATOR_TYPE.ONSITE) {
     onsiteFields.forEach(field => field.classList.remove('hidden'));
-    workshopFields.forEach(field => field.classList.add('hidden'));
   } else {
+    // Workshop mode: hide Onsite fields, show original calculator layout
     onsiteFields.forEach(field => field.classList.add('hidden'));
-    workshopFields.forEach(field => field.classList.remove('hidden'));
   }
 }
 
