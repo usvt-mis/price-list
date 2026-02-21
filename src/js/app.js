@@ -7,7 +7,7 @@ import { isLocalDev, API } from './config.js';
 import { appState, setMode, resetCalculatorState, setCurrentSavedRecord, setDirty, setViewOnly } from './state.js';
 import { el, setStatus, setDbLoadingModal, showView, updateModeButtons, fetchJson, showNotification } from './utils.js';
 import { initAuth, renderAuthSection } from './auth/index.js';
-import { loadLabor, renderLabor, addMaterialRow, renderMaterials, calcAll } from './calculator/index.js';
+import { loadLabor, renderLabor, addMaterialRow, renderMaterials, calcAll, initCalculatorTypeTabs } from './calculator/index.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
 // These functions need to be available globally for onclick/onchange handlers
@@ -325,6 +325,12 @@ async function initApp() {
   initAdminPanelListeners();
 
   // Set up search handlers
+  setupSearchHandlers();
+
+  // Initialize calculator type tabs
+  initCalculatorTypeTabs();
+
+  // Set up event listeners
   setupSearchHandlers();
 
   // Set up event listeners

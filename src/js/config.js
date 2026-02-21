@@ -9,7 +9,8 @@ export const isLocalDev = window.location.hostname === 'localhost' || window.loc
 // Local storage keys
 export const STORAGE_KEYS = {
   MODE: 'pricelist-calculator-mode',
-  RECORDS_VIEW: 'pricelist-calculator-records-view'
+  RECORDS_VIEW: 'pricelist-calculator-records-view',
+  CALCULATOR_TYPE: 'pricelist-calculator-type'
 };
 
 // API endpoints
@@ -35,6 +36,12 @@ export const AUTH_ENDPOINTS = {
 
 // Travel cost rate (baht per km)
 export const TRAVEL_RATE = 15;
+
+// Calculator type constants
+export const CALCULATOR_TYPE = {
+  ONSITE: 'onsite',
+  WORKSHOP: 'workshop'
+};
 
 // Commission tiers based on Grand Total to STC ratio
 export const COMMISSION_TIERS = [

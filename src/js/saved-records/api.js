@@ -4,8 +4,8 @@
  */
 
 import { fetchJson, fetchWithAuth, showNotification, el } from '../utils.js';
-import { appState, authState, currentSavedRecord, isDirty, isViewOnly } from '../state.js';
-import { getApiHeaders } from '../config.js';
+import { appState, authState, currentSavedRecord, isDirty, isViewOnly, getCalculatorType, setCalculatorType } from '../state.js';
+import { getApiHeaders, CALCULATOR_TYPE } from '../config.js';
 import { renderLabor, renderMaterials, calcAll } from '../calculator/index.js';
 
 /**
@@ -13,7 +13,10 @@ import { renderLabor, renderMaterials, calcAll } from '../calculator/index.js';
  * @returns {Object} Serialized state
  */
 export function serializeCalculatorState() {
-  return {
+  const currentType = getCalculatorType();
+
+  const baseState = {
+    calculatorType: currentType,
     branchId: Number(el('branch').value),
     motorTypeId: Number(el('motorType').value),
     salesProfitPct: Number(el('salesProfitPct').value || 0),
@@ -35,6 +38,20 @@ export function serializeCalculatorState() {
         quantity: Math.trunc(m.qty)
       }))
   };
+
+  // Add type-specific fields
+  if (currentType === CALCULATOR_TYPE.ONSITE) {
+    baseState.customerLocation = el('customerLocation')?.value || null;
+    baseState.siteAccessNotes = el('siteAccessNotes')?.value || null;
+  } else if (currentType === CALCULATOR_TYPE.WORKSHOP) {
+    baseState.equipmentUsed = el('equipmentUsed')?.value || null;
+    baseState.machineHours = Number(el('machineHours')?.value) || null;
+    baseState.priorityLevel = el('priorityLevel')?.value || null;
+    baseState.pickupDeliveryOption = el('pickupDeliveryOption')?.value || null;
+    baseState.qualityCheckRequired = el('qualityCheckRequired')?.checked || false;
+  }
+
+  return baseState;
 }
 
 /**
@@ -178,6 +195,24 @@ export async function deserializeCalculatorState(data, options = {}) {
   // Set sales profit and travel
   el('salesProfitPct').value = data.salesProfitPct;
   el('travelKm').value = data.travelKm;
+
+  // Set calculator type and switch tabs if needed
+  if (data.calculatorType) {
+    const { switchCalculatorType } = await import('../calculator/type.js');
+    switchCalculatorType(data.calculatorType);
+  }
+
+  // Set type-specific fields
+  if (data.calculatorType === CALCULATOR_TYPE.ONSITE) {
+    if (el('customerLocation')) el('customerLocation').value = data.customerLocation || '';
+    if (el('siteAccessNotes')) el('siteAccessNotes').value = data.siteAccessNotes || '';
+  } else if (data.calculatorType === CALCULATOR_TYPE.WORKSHOP) {
+    if (el('equipmentUsed')) el('equipmentUsed').value = data.equipmentUsed || '';
+    if (el('machineHours')) el('machineHours').value = data.machineHours || '';
+    if (el('priorityLevel')) el('priorityLevel').value = data.priorityLevel || 'standard';
+    if (el('pickupDeliveryOption')) el('pickupDeliveryOption').value = data.pickupDeliveryOption || 'customer_pickup';
+    if (el('qualityCheckRequired')) el('qualityCheckRequired').checked = data.qualityCheckRequired || false;
+  }
 
   // Calculate commission first, then render with correct values
   calcAll();

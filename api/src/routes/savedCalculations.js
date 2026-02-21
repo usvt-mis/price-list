@@ -32,7 +32,9 @@ router.post('/', async (req, res, next) => {
       serverContext: { endpoint: '/api/saves', method: 'POST' }
     });
 
-    const { branchId, motorTypeId, salesProfitPct, travelKm, jobs, materials } = req.body;
+    const { branchId, motorTypeId, salesProfitPct, travelKm, jobs, materials,
+            calculatorType, customerLocation, siteAccessNotes,
+            equipmentUsed, machineHours, priorityLevel, pickupDeliveryOption, qualityCheckRequired } = req.body;
 
     // Validate required fields
     if (!branchId || !motorTypeId || salesProfitPct === undefined || travelKm === undefined) {
@@ -78,12 +80,27 @@ router.post('/', async (req, res, next) => {
         .input("motorTypeId", sql.Int, motorTypeId)
         .input("salesProfitPct", sql.Decimal(5, 2), salesProfitPct)
         .input("travelKm", sql.Int, travelKm)
+        .input("calculatorType", sql.NVarChar(20), calculatorType || 'onsite')
+        .input("customerLocation", sql.NVarChar(500), customerLocation || null)
+        .input("siteAccessNotes", sql.NVarChar(1000), siteAccessNotes || null)
+        .input("equipmentUsed", sql.NVarChar(100), equipmentUsed || null)
+        .input("machineHours", sql.Decimal(10, 2), machineHours || null)
+        .input("priorityLevel", sql.NVarChar(20), priorityLevel || null)
+        .input("pickupDeliveryOption", sql.NVarChar(50), pickupDeliveryOption || null)
+        .input("qualityCheckRequired", sql.Bit, qualityCheckRequired || null)
         .query(`
-          INSERT INTO SavedCalculations (RunNumber, CreatorName, CreatorEmail, BranchId, MotorTypeId, SalesProfitPct, TravelKm)
+          INSERT INTO SavedCalculations (RunNumber, CreatorName, CreatorEmail, BranchId, MotorTypeId, SalesProfitPct, TravelKm,
+                                         CalculatorType, CustomerLocation, SiteAccessNotes, EquipmentUsed, MachineHours,
+                                         PriorityLevel, PickupDeliveryOption, QualityCheckRequired)
           OUTPUT INSERTED.SaveId, INSERTED.RunNumber, INSERTED.CreatorName, INSERTED.CreatorEmail,
                  INSERTED.CreatedAt, INSERTED.ModifiedAt, INSERTED.ShareToken,
-                 INSERTED.BranchId, INSERTED.MotorTypeId, INSERTED.SalesProfitPct, INSERTED.TravelKm
-          VALUES (@runNumber, @creatorName, @creatorEmail, @branchId, @motorTypeId, @salesProfitPct, @travelKm)
+                 INSERTED.BranchId, INSERTED.MotorTypeId, INSERTED.SalesProfitPct, INSERTED.TravelKm,
+                 INSERTED.CalculatorType, INSERTED.CustomerLocation, INSERTED.SiteAccessNotes,
+                 INSERTED.EquipmentUsed, INSERTED.MachineHours, INSERTED.PriorityLevel,
+                 INSERTED.PickupDeliveryOption, INSERTED.QualityCheckRequired
+          VALUES (@runNumber, @creatorName, @creatorEmail, @branchId, @motorTypeId, @salesProfitPct, @travelKm,
+                  @calculatorType, @customerLocation, @siteAccessNotes, @equipmentUsed, @machineHours,
+                  @priorityLevel, @pickupDeliveryOption, @qualityCheckRequired)
         `);
 
       const saveId = saveResult.recordset[0].SaveId;
@@ -222,6 +239,7 @@ router.get('/', async (req, res, next) => {
                sc.BranchId, b.BranchName,
                sc.MotorTypeId, mt.MotorTypeName,
                sc.SalesProfitPct, sc.TravelKm,
+               sc.CalculatorType,
                sc.GrandTotal,
                COUNT(DISTINCT scj.JobId) as JobCount,
                COUNT(DISTINCT scm.MaterialId) as MaterialCount
@@ -234,7 +252,7 @@ router.get('/', async (req, res, next) => {
         GROUP BY sc.SaveId, sc.RunNumber, sc.CreatorName, sc.CreatorEmail,
                  sc.CreatedAt, sc.ModifiedAt, sc.ShareToken,
                  sc.BranchId, b.BranchName, sc.MotorTypeId, mt.MotorTypeName,
-                 sc.SalesProfitPct, sc.TravelKm, sc.GrandTotal
+                 sc.SalesProfitPct, sc.TravelKm, sc.CalculatorType, sc.GrandTotal
         ORDER BY sc.CreatedAt DESC
       `);
 
@@ -340,12 +358,28 @@ router.put('/:id', async (req, res, next) => {
         .input('motorTypeId', sql.Int, motorTypeId)
         .input('salesProfitPct', sql.Decimal(5, 2), salesProfitPct)
         .input('travelKm', sql.Int, travelKm)
+        .input('calculatorType', sql.NVarChar(20), calculatorType || 'onsite')
+        .input('customerLocation', sql.NVarChar(500), customerLocation || null)
+        .input('siteAccessNotes', sql.NVarChar(1000), siteAccessNotes || null)
+        .input('equipmentUsed', sql.NVarChar(100), equipmentUsed || null)
+        .input('machineHours', sql.Decimal(10, 2), machineHours || null)
+        .input('priorityLevel', sql.NVarChar(20), priorityLevel || null)
+        .input('pickupDeliveryOption', sql.NVarChar(50), pickupDeliveryOption || null)
+        .input('qualityCheckRequired', sql.Bit, qualityCheckRequired || null)
         .query(`
           UPDATE SavedCalculations
           SET BranchId = @branchId,
               MotorTypeId = @motorTypeId,
               SalesProfitPct = @salesProfitPct,
               TravelKm = @travelKm,
+              CalculatorType = @calculatorType,
+              CustomerLocation = @customerLocation,
+              SiteAccessNotes = @siteAccessNotes,
+              EquipmentUsed = @equipmentUsed,
+              MachineHours = @machineHours,
+              PriorityLevel = @priorityLevel,
+              PickupDeliveryOption = @pickupDeliveryOption,
+              QualityCheckRequired = @qualityCheckRequired,
               ModifiedAt = GETUTCDATE()
           WHERE SaveId = @saveId
         `);
@@ -521,6 +555,9 @@ async function fetchSavedCalculationById(pool, saveId) {
              sc.BranchId, b.BranchName,
              sc.MotorTypeId, mt.MotorTypeName,
              sc.SalesProfitPct, sc.TravelKm,
+             sc.CalculatorType, sc.CustomerLocation, sc.SiteAccessNotes,
+             sc.EquipmentUsed, sc.MachineHours, sc.PriorityLevel,
+             sc.PickupDeliveryOption, sc.QualityCheckRequired,
              sc.GrandTotal
       FROM SavedCalculations sc
       LEFT JOIN Branches b ON sc.BranchId = b.BranchId
@@ -569,6 +606,14 @@ async function fetchSavedCalculationById(pool, saveId) {
     motorTypeName: save.MotorTypeName,
     salesProfitPct: save.SalesProfitPct,
     travelKm: save.TravelKm,
+    calculatorType: save.CalculatorType,
+    customerLocation: save.CustomerLocation,
+    siteAccessNotes: save.SiteAccessNotes,
+    equipmentUsed: save.EquipmentUsed,
+    machineHours: save.MachineHours,
+    priorityLevel: save.PriorityLevel,
+    pickupDeliveryOption: save.PickupDeliveryOption,
+    qualityCheckRequired: save.QualityCheckRequired,
     grandTotal: save.GrandTotal,
     jobs: jobsResult.recordset.map(j => ({
       savedJobId: j.SavedJobId,

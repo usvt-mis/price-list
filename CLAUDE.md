@@ -19,9 +19,23 @@ The calculator computes total cost based on four components:
 1. **Labor**: Job manhours × branch-specific cost per hour
 2. **Materials**: User-selected materials with quantities
 3. **Sales Profit**: User-editable percentage applied after branch multipliers (can be negative for discounts)
-4. **Travel/Shipping**: Distance in Km multiplied by 15 baht/km rate
+4. **Travel/Shipping**: Distance in Km multiplied by 15 baht/km rate (Onsite calculator only)
 
 **Note**: Branch defaults (OverheadPercent and PolicyProfit) are applied silently in the calculation and are not user-editable.
+
+### Calculator Types
+The application supports two distinct calculator modes selected via tab navigation:
+
+**Onsite Calculator (Monitor)**:
+- For field/onsite service calculations
+- Includes travel distance (km × 15 baht/km rate)
+- Onsite-specific fields: Customer Location, Site Access Notes
+
+**Workshop Calculator (Monitor)**:
+- For workshop/facility-based service calculations
+- Workshop-specific fields: Equipment/Machine Used, Machine Hours, Priority Level, Pickup/Delivery Option, Quality Check Required
+- Priority surcharges: Express (+20%), Urgent (+50%)
+- Quality Check Required adds +5% to total
 
 ---
 
@@ -147,6 +161,9 @@ The application includes comprehensive debug logging for troubleshooting initial
 ### Database Schema
 - Core tables: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
+  - **Calculator Types**: SavedCalculations.CalculatorType stores 'onsite' or 'workshop'
+  - **Onsite Columns**: CustomerLocation, SiteAccessNotes
+  - **Workshop Columns**: EquipmentUsed, MachineHours, PriorityLevel, PickupDeliveryOption, QualityCheckRequired
 - Role management: UserRoles (stores role assignments - can be Executive, Sales, Customer, or NULL/NoRole)
   - Columns: Email (PK), Role, AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt
   - FirstLoginAt: Tracks when user first logged in
@@ -155,7 +172,11 @@ The application includes comprehensive debug logging for troubleshooting initial
 - **Backoffice authentication**: BackofficeAdmins table (deprecated - no longer used for auth; kept for potential rollback)
 - Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`
 - Schema scripts: `database/ensure_backoffice_schema.sql` (comprehensive setup)
-- Migration scripts: `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index), `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema), `database/migrations/remove_database_logging.sql` (removes legacy logging tables)
+- Migration scripts:
+  - `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index)
+  - `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema)
+  - `database/migrations/remove_database_logging.sql` (removes legacy logging tables)
+  - `database/migrations/calculator_types.sql` (adds CalculatorType and type-specific columns to SavedCalculations)
 - **Deprecated scripts**: `database/deprecated/create_app_logs.sql`, `database/deprecated/diagnostics_logs.sql` (moved after Application Insights migration)
 
 ### Backend Structure (`api/`)
@@ -197,6 +218,7 @@ The application includes comprehensive debug logging for troubleshooting initial
     │   ├── index.js              # Calculator exports
     │   ├── labor.js              # Labor section logic
     │   ├── materials.js          # Materials section logic
+    │   ├── type.js               # Calculator type switching (Onsite/Workshop)
     │   └── calculations.js       # Cost calculations
     ├── saved-records/           # Saved calculations module
     │   ├── index.js              # Saved records exports
@@ -365,9 +387,13 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 
 **Saved Calculations API Endpoints** (Azure AD - role-based access):
 - `POST /api/saves` - Create new saved calculation (authenticated users only)
+  - Request body includes: `calculatorType`, `customerLocation`, `siteAccessNotes` (Onsite) or `equipmentUsed`, `machineHours`, `priorityLevel`, `pickupDeliveryOption`, `qualityCheckRequired` (Workshop)
 - `GET /api/saves` - List saved calculations (Executive: all records, Sales: own records only, NoRole: 403 forbidden)
+  - Returns `CalculatorType` field for each record
 - `GET /api/saves/{id}` - Get single saved calculation by ID
+  - Returns calculator type and all type-specific fields
 - `PUT /api/saves/{id}` - Update saved calculation (creator only)
+  - Accepts calculator type and type-specific fields
 - `DELETE /api/saves/{id}` - Delete saved calculation (creator or Executive only)
 - **Role Detection**: All endpoints use `getUserEffectiveRole()` to check UserRoles database table for role determination (Executive/Sales/NoRole)
 
@@ -443,6 +469,42 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - Environment variables: `APPLICATIONINSIGHTS_CONNECTION_STRING` (optional - enables Application Insights)
 
 **UTC Timezone**: All database timestamps use `GETUTCDATE()` for consistent UTC timezone across all servers; JavaScript uses `Date.toISOString()` for UTC datetime parameters
+
+### Calculator Type Management
+
+The application supports two calculator types that can be switched via tab navigation:
+
+**Constants** (`src/js/config.js`):
+```js
+export const CALCULATOR_TYPE = {
+  ONSITE: 'onsite',
+  WORKSHOP: 'workshop'
+};
+```
+
+**State Management** (`src/js/state.js`):
+- `currentCalculatorType`: Stores currently selected type (defaults to 'onsite')
+- `getCalculatorType()`: Returns current calculator type
+- `setCalculatorType(type)`: Updates calculator type and persists to localStorage
+- Selection persists across page loads via `localStorage.getItem(STORAGE_KEYS.CALCULATOR_TYPE)`
+
+**Tab Switching Logic** (`src/js/calculator/type.js`):
+- `initCalculatorTypeTabs()`: Initializes tab click handlers and visual state
+- `switchCalculatorType(type)`: Switches between Onsite and Workshop modes
+- `updateFieldVisibility()`: Shows/hides type-specific form fields based on current type
+- `getCalculatorTypeLabel()`: Returns display label ('Onsite' or 'Workshop')
+- `getCalculatorTypeColorClass()`: Returns Tailwind color classes for badges (blue for Onsite, orange for Workshop)
+
+**Field Visibility**:
+- **Onsite fields**: Customer Location, Site Access Notes, Travel Section
+- **Workshop fields**: Equipment Used, Machine Hours, Priority Level, Pickup/Delivery Option, Quality Check Required
+- Travel section is hidden for Workshop calculator
+
+**Saved Calculations Display**:
+- Calculator type badges shown in both Grid and List views
+- Blue badge with location icon for Onsite
+- Orange badge with building icon for Workshop
+- Detail view displays type-specific information
 
 ---
 

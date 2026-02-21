@@ -3,7 +3,7 @@
  * Centralized state for the application
  */
 
-import { MODE, ROLE, VIEW } from './config.js';
+import { MODE, ROLE, VIEW, CALCULATOR_TYPE, STORAGE_KEYS } from './config.js';
 
 // ========== Core Application State ==========
 
@@ -25,6 +25,9 @@ export let currentMode = null; // MODE.EXECUTIVE or MODE.SALES
 
 // Records view mode
 export let recordsViewMode = localStorage.getItem('pricelist-calculator-records-view') || 'list';
+
+// Calculator type (Onsite vs Workshop)
+export let currentCalculatorType = localStorage.getItem(STORAGE_KEYS.CALCULATOR_TYPE) || CALCULATOR_TYPE.ONSITE;
 
 // NoRole state management (prevents view switching)
 export let isNoRoleState = false;
@@ -92,6 +95,17 @@ export function setMode(mode) {
 export function setRecordsViewMode(mode) {
   recordsViewMode = mode;
   localStorage.setItem('pricelist-calculator-records-view', mode);
+}
+
+export function getCalculatorType() {
+  return currentCalculatorType;
+}
+
+export function setCalculatorType(type) {
+  if (currentCalculatorType !== type) {
+    currentCalculatorType = type;
+    localStorage.setItem(STORAGE_KEYS.CALCULATOR_TYPE, type);
+  }
 }
 
 export function setNoRoleState(value) {

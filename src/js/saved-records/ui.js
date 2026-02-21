@@ -7,6 +7,32 @@ import { el, fmt, formatDate, showView } from '../utils.js';
 import { selectedRecords, recordsViewMode, setRecordsViewMode, getRecordsSortColumn, getRecordsSortDirection, setRecordsSortColumn, setRecordsSortDirection } from '../state.js';
 import { authState } from '../state.js';
 import { loadSavedRecords } from './api.js';
+import { CALCULATOR_TYPE } from '../config.js';
+
+/**
+ * Get calculator type badge HTML with color coding
+ * @param {string} calculatorType - The calculator type (onsite or workshop)
+ * @returns {string} HTML for the calculator type badge
+ */
+function getCalculatorTypeBadge(calculatorType) {
+  const type = calculatorType || CALCULATOR_TYPE.ONSITE;
+  if (type === CALCULATOR_TYPE.ONSITE) {
+    return `<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+      <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      Onsite
+    </span>`;
+  } else {
+    return `<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-orange-100 text-orange-800">
+      <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+      </svg>
+      Workshop
+    </span>`;
+  }
+}
 
 /**
  * Render records grid in card view
@@ -28,7 +54,10 @@ export function renderRecordsGrid(records) {
         <input type="checkbox" ${selectedRecords.has(record.SaveId) ? 'checked' : ''} onchange="window.toggleRecordSelection && window.toggleRecordSelection(${record.SaveId})" class="record-checkbox w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" aria-label="Select ${record.RunNumber}">
       </div>
       <div class="flex items-center justify-between mb-3 pl-8">
-        <span class="text-lg font-bold">${record.RunNumber}</span>
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-bold">${record.RunNumber}</span>
+          ${getCalculatorTypeBadge(record.CalculatorType)}
+        </div>
         <span class="text-xs text-slate-500">${formatDate(record.CreatedAt)}</span>
       </div>
       <div class="space-y-1 text-sm text-slate-600 mb-4">
@@ -148,6 +177,7 @@ export function renderRecordsListView(records) {
               <input type="checkbox" id="selectAllRecordsList" onchange="window.selectAllRecords && window.selectAllRecords()" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" aria-label="Select all records">
             </th>
             ${renderSortableHeader('RunNumber', 'Run Number')}
+            ${renderSortableHeader('CalculatorType', 'Type')}
             ${renderSortableHeader('CreatedAt', 'Date')}
             ${renderSortableHeader('CreatorName', 'Created By')}
             ${renderSortableHeader('BranchName', 'Branch')}
@@ -165,6 +195,7 @@ export function renderRecordsListView(records) {
                 <input type="checkbox" ${selectedRecords.has(record.SaveId) ? 'checked' : ''} onchange="window.toggleRecordSelection && window.toggleRecordSelection(${record.SaveId})" class="record-checkbox w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" aria-label="Select ${record.RunNumber}">
               </td>
               <td class="p-3 font-medium">${record.RunNumber}</td>
+              <td class="p-3">${getCalculatorTypeBadge(record.CalculatorType)}</td>
               <td class="p-3 text-sm text-slate-600">${formatDate(record.CreatedAt)}</td>
               <td class="p-3 text-sm text-slate-600">${record.CreatorName || record.CreatorEmail || 'Unknown'}</td>
               <td class="p-3 text-sm text-slate-600">${record.BranchName}</td>
@@ -349,10 +380,24 @@ export function displayRecordDetail(record) {
         <div class="rounded-xl border border-slate-200 p-4">
           <h3 class="font-semibold mb-2">Calculation Details</h3>
           <div class="space-y-2 text-sm">
+            <div class="flex items-center gap-2">
+              <strong>Type:</strong>
+              ${getCalculatorTypeBadge(record.calculatorType)}
+            </div>
             <div><strong>Branch:</strong> ${record.branchName}</div>
             <div><strong>Motor Type:</strong> ${record.motorTypeName}</div>
             <div><strong>Sales Profit:</strong> ${record.salesProfitPct}%</div>
-            <div><strong>Travel Distance:</strong> ${record.travelKm} km</div>
+            ${record.calculatorType === CALCULATOR_TYPE.ONSITE ? `
+              <div><strong>Travel Distance:</strong> ${record.travelKm} km</div>
+              ${record.customerLocation ? `<div><strong>Customer Location:</strong> ${record.customerLocation}</div>` : ''}
+              ${record.siteAccessNotes ? `<div><strong>Site Access Notes:</strong> ${record.siteAccessNotes}</div>` : ''}
+            ` : `
+              ${record.equipmentUsed ? `<div><strong>Equipment:</strong> ${record.equipmentUsed}</div>` : ''}
+              ${record.machineHours ? `<div><strong>Machine Hours:</strong> ${record.machineHours}</div>` : ''}
+              ${record.priorityLevel ? `<div><strong>Priority:</strong> ${record.priorityLevel}</div>` : ''}
+              ${record.pickupDeliveryOption ? `<div><strong>Pickup/Delivery:</strong> ${record.pickupDeliveryOption}</div>` : ''}
+              ${record.qualityCheckRequired ? `<div><strong>Quality Check:</strong> Required</div>` : ''}
+            `}
           </div>
         </div>
         <div class="rounded-xl border border-slate-200 p-4">
