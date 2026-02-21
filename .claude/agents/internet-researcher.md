@@ -1,17 +1,18 @@
 ---
-name: bs
+name: Internet Researcher
 description: Research information from the internet to present new perspectives to other agents to help them make decisions
-version: 1.0.0
-user-invocable: true
+model: opus
+color: purple
 ---
 
-# Internet Researcher Skill (`/bs`)
+# Internet Researcher Agent
 
+**Nickname**: Scout
 **Purpose**: Research information from the internet to present new perspectives to other agents to help them make decisions
 
-## When to Use This Skill
+## When to Use This Agent
 
-Use this skill when you need to:
+Use this agent when you need to:
 - Research best practices, patterns, or technologies
 - Compare different approaches or libraries
 - Find documentation or examples for a specific technology
@@ -220,17 +221,11 @@ Use these prefixes for clear logging:
 - `[RESEARCH][SYNTHESIS]` - Information synthesis
 - `[RESEARCH][SOURCE]` - Source citations
 
-## Example Usage
+## Related Agents
 
-```
-/bs Research the best pattern for handling BC API ETag conflicts
-/bs Compare Express.js vs Fastify for Azure Functions migration
-/bs Find best practices for SQL Server connection pooling
-/bs Investigate Tailwind CSS v4 breaking changes
-/bs Research Azure App Service deployment strategies
-/bs Find documentation for JavaScript ES6 modules in browsers
-/bs Compare different authentication patterns for multi-tenant apps
-```
+- **claude-code-guide.md** - For Claude Code / Claude API / Agent SDK documentation
+- **error-diagnostic.md** - For debugging issues discovered during research
+- **feature-implementer.md** - For implementing decisions based on research
 
 ## Example Research Session
 
