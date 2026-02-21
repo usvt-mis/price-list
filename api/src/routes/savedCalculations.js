@@ -33,8 +33,8 @@ router.post('/', async (req, res, next) => {
     });
 
     const { branchId, motorTypeId, salesProfitPct, travelKm, jobs, materials,
-            calculatorType, scope, customerLocation, siteAccessNotes,
-            equipmentUsed, machineHours, priorityLevel, pickupDeliveryOption, qualityCheckRequired } = req.body;
+            calculatorType, scope, priorityLevel, siteAccess, customerLocation, siteAccessNotes,
+            equipmentUsed, machineHours, pickupDeliveryOption, qualityCheckRequired } = req.body;
 
     // Validate required fields
     if (!branchId || !motorTypeId || salesProfitPct === undefined || travelKm === undefined) {
@@ -82,26 +82,28 @@ router.post('/', async (req, res, next) => {
         .input("travelKm", sql.Int, travelKm)
         .input("calculatorType", sql.NVarChar(20), calculatorType || 'onsite')
         .input("scope", sql.NVarChar(20), scope || null)
+        .input("priorityLevel", sql.NVarChar(10), priorityLevel || null)
+        .input("siteAccess", sql.NVarChar(10), siteAccess || null)
         .input("customerLocation", sql.NVarChar(500), customerLocation || null)
         .input("siteAccessNotes", sql.NVarChar(1000), siteAccessNotes || null)
         .input("equipmentUsed", sql.NVarChar(100), equipmentUsed || null)
         .input("machineHours", sql.Decimal(10, 2), machineHours || null)
-        .input("priorityLevel", sql.NVarChar(20), priorityLevel || null)
         .input("pickupDeliveryOption", sql.NVarChar(50), pickupDeliveryOption || null)
         .input("qualityCheckRequired", sql.Bit, qualityCheckRequired || null)
         .query(`
           INSERT INTO SavedCalculations (RunNumber, CreatorName, CreatorEmail, BranchId, MotorTypeId, SalesProfitPct, TravelKm,
-                                         CalculatorType, Scope, CustomerLocation, SiteAccessNotes, EquipmentUsed, MachineHours,
-                                         PriorityLevel, PickupDeliveryOption, QualityCheckRequired)
+                                         CalculatorType, Scope, PriorityLevel, SiteAccess, CustomerLocation, SiteAccessNotes,
+                                         EquipmentUsed, MachineHours, PickupDeliveryOption, QualityCheckRequired)
           OUTPUT INSERTED.SaveId, INSERTED.RunNumber, INSERTED.CreatorName, INSERTED.CreatorEmail,
                  INSERTED.CreatedAt, INSERTED.ModifiedAt, INSERTED.ShareToken,
                  INSERTED.BranchId, INSERTED.MotorTypeId, INSERTED.SalesProfitPct, INSERTED.TravelKm,
-                 INSERTED.CalculatorType, INSERTED.Scope, INSERTED.CustomerLocation, INSERTED.SiteAccessNotes,
-                 INSERTED.EquipmentUsed, INSERTED.MachineHours, INSERTED.PriorityLevel,
+                 INSERTED.CalculatorType, INSERTED.Scope, INSERTED.PriorityLevel, INSERTED.SiteAccess,
+                 INSERTED.CustomerLocation, INSERTED.SiteAccessNotes,
+                 INSERTED.EquipmentUsed, INSERTED.MachineHours,
                  INSERTED.PickupDeliveryOption, INSERTED.QualityCheckRequired
           VALUES (@runNumber, @creatorName, @creatorEmail, @branchId, @motorTypeId, @salesProfitPct, @travelKm,
-                  @calculatorType, @scope, @customerLocation, @siteAccessNotes, @equipmentUsed, @machineHours,
-                  @priorityLevel, @pickupDeliveryOption, @qualityCheckRequired)
+                  @calculatorType, @scope, @priorityLevel, @siteAccess, @customerLocation, @siteAccessNotes,
+                  @equipmentUsed, @machineHours, @pickupDeliveryOption, @qualityCheckRequired)
         `);
 
       const saveId = saveResult.recordset[0].SaveId;
@@ -318,8 +320,8 @@ router.put('/:id', async (req, res, next) => {
     }
 
     const { branchId, motorTypeId, salesProfitPct, travelKm, jobs, materials,
-            calculatorType, scope, customerLocation, siteAccessNotes,
-            equipmentUsed, machineHours, priorityLevel, pickupDeliveryOption, qualityCheckRequired } = req.body;
+            calculatorType, scope, priorityLevel, siteAccess, customerLocation, siteAccessNotes,
+            equipmentUsed, machineHours, pickupDeliveryOption, qualityCheckRequired } = req.body;
 
     // Validate required fields
     if (!branchId || !motorTypeId || salesProfitPct === undefined || travelKm === undefined) {
@@ -363,11 +365,12 @@ router.put('/:id', async (req, res, next) => {
         .input('travelKm', sql.Int, travelKm)
         .input('calculatorType', sql.NVarChar(20), calculatorType || 'onsite')
         .input('scope', sql.NVarChar(20), scope || null)
+        .input('priorityLevel', sql.NVarChar(10), priorityLevel || null)
+        .input('siteAccess', sql.NVarChar(10), siteAccess || null)
         .input('customerLocation', sql.NVarChar(500), customerLocation || null)
         .input('siteAccessNotes', sql.NVarChar(1000), siteAccessNotes || null)
         .input('equipmentUsed', sql.NVarChar(100), equipmentUsed || null)
         .input('machineHours', sql.Decimal(10, 2), machineHours || null)
-        .input('priorityLevel', sql.NVarChar(20), priorityLevel || null)
         .input('pickupDeliveryOption', sql.NVarChar(50), pickupDeliveryOption || null)
         .input('qualityCheckRequired', sql.Bit, qualityCheckRequired || null)
         .query(`
@@ -378,11 +381,12 @@ router.put('/:id', async (req, res, next) => {
               TravelKm = @travelKm,
               CalculatorType = @calculatorType,
               Scope = @scope,
+              PriorityLevel = @priorityLevel,
+              SiteAccess = @siteAccess,
               CustomerLocation = @customerLocation,
               SiteAccessNotes = @siteAccessNotes,
               EquipmentUsed = @equipmentUsed,
               MachineHours = @machineHours,
-              PriorityLevel = @priorityLevel,
               PickupDeliveryOption = @pickupDeliveryOption,
               QualityCheckRequired = @qualityCheckRequired,
               ModifiedAt = GETUTCDATE()
@@ -560,8 +564,9 @@ async function fetchSavedCalculationById(pool, saveId) {
              sc.BranchId, b.BranchName,
              sc.MotorTypeId, mt.MotorTypeName,
              sc.SalesProfitPct, sc.TravelKm,
-             sc.CalculatorType, sc.Scope, sc.CustomerLocation, sc.SiteAccessNotes,
-             sc.EquipmentUsed, sc.MachineHours, sc.PriorityLevel,
+             sc.CalculatorType, sc.Scope, sc.PriorityLevel, sc.SiteAccess,
+             sc.CustomerLocation, sc.SiteAccessNotes,
+             sc.EquipmentUsed, sc.MachineHours,
              sc.PickupDeliveryOption, sc.QualityCheckRequired,
              sc.GrandTotal
       FROM SavedCalculations sc
@@ -613,11 +618,12 @@ async function fetchSavedCalculationById(pool, saveId) {
     travelKm: save.TravelKm,
     calculatorType: save.CalculatorType,
     scope: save.Scope,
+    priorityLevel: save.PriorityLevel,
+    siteAccess: save.SiteAccess,
     customerLocation: save.CustomerLocation,
     siteAccessNotes: save.SiteAccessNotes,
     equipmentUsed: save.EquipmentUsed,
     machineHours: save.MachineHours,
-    priorityLevel: save.PriorityLevel,
     pickupDeliveryOption: save.PickupDeliveryOption,
     qualityCheckRequired: save.QualityCheckRequired,
     grandTotal: save.GrandTotal,

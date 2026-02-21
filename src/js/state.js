@@ -32,6 +32,12 @@ export let currentCalculatorType = localStorage.getItem(STORAGE_KEYS.CALCULATOR_
 // Scope for onsite calculations
 export let currentScope = localStorage.getItem(STORAGE_KEYS.SCOPE) || '';
 
+// Priority Level for onsite calculations
+export let currentPriorityLevel = localStorage.getItem(STORAGE_KEYS.PRIORITY_LEVEL) || 'low';
+
+// Site Access for onsite calculations
+export let currentSiteAccess = localStorage.getItem(STORAGE_KEYS.SITE_ACCESS) || 'easy';
+
 // NoRole state management (prevents view switching)
 export let isNoRoleState = false;
 
@@ -124,6 +130,36 @@ export function setScope(scope) {
 
 export function getInitialScope() {
   return localStorage.getItem(STORAGE_KEYS.SCOPE) || '';
+}
+
+export function getPriorityLevel() {
+  return currentPriorityLevel || 'low';
+}
+
+export function setPriorityLevel(level) {
+  if (currentPriorityLevel !== level) {
+    currentPriorityLevel = level;
+    localStorage.setItem(STORAGE_KEYS.PRIORITY_LEVEL, level);
+  }
+}
+
+export function getInitialPriorityLevel() {
+  return localStorage.getItem(STORAGE_KEYS.PRIORITY_LEVEL) || 'low';
+}
+
+export function getSiteAccess() {
+  return currentSiteAccess || 'easy';
+}
+
+export function setSiteAccess(access) {
+  if (currentSiteAccess !== access) {
+    currentSiteAccess = access;
+    localStorage.setItem(STORAGE_KEYS.SITE_ACCESS, access);
+  }
+}
+
+export function getInitialSiteAccess() {
+  return localStorage.getItem(STORAGE_KEYS.SITE_ACCESS) || 'easy';
 }
 
 export function setNoRoleState(value) {

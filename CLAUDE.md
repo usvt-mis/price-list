@@ -29,7 +29,8 @@ The application supports two distinct calculator modes selected via tab navigati
 **Onsite Calculator (Monitor)**:
 - For field/onsite service calculations
 - Includes travel distance (km × 15 baht/km rate)
-- Onsite-specific fields: Scope, Customer Location, Site Access Notes
+- Labor section includes: Scope (dropdown), Priority Level (High/Low radio buttons), Site Access (Easy/Difficult radio buttons)
+- Location section includes: Customer Location, Site Access Notes
 - Travel section is visible (shared with Workshop)
 
 **Workshop Calculator (Monitor)**:
@@ -162,8 +163,8 @@ The application includes comprehensive debug logging for troubleshooting initial
 - Core tables: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
   - **Calculator Types**: SavedCalculations.CalculatorType stores 'onsite' or 'workshop'
-  - **Onsite Columns**: Scope, CustomerLocation, SiteAccessNotes
-  - **Workshop Columns**: EquipmentUsed, MachineHours, PriorityLevel, PickupDeliveryOption, QualityCheckRequired
+  - **Onsite Columns**: Scope, PriorityLevel (shared with Workshop), SiteAccess, CustomerLocation, SiteAccessNotes
+  - **Workshop Columns**: EquipmentUsed, MachineHours, PriorityLevel (shared with Onsite), PickupDeliveryOption, QualityCheckRequired
 - Role management: UserRoles (stores role assignments - can be Executive, Sales, Customer, or NULL/NoRole)
   - Columns: Email (PK), Role, AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt
   - FirstLoginAt: Tracks when user first logged in
@@ -178,6 +179,7 @@ The application includes comprehensive debug logging for troubleshooting initial
   - `database/migrations/remove_database_logging.sql` (removes legacy logging tables)
   - `database/migrations/calculator_types.sql` (adds CalculatorType and type-specific columns to SavedCalculations)
   - `database/migrations/add_scope_column.sql` (adds Scope dropdown for onsite calculations)
+  - `database/migrations/priority_site_access.sql` (adds SiteAccess column; PriorityLevel column already exists and is shared)
 - **Deprecated scripts**: `database/deprecated/create_app_logs.sql`, `database/deprecated/diagnostics_logs.sql` (moved after Application Insights migration)
 
 ### Backend Structure (`api/`)
@@ -388,7 +390,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 
 **Saved Calculations API Endpoints** (Azure AD - role-based access):
 - `POST /api/saves` - Create new saved calculation (authenticated users only)
-  - Request body includes: `calculatorType`, `scope`, `customerLocation`, `siteAccessNotes` (Onsite) or `equipmentUsed`, `machineHours`, `priorityLevel`, `pickupDeliveryOption`, `qualityCheckRequired` (Workshop)
+  - Request body includes: `calculatorType`, `scope`, `priorityLevel`, `siteAccess`, `customerLocation`, `siteAccessNotes` (Onsite) or `equipmentUsed`, `machineHours`, `priorityLevel`, `pickupDeliveryOption`, `qualityCheckRequired` (Workshop)
 - `GET /api/saves` - List saved calculations (Executive: all records, Sales: own records only, NoRole: 403 forbidden)
   - Returns `CalculatorType` field for each record
 - `GET /api/saves/{id}` - Get single saved calculation by ID
@@ -487,6 +489,16 @@ export const SCOPE_OPTIONS = [
   { value: 'medium-volt', label: 'Medium Volt' },
   { value: 'large', label: 'Large' }
 ];
+
+export const PRIORITY_LEVEL_OPTIONS = [
+  { value: 'high', label: 'High' },
+  { value: 'low', label: 'Low' }
+];
+
+export const SITE_ACCESS_OPTIONS = [
+  { value: 'easy', label: 'Easy' },
+  { value: 'difficult', label: 'Difficult' }
+];
 ```
 
 **State Management** (`src/js/state.js`):
@@ -498,6 +510,14 @@ export const SCOPE_OPTIONS = [
 - `getScope()`: Returns current scope value
 - `setScope(scope)`: Updates scope and persists to localStorage
 - `getInitialScope()`: Returns stored scope from localStorage
+- `currentPriorityLevel`: Stores selected priority level (defaults to 'low')
+- `getPriorityLevel()`: Returns current priority level value
+- `setPriorityLevel(level)`: Updates priority level and persists to localStorage
+- `getInitialPriorityLevel()`: Returns stored priority level from localStorage
+- `currentSiteAccess`: Stores selected site access (defaults to 'easy')
+- `getSiteAccess()`: Returns current site access value
+- `setSiteAccess(access)`: Updates site access and persists to localStorage
+- `getInitialSiteAccess()`: Returns stored site access from localStorage
 
 **Tab Switching Logic** (`src/js/calculator/type.js`):
 - `initCalculatorTypeTabs()`: Initializes tab click handlers and visual state
@@ -507,7 +527,8 @@ export const SCOPE_OPTIONS = [
 - `getCalculatorTypeColorClass()`: Returns Tailwind color classes for badges (blue for Onsite, orange for Workshop)
 
 **Field Visibility**:
-- **Onsite fields**: Scope, Customer Location, Site Access Notes
+- **Onsite Labor fields**: Scope (dropdown), Priority Level (radio buttons: High/Low), Site Access (radio buttons: Easy/Difficult)
+- **Onsite Location fields**: Customer Location, Site Access Notes
 - **Workshop fields**: None (uses original calculator layout)
 - Travel section is always visible for both calculator types
 

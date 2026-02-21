@@ -76,7 +76,10 @@ function updateTabVisuals() {
 function updateFieldVisibility() {
   const currentType = getCalculatorType();
 
-  // Onsite-specific fields
+  // Onsite-specific fields in Labor section (Scope, Priority Level, Site Access)
+  const onsiteLaborFields = el('onsiteLaborFields');
+
+  // Onsite-specific fields in location section
   const onsiteFields = [
     el('onsiteLocationSection'),
     el('customerLocation'),
@@ -91,9 +94,11 @@ function updateFieldVisibility() {
 
   // Show/hide Onsite-specific fields
   if (currentType === CALCULATOR_TYPE.ONSITE) {
+    if (onsiteLaborFields) onsiteLaborFields.classList.remove('hidden');
     onsiteFields.forEach(field => field.classList.remove('hidden'));
   } else {
     // Workshop mode: hide Onsite fields, show original calculator layout
+    if (onsiteLaborFields) onsiteLaborFields.classList.add('hidden');
     onsiteFields.forEach(field => field.classList.add('hidden'));
   }
 }

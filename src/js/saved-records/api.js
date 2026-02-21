@@ -42,6 +42,8 @@ export function serializeCalculatorState() {
   // Add type-specific fields
   if (currentType === CALCULATOR_TYPE.ONSITE) {
     baseState.scope = el('scope')?.value || null;
+    baseState.priorityLevel = el('priorityLevel')?.value || null;
+    baseState.siteAccess = el('siteAccess')?.value || null;
     baseState.customerLocation = el('customerLocation')?.value || null;
     baseState.siteAccessNotes = el('siteAccessNotes')?.value || null;
   }
@@ -201,6 +203,18 @@ export async function deserializeCalculatorState(data, options = {}) {
   // Set type-specific fields
   if (data.calculatorType === CALCULATOR_TYPE.ONSITE) {
     if (el('scope')) el('scope').value = data.scope || '';
+    if (el('priorityLevel')) {
+      // Set the radio button for priority level
+      const priorityValue = data.priorityLevel || 'low';
+      const priorityRadio = document.querySelector(`input[name="priorityLevel"][value="${priorityValue}"]`);
+      if (priorityRadio) priorityRadio.checked = true;
+    }
+    if (el('siteAccess')) {
+      // Set the radio button for site access
+      const accessValue = data.siteAccess || 'easy';
+      const accessRadio = document.querySelector(`input[name="siteAccess"][value="${accessValue}"]`);
+      if (accessRadio) accessRadio.checked = true;
+    }
     if (el('customerLocation')) el('customerLocation').value = data.customerLocation || '';
     if (el('siteAccessNotes')) el('siteAccessNotes').value = data.siteAccessNotes || '';
   }

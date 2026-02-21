@@ -11,7 +11,9 @@ export const STORAGE_KEYS = {
   MODE: 'pricelist-calculator-mode',
   RECORDS_VIEW: 'pricelist-calculator-records-view',
   CALCULATOR_TYPE: 'pricelist-calculator-type',
-  SCOPE: 'pricelist-scope'
+  SCOPE: 'pricelist-scope',
+  PRIORITY_LEVEL: 'pricelist-priority-level',
+  SITE_ACCESS: 'pricelist-site-access'
 };
 
 // API endpoints
@@ -49,6 +51,18 @@ export const SCOPE_OPTIONS = [
   { value: 'low-volt', label: 'Low Volt' },
   { value: 'medium-volt', label: 'Medium Volt' },
   { value: 'large', label: 'Large' }
+];
+
+// Priority Level options for onsite calculations
+export const PRIORITY_LEVEL_OPTIONS = [
+  { value: 'high', label: 'High' },
+  { value: 'low', label: 'Low' }
+];
+
+// Site Access options for onsite calculations
+export const SITE_ACCESS_OPTIONS = [
+  { value: 'easy', label: 'Easy' },
+  { value: 'difficult', label: 'Difficult' }
 ];
 
 // Commission tiers based on Grand Total to STC ratio

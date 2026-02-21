@@ -108,7 +108,7 @@ The application expects these SQL Server tables:
 | `Jobs` | Job definitions with JobCode, JobName, SortOrder |
 | `Jobs2MotorType` | Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours) |
 | `Materials` | Material catalog with MaterialCode, MaterialName, UnitCost, IsActive |
-| `SavedCalculations` | Saved calculation records with run numbers (e.g., 2024-001), GrandTotal (pre-calculated for sorting) |
+| `SavedCalculations` | Saved calculation records with run numbers (e.g., 2024-001), GrandTotal (pre-calculated for sorting), CalculatorType (onsite/workshop), Scope, PriorityLevel (shared with Workshop), SiteAccess, CustomerLocation, SiteAccessNotes, EquipmentUsed, MachineHours, PickupDeliveryOption, QualityCheckRequired |
 | `SavedCalculationJobs` | Jobs associated with each saved calculation |
 | `SavedCalculationMaterials` | Materials associated with each saved calculation |
 | `RunNumberSequence` | Tracks year-based sequential run numbers |
@@ -119,7 +119,7 @@ The application expects these SQL Server tables:
 | `PerformanceMetrics` | API performance metrics (response times, database latency) |
 | `AppLogs_Archive` | Historical application logs (archived after 30 days) |
 
-**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting.
+**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting. Run `database/migrations/calculator_types.sql` to add CalculatorType and type-specific columns. Run `database/migrations/add_scope_column.sql` to add Scope dropdown for Onsite calculator. Run `database/migrations/priority_site_access.sql` to add SiteAccess column for Onsite calculator (PriorityLevel column already exists and is shared with Workshop).
 
 **Method 3: Run Migration Scripts**
 ```bash
@@ -378,8 +378,12 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── diagnostics_logs.sql
 │   └── migrations/
 │       ├── add_grandtotal_column.sql
+│       ├── add_scope_column.sql
+│       ├── calculator_types.sql
 │       ├── phase1_backoffice_3tabs.sql
 │       ├── migrate_to_utc.sql
+│       ├── priority_site_access.sql
+│       ├── remove_database_logging.sql
 │       └── two_factor_auth.sql
 ├── src/
 │   ├── index.html                # Main calculator (HTML with ES6 modules)

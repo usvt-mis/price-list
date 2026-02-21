@@ -111,6 +111,18 @@ function startNewCalculation() {
   el('motorType').value = '';
   el('salesProfitPct').value = '';
   el('travelKm').value = '';
+  el('scope').value = '';
+
+  // Reset radio buttons to defaults
+  const priorityLowRadio = document.querySelector('input[name="priorityLevel"][value="low"]');
+  if (priorityLowRadio) priorityLowRadio.checked = true;
+
+  const accessEasyRadio = document.querySelector('input[name="siteAccess"][value="easy"]');
+  if (accessEasyRadio) accessEasyRadio.checked = true;
+
+  // Clear onsite-specific fields
+  if (el('customerLocation')) el('customerLocation').value = '';
+  if (el('siteAccessNotes')) el('siteAccessNotes').value = '';
 
   renderLabor();
   renderMaterials();
@@ -123,6 +135,36 @@ function startNewCalculation() {
 }
 
 // ========== Event Listeners Setup ==========
+
+/**
+ * Initialize onsite labor fields from stored state
+ */
+function initializeOnsiteLaborFields() {
+  // Use STORAGE_KEYS constant from config.js
+  const SCOPE_KEY = 'pricelist-scope';
+  const PRIORITY_KEY = 'pricelist-priority-level';
+  const ACCESS_KEY = 'pricelist-site-access';
+
+  // Initialize Scope dropdown
+  if (el('scope')) {
+    const storedScope = localStorage.getItem(SCOPE_KEY) || '';
+    el('scope').value = storedScope;
+  }
+
+  // Initialize Priority Level radio buttons
+  const storedPriority = localStorage.getItem(PRIORITY_KEY) || 'low';
+  const priorityRadio = document.querySelector(`input[name="priorityLevel"][value="${storedPriority}"]`);
+  if (priorityRadio) {
+    priorityRadio.checked = true;
+  }
+
+  // Initialize Site Access radio buttons
+  const storedAccess = localStorage.getItem(ACCESS_KEY) || 'easy';
+  const accessRadio = document.querySelector(`input[name="siteAccess"][value="${storedAccess}"]`);
+  if (accessRadio) {
+    accessRadio.checked = true;
+  }
+}
 
 /**
  * Set up all event listeners
@@ -149,6 +191,41 @@ function setupEventListeners() {
 
   el('travelKm')?.addEventListener('input', () => {
     calcAll();
+    if (globalExports.markDirty) globalExports.markDirty();
+  });
+
+  // Onsite Labor fields event listeners (Scope, Priority Level, Site Access)
+  el('scope')?.addEventListener('change', (e) => {
+    localStorage.setItem('pricelist-scope', e.target.value);
+    if (globalExports.markDirty) globalExports.markDirty();
+  });
+
+  // Priority Level radio buttons
+  document.querySelectorAll('input[name="priorityLevel"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        localStorage.setItem('pricelist-priority-level', e.target.value);
+        if (globalExports.markDirty) globalExports.markDirty();
+      }
+    });
+  });
+
+  // Site Access radio buttons
+  document.querySelectorAll('input[name="siteAccess"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        localStorage.setItem('pricelist-site-access', e.target.value);
+        if (globalExports.markDirty) globalExports.markDirty();
+      }
+    });
+  });
+
+  // Customer Location and Site Access Notes
+  el('customerLocation')?.addEventListener('input', () => {
+    if (globalExports.markDirty) globalExports.markDirty();
+  });
+
+  el('siteAccessNotes')?.addEventListener('input', () => {
     if (globalExports.markDirty) globalExports.markDirty();
   });
 
@@ -335,6 +412,9 @@ async function initApp() {
 
   // Set up event listeners
   setupEventListeners();
+
+  // Initialize onsite labor fields from stored state
+  initializeOnsiteLaborFields();
 
   // Check for shared record URL parameter on page load
   const urlParams = new URLSearchParams(window.location.search);
