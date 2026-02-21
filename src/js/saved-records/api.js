@@ -41,6 +41,7 @@ export function serializeCalculatorState() {
 
   // Add type-specific fields
   if (currentType === CALCULATOR_TYPE.ONSITE) {
+    baseState.scope = el('scope')?.value || null;
     baseState.customerLocation = el('customerLocation')?.value || null;
     baseState.siteAccessNotes = el('siteAccessNotes')?.value || null;
   }
@@ -199,6 +200,7 @@ export async function deserializeCalculatorState(data, options = {}) {
 
   // Set type-specific fields
   if (data.calculatorType === CALCULATOR_TYPE.ONSITE) {
+    if (el('scope')) el('scope').value = data.scope || '';
     if (el('customerLocation')) el('customerLocation').value = data.customerLocation || '';
     if (el('siteAccessNotes')) el('siteAccessNotes').value = data.siteAccessNotes || '';
   }

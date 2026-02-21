@@ -10,7 +10,8 @@ export const isLocalDev = window.location.hostname === 'localhost' || window.loc
 export const STORAGE_KEYS = {
   MODE: 'pricelist-calculator-mode',
   RECORDS_VIEW: 'pricelist-calculator-records-view',
-  CALCULATOR_TYPE: 'pricelist-calculator-type'
+  CALCULATOR_TYPE: 'pricelist-calculator-type',
+  SCOPE: 'pricelist-scope'
 };
 
 // API endpoints
@@ -42,6 +43,13 @@ export const CALCULATOR_TYPE = {
   ONSITE: 'onsite',
   WORKSHOP: 'workshop'
 };
+
+// Scope options for onsite calculations
+export const SCOPE_OPTIONS = [
+  { value: 'low-volt', label: 'Low Volt' },
+  { value: 'medium-volt', label: 'Medium Volt' },
+  { value: 'large', label: 'Large' }
+];
 
 // Commission tiers based on Grand Total to STC ratio
 export const COMMISSION_TIERS = [

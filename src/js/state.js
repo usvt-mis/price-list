@@ -29,6 +29,9 @@ export let recordsViewMode = localStorage.getItem('pricelist-calculator-records-
 // Calculator type (Onsite vs Workshop)
 export let currentCalculatorType = localStorage.getItem(STORAGE_KEYS.CALCULATOR_TYPE) || CALCULATOR_TYPE.ONSITE;
 
+// Scope for onsite calculations
+export let currentScope = localStorage.getItem(STORAGE_KEYS.SCOPE) || '';
+
 // NoRole state management (prevents view switching)
 export let isNoRoleState = false;
 
@@ -106,6 +109,21 @@ export function setCalculatorType(type) {
     currentCalculatorType = type;
     localStorage.setItem(STORAGE_KEYS.CALCULATOR_TYPE, type);
   }
+}
+
+export function getScope() {
+  return currentScope || '';
+}
+
+export function setScope(scope) {
+  if (currentScope !== scope) {
+    currentScope = scope;
+    localStorage.setItem(STORAGE_KEYS.SCOPE, scope);
+  }
+}
+
+export function getInitialScope() {
+  return localStorage.getItem(STORAGE_KEYS.SCOPE) || '';
 }
 
 export function setNoRoleState(value) {

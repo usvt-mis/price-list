@@ -33,7 +33,7 @@ router.post('/', async (req, res, next) => {
     });
 
     const { branchId, motorTypeId, salesProfitPct, travelKm, jobs, materials,
-            calculatorType, customerLocation, siteAccessNotes,
+            calculatorType, scope, customerLocation, siteAccessNotes,
             equipmentUsed, machineHours, priorityLevel, pickupDeliveryOption, qualityCheckRequired } = req.body;
 
     // Validate required fields
@@ -81,6 +81,7 @@ router.post('/', async (req, res, next) => {
         .input("salesProfitPct", sql.Decimal(5, 2), salesProfitPct)
         .input("travelKm", sql.Int, travelKm)
         .input("calculatorType", sql.NVarChar(20), calculatorType || 'onsite')
+        .input("scope", sql.NVarChar(20), scope || null)
         .input("customerLocation", sql.NVarChar(500), customerLocation || null)
         .input("siteAccessNotes", sql.NVarChar(1000), siteAccessNotes || null)
         .input("equipmentUsed", sql.NVarChar(100), equipmentUsed || null)
@@ -90,16 +91,16 @@ router.post('/', async (req, res, next) => {
         .input("qualityCheckRequired", sql.Bit, qualityCheckRequired || null)
         .query(`
           INSERT INTO SavedCalculations (RunNumber, CreatorName, CreatorEmail, BranchId, MotorTypeId, SalesProfitPct, TravelKm,
-                                         CalculatorType, CustomerLocation, SiteAccessNotes, EquipmentUsed, MachineHours,
+                                         CalculatorType, Scope, CustomerLocation, SiteAccessNotes, EquipmentUsed, MachineHours,
                                          PriorityLevel, PickupDeliveryOption, QualityCheckRequired)
           OUTPUT INSERTED.SaveId, INSERTED.RunNumber, INSERTED.CreatorName, INSERTED.CreatorEmail,
                  INSERTED.CreatedAt, INSERTED.ModifiedAt, INSERTED.ShareToken,
                  INSERTED.BranchId, INSERTED.MotorTypeId, INSERTED.SalesProfitPct, INSERTED.TravelKm,
-                 INSERTED.CalculatorType, INSERTED.CustomerLocation, INSERTED.SiteAccessNotes,
+                 INSERTED.CalculatorType, INSERTED.Scope, INSERTED.CustomerLocation, INSERTED.SiteAccessNotes,
                  INSERTED.EquipmentUsed, INSERTED.MachineHours, INSERTED.PriorityLevel,
                  INSERTED.PickupDeliveryOption, INSERTED.QualityCheckRequired
           VALUES (@runNumber, @creatorName, @creatorEmail, @branchId, @motorTypeId, @salesProfitPct, @travelKm,
-                  @calculatorType, @customerLocation, @siteAccessNotes, @equipmentUsed, @machineHours,
+                  @calculatorType, @scope, @customerLocation, @siteAccessNotes, @equipmentUsed, @machineHours,
                   @priorityLevel, @pickupDeliveryOption, @qualityCheckRequired)
         `);
 
@@ -316,7 +317,9 @@ router.put('/:id', async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid save ID' });
     }
 
-    const { branchId, motorTypeId, salesProfitPct, travelKm, jobs, materials } = req.body;
+    const { branchId, motorTypeId, salesProfitPct, travelKm, jobs, materials,
+            calculatorType, scope, customerLocation, siteAccessNotes,
+            equipmentUsed, machineHours, priorityLevel, pickupDeliveryOption, qualityCheckRequired } = req.body;
 
     // Validate required fields
     if (!branchId || !motorTypeId || salesProfitPct === undefined || travelKm === undefined) {
@@ -359,6 +362,7 @@ router.put('/:id', async (req, res, next) => {
         .input('salesProfitPct', sql.Decimal(5, 2), salesProfitPct)
         .input('travelKm', sql.Int, travelKm)
         .input('calculatorType', sql.NVarChar(20), calculatorType || 'onsite')
+        .input('scope', sql.NVarChar(20), scope || null)
         .input('customerLocation', sql.NVarChar(500), customerLocation || null)
         .input('siteAccessNotes', sql.NVarChar(1000), siteAccessNotes || null)
         .input('equipmentUsed', sql.NVarChar(100), equipmentUsed || null)
@@ -373,6 +377,7 @@ router.put('/:id', async (req, res, next) => {
               SalesProfitPct = @salesProfitPct,
               TravelKm = @travelKm,
               CalculatorType = @calculatorType,
+              Scope = @scope,
               CustomerLocation = @customerLocation,
               SiteAccessNotes = @siteAccessNotes,
               EquipmentUsed = @equipmentUsed,
@@ -555,7 +560,7 @@ async function fetchSavedCalculationById(pool, saveId) {
              sc.BranchId, b.BranchName,
              sc.MotorTypeId, mt.MotorTypeName,
              sc.SalesProfitPct, sc.TravelKm,
-             sc.CalculatorType, sc.CustomerLocation, sc.SiteAccessNotes,
+             sc.CalculatorType, sc.Scope, sc.CustomerLocation, sc.SiteAccessNotes,
              sc.EquipmentUsed, sc.MachineHours, sc.PriorityLevel,
              sc.PickupDeliveryOption, sc.QualityCheckRequired,
              sc.GrandTotal
@@ -607,6 +612,7 @@ async function fetchSavedCalculationById(pool, saveId) {
     salesProfitPct: save.SalesProfitPct,
     travelKm: save.TravelKm,
     calculatorType: save.CalculatorType,
+    scope: save.Scope,
     customerLocation: save.CustomerLocation,
     siteAccessNotes: save.SiteAccessNotes,
     equipmentUsed: save.EquipmentUsed,

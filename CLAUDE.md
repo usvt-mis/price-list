@@ -29,7 +29,7 @@ The application supports two distinct calculator modes selected via tab navigati
 **Onsite Calculator (Monitor)**:
 - For field/onsite service calculations
 - Includes travel distance (km × 15 baht/km rate)
-- Onsite-specific fields: Customer Location, Site Access Notes
+- Onsite-specific fields: Scope, Customer Location, Site Access Notes
 - Travel section is visible (shared with Workshop)
 
 **Workshop Calculator (Monitor)**:
@@ -162,7 +162,7 @@ The application includes comprehensive debug logging for troubleshooting initial
 - Core tables: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
   - **Calculator Types**: SavedCalculations.CalculatorType stores 'onsite' or 'workshop'
-  - **Onsite Columns**: CustomerLocation, SiteAccessNotes
+  - **Onsite Columns**: Scope, CustomerLocation, SiteAccessNotes
   - **Workshop Columns**: EquipmentUsed, MachineHours, PriorityLevel, PickupDeliveryOption, QualityCheckRequired
 - Role management: UserRoles (stores role assignments - can be Executive, Sales, Customer, or NULL/NoRole)
   - Columns: Email (PK), Role, AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt
@@ -177,6 +177,7 @@ The application includes comprehensive debug logging for troubleshooting initial
   - `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema)
   - `database/migrations/remove_database_logging.sql` (removes legacy logging tables)
   - `database/migrations/calculator_types.sql` (adds CalculatorType and type-specific columns to SavedCalculations)
+  - `database/migrations/add_scope_column.sql` (adds Scope dropdown for onsite calculations)
 - **Deprecated scripts**: `database/deprecated/create_app_logs.sql`, `database/deprecated/diagnostics_logs.sql` (moved after Application Insights migration)
 
 ### Backend Structure (`api/`)
@@ -387,7 +388,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 
 **Saved Calculations API Endpoints** (Azure AD - role-based access):
 - `POST /api/saves` - Create new saved calculation (authenticated users only)
-  - Request body includes: `calculatorType`, `customerLocation`, `siteAccessNotes` (Onsite) or `equipmentUsed`, `machineHours`, `priorityLevel`, `pickupDeliveryOption`, `qualityCheckRequired` (Workshop)
+  - Request body includes: `calculatorType`, `scope`, `customerLocation`, `siteAccessNotes` (Onsite) or `equipmentUsed`, `machineHours`, `priorityLevel`, `pickupDeliveryOption`, `qualityCheckRequired` (Workshop)
 - `GET /api/saves` - List saved calculations (Executive: all records, Sales: own records only, NoRole: 403 forbidden)
   - Returns `CalculatorType` field for each record
 - `GET /api/saves/{id}` - Get single saved calculation by ID
@@ -480,6 +481,12 @@ export const CALCULATOR_TYPE = {
   ONSITE: 'onsite',
   WORKSHOP: 'workshop'
 };
+
+export const SCOPE_OPTIONS = [
+  { value: 'low-volt', label: 'Low Volt' },
+  { value: 'medium-volt', label: 'Medium Volt' },
+  { value: 'large', label: 'Large' }
+];
 ```
 
 **State Management** (`src/js/state.js`):
@@ -487,6 +494,10 @@ export const CALCULATOR_TYPE = {
 - `getCalculatorType()`: Returns current calculator type
 - `setCalculatorType(type)`: Updates calculator type and persists to localStorage
 - Selection persists across page loads via `localStorage.getItem(STORAGE_KEYS.CALCULATOR_TYPE)`
+- `currentScope`: Stores selected scope for onsite calculations
+- `getScope()`: Returns current scope value
+- `setScope(scope)`: Updates scope and persists to localStorage
+- `getInitialScope()`: Returns stored scope from localStorage
 
 **Tab Switching Logic** (`src/js/calculator/type.js`):
 - `initCalculatorTypeTabs()`: Initializes tab click handlers and visual state
@@ -496,7 +507,7 @@ export const CALCULATOR_TYPE = {
 - `getCalculatorTypeColorClass()`: Returns Tailwind color classes for badges (blue for Onsite, orange for Workshop)
 
 **Field Visibility**:
-- **Onsite fields**: Customer Location, Site Access Notes
+- **Onsite fields**: Scope, Customer Location, Site Access Notes
 - **Workshop fields**: None (uses original calculator layout)
 - Travel section is always visible for both calculator types
 
