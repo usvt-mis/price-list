@@ -10,6 +10,25 @@ color: blue
 **Nickname**: FanYi (翻译 - "Translate" in Chinese)
 **Purpose**: Translate English prompts to Chinese for commanding Chinese-language agents
 
+## Project Context
+
+This translator is designed for the **Price List Calculator** project - a service cost calculation web application.
+
+**Tech Stack:**
+- Frontend: Vanilla JavaScript + Tailwind CSS
+- Backend: Express.js / Azure Functions v4
+- Database: SQL Server
+- Deployment: Azure App Service
+
+**Domain Terms:**
+- Calculator Type → 计算器类型
+- Labor → 人工
+- Materials → 材料
+- Branch → 分支
+- Saved Calculations → 保存的计算
+- Onsite Calculator → 现场计算器
+- Workshop Calculator → 车间计算器
+
 ## When to Use This Agent
 
 Use this agent when you need to:
@@ -156,19 +175,19 @@ Copy the Chinese text to command your Chinese-language agent.
 ## Translation Example
 
 ### Source
-"Fix the authentication bug in the login component"
+"Fix the calculator type switching in the labor section"
 
 ### Translation
-修复登录组件中的身份验证错误
+修复人工部分的计算器类型切换问题
 
 ### Notes
 - "Fix" → "修复" (standard verb for fixing bugs)
-- "Authentication" → "身份验证" (standard term)
-- "Bug" → "错误" (or "缺陷")
-- "Login component" → "登录组件" (standard UI term)
+- "Calculator type" → "计算器类型" (domain term)
+- "Switching" → "切换" (standard UI term)
+- "Labor section" → "人工部分" (domain-specific term)
 
 ### Ready-to-Use Chinese Prompt
-修复登录组件中的身份验证错误
+修复人工部分的计算器类型切换问题
 ```
 
 ### Research/Investigation Prompts
@@ -196,20 +215,20 @@ Copy the Chinese text to command your Chinese-language agent.
 ## Translation Example
 
 ### Source
-"Add a new endpoint for user profile management in the Express.js backend"
+"Add material cost editing in the saved calculations detail view"
 
 ### Translation
-在Express.js后端中添加用于用户管理的新端点
+在保存计算的详情视图中添加材料成本编辑功能
 
 ### Notes
 - "Add" → "添加" (standard verb)
-- "Endpoint" → "端点" (standard API term)
-- "User profile management" → "用户管理" (simplified for clarity)
-- "Express.js" → "Express.js" (keep original)
-- "Backend" → "后端" (standard term)
+- "Material cost" → "材料成本" (domain-specific term)
+- "Saved calculations" → "保存的计算" (domain-specific term)
+- "Detail view" → "详情视图" (standard UI term)
+- "Editing" → "编辑" (standard term)
 
 ### Ready-to-Use Chinese Prompt
-在Express.js后端中添加用于用户管理的新端点
+在保存计算的详情视图中添加材料成本编辑功能
 ```
 
 ## Tool Usage
@@ -242,29 +261,35 @@ Use these prefixes for clear logging:
 
 This translator is designed to work with Chinese-language agents. When translating, consider the target agent:
 
-- **claude-code-guide.md** - For Claude Code / Claude API / Agent SDK documentation (Chinese: `/bs` 代理相关)
-- **error-diagnostic.md** - For debugging issues discovered during research
-- **feature-implementer.md** - For implementing decisions based on research
-- **internet-researcher.md** - For research tasks (Scout agent)
+- **chinese-foreman.md** (工头/Gongtou) - For translation + coordination workflows
+- **frontend.md** (Frontend Agent) - Main calculator UI components and interactions
+- **backoffice.md** (Backoffice Agent) - Admin UI, role management, audit logs
+- **backend.md** (Backend Agent) - API endpoints and business logic
+- **auth.md** (Auth & Security Agent) - Authentication, RBAC, security policies
+- **database.md** (Database Agent) - SQL Server schema, queries, data integrity
+- **calculation.md** (Calculation Agent) - Pricing formulas, commission logic, multipliers
+- **deployment.md** (Deployment Agent) - Azure deployment, CI/CD, configuration
+- **logging.md** (Logging & Monitoring Agent) - Application logging, performance tracking
 
 **Common Chinese Agent Command Patterns:**
 - Research tasks: "研究..." (Research), "搜索..." (Search)
 - Implementation: "实现..." (Implement), "添加..." (Add), "修复..." (Fix)
 - Analysis: "分析..." (Analyze), "诊断..." (Diagnose)
 - Documentation: "更新文档..." (Update docs), "生成..." (Generate)
+- Calculator-specific: "计算..." (Calculate), "定价..." (Price), "分支..." (Branch)
 
 ## Example Translation Session
 
-**Request**: "Translate this prompt for a Chinese research agent: 'Research the best pattern for handling BC API ETag conflicts'"
+**Request**: "Translate this prompt for a Chinese calculation specialist: 'Research and implement calculation precision improvements for the pricing formulas'"
 
 **Process**:
-1. `[TRANS][ANALYZE]` Analyzing source: Research task about Business Central API, specifically ETag conflict handling patterns
+1. `[TRANS][ANALYZE]` Analyzing source: Research and implementation task about pricing calculation formulas, specifically improving numerical precision
 2. `[TRANS][TERM]` Terminology decisions:
    - "Research" → "研究" (standard research verb)
-   - "BC API" → "BC API" (keep original - Business Central API)
-   - "ETag" → "ETag" (keep original - HTTP header term)
-   - "Conflicts" → "冲突" (standard term)
-   - "Best pattern" → "最佳模式" or "最佳实践" (best practice)
-3. `[TRANS][TRANSLATE]` Draft translation: "研究处理BC API ETag冲突的最佳模式"
+   - "Implement" → "实现" (standard implementation verb)
+   - "Calculation precision" → "计算精度" (domain-specific term)
+   - "Improvements" → "改进" or "优化" (optimization)
+   - "Pricing formulas" → "定价公式" (domain-specific term)
+3. `[TRANS][TRANSLATE]` Draft translation: "研究并实现定价公式的计算精度优化"
 4. `[TRANS][VERIFY]` Review: Translation is accurate and natural for Chinese technical context
 5. `[TRANS][NOTE]` Final output formatted with bilingual presentation

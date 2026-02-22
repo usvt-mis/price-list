@@ -30,6 +30,21 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
 │ Calculation  │  │  Database    │  │  Deployment  │
 │              │  │              │  │              │
 └──────────────┘  └──────────────┘  └──────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│            Coordination + Utility Agents                      │
+│  ┌──────────────────────┐  ┌──────────────────────────────┐ │
+│  │  Chinese Foreman     │  │ Internet Researcher          │ │
+│  │  (工头/Gongtou)      │  │ (Scout)                      │ │
+│  │  Translation +       │  │ Research support for all     │ │
+│  │  Chinese Coordination│  │ agents                       │ │
+│  └──────────────────────┘  └──────────────────────────────┘ │
+│  ┌──────────────────────┐                                   │
+│  │ English To Chinese   │                                   │
+│  │ Translator (FanYi)   │                                   │
+│  │ Translation-only     │                                   │
+│  └──────────────────────┘                                   │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ## Agent Hierarchy
@@ -67,6 +82,19 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
 - Create verification/testing steps
 **Coordinates**: All specialist agents based on task requirements
 
+### Coordination Agents (Level 2)
+
+#### Chinese Foreman Agent (工头/Gongtou)
+**Role**: Translate English to Chinese and coordinate Chinese-language agents
+**File**: `.claude/agents/chinese-foreman.md`
+**Responsibilities**:
+- Translate English prompts to natural Chinese
+- Agent discovery and capability matching
+- Task distribution to Chinese-language specialists
+- Result aggregation and synthesis
+**Coordinates**: All Chinese-language specialist agents
+**Use When**: Chinese-language task requires both translation AND multi-agent coordination
+
 ### Level 3: Specialist Agents
 
 | Agent | Role | File | Scope | Reports To |
@@ -76,9 +104,33 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
 | Backend Agent | Azure Functions API, business logic | `backend.md` | API endpoints only (no auth/logging) | Architect (API), Planner (implementation) |
 | Auth & Security Agent | Authentication systems, security policies, RBAC | `auth.md` | Dual auth (Azure AD + JWT), rate limiting, security | Architect (security), Planner (implementation) |
 | Logging & Monitoring Agent | Application logging, performance tracking, health checks | `logging.md` | Logger utility, performance metrics, archival | Architect (monitoring), Planner (implementation) |
-| Calculation Agent | Pricing formulas, commission logic, multipliers | `calculation.md` | (unchanged) | Architect (formulas), Planner (implementation) |
-| Database Agent | SQL schema, queries, data integrity, diagnostic scripts | `database.md` | (unchanged) + diagnostic script awareness | Architect (schema), Planner (migrations) |
-| Deployment Agent | Azure deployment, CI/CD, configuration | `deploy.md` | (unchanged) | Architect (infrastructure), Planner (releases) |
+| Calculation Agent | Pricing formulas, commission logic, multipliers | `calculation.md` | Cost calculations, commission logic, multipliers | Architect (formulas), Planner (implementation) |
+| Database Agent | SQL schema, queries, data integrity, diagnostic scripts | `database.md` | Schema, queries, migrations, diagnostics | Architect (schema), Planner (migrations) |
+| Deployment Agent | Azure deployment, CI/CD, configuration | `deployment.md` | Azure deployment, CI/CD, configuration | Architect (infrastructure), Planner (releases) |
+| **Internet Researcher Agent** | **Web research, best practices, documentation** | **`internet-researcher.md`** | **Research-only, supports all specialists** | **Orchestrator (coordination)** |
+
+### Utility Agents
+
+#### English To Chinese Translator Agent (FanYi)
+**Role**: Translation-only agent for English→Chinese prompts
+**File**: `.claude/agents/english-to-chinese-translator.md`
+**Responsibilities**:
+- Prompt translation with context preservation
+- Technical terminology handling
+- Bilingual output formatting
+**Use When**: Only translation is needed (no coordination)
+**Related**: Chinese Foreman Agent (for translation + coordination)
+
+#### Internet Researcher Agent (Scout)
+**Role**: Research information from internet to support other agents' decisions
+**File**: `.claude/agents/internet-researcher.md`
+**Responsibilities**:
+- Web search and content analysis
+- Best practices research
+- Technology comparisons
+- Source citation and synthesis
+**Supports**: All specialist agents with research needs
+**Use When**: Research task requiring web search, documentation, or external validation
 
 ## Coordination Protocols
 
@@ -176,12 +228,54 @@ Backoffice Task Identified
     Verification: Test backoffice functionality independently
 ```
 
+### Protocol 8: Chinese-Language Tasks
+```
+Chinese-Language Task Identified
+                ↓
+    Orchestrator routes to Chinese Foreman Agent
+                ↓
+    Chinese Foreman translates to Chinese
+                ↓
+    Agent discovery and task distribution
+                ↓
+    Result aggregation and synthesis
+                ↓
+    Chinese Foreman presents unified response
+```
+
+### Protocol 9: Research Tasks
+```
+Research Task Identified
+                ↓
+    Orchestrator routes to Internet Researcher Agent (Scout)
+                ↓
+    Scout performs web search and content analysis
+                ↓
+    Scout synthesizes findings with sources
+                ↓
+    Scout presents research to requesting agent
+                ↓
+    Requesting agent uses research for decision/implementation
+```
+
 ## Quick Reference
 
 ### Decision Tree for Task Routing
 ```
 Is the task simple and single-domain?
     YES → Direct to specialist agent
+    NO  → Continue
+
+Is it a Chinese-language task?
+    YES → Chinese Foreman Agent (translation + coordination)
+    NO  → Continue
+
+Is it translation only (no coordination)?
+    YES → English To Chinese Translator (FanYi)
+    NO  → Continue
+
+Is it a research task?
+    YES → Internet Researcher Agent (Scout)
     NO  → Continue
 
 Is it an authentication/security task?
@@ -217,6 +311,9 @@ Does the task require implementation planning?
 | Fix deployment issue | Deployment Agent (direct) |
 | Add authentication to endpoint | Auth & Security Agent (direct) |
 | Add performance logging | Logging & Monitoring Agent (direct) |
+| Research best practices/patterns | Internet Researcher Agent (Scout) |
+| Translate English to Chinese prompt | English To Chinese Translator (translation only) or Chinese Foreman (translation + coordination) |
+| Coordinate multi-agent Chinese workflow | Chinese Foreman Agent (工头) |
 | Add new feature (main calculator UI only) | Planner Agent → Frontend Agent |
 | Add new feature (backoffice UI only) | Planner Agent → Backoffice Agent |
 | Add new feature (frontend + backend) | Planner Agent → Frontend + Backend + Auth |
@@ -232,18 +329,22 @@ Does the task require implementation planning?
 
 ```
 .claude/agents/
-├── TEAM.md              (This file - team overview)
-├── orchestrator.md      (Level 1: Coordinator)
-├── architect.md         (Level 2: Technical lead)
-├── planner.md           (Level 2: Implementation lead)
-├── frontend.md          (Level 3: Specialist - Main calculator)
-├── backoffice.md        (Level 3: Specialist - Backoffice admin)
-├── backend.md           (Level 3: Specialist - API endpoints)
-├── auth.md              (Level 3: Specialist - Authentication & security)
-├── logging.md           (Level 3: Specialist - Logging & monitoring)
-├── calculation.md       (Level 3: Specialist - Formulas)
-├── database.md          (Level 3: Specialist - Schema & queries)
-└── deployment.md        (Level 3: Specialist - Azure deployment)
+├── TEAM.md                      (This file - team overview)
+├── orchestrator.md              (Level 1: Coordinator)
+├── architect.md                 (Level 2: Technical lead)
+├── planner.md                   (Level 2: Implementation lead)
+├── chinese-foreman.md           (Level 2: Chinese-language coordinator + translator)
+├── english-to-chinese-translator.md  (Translation-only agent)
+├── frontend.md                  (Level 3: Specialist - Main calculator)
+├── backoffice.md                (Level 3: Specialist - Backoffice admin)
+├── backend.md                   (Level 3: Specialist - API endpoints)
+├── auth.md                      (Level 3: Specialist - Authentication & security)
+├── logging.md                   (Level 3: Specialist - Logging & monitoring)
+├── calculation.md               (Level 3: Specialist - Formulas)
+├── database.md                  (Level 3: Specialist - Schema & queries)
+├── deployment.md                (Level 3: Specialist - Azure deployment)
+├── internet-researcher.md       (Utility: Web research)
+└── Template.md                  (Universal template for new agents)
 ```
 
 ## Tools and Permissions
@@ -258,10 +359,20 @@ Does the task require implementation planning?
 - **Spawns**: Specialist agents
 - **Access**: All files and operations
 
+### Coordination Agents (Chinese Foreman)
+- **Tools**: Task tool (launching agents), Read tool (reading agent files)
+- **Spawns**: Chinese-language specialist agents
+- **Access**: Agent files for capability discovery
+
 ### Specialist Agents
 - **Tools**: Task-specified tools for their domain
 - **Access**: Files relevant to their specialization
 - **Spawns**: None (escalate to lead agents)
+
+### Utility Agents
+- **Tools**: WebSearch, WebSearchPrime, WebReader (research tools only)
+- **Spawns**: None (research-only, escalates findings)
+- **Access**: External web sources, project docs for context
 
 ## Verification Tests
 
@@ -326,4 +437,22 @@ Expected: Orchestrator routes to Backoffice Agent (NOT Frontend Agent)
 ```
 User: "Add audit logging for role changes"
 Expected: Planner Agent coordinates Auth & Security (role changes), Logging & Monitoring (audit), Backoffice (UI)
+```
+
+### Test 11: Chinese-Language Task
+```
+User: "在中文界面添加新功能" (Add new feature to Chinese interface)
+Expected: Orchestrator routes to Chinese Foreman Agent for translation and coordination
+```
+
+### Test 12: Translation-Only Task
+```
+User: "Translate 'Fix the calculator layout' to Chinese"
+Expected: English To Chinese Translator (FanYi) provides translation without coordination
+```
+
+### Test 13: Research Task
+```
+User: "Research best practices for SQL Server connection pooling"
+Expected: Orchestrator routes to Internet Researcher Agent (Scout)
 ```
