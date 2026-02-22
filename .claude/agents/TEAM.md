@@ -40,9 +40,10 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
 │  │  Chinese Coordination│  │ agents                       │ │
 │  └──────────────────────┘  └──────────────────────────────┘ │
 │  ┌──────────────────────┐                                   │
-│  │ English To Chinese   │                                   │
-│  │ Translator (FanYi)   │                                   │
-│  │ Translation-only     │                                   │
+│  │ Universal Translator │                                   │
+│  │ (WanNengYi/万能译)   │                                   │
+│  │ Multi-language       │                                   │
+│  │ translation-only     │                                   │
 │  └──────────────────────┘                                   │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -85,10 +86,10 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
 ### Coordination Agents (Level 2)
 
 #### Chinese Foreman Agent (工头/Gongtou)
-**Role**: Translate English to Chinese and coordinate Chinese-language agents
+**Role**: Translate prompts from any language to Chinese and coordinate Chinese-language agents
 **File**: `.claude/agents/chinese-foreman.md`
 **Responsibilities**:
-- Translate English prompts to natural Chinese
+- Translate prompts from any language to natural Chinese
 - Agent discovery and capability matching
 - Task distribution to Chinese-language specialists
 - Result aggregation and synthesis
@@ -111,14 +112,16 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
 
 ### Utility Agents
 
-#### English To Chinese Translator Agent (FanYi)
-**Role**: Translation-only agent for English→Chinese prompts
-**File**: `.claude/agents/english-to-chinese-translator.md`
+#### Universal Translator Agent (WanNengYi/万能译)
+**Role**: Multi-language translation agent for [Any Language]→Chinese prompts
+**File**: `.claude/agents/universal-translator.md`
 **Responsibilities**:
+- Language detection from any source language
 - Prompt translation with context preservation
-- Technical terminology handling
-- Bilingual output formatting
+- Technical terminology handling across multiple languages
+- Multi-language output formatting
 **Use When**: Only translation is needed (no coordination)
+**Supported Languages**: English, Thai, Japanese, Korean, and more
 **Related**: Chinese Foreman Agent (for translation + coordination)
 
 #### Internet Researcher Agent (Scout)
@@ -271,7 +274,7 @@ Is it a Chinese-language task?
     NO  → Continue
 
 Is it translation only (no coordination)?
-    YES → English To Chinese Translator (FanYi)
+    YES → Universal Translator (WanNengYi/万能译)
     NO  → Continue
 
 Is it a research task?
@@ -312,7 +315,7 @@ Does the task require implementation planning?
 | Add authentication to endpoint | Auth & Security Agent (direct) |
 | Add performance logging | Logging & Monitoring Agent (direct) |
 | Research best practices/patterns | Internet Researcher Agent (Scout) |
-| Translate English to Chinese prompt | English To Chinese Translator (translation only) or Chinese Foreman (translation + coordination) |
+| Translate any language to Chinese prompt | Universal Translator (translation only) or Chinese Foreman (translation + coordination) |
 | Coordinate multi-agent Chinese workflow | Chinese Foreman Agent (工头) |
 | Add new feature (main calculator UI only) | Planner Agent → Frontend Agent |
 | Add new feature (backoffice UI only) | Planner Agent → Backoffice Agent |
@@ -334,7 +337,7 @@ Does the task require implementation planning?
 ├── architect.md                 (Level 2: Technical lead)
 ├── planner.md                   (Level 2: Implementation lead)
 ├── chinese-foreman.md           (Level 2: Chinese-language coordinator + translator)
-├── english-to-chinese-translator.md  (Translation-only agent)
+├── universal-translator.md      (Multi-language translation-only agent)
 ├── frontend.md                  (Level 3: Specialist - Main calculator)
 ├── backoffice.md                (Level 3: Specialist - Backoffice admin)
 ├── backend.md                   (Level 3: Specialist - API endpoints)
@@ -448,7 +451,7 @@ Expected: Orchestrator routes to Chinese Foreman Agent for translation and coord
 ### Test 12: Translation-Only Task
 ```
 User: "Translate 'Fix the calculator layout' to Chinese"
-Expected: English To Chinese Translator (FanYi) provides translation without coordination
+Expected: Universal Translator (WanNengYi) provides translation without coordination
 ```
 
 ### Test 13: Research Task

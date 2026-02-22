@@ -115,39 +115,86 @@ Inform the user that the agent file has been created and guide them through:
 14. Writing an example session
 15. Adding optional checklist or notes sections
 
-### Step 6: Update BS Skill Agent List
+### Step 6: Update TEAM.md File
 
-After creating the new agent file, update the agent list in `.claude/skills/bs/skill.md` to include the new agent.
+After creating the new agent file, update `.claude/agents/TEAM.md` to include the new agent in the team coordination documentation.
 
-**Read the BS skill file:**
+**Read TEAM.md to understand current structure:**
 ```
-Read .claude/skills/bs/skill.md
+Read .claude/agents/TEAM.md
 ```
 
-**Locate the appropriate category section** under "## Agent List (All in `.claude/agents/` root)" and add the new agent:
+**6.1. Determine Agent Level:**
 
-**Category sections:**
-- `### Translation Agent (1)` - For translation agents
-- `### Debugging Agents (2)` - For debugging agents
-- `### Feature Agents (5)` - For feature creation agents
-- `### Maintenance Agents (5)` - For maintenance agents
-- `### Documentation Agents (1)` - For documentation agents
-- `### Research Agents (1)` - For research agents
+Ask the user to classify the new agent using `AskUserQuestion`:
 
-**Entry format:**
+| Level | Description | Example | Section in TEAM.md |
+|-------|-------------|---------|-------------------|
+| Level 1: Orchestrator | Top-level coordinator | orchestrator.md | Agent Hierarchy (Level 1) |
+| Level 2: Lead | Technical/Implementation lead | architect.md, planner.md | Lead Agents section |
+| Level 2: Coordination | Multi-agent coordination | chinese-foreman.md | Coordination Agents section |
+| Level 3: Specialist | Domain-specific specialist | frontend.md, backend.md | Specialist Agents table |
+| Utility | Support utility | internet-researcher.md | Utility Agents section |
+
+**6.2. Update Agent Hierarchy Section:**
+
+Based on agent level, update the appropriate section:
+
+- **For Level 3: Specialist Agents**: Add a row to the table at line ~101
+  ```markdown
+  | [Agent Name] Agent | [Role description] | `[filename].md` | [Scope] | [Reports To] |
+  ```
+
+  Example:
+  ```markdown
+  | My New Agent | Does something specific | `my-new-agent.md` | Specific domain only | Architect (domain), Planner (implementation) |
+  ```
+
+- **For Utility Agents**: Add a new entry after line ~137
+  ```markdown
+  #### [Agent Name] Agent ([Nickname])
+  - **Role**: [One-line role description]
+  - **File**: `.claude/agents/[filename].md`
+  - **Responsibilities**: [3-5 key responsibilities]
+  - **Supports**: [Which agents this agent supports]
+  - **Use When**: [When to use this agent]
+  ```
+
+**6.3. Update "When to Involve Each Agent" Table:**
+
+Add trigger rows at line ~307 in the Quick Reference section:
 ```markdown
-- `{filename}.md` ({Nickname}) - {Brief one-line description}
+| [Trigger scenario] | [Agent Name] Agent (direct or coordinated) |
 ```
 
-**Example:**
+Example:
 ```markdown
-### Feature Agents (5)
-- `feature-implementer.md` (Tony) - Full-stack feature implementation (Functions → Services → Managers → BC API, 19+ BC API quirks, Sales Quote-Aware Batching)
-- `endpoint-creator.md` (Alice) - Azure Function HTTP triggers (GET request parameter mode, validation patterns, DI registration)
-- `my-new-agent.md` (MyNickname) - Brief description of what this agent does
+| Do something specific | My New Agent (direct) |
 ```
 
-**Important:** Update the count in parentheses for the category (e.g., `### Feature Agents (5)` → `### Feature Agents (6)`).
+**6.4. Update File Structure Section:**
+
+Add the file entry at line ~350:
+```markdown
+├── [filename].md                   ([Level]: [Type] - [Brief description])
+```
+
+Example:
+```markdown
+├── my-new-agent.md                 (Level 3: Specialist - Specific domain)
+```
+
+**6.5. Optional: Update Team Structure ASCII:**
+
+If creating a Level 2 Coordination or Utility agent, add a box to the ASCII diagram at line ~35. This is NOT needed for Level 3 Specialist agents.
+
+**6.6. Optional: Add Coordination Protocol:**
+
+If the specialist agent requires cross-domain coordination (similar to Auth & Security or Logging & Monitoring agents), add a new protocol after line ~262 following the Protocol pattern. Most new agents will NOT need this.
+
+**6.7. Optional: Update Tools and Permissions:**
+
+If the agent has custom tool/permission requirements beyond the standard specialist agent tools, add an entry at line ~370. Most agents will use standard specialist agent tools and permissions.
 
 ## Expected Output
 
@@ -160,7 +207,10 @@ Nickname: Tony
 Purpose: Implement new features following established patterns
 Category: features (color: green)
 
-BS Skill Updated: Added to Feature Agents section in .claude/skills/bs/skill.md
+TEAM.md Updated:
+- Added to Specialist Agents table (Level 3)
+- Added trigger to "When to Involve Each Agent" table
+- Added entry to File Structure section
 
 Next steps:
 1. Customize the "When to Use This Agent" section with specific trigger scenarios
@@ -210,8 +260,11 @@ Before considering the agent creation complete:
 - [ ] All 17 template sections are present
 - [ ] Nickname is memorable and short (1-2 words)
 - [ ] Purpose is a clear one-sentence summary
-- [ ] Agent entry added to `.claude/skills/bs/skill.md` in the correct category section
-- [ ] Category count in BS skill updated (e.g., `### Feature Agents (5)` → `### Feature Agents (6)`)
+- [ ] Agent level determined (Level 1, Level 2, Level 3, or Utility)
+- [ ] Agent entry added to `.claude/agents/TEAM.md` in appropriate section:
+  - [ ] Specialist Agents table (for Level 3) OR Utility Agents section (for Utility)
+  - [ ] "When to Involve Each Agent" table (trigger row added)
+  - [ ] File Structure section (file entry added)
 
 ## Common Pitfalls
 
@@ -248,7 +301,7 @@ Before considering the agent creation complete:
   - YAML `name` field: Title Case (matches display name)
 - **Color Palette**: The 5-category color system provides visual distinction in agent listings. Choose the category that best matches the agent's primary purpose.
 - **Post-Creation Customization**: The generated file is a starting point. Users should customize sections based on their agent's specific domain and workflow.
-- **BS Skill Integration**: After creating a new agent, always update `.claude/skills/bs/skill.md` to include the new agent in the appropriate category section. This ensures the brainstorm skill can reference all available agents.
+- **TEAM.md Integration**: After creating a new agent, always update `.claude/agents/TEAM.md` to include the new agent. This ensures the agent team documentation stays synchronized with the actual agent files and enables proper task routing by the Orchestrator agent.
 
 ---
 

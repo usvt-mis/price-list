@@ -246,32 +246,223 @@ Use these prefixes for clear logging:
 
 ---
 
-## Agent List (All in `.claude/agents/` root)
+## Agent Team Coordination
 
-### Translation Agent (1)
-- `english-to-chinese-translator.md` (FanYi) - Translate English prompts to Chinese for commanding Chinese-language agents
+The `/bs` skill (Internet Researcher) is part of a hierarchical agent team with clear coordination protocols. This section provides comprehensive team context for coordinating research tasks effectively.
 
-### Coordination Agents (3)
-- `orchestrator.md` (Orchestrator) - Top-level coordinator that routes tasks to appropriate specialist agents
-- `planner.md` (Planner) - Implementation lead for detailed implementation planning and task breakdown
-- `chinese-foreman.md` (工头/Gongtou) - Translate English to Chinese and coordinate all Chinese-language agents (translation + agent summoning + task distribution)
+### Team Structure
 
-### Leadership Agents (1)
-- `architect.md` (Architect) - Technical lead for system architecture and technical decisions
+```
+                    ┌─────────────────────┐
+                    │  Orchestrator Agent │
+                    │   (Coordinator)     │
+                    └──────────┬──────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                │                             │
+        ┌───────▼────────┐           ┌────────▼────────┐
+        │ Architect Agent│           │  Planner Agent  │
+        │  (Technical)   │           │ (Implementation)│
+        └───────┬────────┘           └────────┬────────┘
+                │                             │
+                └──────────────┬──────────────┘
+                               │
+    ┌──────────────────────────┼──────────────────────────┐
+    │          │               │              │            │
+┌───▼────┐ ┌───▼────┐   ┌──────▼──────┐  ┌───▼────┐  ┌───▼────┐
+│Frontend│ │Backoff │   │   Backend   │  │ Auth   │  │Logging │
+│        │ │office  │   │             │  │& Secur│  │& Monit │
+└────────┘ └────────┘   └─────────────┘  └────────┘  └────────┘
 
-### Domain Specialist Agents (10)
-- `frontend.md` (Frontend) - UI components, responsive design, and interactions for the main calculator
-- `backoffice.md` (Backoffice) - Backoffice admin system UI for user role management and administration
-- `backend.md` (Backend) - API endpoints and business logic for the Price List Calculator
-- `auth.md` (Auth & Security) - Authentication systems, authorization, security policies, and access control
-- `logging.md` (Logging & Monitoring) - Application logging, performance tracking, system monitoring, and diagnostics
-- `calculation.md` (Calculation) - Pricing calculations, commission logic, and cost multipliers
-- `database.md` (Database) - SQL Server schema, queries, and data integrity
-- `deploy.md` (Deployment) - Azure deployment, CI/CD, and configuration
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│ Calculation  │  │  Database    │  │  Deployment  │
+│              │  │              │  │              │
+└──────────────┘  └──────────────┘  └──────────────┘
 
-### Utility Agents (2)
-- `internet-researcher.md` (Scout) - Research information from the internet to present new perspectives to other agents to help them make decisions
-- `Template.md` (N/A) - Universal template for all agents
+┌──────────────────────────────────────────────────────────────┐
+│            Coordination + Utility Agents                      │
+│  ┌──────────────────────┐  ┌──────────────────────────────┐ │
+│  │  Chinese Foreman     │  │ Internet Researcher          │ │
+│  │  (工头/Gongtou)      │  │ (Scout - /bs skill)          │ │
+│  │  Translation +       │  │ Research support for all     │ │
+│  │  Chinese Coordination│  │ agents                       │ │
+│  └──────────────────────┘  └──────────────────────────────┘ │
+│  ┌──────────────────────┐                                   │
+│  │ Universal Translator │                                   │
+│  │ (WanNengYi/万能译)   │                                   │
+│  │ Multi-language       │                                   │
+│  │ translation-only     │                                   │
+│  └──────────────────────┘                                   │
+└──────────────────────────────────────────────────────────────┘
+```
 
-### Reference Files (1)
-- `TEAM.md` (N/A) - Hierarchical agent team coordination protocols and decision tree
+### Agent Hierarchy
+
+#### Level 1: Orchestrator Agent
+**Role**: Top-level coordinator
+**File**: `.claude/agents/orchestrator.md`
+**Responsibilities**:
+- Parse user requests and determine scope
+- Route tasks to appropriate lead agents
+- Coordinate multi-domain tasks
+- Track overall progress
+- Handle conflicts between agent recommendations
+
+#### Level 2: Lead Agents
+
+**Architect Agent (Technical Lead)**
+- **Role**: System architecture and technical decisions
+- **File**: `.claude/agents/architect.md`
+- **Responsibilities**: Design new features, ensure consistency, identify technical debt, make cross-cutting decisions
+- **Coordinates**: Frontend, Backoffice, Backend, Auth & Security, Logging & Monitoring, Calculation, Database agents
+
+**Planner Agent (Implementation Lead)**
+- **Role**: Implementation planning and task breakdown
+- **File**: `.claude/agents/planner.md`
+- **Responsibilities**: Create implementation plans, break down tasks, define dependencies, identify specialists
+- **Coordinates**: All specialist agents based on task requirements
+
+#### Coordination Agents (Level 2)
+
+**Chinese Foreman Agent (工头/Gongtou)**
+- **Role**: Translate prompts from any language to Chinese and coordinate Chinese-language agents
+- **File**: `.claude/agents/chinese-foreman.md`
+- **Responsibilities**: Translation, agent discovery, task distribution, result aggregation
+- **Use When**: Chinese-language task requires both translation AND multi-agent coordination
+
+#### Level 3: Specialist Agents
+
+| Agent | Role | File | Scope |
+|-------|------|------|-------|
+| Frontend Agent | UI components, responsive design, interactions | `frontend.md` | Main calculator only (`src/index.html`) |
+| Backoffice Agent | Backoffice admin UI, role management | `backoffice.md` | Backoffice only (`src/backoffice.html`) |
+| Backend Agent | Azure Functions API, business logic | `backend.md` | API endpoints only |
+| Auth & Security Agent | Authentication systems, security policies, RBAC | `auth.md` | Dual auth, rate limiting, security |
+| Logging & Monitoring Agent | Application logging, performance tracking | `logging.md` | Logger utility, metrics, archival |
+| Calculation Agent | Pricing formulas, commission logic | `calculation.md` | Cost calculations, multipliers |
+| Database Agent | SQL schema, queries, data integrity | `database.md` | Schema, queries, migrations |
+| Deployment Agent | Azure deployment, CI/CD | `deployment.md` | Azure deployment, configuration |
+
+#### Utility Agents
+
+**Universal Translator Agent (WanNengYi/万能译)**
+- **Role**: Multi-language translation agent for [Any Language]→Chinese prompts
+- **File**: `.claude/agents/universal-translator.md`
+- **Use When**: Only translation is needed (no coordination)
+- **Supported Languages**: English, Thai, Japanese, Korean, and more
+
+**Internet Researcher Agent (Scout - `/bs` skill)**
+- **Role**: Research information from internet to support other agents' decisions
+- **File**: `.claude/agents/internet-researcher.md`
+- **Responsibilities**: Web search, content analysis, best practices research, source citation
+- **Supports**: All specialist agents with research needs
+
+### Coordination Protocols
+
+#### Protocol 9: Research Tasks
+```
+Research Task Identified
+                ↓
+    Orchestrator routes to Internet Researcher Agent (Scout)
+                ↓
+    Scout performs web search and content analysis
+                ↓
+    Scout synthesizes findings with sources
+                ↓
+    Scout presents research to requesting agent
+                ↓
+    Requesting agent uses research for decision/implementation
+```
+
+### Decision Tree for Task Routing
+
+```
+Is the task simple and single-domain?
+    YES → Direct to specialist agent
+    NO  → Continue
+
+Is it a research task?
+    YES → Internet Researcher Agent (Scout / /bs skill)
+    NO  → Continue
+
+Is it a Chinese-language task?
+    YES → Chinese Foreman Agent
+    NO  → Continue
+
+Is it translation only (no coordination)?
+    YES → Universal Translator (WanNengYi)
+    NO  → Continue
+
+Is it an authentication/security task?
+    YES → Auth & Security Agent
+    NO  → Continue
+
+Does the task involve architecture/design?
+    YES → Architect Agent
+    NO  → Continue
+
+Does the task require implementation planning?
+    YES → Planner Agent
+    NO  → Orchestrator to coordinate
+```
+
+### When to Involve Each Agent
+
+| Trigger | Agent to Involve |
+|---------|-----------------|
+| Research best practices/patterns | Internet Researcher Agent (Scout / /bs skill) |
+| Translate any language to Chinese prompt | Universal Translator (translation only) or Chinese Foreman (translation + coordination) |
+| Fix button alignment (main calculator) | Frontend Agent (direct) |
+| Fix backoffice UI layout | Backoffice Agent (direct) |
+| Add new API endpoint | Backend Agent (direct) |
+| Add authentication to endpoint | Auth & Security Agent (direct) |
+| Add performance logging | Logging & Monitoring Agent (direct) |
+| Add new feature (frontend + backend) | Planner Agent → Frontend + Backend + Auth |
+| Major architectural change | Architect Agent → Planner Agent → Specialists |
+| Multi-domain refactoring | Architect Agent → Planner Agent → All specialists |
+| Performance investigation | Architect Agent → Logging & Monitoring Agent + Research |
+
+### How `/bs` Coordinates with Other Agents
+
+The `/bs` skill (Internet Researcher Agent) supports all specialist agents with research needs:
+
+1. **Direct Invocation**: User calls `/bs` directly for research tasks
+2. **Orchestrator Routing**: Orchestrator routes research tasks to Scout automatically
+3. **Specialist Support**: Specialist agents may request research support from Scout for domain-specific questions
+4. **Findings Delivery**: Scout presents synthesized research with sources to requesting agent
+5. **Decision Support**: Requesting agent uses research findings to inform technical decisions or implementations
+
+### Tools and Permissions
+
+#### Internet Researcher Agent (Scout)
+- **Tools**: WebSearch, WebSearchPrime, WebReader (research tools only)
+- **Spawns**: None (research-only, escalates findings)
+- **Access**: External web sources, project docs for context
+
+#### Other Agents (for reference)
+- **Orchestrator**: All tools, spawns all agents, full access
+- **Lead Agents (Architect, Planner)**: All tools, spawn specialists, full access
+- **Specialist Agents**: Domain-specific tools, domain-specific file access
+- **Coordination Agents**: Task tool, Read tool for agent discovery
+
+### File Structure
+
+```
+.claude/agents/
+├── TEAM.md                      (Team overview - this reference)
+├── orchestrator.md              (Level 1: Coordinator)
+├── architect.md                 (Level 2: Technical lead)
+├── planner.md                   (Level 2: Implementation lead)
+├── chinese-foreman.md           (Level 2: Chinese coordinator)
+├── universal-translator.md      (Multi-language translation-only)
+├── frontend.md                  (Level 3: Specialist - Main calculator)
+├── backoffice.md                (Level 3: Specialist - Backoffice)
+├── backend.md                   (Level 3: Specialist - API)
+├── auth.md                      (Level 3: Specialist - Auth & security)
+├── logging.md                   (Level 3: Specialist - Logging)
+├── calculation.md               (Level 3: Specialist - Formulas)
+├── database.md                  (Level 3: Specialist - Schema)
+├── deployment.md                (Level 3: Specialist - Azure)
+├── internet-researcher.md       (Utility: Web research - /bs skill)
+└── Template.md                  (Universal template)
+```
