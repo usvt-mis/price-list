@@ -13,7 +13,13 @@ export const STORAGE_KEYS = {
   CALCULATOR_TYPE: 'pricelist-calculator-type',
   SCOPE: 'pricelist-scope',
   PRIORITY_LEVEL: 'pricelist-priority-level',
-  SITE_ACCESS: 'pricelist-site-access'
+  SITE_ACCESS: 'pricelist-site-access',
+  ONSITE_CRANE_ENABLED: 'pricelist-onsite-crane-enabled',
+  ONSITE_CRANE_PRICE: 'pricelist-onsite-crane-price',
+  ONSITE_FOUR_PEOPLE_ENABLED: 'pricelist-onsite-four-people-enabled',
+  ONSITE_FOUR_PEOPLE_PRICE: 'pricelist-onsite-four-people-price',
+  ONSITE_SAFETY_ENABLED: 'pricelist-onsite-safety-enabled',
+  ONSITE_SAFETY_PRICE: 'pricelist-onsite-safety-price'
 };
 
 // API endpoints
@@ -64,6 +70,18 @@ export const SITE_ACCESS_OPTIONS = [
   { value: 'easy', label: 'Easy' },
   { value: 'difficult', label: 'Difficult' }
 ];
+
+// Onsite Options
+export const ONSITE_OPTIONS = [
+  { id: 'crane', label: 'ใช้ Crane' },
+  { id: 'fourPeople', label: 'ใช้ 4 ผู้' },
+  { id: 'safety', label: 'ใช้ Safety' }
+];
+
+export const ONSITE_OPTION_VALUES = {
+  YES: 'yes',
+  NO: 'no'
+};
 
 // Commission tiers based on Grand Total to STC ratio
 export const COMMISSION_TIERS = [

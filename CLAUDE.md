@@ -31,6 +31,11 @@ The application supports two distinct calculator modes selected via tab navigati
 - Includes travel distance (km × 15 baht/km rate)
 - Labor section includes: Scope (dropdown), Priority Level (High/Low radio buttons), Site Access (Easy/Difficult radio buttons)
 - Location section includes: Customer Location, Site Access Notes
+- Onsite Options section: Three optional add-on items with Yes/No radio buttons and custom selling price inputs:
+  - ใช้ Crane (Crane) → Yes/No → Price input (บาท)
+  - ใช้ 4 ผู้ (4-person team) → Yes/No → Price input (บาท)
+  - ใช้ Safety (Safety equipment) → Yes/No → Price input (บาท)
+  - Onsite Options Subtotal displayed at bottom
 - Travel section is visible (shared with Workshop)
 
 **Workshop Calculator (Monitor)**:

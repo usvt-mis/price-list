@@ -82,6 +82,7 @@ function updateFieldVisibility() {
   // Onsite-specific fields in location section
   const onsiteFields = [
     el('onsiteLocationSection'),
+    el('onsiteOptionsSection'),
     el('customerLocation'),
     el('siteAccessNotes')
   ].filter(Boolean);

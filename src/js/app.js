@@ -29,6 +29,7 @@ function setGlobalExports() {
   window.updateModeButtons = updateModeButtons;
   window.updateSaveButtonState = globalExports.updateSaveButtonState;
   window.updateRoleBadge = globalExports.updateRoleBadge;
+  window.updateOnsiteOptionsSubtotalFromGlobal = updateOnsiteOptionsSubtotal;
 }
 
 // ========== Load Initial Data ==========
@@ -124,6 +125,30 @@ function startNewCalculation() {
   if (el('customerLocation')) el('customerLocation').value = '';
   if (el('siteAccessNotes')) el('siteAccessNotes').value = '';
 
+  // Reset onsite options to defaults
+  const craneNoRadio = document.querySelector('input[name="craneEnabled"][value="no"]');
+  if (craneNoRadio) craneNoRadio.checked = true;
+  if (el('cranePrice')) {
+    el('cranePrice').value = '';
+    el('cranePrice').disabled = true;
+  }
+
+  const fourPeopleNoRadio = document.querySelector('input[name="fourPeopleEnabled"][value="no"]');
+  if (fourPeopleNoRadio) fourPeopleNoRadio.checked = true;
+  if (el('fourPeoplePrice')) {
+    el('fourPeoplePrice').value = '';
+    el('fourPeoplePrice').disabled = true;
+  }
+
+  const safetyNoRadio = document.querySelector('input[name="safetyEnabled"][value="no"]');
+  if (safetyNoRadio) safetyNoRadio.checked = true;
+  if (el('safetyPrice')) {
+    el('safetyPrice').value = '';
+    el('safetyPrice').disabled = true;
+  }
+
+  if (el('onsiteOptionsSubtotal')) el('onsiteOptionsSubtotal').textContent = '0.00';
+
   renderLabor();
   renderMaterials();
   calcAll();
@@ -164,6 +189,68 @@ function initializeOnsiteLaborFields() {
   if (accessRadio) {
     accessRadio.checked = true;
   }
+}
+
+/**
+ * Initialize onsite options from stored state
+ */
+function initializeOnsiteOptions() {
+  // Initialize Crane option
+  const storedCraneEnabled = localStorage.getItem('pricelist-onsite-crane-enabled') || 'no';
+  const craneRadio = document.querySelector(`input[name="craneEnabled"][value="${storedCraneEnabled}"]`);
+  if (craneRadio) craneRadio.checked = true;
+  const cranePriceInput = el('cranePrice');
+  if (cranePriceInput) {
+    cranePriceInput.value = localStorage.getItem('pricelist-onsite-crane-price') || '';
+    cranePriceInput.disabled = storedCraneEnabled !== 'yes';
+  }
+
+  // Initialize 4 People option
+  const storedFourPeopleEnabled = localStorage.getItem('pricelist-onsite-four-people-enabled') || 'no';
+  const fourPeopleRadio = document.querySelector(`input[name="fourPeopleEnabled"][value="${storedFourPeopleEnabled}"]`);
+  if (fourPeopleRadio) fourPeopleRadio.checked = true;
+  const fourPeoplePriceInput = el('fourPeoplePrice');
+  if (fourPeoplePriceInput) {
+    fourPeoplePriceInput.value = localStorage.getItem('pricelist-onsite-four-people-price') || '';
+    fourPeoplePriceInput.disabled = storedFourPeopleEnabled !== 'yes';
+  }
+
+  // Initialize Safety option
+  const storedSafetyEnabled = localStorage.getItem('pricelist-onsite-safety-enabled') || 'no';
+  const safetyRadio = document.querySelector(`input[name="safetyEnabled"][value="${storedSafetyEnabled}"]`);
+  if (safetyRadio) safetyRadio.checked = true;
+  const safetyPriceInput = el('safetyPrice');
+  if (safetyPriceInput) {
+    safetyPriceInput.value = localStorage.getItem('pricelist-onsite-safety-price') || '';
+    safetyPriceInput.disabled = storedSafetyEnabled !== 'yes';
+  }
+
+  updateOnsiteOptionsSubtotal();
+}
+
+/**
+ * Update onsite options subtotal display
+ */
+function updateOnsiteOptionsSubtotal() {
+  let subtotal = 0;
+
+  const craneEnabled = document.querySelector('input[name="craneEnabled"]:checked')?.value === 'yes';
+  if (craneEnabled) {
+    subtotal += parseFloat(el('cranePrice').value) || 0;
+  }
+
+  const fourPeopleEnabled = document.querySelector('input[name="fourPeopleEnabled"]:checked')?.value === 'yes';
+  if (fourPeopleEnabled) {
+    subtotal += parseFloat(el('fourPeoplePrice').value) || 0;
+  }
+
+  const safetyEnabled = document.querySelector('input[name="safetyEnabled"]:checked')?.value === 'yes';
+  if (safetyEnabled) {
+    subtotal += parseFloat(el('safetyPrice').value) || 0;
+  }
+
+  el('onsiteOptionsSubtotal').textContent = subtotal.toFixed(2);
+  return subtotal;
 }
 
 /**
@@ -226,6 +313,60 @@ function setupEventListeners() {
   });
 
   el('siteAccessNotes')?.addEventListener('input', () => {
+    if (globalExports.markDirty) globalExports.markDirty();
+  });
+
+  // Crane option listeners
+  document.querySelectorAll('input[name="craneEnabled"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        localStorage.setItem('pricelist-onsite-crane-enabled', e.target.value);
+        el('cranePrice').disabled = e.target.value !== 'yes';
+        updateOnsiteOptionsSubtotal();
+        if (globalExports.markDirty) globalExports.markDirty();
+      }
+    });
+  });
+
+  el('cranePrice')?.addEventListener('input', (e) => {
+    localStorage.setItem('pricelist-onsite-crane-price', e.target.value);
+    updateOnsiteOptionsSubtotal();
+    if (globalExports.markDirty) globalExports.markDirty();
+  });
+
+  // 4 People option listeners
+  document.querySelectorAll('input[name="fourPeopleEnabled"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        localStorage.setItem('pricelist-onsite-four-people-enabled', e.target.value);
+        el('fourPeoplePrice').disabled = e.target.value !== 'yes';
+        updateOnsiteOptionsSubtotal();
+        if (globalExports.markDirty) globalExports.markDirty();
+      }
+    });
+  });
+
+  el('fourPeoplePrice')?.addEventListener('input', (e) => {
+    localStorage.setItem('pricelist-onsite-four-people-price', e.target.value);
+    updateOnsiteOptionsSubtotal();
+    if (globalExports.markDirty) globalExports.markDirty();
+  });
+
+  // Safety option listeners
+  document.querySelectorAll('input[name="safetyEnabled"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        localStorage.setItem('pricelist-onsite-safety-enabled', e.target.value);
+        el('safetyPrice').disabled = e.target.value !== 'yes';
+        updateOnsiteOptionsSubtotal();
+        if (globalExports.markDirty) globalExports.markDirty();
+      }
+    });
+  });
+
+  el('safetyPrice')?.addEventListener('input', (e) => {
+    localStorage.setItem('pricelist-onsite-safety-price', e.target.value);
+    updateOnsiteOptionsSubtotal();
     if (globalExports.markDirty) globalExports.markDirty();
   });
 
@@ -415,6 +556,9 @@ async function initApp() {
 
   // Initialize onsite labor fields from stored state
   initializeOnsiteLaborFields();
+
+  // Initialize onsite options from stored state
+  initializeOnsiteOptions();
 
   // Check for shared record URL parameter on page load
   const urlParams = new URLSearchParams(window.location.search);

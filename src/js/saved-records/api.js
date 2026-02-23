@@ -46,6 +46,19 @@ export function serializeCalculatorState() {
     baseState.siteAccess = el('siteAccess')?.value || null;
     baseState.customerLocation = el('customerLocation')?.value || null;
     baseState.siteAccessNotes = el('siteAccessNotes')?.value || null;
+
+    // Onsite Options
+    const craneEnabled = document.querySelector('input[name="craneEnabled"]:checked')?.value || 'no';
+    baseState.onsiteCraneEnabled = craneEnabled;
+    baseState.onsiteCranePrice = craneEnabled === 'yes' ? (el('cranePrice')?.value || null) : null;
+
+    const fourPeopleEnabled = document.querySelector('input[name="fourPeopleEnabled"]:checked')?.value || 'no';
+    baseState.onsiteFourPeopleEnabled = fourPeopleEnabled;
+    baseState.onsiteFourPeoplePrice = fourPeopleEnabled === 'yes' ? (el('fourPeoplePrice')?.value || null) : null;
+
+    const safetyEnabled = document.querySelector('input[name="safetyEnabled"]:checked')?.value || 'no';
+    baseState.onsiteSafetyEnabled = safetyEnabled;
+    baseState.onsiteSafetyPrice = safetyEnabled === 'yes' ? (el('safetyPrice')?.value || null) : null;
   }
   // Workshop type has no type-specific fields (uses original calculator layout)
 
@@ -217,6 +230,42 @@ export async function deserializeCalculatorState(data, options = {}) {
     }
     if (el('customerLocation')) el('customerLocation').value = data.customerLocation || '';
     if (el('siteAccessNotes')) el('siteAccessNotes').value = data.siteAccessNotes || '';
+
+    // Onsite Options - Crane
+    if (data.onsiteCraneEnabled) {
+      const craneRadio = document.querySelector(`input[name="craneEnabled"][value="${data.onsiteCraneEnabled}"]`);
+      if (craneRadio) craneRadio.checked = true;
+      if (el('cranePrice')) {
+        el('cranePrice').value = data.onsiteCranePrice || '';
+        el('cranePrice').disabled = data.onsiteCraneEnabled !== 'yes';
+      }
+    }
+
+    // Onsite Options - 4 People
+    if (data.onsiteFourPeopleEnabled) {
+      const fourPeopleRadio = document.querySelector(`input[name="fourPeopleEnabled"][value="${data.onsiteFourPeopleEnabled}"]`);
+      if (fourPeopleRadio) fourPeopleRadio.checked = true;
+      if (el('fourPeoplePrice')) {
+        el('fourPeoplePrice').value = data.onsiteFourPeoplePrice || '';
+        el('fourPeoplePrice').disabled = data.onsiteFourPeopleEnabled !== 'yes';
+      }
+    }
+
+    // Onsite Options - Safety
+    if (data.onsiteSafetyEnabled) {
+      const safetyRadio = document.querySelector(`input[name="safetyEnabled"][value="${data.onsiteSafetyEnabled}"]`);
+      if (safetyRadio) safetyRadio.checked = true;
+      if (el('safetyPrice')) {
+        el('safetyPrice').value = data.onsiteSafetyPrice || '';
+        el('safetyPrice').disabled = data.onsiteSafetyEnabled !== 'yes';
+      }
+    }
+
+    // Update subtotal after loading
+    // Call through app.js since updateOnsiteOptionsSubtotal is defined there
+    if (typeof window.updateOnsiteOptionsSubtotalFromGlobal === 'function') {
+      window.updateOnsiteOptionsSubtotalFromGlobal();
+    }
   }
   // Workshop type has no type-specific fields to restore
 
@@ -380,9 +429,10 @@ export async function markDirty() {
 export function setViewOnlyMode(enabled) {
   const selectors = [
     'select',                    // Branch, motor type dropdowns
-    'input[type="number"]',      // Labor hours, quantities, sales profit, travel
+    'input[type="number"]',      // Labor hours, quantities, sales profit, travel, onsite options prices
     'input[type="text"]',        // Text inputs if any
-    'input[type="checkbox"]'     // Labor checkboxes
+    'input[type="checkbox"]',    // Labor checkboxes
+    'input[type="radio"]'        // Radio buttons (priority level, site access, onsite options)
   ];
 
   selectors.forEach(selector => {

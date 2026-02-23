@@ -38,6 +38,16 @@ export let currentPriorityLevel = localStorage.getItem(STORAGE_KEYS.PRIORITY_LEV
 // Site Access for onsite calculations
 export let currentSiteAccess = localStorage.getItem(STORAGE_KEYS.SITE_ACCESS) || 'easy';
 
+// Onsite Options state
+export let currentOnsiteCraneEnabled = localStorage.getItem(STORAGE_KEYS.ONSITE_CRANE_ENABLED) || 'no';
+export let currentOnsiteCranePrice = localStorage.getItem(STORAGE_KEYS.ONSITE_CRANE_PRICE) || '';
+
+export let currentOnsiteFourPeopleEnabled = localStorage.getItem(STORAGE_KEYS.ONSITE_FOUR_PEOPLE_ENABLED) || 'no';
+export let currentOnsiteFourPeoplePrice = localStorage.getItem(STORAGE_KEYS.ONSITE_FOUR_PEOPLE_PRICE) || '';
+
+export let currentOnsiteSafetyEnabled = localStorage.getItem(STORAGE_KEYS.ONSITE_SAFETY_ENABLED) || 'no';
+export let currentOnsiteSafetyPrice = localStorage.getItem(STORAGE_KEYS.ONSITE_SAFETY_PRICE) || '';
+
 // NoRole state management (prevents view switching)
 export let isNoRoleState = false;
 
@@ -160,6 +170,42 @@ export function setSiteAccess(access) {
 
 export function getInitialSiteAccess() {
   return localStorage.getItem(STORAGE_KEYS.SITE_ACCESS) || 'easy';
+}
+
+// Getters and setters for Crane
+export function getOnsiteCraneEnabled() { return currentOnsiteCraneEnabled || 'no'; }
+export function setOnsiteCraneEnabled(value) {
+  currentOnsiteCraneEnabled = value;
+  localStorage.setItem(STORAGE_KEYS.ONSITE_CRANE_ENABLED, value);
+}
+export function getOnsiteCranePrice() { return currentOnsiteCranePrice || ''; }
+export function setOnsiteCranePrice(value) {
+  currentOnsiteCranePrice = value;
+  localStorage.setItem(STORAGE_KEYS.ONSITE_CRANE_PRICE, value);
+}
+
+// Getters and setters for 4 People
+export function getOnsiteFourPeopleEnabled() { return currentOnsiteFourPeopleEnabled || 'no'; }
+export function setOnsiteFourPeopleEnabled(value) {
+  currentOnsiteFourPeopleEnabled = value;
+  localStorage.setItem(STORAGE_KEYS.ONSITE_FOUR_PEOPLE_ENABLED, value);
+}
+export function getOnsiteFourPeoplePrice() { return currentOnsiteFourPeoplePrice || ''; }
+export function setOnsiteFourPeoplePrice(value) {
+  currentOnsiteFourPeoplePrice = value;
+  localStorage.setItem(STORAGE_KEYS.ONSITE_FOUR_PEOPLE_PRICE, value);
+}
+
+// Getters and setters for Safety
+export function getOnsiteSafetyEnabled() { return currentOnsiteSafetyEnabled || 'no'; }
+export function setOnsiteSafetyEnabled(value) {
+  currentOnsiteSafetyEnabled = value;
+  localStorage.setItem(STORAGE_KEYS.ONSITE_SAFETY_ENABLED, value);
+}
+export function getOnsiteSafetyPrice() { return currentOnsiteSafetyPrice || ''; }
+export function setOnsiteSafetyPrice(value) {
+  currentOnsiteSafetyPrice = value;
+  localStorage.setItem(STORAGE_KEYS.ONSITE_SAFETY_PRICE, value);
 }
 
 export function setNoRoleState(value) {
