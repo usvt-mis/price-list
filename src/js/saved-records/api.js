@@ -44,8 +44,6 @@ export function serializeCalculatorState() {
     baseState.scope = el('scope')?.value || null;
     baseState.priorityLevel = el('priorityLevel')?.value || null;
     baseState.siteAccess = el('siteAccess')?.value || null;
-    baseState.customerLocation = el('customerLocation')?.value || null;
-    baseState.siteAccessNotes = el('siteAccessNotes')?.value || null;
 
     // Onsite Options
     const craneEnabled = document.querySelector('input[name="craneEnabled"]:checked')?.value || 'no';
@@ -228,8 +226,6 @@ export async function deserializeCalculatorState(data, options = {}) {
       const accessRadio = document.querySelector(`input[name="siteAccess"][value="${accessValue}"]`);
       if (accessRadio) accessRadio.checked = true;
     }
-    if (el('customerLocation')) el('customerLocation').value = data.customerLocation || '';
-    if (el('siteAccessNotes')) el('siteAccessNotes').value = data.siteAccessNotes || '';
 
     // Onsite Options - Crane
     if (data.onsiteCraneEnabled) {

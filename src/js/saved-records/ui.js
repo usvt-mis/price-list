@@ -389,8 +389,6 @@ export function displayRecordDetail(record) {
             <div><strong>Sales Profit:</strong> ${record.salesProfitPct}%</div>
             ${record.calculatorType === CALCULATOR_TYPE.ONSITE ? `
               <div><strong>Travel Distance:</strong> ${record.travelKm} km</div>
-              ${record.customerLocation ? `<div><strong>Customer Location:</strong> ${record.customerLocation}</div>` : ''}
-              ${record.siteAccessNotes ? `<div><strong>Site Access Notes:</strong> ${record.siteAccessNotes}</div>` : ''}
             ` : `
               <div><strong>Travel Distance:</strong> ${record.travelKm} km</div>
             `}

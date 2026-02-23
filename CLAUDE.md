@@ -30,7 +30,6 @@ The application supports two distinct calculator modes selected via tab navigati
 - For field/onsite service calculations
 - Includes travel distance (km × 15 baht/km rate)
 - Labor section includes: Scope (dropdown), Priority Level (High/Low radio buttons), Site Access (Easy/Difficult radio buttons)
-- Location section includes: Customer Location, Site Access Notes
 - Onsite Options section: Three optional add-on items with Yes/No radio buttons and custom selling price inputs:
   - ใช้ Crane (Crane) → Yes/No → Price input (บาท)
   - ใช้ 4 ผู้ (4-person team) → Yes/No → Price input (บาท)
@@ -168,7 +167,7 @@ The application includes comprehensive debug logging for troubleshooting initial
 - Core tables: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
   - **Calculator Types**: SavedCalculations.CalculatorType stores 'onsite' or 'workshop'
-  - **Onsite Columns**: Scope, PriorityLevel (shared with Workshop), SiteAccess, CustomerLocation, SiteAccessNotes
+  - **Onsite Columns**: Scope, PriorityLevel (shared with Workshop), SiteAccess
   - **Workshop Columns**: EquipmentUsed, MachineHours, PriorityLevel (shared with Onsite), PickupDeliveryOption, QualityCheckRequired
 - Role management: UserRoles (stores role assignments - can be Executive, Sales, Customer, or NULL/NoRole)
   - Columns: Email (PK), Role, AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt
@@ -185,6 +184,7 @@ The application includes comprehensive debug logging for troubleshooting initial
   - `database/migrations/calculator_types.sql` (adds CalculatorType and type-specific columns to SavedCalculations)
   - `database/migrations/add_scope_column.sql` (adds Scope dropdown for onsite calculations)
   - `database/migrations/priority_site_access.sql` (adds SiteAccess column; PriorityLevel column already exists and is shared)
+  - `database/migrations/remove_onsite_location_fields.sql` (removes CustomerLocation and SiteAccessNotes columns from SavedCalculations)
 - **Deprecated scripts**: `database/deprecated/create_app_logs.sql`, `database/deprecated/diagnostics_logs.sql` (moved after Application Insights migration)
 
 ### Backend Structure (`api/`)
@@ -395,7 +395,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 
 **Saved Calculations API Endpoints** (Azure AD - role-based access):
 - `POST /api/saves` - Create new saved calculation (authenticated users only)
-  - Request body includes: `calculatorType`, `scope`, `priorityLevel`, `siteAccess`, `customerLocation`, `siteAccessNotes` (Onsite) or `equipmentUsed`, `machineHours`, `priorityLevel`, `pickupDeliveryOption`, `qualityCheckRequired` (Workshop)
+  - Request body includes: `calculatorType`, `scope`, `priorityLevel`, `siteAccess` (Onsite) or `equipmentUsed`, `machineHours`, `priorityLevel`, `pickupDeliveryOption`, `qualityCheckRequired` (Workshop)
 - `GET /api/saves` - List saved calculations (Executive: all records, Sales: own records only, NoRole: 403 forbidden)
   - Returns `CalculatorType` field for each record
 - `GET /api/saves/{id}` - Get single saved calculation by ID

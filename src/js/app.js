@@ -121,10 +121,6 @@ function startNewCalculation() {
   const accessEasyRadio = document.querySelector('input[name="siteAccess"][value="easy"]');
   if (accessEasyRadio) accessEasyRadio.checked = true;
 
-  // Clear onsite-specific fields
-  if (el('customerLocation')) el('customerLocation').value = '';
-  if (el('siteAccessNotes')) el('siteAccessNotes').value = '';
-
   // Reset onsite options to defaults
   const craneNoRadio = document.querySelector('input[name="craneEnabled"][value="no"]');
   if (craneNoRadio) craneNoRadio.checked = true;
@@ -305,15 +301,6 @@ function setupEventListeners() {
         if (globalExports.markDirty) globalExports.markDirty();
       }
     });
-  });
-
-  // Customer Location and Site Access Notes
-  el('customerLocation')?.addEventListener('input', () => {
-    if (globalExports.markDirty) globalExports.markDirty();
-  });
-
-  el('siteAccessNotes')?.addEventListener('input', () => {
-    if (globalExports.markDirty) globalExports.markDirty();
   });
 
   // Crane option listeners
