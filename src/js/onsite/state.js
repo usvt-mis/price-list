@@ -245,7 +245,8 @@ export function resetCalculatorState() {
   currentSavedRecord = null;
   isDirty = false;
   isViewOnly = false;
-  appState.labor = [];
+  // NOTE: labor is reference data (loaded from API), not user input - do NOT reset it
+  // appState.labor = []; // REMOVED - this was causing jobs to disappear
   appState.materialLines = [];
   appState.commissionPercent = 0;
 }

@@ -7,12 +7,21 @@ import { el, fmt, fetchJson, setStatus } from '../core/utils.js';
 import { appState, getSelectedBranch, isExecutiveMode, isCustomerMode } from './state.js';
 import { TRAVEL_RATE, API } from '../core/config.js';
 
+// Loading guard to prevent race conditions from duplicate calls
+let isLoadingLabor = false;
+
 /**
  * Load labor data for onsite calculator
  * For onsite calculator, the backend auto-selects the first motor type
  * @returns {Promise<void>}
  */
 export async function loadLabor() {
+  // Guard against concurrent calls (race condition from event listeners + explicit calls)
+  if (isLoadingLabor) {
+    console.warn('[LABOR-LOAD] Already loading, skipping duplicate call');
+    return;
+  }
+  isLoadingLabor = true;
   setStatus('Loading labor (jobs + manhours)...');
   try {
     // For onsite calculator, let the API auto-select the first motor type
@@ -31,6 +40,8 @@ export async function loadLabor() {
   } catch (e) {
     console.error(e);
     setStatus('Failed to load labor. Please try again.');
+  } finally {
+    isLoadingLabor = false;
   }
 }
 
