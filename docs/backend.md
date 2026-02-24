@@ -1,42 +1,130 @@
 # Backend Documentation
 
-**Parent Documentation**: This guide is part of the CLAUDE.md documentation.
-See [CLAUDE.md](../CLAUDE.md) for project overview and navigation.
+Complete guide for the Price List Calculator backend architecture.
 
 ---
 
-## Technology Stack
+## Overview
 
-- **Azure Functions v4** with `@azure/functions` package
-- **Database**: SQL Server via `mssql` package
-- **Connection Pool**: Shared singleton pool in `src/db.js`
+The backend uses a **two-tier architecture**:
 
----
+1. **Express.js (Primary)** - For Azure App Service deployment
+2. **Azure Functions v4 (Legacy)** - Still functional in `api/src/functions/`
 
-## Database Connection Pooling
+Both tiers share the same database connection pool and utilities.
 
-### Connection Pool
-- Singleton-initialized in `api/src/db.js`
-- All functions use `getPool()` to get the shared pool
-- Uses parameterized queries to prevent SQL injection (see `labor.js` and `materials.js`)
-
-### Transaction Pattern
-When using transactions with stored procedures:
-- Backend handlers manage the outer transaction via `pool.transaction()`
-- Stored procedures should participate in the caller's transaction (no `BEGIN TRANSACTION` inside)
-- This prevents nested transaction issues
-- Example: `GetNextRunNumber` stored procedure avoids inner transaction
+**See also:**
+- [docs/backend/quick-start.md](backend/quick-start.md) - Backend setup guide
+- [docs/backend/api-endpoints.md](backend/api-endpoints.md) - Complete API reference
+- [docs/backend/development.md](backend/development.md) - Adding new endpoints
 
 ---
 
-## Function Registration Pattern
+## Architecture Comparison
 
-Each HTTP function file follows this pattern:
+| Aspect | Express.js (Primary) | Azure Functions (Legacy) |
+|--------|---------------------|--------------------------|
+| **Use Case** | Azure App Service deployment | Serverless workloads |
+| **Entry Point** | `server.js` | `api/src/index.js` |
+| **Route Definition** | Express Router pattern | `app.http()` registration |
+| **Middleware** | `src/middleware/authExpress.js` | `src/middleware/auth.js` |
+| **Environment** | `.env.local` | `local.settings.json` |
 
+---
+
+## Express.js Structure (Primary)
+
+```
+api/
+├── server.js                 # Main Express app (static files, route mounting)
+├── src/
+│   ├── routes/              # Express Router modules
+│   │   ├── motorTypes.js    # Core routes
+│   │   ├── branches.js
+│   │   ├── labor.js
+│   │   ├── materials.js
+│   │   ├── onsite/          # Onsite-specific routes
+│   │   │   ├── calculations.js
+│   │   │   ├── shared.js
+│   │   │   ├── labor.js
+│   │   │   └── branches.js
+│   │   ├── workshop/        # Workshop-specific routes
+│   │   │   ├── calculations.js
+│   │   │   ├── shared.js
+│   │   │   └── labor.js
+│   │   ├── admin/           # Admin routes
+│   │   │   ├── roles.js
+│   │   │   └── diagnostics.js
+│   │   ├── backoffice.js    # Backoffice routes
+│   │   ├── ping.js
+│   │   ├── version.js
+│   │   └── auth.js
+│   ├── middleware/          # Authentication middleware
+│   │   ├── authExpress.js
+│   │   └── twoFactorAuthExpress.js
+│   ├── db.js               # Shared connection pool
+│   └── utils/              # Utilities
+│       ├── logger.js       # Console-based logging
+│       └── calculator.js   # GrandTotal calculation
+├── .env.local              # Environment variables (not in git)
+└── package.json
+```
+
+### Route Pattern
+
+Each route module:
+1. Creates Express Router: `const router = express.Router();`
+2. Defines route handlers with `router.get/post/put/delete()`
+3. Exports router: `module.exports = router;`
+4. Server imports and mounts at path: `app.use('/api/path', requireAuth, router);`
+
+### Environment Variables (dotenv)
+
+- `server.js` loads `dotenv` at startup: `require('dotenv').config({ path: '.env.local' });`
+- Environment variables (including `DATABASE_CONNECTION_STRING`) are loaded from `.env.local` at repository root
+- `.env` files are excluded from version control via `.gitignore`
+
+---
+
+## Azure Functions Structure (Legacy)
+
+```
+api/
+├── src/
+│   ├── functions/          # HTTP handlers
+│   │   ├── motorTypes.js
+│   │   ├── branches.js
+│   │   ├── labor.js
+│   │   ├── materials.js
+│   │   ├── savedCalculations.js
+│   │   ├── sharedCalculations.js
+│   │   ├── ping.js
+│   │   ├── version.js
+│   │   ├── auth.js
+│   │   ├── admin/
+│   │   │   ├── roles.js
+│   │   │   └── diagnostics.js
+│   │   └── backoffice.js
+│   ├── middleware/         # Authentication middleware (Azure Functions format)
+│   │   ├── auth.js
+│   │   └── twoFactorAuth.js
+│   ├── db.js              # Shared connection pool
+│   ├── utils/             # Utilities
+│   │   ├── logger.js
+│   │   └── calculator.js
+│   └── index.js           # Function registration
+├── host.json              # Azure Functions host configuration
+├── local.settings.json    # Environment variables for local development
+└── package.json
+```
+
+### Function Registration Pattern
+
+Each HTTP function file:
 1. Requires `@azure/functions` app and `../db` utilities
 2. Calls `app.http()` with function name and config object
 3. Exports nothing (registration happens via side effect)
-4. The main `index.js` requires all functions to register them
+4. The main `src/index.js` requires all functions to register them
 
 ```js
 const { app } = require("@azure/functions");
@@ -56,119 +144,125 @@ app.http("functionName", {
 
 ---
 
-## Adding New API Endpoints
+## Shared Components
 
-1. Create new file in `api/src/functions/`
-2. Follow the pattern shown above
-3. Require it in `api/src/index.js`: `require("./functions/yourFile");`
-4. Access at `/api/your-route`
+### Database Connection Pool
+
+- Connection pool is singleton-initialized in `api/src/db.js`
+- All functions use `getPool()` to get the shared pool
+- Uses parameterized queries to prevent SQL injection
+- When using transactions with stored procedures, ensure stored procedures don't create nested transactions
+- Backend handlers manage the outer transaction via `pool.transaction()`
+
+### Utilities
+
+| File | Purpose |
+|------|---------|
+| `logger.js` | Console-based logging with correlation ID support |
+| `calculator.js` | GrandTotal calculation logic |
+
+### Authentication Middleware
+
+| File | Purpose |
+|------|---------|
+| `authExpress.js` | Express-compatible authentication (Primary) |
+| `twoFactorAuthExpress.js` | Express-compatible backoffice auth |
+| `auth.js` | Azure Functions format authentication (Legacy) |
+| `twoFactorAuth.js` | Azure Functions format backoffice auth (Legacy) |
 
 ---
 
-## Middleware (`src/middleware/`)
+## Route Categories
 
-### Authentication Middleware (`auth.js`)
-
-Functions:
-- `isLocalRequest(req)` - Detects local development via header or hostname
-- `createMockUser()` - Returns mock user with `PriceListExecutive` role
-- `validateAuth(req)` - Returns mock user in local dev, otherwise parses `x-ms-client-principal`
-- `requireAuth(req)` - Returns mock user in local dev, otherwise throws 401 if not authenticated
-- `requireRole(...roles)` - Returns mock user in local dev, otherwise throws 403 if user lacks required roles
-
-See [Authentication Documentation](authentication.md) for complete details.
+| Category | Routes | Description |
+|----------|--------|-------------|
+| **Core** | motorTypes, branches, labor, materials | Shared reference data |
+| **Onsite** | onsite/calculations, onsite/shared, onsite/labor, onsite/branches | Onsite calculator endpoints |
+| **Workshop** | workshop/calculations, workshop/shared, workshop/labor | Workshop calculator endpoints |
+| **Utility** | ping, version, auth | Health check, version, user info |
+| **Admin** | admin/roles, admin/diagnostics | Role management (Executive only) |
+| **Backoffice** | backoffice, backoffice/login | Backoffice management |
 
 ---
 
-## HTTP Handlers (`src/functions/`)
+## Development Commands
 
-### Public Endpoints
+### Express.js (Primary)
+```bash
+npm install                    # Install dependencies
+npm start                      # Start Express server (port 8080)
+npm run dev                    # Development with auto-reload
+```
 
-| File | Method | Route | Description |
-|------|--------|-------|-------------|
-| `ping.js` | GET | /api/ping | Public health check |
+### Azure Functions (Legacy)
+```bash
+npm install                    # Install dependencies
+npm run start:functions        # Start Functions host
+```
 
-### Authenticated Endpoints
+The Azure Functions Core Tools (`func`) CLI is required. Install from: https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local
 
-| File | Method | Route | Description |
-|------|--------|-------|-------------|
-| `motorTypes.js` | GET | /api/motor-types | Get motor types |
-| `branches.js` | GET | /api/branches | Get branches |
-| `labor.js` | GET | /api/labor?motorTypeId={id} | Get jobs with manhours |
-| `materials.js` | GET | /api/materials?query={search} | Search materials |
+---
 
-### Saved Calculations (`savedCalculations.js`)
+## Debugging
 
-| Method | Route | Description | Access |
-|--------|-------|-------------|--------|
-| POST | /api/saves | Create new saved calculation | Authenticated |
-| GET | /api/saves | List saved records (role-filtered) | Authenticated |
-| GET | /api/saves/{id} | Get single record | Authenticated |
-| PUT | /api/saves/{id} | Update record | Creator only |
-| DELETE | /api/saves/{id} | Delete record | Creator or Executive |
-
-### Shared Calculations (`sharedCalculations.js`)
-
-| Method | Route | Description | Access |
-|--------|-------|-------------|--------|
-| POST | /api/saves/{id}/share | Generate share token | Authenticated |
-| GET | /api/shared/{token} | Access shared record | Authenticated |
+The `.vscode/launch.json` configuration supports debugging:
+1. Run "Attach to Node Functions" in VS Code debugger
+2. This automatically starts the Functions host and attaches to port 9229
 
 ---
 
 ## Error Handling Patterns
 
-### Try/Catch
-All handlers should use try/catch for error handling
+### Express.js
 
-### Logging
-Use `ctx.error()` for logging errors
+Use `next(err)` to pass errors to Express error handling middleware:
 
-### Response Format
-Return objects with:
-- `status` - HTTP status code
-- `jsonBody` - Response object (for JSON responses)
-- `body` - Raw body (for non-JSON responses)
+```js
+router.get('/', async (req, res, next) => {
+  try {
+    // Your code here
+  } catch (err) {
+    next(err);
+  }
+});
+```
 
----
+### Azure Functions
 
-## Environment Variables
+Use `ctx.error(err)` for logging and return error responses:
 
-### Required
-- `DATABASE_CONNECTION_STRING` - SQL Server connection string
-
-### Optional (Local Development)
-- `MOCK_USER_EMAIL` - Custom email for mock user (defaults to `'Dev User'`)
-
-### Configuration File
-Set environment variables in `api/local.settings.json` for local development:
-
-```json
-{
-  "Values": {
-    "DATABASE_CONNECTION_STRING": "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
-    "MOCK_USER_EMAIL": "Dev User"
+```js
+handler: async (req, ctx) => {
+  try {
+    // Your code here
+  } catch (err) {
+    ctx.error(err);
+    return {
+      status: 500,
+      body: "Internal server error"
+    };
   }
 }
 ```
 
 ---
 
-## Development Commands
+## Best Practices
 
-### Install Dependencies
-```bash
-npm install
-```
+1. **Parameterized Queries**: Always use parameterized queries to prevent SQL injection
+2. **Connection Pooling**: Use `getPool()` to get the shared connection pool
+3. **Error Handling**: Use try/catch for all async operations
+4. **Logging**: Use the logger utility in `api/src/utils/logger.js` for consistent logging
+5. **Authentication**: Apply authentication at the route level via middleware
+6. **Role-Based Access**: Use `getUserEffectiveRole()` to check UserRoles database table
 
-### Start Local Development Server
-```bash
-func start
-```
+---
 
-The Azure Functions Core Tools (`func`) CLI is required. Install from: https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local
+## See Also
 
-### Debugging
-The `.vscode/launch.json` configuration supports debugging:
-1. Run "Attach to Node Functions" in VS Code debugger
-2. This automatically starts the Functions host and attaches to port 9229
+- [CLAUDE.md](../CLAUDE.md) - Project overview
+- [docs/backend/quick-start.md](backend/quick-start.md) - Backend setup guide
+- [docs/backend/api-endpoints.md](backend/api-endpoints.md) - Complete API reference
+- [docs/backend/development.md](backend/development.md) - Adding new endpoints
+- [docs/authentication.md](authentication.md) - Authentication details

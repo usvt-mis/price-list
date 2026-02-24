@@ -1,7 +1,124 @@
 # Frontend Documentation
 
-**Parent Documentation**: This guide is part of the CLAUDE.md documentation.
-See [CLAUDE.md](../CLAUDE.md) for project overview and navigation.
+Complete guide for the Price List Calculator frontend.
+
+---
+
+## Overview
+
+The frontend consists of **three separate calculator applications**, each with its own HTML file and modular JavaScript:
+
+1. **Landing Page** (`index.html`) - Calculator selection page
+2. **Onsite Calculator** (`onsite.html`) - For field/onsite service calculations
+3. **Workshop Calculator** (`workshop.html`) - For workshop/facility-based service calculations
+
+**See also:**
+- [QUICKSTART.md](../QUICKSTART.md) - Frontend debug logging
+- [docs/calculation.md](calculation.md) - Pricing formulas and calculations
+
+---
+
+## Three Separate Calculator Applications
+
+### Landing Page (`index.html`)
+Simple landing page with links to Onsite and Workshop calculators. No calculator functionality.
+
+### Onsite Calculator (`onsite.html`)
+
+**Purpose**: For field/onsite service calculations
+
+**Features**:
+- Uses separate OnsiteCostPerHour rates from Branches table (URY=485, USB=554, UPB=479, UCB=872)
+- Onsite Options section: Three optional add-on items (Crane, 4 People, Safety) with custom prices
+- Labor section: Scope dropdown, Priority Level, Site Access
+- Travel section: Distance in km × 15 baht/km rate
+- Run number format: `ONS-YYYY-XXX`
+- API endpoints: `/api/onsite/calculations`, `/api/onsite/shared`
+
+**Module Organization**:
+```
+src/js/onsite/
+├── app.js                    # Onsite app initialization
+├── config.js                 # Onsite-specific configuration
+├── state.js                  # Onsite-specific state management
+├── labor.js                  # Labor section logic
+├── materials.js              # Materials section logic
+├── calculations.js           # Onsite cost calculations
+├── onsite-options.js         # Onsite Options (Crane, 4 People, Safety)
+└── saved-records/            # Saved records module
+    ├── api.js                # API calls for onsite calculations
+    ├── ui.js                 # Records list/grid rendering
+    ├── sharing.js            # Share functionality
+    ├── filters.js            # Universal search and sort
+    └── index.js              # Exports
+```
+
+### Workshop Calculator (`workshop.html`)
+
+**Purpose**: For workshop/facility-based service calculations
+
+**Features**:
+- Uses standard CostPerHour rates from Branches table (URY=429, USB=431, USR=331, UKK=359, UPB=403, UCB=518)
+- Simplified layout (Labor, Materials, Travel sections)
+- No type-specific fields (simplified from previous version)
+- Run number format: `WKS-YYYY-XXX`
+- API endpoints: `/api/workshop/calculations`, `/api/workshop/shared`
+
+**Module Organization**:
+```
+src/js/workshop/
+├── app.js                    # Workshop app initialization
+├── config.js                 # Workshop-specific configuration
+├── state.js                  # Workshop-specific state management
+├── labor.js                  # Labor section logic
+├── materials.js              # Materials section logic
+├── calculations.js           # Workshop cost calculations
+└── saved-records/            # Saved records module
+    ├── api.js                # API calls for workshop calculations
+    ├── ui.js                 # Records list/grid rendering
+    ├── sharing.js            # Share functionality
+    ├── filters.js            # Universal search and sort
+    └── index.js              # Exports
+```
+
+---
+
+## Shared Core Utilities
+
+Both calculators share common utilities from `src/js/core/`:
+
+| File | Purpose |
+|------|---------|
+| `config.js` | Shared constants and API endpoints |
+| `utils.js` | Helper functions (DOM, formatting, UI) |
+| `calculations.js` | Shared calculation formulas |
+
+### Helper Functions (`src/js/core/utils.js`)
+
+- `fmt(value)` - Format number with locale string (2 decimal places)
+- `fmtPercent(value)` - Format number as percentage with 2 decimal places (e.g., "25.50%")
+- `el(id)` - Get DOM element by ID
+- `formatDate(dateStr)` - Format date for display
+- `extractInitials(emailOrName)` - Extract initials from email/name
+- `setStatus(msg)` - Set status message
+- `setDbLoadingModal(show)` - Show/hide database loading modal
+- `showNotification(message)` - Show notification message
+- `showView(viewName, isNoRoleState)` - Navigate between views
+
+---
+
+## Shared Authentication
+
+Both calculators use shared authentication from `src/js/auth/`:
+
+| File | Purpose |
+|------|---------|
+| `index.js` | Auth exports |
+| `token-handling.js` | Token parsing |
+| `mode-detection.js` | Role-based mode logic |
+| `ui.js` | Auth UI rendering |
+
+**State Management**: Each calculator has its own isolated state in `src/js/onsite/state.js` and `src/js/workshop/state.js`, but both re-export `authState`, `currentUserRole`, and `setCurrentUserRole` from `src/js/state.js` to ensure a single source of truth for authentication.
 
 ---
 
@@ -10,17 +127,13 @@ See [CLAUDE.md](../CLAUDE.md) for project overview and navigation.
 ### 1. Database Connection Loading Modal
 - Displays on initial page load while connecting to database
 - Shows "Connecting to Database" message with animated spinner and backdrop blur
-- Modal appears automatically when page loads and is visible by default
-- Controlled via `setDbLoadingModal(show)` function (toggles `hidden` class)
+- Controlled via `setDbLoadingModal(show)` function
 - `loadInit()` shows modal, checks auth first via `initAuth()`, then fetches motor-types and branches
-- Modal auto-hides on successful connection or error
-- Only appears during initial load, not for subsequent API calls
 
 ### 2. Authentication Check
 - Runs before data loading
-- `initAuth()` fetches user info from `/.auth/me` endpoint
+- `initAuth()` fetches user info from `/api/auth/me` endpoint
 - Renders auth section in header (Sign In button or user avatar + Sign Out)
-- Enforces Executive mode access (switches to Sales mode if unauthenticated)
 - Auto-selects mode based on user role (Executive vs Sales)
 
 ### 3. Initial Data Load
@@ -50,48 +163,27 @@ See [CLAUDE.md](../CLAUDE.md) for project overview and navigation.
 - **Unchecked jobs automatically move to the bottom** of the table
 - Checked jobs appear at top (sorted by `SortOrder` from database)
 - Unchecked jobs appear at bottom (also sorted by `SortOrder`)
-- This creates clear visual separation between active and inactive jobs
 
 ### Unchecked Job Styling
 - Row moves to the bottom of the table
 - Row background becomes light grey (`bg-slate-50`)
 - Text is struck through and muted (`line-through text-slate-400`)
-- Job is excluded from labor subtotal calculation via `.filter(j => j.checked !== false)`
-
-### Event Handling
-- Toggling a checkbox triggers `renderLabor()` to re-render the table and `calcAll()` to update totals
-- Checkbox uses `data-idx` attribute to map to the job index in the original `labor` array (not the display position)
+- Job is excluded from labor subtotal calculation
 
 ### Customer View Mode Behavior
 When in Customer View Mode (accessed via shared links):
-- **Checkboxes are disabled**: No cursor pointer, non-interactive, preserves checked/unchecked state
-- **Manhour inputs are disabled**: Gray background, non-editable, displays original values
-- **Event listeners not attached**: Prevents any JavaScript interaction with the labor table
-- **Read-only experience**: Customers can view job data but cannot modify selections or hours
-
----
+- **Checkboxes are disabled**: No cursor pointer, non-interactive
+- **Manhour inputs are disabled**: Gray background, non-editable
+- **Event listeners not attached**: Prevents any JavaScript interaction
 
 ---
 
 ## Editable Manhours
 
-### Input Field
 - **Manhours are editable** via number input field (similar to material quantity inputs)
-- Each job's manhour value is stored in `j.effectiveManHours` (defaults to original `ManHours` from database)
-
-### Input Attributes
-- `type="number"` with `min="0"` and `step="0.25"` (allows quarter-hour increments)
-- `data-mh` attribute maps to the job index in the `labor` array
-- `disabled` when job is unchecked OR in Customer View Mode (grey background `bg-slate-100`)
-
-### Event Handler
-- Updates `labor[i].effectiveManHours` with the new value
-- Allows decimal values with 2 decimal places precision
-- Triggers `calcAll()` to update totals and `renderLabor()` to refresh display
-
-### Calculation
+- Each job's manhour value is stored in `j.effectiveManHours`
+- Input: `type="number"` with `min="0"` and `step="0.25"` (allows quarter-hour increments)
 - Cost calculations use `effectiveManHours` if set, otherwise fall back to original `ManHours`
-- Edited values persist during the session (stored in memory, not persisted to database)
 
 ---
 
@@ -103,171 +195,33 @@ When in Customer View Mode (accessed via shared links):
 - Displays results in a dropdown below each input
 
 ### Dropdown Positioning
-- Dropdown element is found via DOM traversal (`nextElementSibling`) to ensure correct mobile/desktop pairing
 - **Desktop dropdown uses fixed positioning** (`fixed z-50`) to escape the `overflow-x-auto` clipping context
-  - Hidden by default (`hidden` class)
-  - JavaScript dynamically positions dropdown based on input element's `getBoundingClientRect()`
-  - Positioning is relative to viewport (not document) - no `window.scrollY` offset needed
+- JavaScript dynamically positions dropdown based on input element's `getBoundingClientRect()`
 - **Mobile dropdown uses standard block flow positioning** (contained within mobile card)
 
 ### Dropdown Features
-- Global click-away handler using event delegation closes dropdowns when clicking outside
+- Global click-away handler closes dropdowns when clicking outside
 - Timeout cleanup via Map prevents old search requests from updating destroyed DOM
-- Partial DOM updates on material selection for smoother UX (no full re-render)
-- `max-h-60 overflow-y-auto` for scrolling long result lists
-
-### Material Selection
-- Dropdown clears immediately when input is emptied
-- Selecting a material immediately updates both mobile and desktop search inputs to show "CODE - NAME" format
-- Populates code, name, unit cost fields via `updateMaterialRowDisplay(i)` for targeted updates
-  - Uses `data-i` attribute lookups with `closest()` for reliable element selection
-
-### Display After Selection
-- Mobile: Compact material info (name on one line, code + unit cost on second line)
-- Desktop: Material info in table columns (Code, Name, Unit Cost)
-
-### Quantity Input
-- Full-width on mobile (48px min-height, centered text)
-- Standard width on desktop (w-32)
-- Integer-only (decimals truncated via `Math.trunc()`)
-
----
-
-## Material Table Layout
-
-### Dynamic Table Header
-- The materials table header is generated dynamically by `renderMaterials()`
-- Header element: `<thead id="materialTableHead">` (empty in HTML, populated via JavaScript)
-- Header columns adjust based on mode (Executive vs Sales)
-
-**Executive mode**: Material, Code, Name, Unit Cost, Qty, Raw Cost, Cost+Ovh+PP, Final Price, Remove (9 columns)
-
-**Sales mode**: Material, Code, Name, Qty, Final Price, Remove (6 columns)
-
-### Alternating Row Backgrounds
-- Desktop table rows use alternating background colors for readability
-- Even rows: `bg-white`
-- Odd rows: `bg-slate-50`
-- Applied via conditional class: `${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`
-- Only applies to desktop view (`hidden md:table-row`)
-
-### Rendering
-- The `renderMaterials()` function generates both mobile card layouts and desktop table rows with consistent data structure
-
----
-
-## Travel Panel
-
-### Components
-1. **Travel/Shipping Distance (Km)** - Number input
-   - `step="1"` and `min="0"`
-   - Integer values only (whole kilometers)
-   - Default value: 0
-   - Styling: Bold borders (`border-2 border-slate-400`)
-
-2. **Travel/Shipping Final Price** - Display showing calculated value
-   - Formula: Km × 15 baht/km × SalesProfitMultiplier × CommissionMultiplier
-
-### Event Listeners
-- Travel Km changes trigger `calcAll()` (line ~690)
+- Partial DOM updates on material selection for smoother UX
 
 ---
 
 ## Grand Total Panel
 
 ### Layout Structure
-- **Dynamic grid layout** that adjusts based on user mode for optimal visual balance:
-  - **Executive mode**: 3-column grid (`md:grid-cols-3`) - Sub Grand Total + Breakdown + Percentage Breakdown
-  - **Sales mode**: 2-column grid (`md:grid-cols-2`) - Sub Grand Total + Breakdown (Percentage Breakdown hidden)
+- **Dynamic grid layout** that adjusts based on user mode:
+  - **Executive mode**: 3-column grid - Sub Grand Total + Breakdown + Percentage Breakdown
+  - **Sales mode**: 2-column grid - Sub Grand Total + Breakdown (Percentage Breakdown hidden)
   - **Customer mode**: All cards hidden (only final Grand Total card shown)
-- Three-tier layout: side-by-side cards on top, with Grand Total at bottom
-- On mobile: All cards stack vertically (`grid-cols-1`)
-- Grid container has ID `bottomSummaryGrid` for dynamic layout updates via `updateBottomGridLayout()` function
-- **Percentage Breakdown card** is Executive-only (hidden in Sales mode via `isExecutiveMode()` check)
+- On mobile: All cards stack vertically
 
-### Top Row: Left Card (Sub Grand Total)
-- **Sub Grand Total** display at `text-5xl font-extrabold` (48px)
-- Used for commission calculation
-- **Sales Profit %** input:
-  - `step="0.01"` (allows decimals)
-  - Can be negative for discounts
-  - Applied after branch multipliers (Overhead% and PolicyProfit%)
-  - Applied to labor, materials, and travel costs
-  - Default value: 0
-  - Larger input with `px-4 py-3 text-lg` for prominence
-
-### Top Row: Right Card (Cost Breakdown)
-Progressive typography sizing:
-- Labor, Materials, Total Raw Cost, Overhead: `text-sm` labels with `font-semibold` values
-- Sub Total Cost: `text-base font-medium` label with `text-xl font-bold` value (20px)
-- Commission Section: `text-base font-medium text-emerald-400` labels with `text-2xl font-bold text-emerald-400` values (24px)
-- Visual separators using `border-t border-slate-700` between sections
-
-### Top Row: Third Card (Percentage Breakdown - Executive Only)
-**Executive-only feature** - Hidden in Sales mode via `isExecutiveMode()` check
-
+### Percentage Breakdown Card (Executive Only)
 Displays percentage breakdown of Grand Total components:
-- **Labor %**: Labor Final Prices Sum ÷ Grand Total × 100 (cyan color)
-- **Materials %**: Materials Final Prices Sum ÷ Grand Total × 100 (cyan color)
-- **Ovh+PP %**: Overhead (from branch multipliers) ÷ Grand Total × 100 (cyan color)
-- **Commission %**: Commission amount ÷ Grand Total × 100 (cyan color)
-- **Gross Profit %**: Gross Profit ÷ Grand Total × 100 (emerald color, highlighted)
-  - Gross Profit = Grand Total - (Total Labor + Total Materials) = Travel Cost
-  - May be negative if travel cost is zero
-
-**Formatting**: Uses `fmtPercent(value)` helper to display 2 decimal places with % sign (e.g., "25.50%")
-
-**Edge cases**:
-- Zero/negative Grand Total shows "0.00%" for all values
-- Uses `Number.isFinite()` check to prevent divide-by-zero errors
-
-**Visibility control**: Card is hidden by default (`class="hidden"`) and shown only when `isExecutiveMode()` returns true
-
-### Bottom Card (New Grand Total)
-- Sum of all Final Prices including commission
-- Displayed at `text-6xl font-extrabold` (60px) with gradient background
-- Formula: `Grand Total = sum(labor Final Prices) + sum(materials Final Prices) + travel Final Price`
-- Uses `bg-gradient-to-r from-slate-900 to-slate-800` for visual distinction
-
-### Helper Functions (`src/js/utils.js`)
-- `fmt(value)` - Format number with locale string (2 decimal places)
-- `fmtPercent(value)` - Format number as percentage with 2 decimal places (e.g., "25.50%")
-- `el(id)` - Get DOM element by ID
-- `formatDate(dateStr)` - Format date for display
-- `extractInitials(emailOrName)` - Extract initials from email/name
-- `setStatus(msg)` - Set status message
-- `setDbLoadingModal(show)` - Show/hide database loading modal
-- `showNotification(message)` - Show notification message
-- `showView(viewName, isNoRoleState)` - Navigate between views
-
-### Helper Functions (`src/index.html`, lines ~206-239)
-- `getBranchMultiplier()` - Returns `(1 + OverheadPercent/100) × (1 + PolicyProfit/100)`
-- `getSalesProfitMultiplier()` - Returns `(1 + SalesProfit%/100)`
-- `getTravelCost()` - Returns `Km × 15`
-- `getCompleteMultiplier()` - Returns branch multiplier × sales profit multiplier
-
-### Event Listeners
-- Sales Profit % changes trigger `renderLabor()`, `renderMaterials()`, and `calcAll()` for real-time updates
-
-### Grand Total Breakdown Displays
-- **Grand Total**: Sum of all Final Prices (labor + materials + travel)
-- **Sub Grand Total**: Labor + materials + travel cost with all multipliers applied (used for commission calculation, shown in BOTH modes)
-- **Labor**: Final labor cost (after branch + sales profit multipliers)
-- **Materials**: Final materials cost (after branch + sales profit multipliers)
-- **Total Raw Cost**: Sum of raw costs WITHOUT multipliers (Executive mode only)
-- **Overhead + Policy Profit**: Combined overhead + policy profit from branch defaults only (Executive mode only)
-- **Sub Total Cost**: Labor + materials + travel BEFORE sales profit multiplier (Executive mode only)
-- **Commission%**: Based on Sub Grand Total vs STC ratio (displayed with `text-2xl font-bold text-emerald-400`)
-- **Commission**: Commission amount = Commission% × Sub Grand Total
-
-### Percentage Breakdown Displays (Executive Only)
-All percentages calculated as **% of Grand Total**:
 - **Labor %**: Labor Final Prices Sum ÷ Grand Total × 100
 - **Materials %**: Materials Final Prices Sum ÷ Grand Total × 100
 - **Ovh+PP %**: Overhead ÷ Grand Total × 100
 - **Commission %**: Commission amount ÷ Grand Total × 100
-- **Gross Profit %**: Gross Profit ÷ Grand Total × 100 (where Gross Profit = Grand Total - Total Labor - Total Materials)
-
+- **Gross Profit %**: Gross Profit ÷ Grand Total × 100 (highlighted)
 
 ---
 
@@ -287,63 +241,29 @@ A segmented control in the header allows switching between two display modes:
 - Overhead + Policy Profit
 - Total Raw Cost
 - Sub Total Cost
-- Percentage Breakdown card (with Labor%, Materials%, Ovh+PP%, Commission%, Gross Profit%)
+- Percentage Breakdown card
 
 **Sales Mode Hides**:
 - Labor Raw Cost
 - Materials Raw Cost
-- Cost+Ovh+PP columns (labor & materials)
+- Cost+Ovh+PP columns
 - Unit Cost column
 - Overhead + Policy Profit
 - Total Raw Cost
 - Sub Total Cost
-- Percentage Breakdown card (entire card hidden)
-- **Grid layout switches to 2-column** for balanced visual presentation (via `updateBottomGridLayout()`)
+- Percentage Breakdown card
 
 **Both Modes Show**:
 - Sub Grand Total
-- Grand Total (text size increases in Sales mode: text-5xl → text-6xl)
-
-### Implementation Details
-
-**Location**: Header (top-right corner) with flex layout
-
-**UI**: Segmented control with two buttons (Executive | Sales) using Tailwind CSS
-
-**State**: Managed via `currentMode` global variable (values: "executive" or "sales")
-
-**Persistence**: Mode preference saved to localStorage (`pricelist-calculator-mode` key)
-
-### Helper Functions (`src/index.html`, lines ~214-224)
-- `isExecutiveMode()` - Returns true if current mode is "executive"
-- `setMode(mode)` - Updates mode, saves to localStorage, triggers re-renders
-- `updateModeButtons()` - Updates button styling and Grand Total Panel visibility
-
-### Responsive Behavior
-- Mode switcher works identically on mobile and desktop
-
-### Accessibility
-- Uses `role="group"`, `aria-label`, and `aria-pressed` attributes for screen readers
-
-### Updates
-- Mode changes trigger `renderLabor()` and `renderMaterials()` for immediate UI updates
-
-### Table Header Note
-When updating table headers dynamically, use `el("id").previousElementSibling` directly (not `.querySelector("thead")`) since the `<thead>` element IS the previous sibling of `<tbody>`
+- Grand Total (text size increases in Sales mode)
 
 ---
 
 ## Responsive Design
 
 ### Material Panel
-- **Mobile (< md)**: Single-column card layout with stacked information
-  - Compact selected material display
-  - Full-width quantity input (48px min-height)
-  - Larger touch targets (44px minimum)
-- **Desktop (md+)**: Traditional single-row table layout
-  - Executive: 9 columns
-  - Sales: 6 columns
-  - Search input uses fixed positioning for dropdown overlay
+- **Mobile**: Single-column card layout with stacked information
+- **Desktop**: Traditional single-row table layout (Executive: 9 columns, Sales: 6 columns)
 
 ### Labor Table
 - Single-row table layout
@@ -351,92 +271,68 @@ When updating table headers dynamically, use `el("id").previousElementSibling` d
 - Sales: 5 columns (checkbox, Job, Manhours, Final Price)
 
 ### Grand Total Panel
-- **Mobile (< md)**: All cards stack vertically with `grid-cols-1`
-- **Desktop (md+)**: Top two cards side-by-side with `md:grid-cols-2 gap-6`, bottom card full width
-- Progressive typography sizing maintained across all breakpoints
-
-### Other
-- Mobile cards use standard block flow positioning
-- Desktop search dropdown uses fixed positioning
-- Empty state displays as centered message with dashed border
-- Initialization shows "Connecting to Database" modal while loading
+- **Mobile**: All cards stack vertically
+- **Desktop**: Top cards side-by-side, bottom card full width
 
 ---
 
 ## Customer View (Shared Links)
 
-### Overview
-Customer View is a read-only mode activated when users open shared links (`?share={token}`). It displays a simplified version of the Calculation Form with minimal information appropriate for customers.
+Customer View is a read-only mode activated when users open shared links (`?share={token}`).
 
 ### Activation
 - Triggered via `loadSharedRecord()` in `sharing.js`
 - Sets `currentMode = MODE.CUSTOMER` and `isViewOnly = true`
 - Calls `deserializeCalculatorState()` to populate calculator data
-- Shows calculator view directly (not the detail preview)
-
-### UI Components
-
-#### Branch Info Card (`#branchInfoCard`)
-- Read-only display of selected branch name
-- Hidden by default (`.customer-hidden`), shown in Customer View
-- Located at top of calculator, before Labor section
-- Contains: Branch icon (building), label "Branch", branch name
-
-#### Job Summary Card (`#jobSummaryCard`)
-- Simplified list of selected jobs with hours
-- Hidden by default (`.customer-hidden`), shown in Customer View
-- Located after Branch info card
-- Displays: Job icon (clipboard), label "Jobs", list of jobs with hours
-- Format: "Job Name 2 hrs" (pluralized)
-
-#### Hidden Elements
-All cost breakdown panels are hidden in Customer View via `.customer-hidden` CSS class:
-- Branch dropdown (`#branchDropdown`)
-- Total Raw Cost section (`#totalRawCostSection`)
-- Total Cost+Ovh+PP section (`#subTotalCostSection`)
-- Commission section (`#commissionSection`)
-- Grand Total without Commission card (`#grandTotalWithoutCommission`)
-- Sales Profit input (`#salesProfitCard`)
-- Percentage Breakdown card (`#percentageBreakdownCard`)
-
-#### Visible Elements
-Only these elements remain visible in Customer View:
-- Branch info card (read-only)
-- Job summary card (read-only)
-- Labor section (hidden via CSS, but job summary shown separately)
-- Materials section (disabled)
-- Travel section (disabled)
-- Grand Total card with final price only
 
 ### Read-Only State
-All interactive elements are disabled via `makeInputsReadOnly()` utility in `utils.js`:
+All interactive elements are disabled via `makeInputsReadOnly()` utility:
 - Adds `readonly` and `disabled` attributes to all inputs
 - Adds `opacity-75` and `cursor-not-allowed` classes
-- Stores state in `data-customer-readonly` attribute for restoration
-- Restoration happens via `removeReadOnly()` when exiting Customer View
+- "My Records" and "Save" buttons hidden
 
-### Styling
-- Body receives `customer-view` class for styling disabled inputs
-- Disabled inputs have gray background (`#f3f4f6`) and muted text (`#6b7280`)
-- Background color changes to `#f9fafb` for visual distinction
+---
 
-### Navigation Guard
-- View-only guard in `showView()` prevents navigation away from calculator
-- "My Records" and "Save" buttons hidden in Customer View
-- Role badge displays "Customer View"
+## Import Map
 
-### Implementation Details
-**File**: `src/js/calculator/calculations.js`
-- `getBranchName(branchId)` - Look up branch name from appState.branches
-- `updateJobSummary()` - Populate job summary list with selected jobs
-- Customer View logic in `calcAll()` - Toggles visibility of elements
+Clean module resolution without relative path clutter:
 
-**File**: `src/js/utils.js`
-- `makeInputsReadOnly()` - Disable all calculator inputs
-- `removeReadOnly()` - Restore interactivity
+```html
+<script type="importmap">
+{
+  "imports": {
+    "./core/config.js": "./js/core/config.js",
+    "./core/utils.js": "./js/core/utils.js",
+    "./core/calculations.js": "./js/core/calculations.js",
+    "./auth/": "./js/auth/",
+    "./onsite/": "./js/onsite/",
+    "./workshop/": "./js/workshop/"
+  }
+}
+</script>
+```
 
-**File**: `src/index.html`
-- CSS classes: `.customer-hidden`, `body.customer-view`
-- HTML elements: `#branchInfoCard`, `#jobSummaryCard`
-- IDs added: `#branchDropdown`, `#grandTotalWithoutCommission`, `#salesProfitCard`, `#commissionSection`
+---
 
+## Constants (`src/js/core/config.js`)
+
+- `SCOPE_OPTIONS`: Low Volt, Medium Volt, Large
+- `PRIORITY_LEVEL_OPTIONS`: High, Low
+- `SITE_ACCESS_OPTIONS`: Easy, Difficult
+
+---
+
+## State Management
+
+- Each calculator has its own isolated state in `src/js/onsite/state.js` and `src/js/workshop/state.js`
+- Shared auth state via `src/js/state.js` for single source of truth
+- LocalStorage namespaces: `onsite-calculator-*` and `workshop-calculator-*`
+
+---
+
+## See Also
+
+- [CLAUDE.md](../CLAUDE.md) - Project overview
+- [docs/calculation.md](calculation.md) - Pricing formulas and calculations
+- [docs/save-feature.md](save-feature.md) - Save/load, sharing, batch operations
+- [docs/authentication.md](authentication.md) - Authentication details
