@@ -195,6 +195,8 @@ The application includes comprehensive debug logging for troubleshooting initial
   - `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema)
   - `database/migrations/remove_database_logging.sql` (removes legacy logging tables)
   - `database/migrations/split_calculator_tables.sql` (splits SavedCalculations into OnsiteSavedCalculations and WorkshopSavedCalculations)
+  - `database/migrations/migrate_onsite_to_workshop.sql` (migrates all Onsite records to Workshop with new WKS- run numbers, discards onsite-specific fields)
+  - `database/migrations/rollback_onsite_to_workshop.sql` (rolls back the onsite-to-workshop migration)
   - `database/migrations/calculator_types.sql` (adds CalculatorType and type-specific columns to SavedCalculations - legacy)
   - `database/migrations/add_scope_column.sql` (adds Scope dropdown for onsite calculations - legacy)
   - `database/migrations/priority_site_access.sql` (adds SiteAccess column - legacy)
@@ -512,6 +514,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions
 - `database/ensure_backoffice_schema.sql` - Create all missing backoffice tables (comprehensive schema setup)
 - `database/diagnostics_timezone.sql` - Timezone diagnostics (server offset, column analysis, lockout status comparison)
+- `database/verify_onsite_to_workshop_migration.sql` - Verification script for onsite-to-workshop migration (checks record counts, orphaned records, data integrity)
 - `database/migrations/migrate_to_utc.sql` - Idempotent migration script to convert existing timestamps from local time to UTC
 - `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table (deprecated - no longer used for authentication)
 - `database/migrations/remove_database_logging.sql` - Remove legacy database logging tables after Application Insights migration
