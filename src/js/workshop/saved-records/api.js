@@ -4,7 +4,7 @@
  */
 
 import { fetchJson, fetchWithAuth, showNotification, el } from '../../core/utils.js';
-import { authState, currentSavedRecord, isDirty, isViewOnly } from '../state.js';
+import { appState, authState, currentSavedRecord, isDirty, isViewOnly } from '../state.js';
 import { getApiHeaders } from '../../core/config.js';
 import { renderLabor, renderMaterials } from '../labor.js';
 
@@ -18,14 +18,14 @@ export function serializeCalculatorState() {
     motorTypeId: Number(el('motorType').value),
     salesProfitPct: Number(el('salesProfitPct').value || 0),
     travelKm: Number(el('travelKm').value || 0),
-    jobs: (await import('../state.js')).appState.labor.map(j => ({
+    jobs: appState.labor.map(j => ({
       jobId: j.JobId,
       originalManHours: Number(j.ManHours),
       effectiveManHours: j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours),
       isChecked: j.checked !== false,
       sortOrder: j.SortOrder
     })),
-    materials: (await import('../state.js')).appState.materialLines
+    materials: appState.materialLines
       .filter(m => m.materialId != null && !isNaN(m.unitCost) && m.unitCost >= 0)
       .map(m => ({
         materialId: m.materialId,
