@@ -25,7 +25,8 @@ export const appState = {
 };
 
 // Mode management (role-based, not user-selectable)
-export let currentMode = null; // MODE.EXECUTIVE or MODE.SALES
+// Re-export from core state.js to use single source of truth
+export { currentMode, setMode } from '../state.js';
 
 // Records view mode
 export let recordsViewMode = localStorage.getItem('pricelist-calculator-records-view') || 'list';
@@ -77,12 +78,6 @@ export function getSelectedBranch() {
 }
 
 // ========== State Setters ==========
-
-export function setMode(mode) {
-  if (currentMode !== mode) {
-    currentMode = mode;
-  }
-}
 
 export function setRecordsViewMode(mode) {
   recordsViewMode = mode;
