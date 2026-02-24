@@ -168,9 +168,70 @@ export function renderLabor() {
         appState.labor[i].effectiveManHours = v;
         const { calcAll } = await import('./calculations.js');
         calcAll(); // Update totals
-        renderLabor(); // Refresh display (shows updated costs)
+
+        // Update only the affected row's cost cells (preserve focus)
+        const row = inp.closest('tr');
+        if (row) {
+          updateRowCosts(row, i);
+        }
       });
     });
+  }
+}
+
+/**
+ * Update cost cells in a specific row without re-rendering the entire table
+ * This preserves input focus when editing manhours
+ * @param {HTMLTableRowElement} row - The table row to update
+ * @param {number} idx - Index of the job in appState.labor
+ */
+function updateRowCosts(row, idx) {
+  const branch = getSelectedBranch();
+  const cph = branch ? Number(branch.CostPerHour) : NaN;
+  const job = appState.labor[idx];
+
+  if (!job) return;
+
+  const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
+  const multiplier = getCompleteMultiplier();
+  const adjustedCph = Number.isFinite(cph) ? cph * multiplier : NaN;
+  const rawCost = Number.isFinite(cph) ? mh * cph : NaN;
+
+  // Calculate cost before sales profit (after branch multiplier, before sales profit)
+  const salesProfitMultiplier = getSalesProfitMultiplier();
+  const costBeforeSalesProfit = (salesProfitMultiplier !== 0 && Number.isFinite(adjustedCph))
+    ? mh * adjustedCph / salesProfitMultiplier
+    : NaN;
+
+  // Calculate Final Price = Selling Price × (1 + commissionPercent / 100)
+  const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
+  const finalPrice = Number.isFinite(cost) ? cost * (1 + appState.commissionPercent / 100) : NaN;
+
+  // Update the cost cells in the row (cells: checkbox, job, input, rawCost?, costBeforeSalesProfit?, finalPrice)
+  const cells = row.querySelectorAll('td');
+  let cellIndex = 3; // Start after checkbox, job name, and input cells
+
+  if (isExecutiveMode()) {
+    // Update Raw Cost
+    if (cells[cellIndex]) {
+      const textClass = job.checked !== false ? '' : 'line-through text-slate-400';
+      cells[cellIndex].className = `py-2 text-right ${textClass}`;
+      cells[cellIndex].textContent = fmt(rawCost);
+    }
+    cellIndex++;
+    // Update Cost+Ovh+PP
+    if (cells[cellIndex]) {
+      const textClass = job.checked !== false ? '' : 'line-through text-slate-400';
+      cells[cellIndex].className = `py-2 text-right ${textClass}`;
+      cells[cellIndex].textContent = fmt(costBeforeSalesProfit);
+    }
+    cellIndex++;
+  }
+  // Update Final Price
+  if (cells[cellIndex]) {
+    const textClass = job.checked !== false ? '' : 'line-through text-slate-400';
+    cells[cellIndex].className = `py-2 text-right ${textClass}`;
+    cells[cellIndex].textContent = fmt(finalPrice);
   }
 }
 
