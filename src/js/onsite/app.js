@@ -4,6 +4,7 @@
  */
 
 import { isLocalDev } from '../core/config.js';
+import { STORAGE_KEYS } from './config.js';
 import { appState, setMode, resetCalculatorState, setCurrentSavedRecord, setDirty, setViewOnly, isViewOnly } from './state.js';
 // Import authState and currentUserRole from shared state to match auth modules
 import { authState as sharedAuthState, currentUserRole as sharedCurrentUserRole } from '../state.js';
@@ -12,7 +13,7 @@ import { initAuth, renderAuthSection } from '../auth/index.js';
 import { loadLabor, renderLabor } from './labor.js';
 import { addMaterialRow, renderMaterials } from './materials.js';
 import { calcAll } from './calculations.js';
-import { initializeOnsiteOptions, updateOnsiteOptionsSubtotal, setupOnsiteOptionsListeners } from './onsite-options.js';
+import { initializeOnsiteOptions, updateOnsiteOptionsSubtotal, setupOnsiteOptionsListeners, resetOnsiteOptions } from './onsite-options.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
 
@@ -159,29 +160,16 @@ function startNewCalculation() {
   const accessEasyRadio = document.querySelector('input[name="siteAccess"][value="easy"]');
   if (accessEasyRadio) accessEasyRadio.checked = true;
 
-  // Reset onsite options
-  const craneNoRadio = document.querySelector('input[name="craneEnabled"][value="no"]');
-  if (craneNoRadio) craneNoRadio.checked = true;
-  if (el('cranePrice')) {
-    el('cranePrice').value = '';
-    el('cranePrice').disabled = true;
-  }
+  // Reset onsite options using the proper function
+  resetOnsiteOptions();
 
-  const fourPeopleNoRadio = document.querySelector('input[name="fourPeopleEnabled"][value="no"]');
-  if (fourPeopleNoRadio) fourPeopleNoRadio.checked = true;
-  if (el('fourPeoplePrice')) {
-    el('fourPeoplePrice').value = '';
-    el('fourPeoplePrice').disabled = true;
-  }
-
-  const safetyNoRadio = document.querySelector('input[name="safetyEnabled"][value="no"]');
-  if (safetyNoRadio) safetyNoRadio.checked = true;
-  if (el('safetyPrice')) {
-    el('safetyPrice').value = '';
-    el('safetyPrice').disabled = true;
-  }
-
-  updateOnsiteOptionsSubtotal();
+  // Clear localStorage keys for onsite options to ensure fresh state
+  localStorage.removeItem(STORAGE_KEYS.ONSITE_CRANE_ENABLED);
+  localStorage.removeItem(STORAGE_KEYS.ONSITE_CRANE_PRICE);
+  localStorage.removeItem(STORAGE_KEYS.ONSITE_FOUR_PEOPLE_ENABLED);
+  localStorage.removeItem(STORAGE_KEYS.ONSITE_FOUR_PEOPLE_PRICE);
+  localStorage.removeItem(STORAGE_KEYS.ONSITE_SAFETY_ENABLED);
+  localStorage.removeItem(STORAGE_KEYS.ONSITE_SAFETY_PRICE);
 
   renderLabor();
   renderMaterials();
