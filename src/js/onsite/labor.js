@@ -8,22 +8,15 @@ import { appState, getSelectedBranch, isExecutiveMode, isCustomerMode } from './
 import { TRAVEL_RATE, API } from '../core/config.js';
 
 /**
- * Load labor data for selected motor type
+ * Load labor data for onsite calculator
+ * For onsite calculator, the backend auto-selects the first motor type
  * @returns {Promise<void>}
  */
 export async function loadLabor() {
-  const motorTypeId = Number(el('motorType').value);
-  if (!motorTypeId) {
-    appState.labor = [];
-    // Import calcAll dynamically to avoid circular dependency - calculate FIRST
-    (await import('./calculations.js')).calcAll();
-    renderLabor();  // Then render with correct commission percent
-    return;
-  }
-
   setStatus('Loading labor (jobs + manhours)...');
   try {
-    const labor = await fetchJson(`${API.ONSITE_LABOR}?motorTypeId=${motorTypeId}`);
+    // For onsite calculator, let the API auto-select the first motor type
+    const labor = await fetchJson(`${API.ONSITE_LABOR}`);
     appState.labor = labor;
     setStatus('');
     // Import calcAll dynamically to avoid circular dependency - calculate FIRST
@@ -118,7 +111,7 @@ export function renderLabor() {
   const colspan = isExecutiveMode() ? 6 : 5;
   const laborRowsEl = el('laborRows');
   if (laborRowsEl) {
-    laborRowsEl.innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="${colspan}">Select Motor Type to load jobs.</td></tr>`;
+    laborRowsEl.innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="${colspan}">No jobs available.</td></tr>`;
   }
 
   // Only attach event listeners if not in Customer View Mode
