@@ -113,7 +113,15 @@ async function loadInit() {
     } else {
       motorTypeEl.innerHTML = `<option value="">Select…</option>` + motorTypes
         .map(x => `<option value="${x.MotorTypeId}">${x.MotorTypeName}</option>`).join('');
-      console.log('[APP-INIT-8] Motor types dropdown populated');
+      // Auto-select first motor type for onsite calculator (fixed jobs)
+      if (motorTypes.length > 0) {
+        motorTypeEl.value = motorTypes[0].MotorTypeId;
+        console.log('[APP-INIT-8] Motor types dropdown populated and first option auto-selected:', motorTypes[0].MotorTypeName);
+        // Load labor jobs immediately with auto-selected motor type
+        await loadLabor();
+      } else {
+        console.log('[APP-INIT-8] Motor types dropdown populated (no motor types available)');
+      }
     }
 
     if (!branchEl) {

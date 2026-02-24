@@ -26,6 +26,10 @@
       color: #6b7280 !important;
       cursor: not-allowed;
     }
+    /* Onsite Motor Type dropdown hidden (fixed jobs - no selection needed) */
+    .motor-type-hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -200,8 +204,8 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div class="motor-type-hidden">
             <label class="block text-sm font-medium text-slate-700">Motor Type</label>
             <select id="motorType" class="mt-1 w-full rounded-lg border-slate-200">
               <option value="">Loading…</option>
