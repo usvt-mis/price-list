@@ -362,23 +362,15 @@ export function resetOnsiteOptions() {
   if (accessEasyRadio) accessEasyRadio.checked = true;
 
   // Reset onsite options to defaults (all disabled)
+  // setOptionState handles disabled state, only need to clear values
   setOptionState('crane', false, false);
-  if (el('cranePrice')) {
-    el('cranePrice').value = '';
-    el('cranePrice').disabled = true;
-  }
+  if (el('cranePrice')) el('cranePrice').value = '';
 
   setOptionState('fourPeople', false, false);
-  if (el('fourPeoplePrice')) {
-    el('fourPeoplePrice').value = '';
-    el('fourPeoplePrice').disabled = true;
-  }
+  if (el('fourPeoplePrice')) el('fourPeoplePrice').value = '';
 
   setOptionState('safety', false, false);
-  if (el('safetyPrice')) {
-    el('safetyPrice').value = '';
-    el('safetyPrice').disabled = true;
-  }
+  if (el('safetyPrice')) el('safetyPrice').value = '';
 
   if (el('onsiteOptionsSubtotal')) el('onsiteOptionsSubtotal').textContent = '0.00';
 }
