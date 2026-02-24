@@ -166,6 +166,7 @@ The application includes comprehensive debug logging for troubleshooting initial
 - Role detection: Check `[MODE-*]` logs for effectiveRole determination
 - Network issues: Check `[APP-INIT-FETCH]` logs for API request status and network errors
 - Module import errors: Check `[INIT-ERROR]` logs for import failures with stack traces
+- **Import map resolution**: If no logs appear at all, check import maps for missing entries (e.g., `"./state.js": "./js/state.js"` for shared state module)
 
 ---
 
