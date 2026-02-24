@@ -38,35 +38,129 @@ export function initializeOnsiteLaborFields() {
 export function initializeOnsiteOptions() {
   // Initialize Crane option
   const storedCraneEnabled = localStorage.getItem(STORAGE_KEYS.ONSITE_CRANE_ENABLED) || 'no';
-  const craneRadio = document.querySelector(`input[name="craneEnabled"][value="${storedCraneEnabled}"]`);
-  if (craneRadio) craneRadio.checked = true;
+  const craneCard = document.querySelector('[data-option="crane"]');
+  if (craneCard) {
+    setOptionState('crane', storedCraneEnabled === 'yes', false);
+  }
   const cranePriceInput = el('cranePrice');
   if (cranePriceInput) {
     cranePriceInput.value = localStorage.getItem(STORAGE_KEYS.ONSITE_CRANE_PRICE) || '';
-    cranePriceInput.disabled = storedCraneEnabled !== 'yes';
   }
 
   // Initialize 4 People option
   const storedFourPeopleEnabled = localStorage.getItem(STORAGE_KEYS.ONSITE_FOUR_PEOPLE_ENABLED) || 'no';
-  const fourPeopleRadio = document.querySelector(`input[name="fourPeopleEnabled"][value="${storedFourPeopleEnabled}"]`);
-  if (fourPeopleRadio) fourPeopleRadio.checked = true;
+  const fourPeopleCard = document.querySelector('[data-option="fourPeople"]');
+  if (fourPeopleCard) {
+    setOptionState('fourPeople', storedFourPeopleEnabled === 'yes', false);
+  }
   const fourPeoplePriceInput = el('fourPeoplePrice');
   if (fourPeoplePriceInput) {
     fourPeoplePriceInput.value = localStorage.getItem(STORAGE_KEYS.ONSITE_FOUR_PEOPLE_PRICE) || '';
-    fourPeoplePriceInput.disabled = storedFourPeopleEnabled !== 'yes';
   }
 
   // Initialize Safety option
   const storedSafetyEnabled = localStorage.getItem(STORAGE_KEYS.ONSITE_SAFETY_ENABLED) || 'no';
-  const safetyRadio = document.querySelector(`input[name="safetyEnabled"][value="${storedSafetyEnabled}"]`);
-  if (safetyRadio) safetyRadio.checked = true;
+  const safetyCard = document.querySelector('[data-option="safety"]');
+  if (safetyCard) {
+    setOptionState('safety', storedSafetyEnabled === 'yes', false);
+  }
   const safetyPriceInput = el('safetyPrice');
   if (safetyPriceInput) {
     safetyPriceInput.value = localStorage.getItem(STORAGE_KEYS.ONSITE_SAFETY_PRICE) || '';
-    safetyPriceInput.disabled = storedSafetyEnabled !== 'yes';
   }
 
   updateOnsiteOptionsSubtotal();
+}
+
+/**
+ * Set option state (enabled/disabled)
+ * @param {string} optionName - Name of option ('crane', 'fourPeople', 'safety')
+ * @param {boolean} enabled - Whether the option is enabled
+ * @param {boolean} updateState - Whether to update state (default: true)
+ */
+function setOptionState(optionName, enabled, updateState = true) {
+  const card = document.querySelector(`[data-option="${optionName}"]`);
+  const priceInput = document.querySelector(`#${optionName}Price`);
+  const statusText = card?.querySelector('[data-status-text]');
+  const hiddenCheckbox = card?.querySelector('input[type="checkbox"]');
+
+  if (!card) return;
+
+  // Update visual state
+  card.setAttribute('aria-checked', enabled.toString());
+
+  // Update status text
+  if (statusText) {
+    statusText.textContent = enabled ? 'Enabled' : 'Not selected';
+  }
+
+  // Enable/disable price input
+  if (priceInput) {
+    priceInput.disabled = !enabled;
+  }
+
+  // Update hidden checkbox for form compatibility
+  if (hiddenCheckbox) {
+    hiddenCheckbox.checked = enabled;
+  }
+
+  // Update state if requested
+  if (updateState) {
+    // Map option names to their setter functions
+    const setters = {
+      crane: setOnsiteCraneEnabled,
+      fourPeople: setOnsiteFourPeopleEnabled,
+      safety: setOnsiteSafetyEnabled
+    };
+
+    const setter = setters[optionName];
+    if (setter) {
+      setter(enabled ? 'yes' : 'no');
+    }
+  }
+}
+
+/**
+ * Get option state (enabled/disabled)
+ * @param {string} optionName - Name of option ('crane', 'fourPeople', 'safety')
+ * @returns {boolean} Whether the option is enabled
+ */
+function getOptionState(optionName) {
+  const card = document.querySelector(`[data-option="${optionName}"]`);
+  if (!card) return false;
+  return card.getAttribute('aria-checked') === 'true';
+}
+
+/**
+ * Setup card toggle event listeners
+ * @param {string} optionName - Name of option ('crane', 'fourPeople', 'safety')
+ * @param {Function} onChange - Callback when state changes
+ */
+function setupCardToggle(optionName, onChange) {
+  const card = document.querySelector(`[data-option="${optionName}"]`);
+  if (!card) return;
+
+  // Click handler
+  card.addEventListener('click', (e) => {
+    // Don't toggle if clicking price input or its label
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') return;
+
+    const currentState = getOptionState(optionName);
+    const newState = !currentState;
+    setOptionState(optionName, newState);
+    if (onChange) onChange(newState);
+  });
+
+  // Keyboard handler (Enter/Space)
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const currentState = getOptionState(optionName);
+      const newState = !currentState;
+      setOptionState(optionName, newState);
+      if (onChange) onChange(newState);
+    }
+  });
 }
 
 /**
@@ -76,18 +170,15 @@ export function initializeOnsiteOptions() {
 export function updateOnsiteOptionsSubtotal() {
   let subtotal = 0;
 
-  const craneEnabled = document.querySelector('input[name="craneEnabled"]:checked')?.value === 'yes';
-  if (craneEnabled) {
+  if (getOptionState('crane')) {
     subtotal += parseFloat(el('cranePrice').value) || 0;
   }
 
-  const fourPeopleEnabled = document.querySelector('input[name="fourPeopleEnabled"]:checked')?.value === 'yes';
-  if (fourPeopleEnabled) {
+  if (getOptionState('fourPeople')) {
     subtotal += parseFloat(el('fourPeoplePrice').value) || 0;
   }
 
-  const safetyEnabled = document.querySelector('input[name="safetyEnabled"]:checked')?.value === 'yes';
-  if (safetyEnabled) {
+  if (getOptionState('safety')) {
     subtotal += parseFloat(el('safetyPrice').value) || 0;
   }
 
@@ -102,18 +193,15 @@ export function updateOnsiteOptionsSubtotal() {
 export function getOnsiteOptionsSubtotal() {
   let subtotal = 0;
 
-  const craneEnabled = document.querySelector('input[name="craneEnabled"]:checked')?.value === 'yes';
-  if (craneEnabled) {
+  if (getOptionState('crane')) {
     subtotal += parseFloat(el('cranePrice').value) || 0;
   }
 
-  const fourPeopleEnabled = document.querySelector('input[name="fourPeopleEnabled"]:checked')?.value === 'yes';
-  if (fourPeopleEnabled) {
+  if (getOptionState('fourPeople')) {
     subtotal += parseFloat(el('fourPeoplePrice').value) || 0;
   }
 
-  const safetyEnabled = document.querySelector('input[name="safetyEnabled"]:checked')?.value === 'yes';
-  if (safetyEnabled) {
+  if (getOptionState('safety')) {
     subtotal += parseFloat(el('safetyPrice').value) || 0;
   }
 
@@ -125,17 +213,17 @@ export function getOnsiteOptionsSubtotal() {
  * @returns {Object} Onsite options data
  */
 export function getOnsiteOptionsData() {
-  const craneEnabled = document.querySelector('input[name="craneEnabled"]:checked')?.value || 'no';
-  const fourPeopleEnabled = document.querySelector('input[name="fourPeopleEnabled"]:checked')?.value || 'no';
-  const safetyEnabled = document.querySelector('input[name="safetyEnabled"]:checked')?.value || 'no';
+  const craneEnabled = getOptionState('crane');
+  const fourPeopleEnabled = getOptionState('fourPeople');
+  const safetyEnabled = getOptionState('safety');
 
   return {
-    onsiteCraneEnabled: craneEnabled,
-    onsiteCranePrice: craneEnabled === 'yes' ? (el('cranePrice')?.value || null) : null,
-    onsiteFourPeopleEnabled: fourPeopleEnabled,
-    onsiteFourPeoplePrice: fourPeopleEnabled === 'yes' ? (el('fourPeoplePrice')?.value || null) : null,
-    onsiteSafetyEnabled: safetyEnabled,
-    onsiteSafetyPrice: safetyEnabled === 'yes' ? (el('safetyPrice')?.value || null) : null
+    onsiteCraneEnabled: craneEnabled ? 'yes' : 'no',
+    onsiteCranePrice: craneEnabled ? (el('cranePrice')?.value || null) : null,
+    onsiteFourPeopleEnabled: fourPeopleEnabled ? 'yes' : 'no',
+    onsiteFourPeoplePrice: fourPeopleEnabled ? (el('fourPeoplePrice')?.value || null) : null,
+    onsiteSafetyEnabled: safetyEnabled ? 'yes' : 'no',
+    onsiteSafetyPrice: safetyEnabled ? (el('safetyPrice')?.value || null) : null
   };
 }
 
@@ -145,29 +233,23 @@ export function getOnsiteOptionsData() {
  */
 export function restoreOnsiteOptions(data) {
   if (data.onsiteCraneEnabled) {
-    const craneRadio = document.querySelector(`input[name="craneEnabled"][value="${data.onsiteCraneEnabled}"]`);
-    if (craneRadio) craneRadio.checked = true;
+    setOptionState('crane', data.onsiteCraneEnabled === 'yes', false);
     if (el('cranePrice')) {
       el('cranePrice').value = data.onsiteCranePrice || '';
-      el('cranePrice').disabled = data.onsiteCraneEnabled !== 'yes';
     }
   }
 
   if (data.onsiteFourPeopleEnabled) {
-    const fourPeopleRadio = document.querySelector(`input[name="fourPeopleEnabled"][value="${data.onsiteFourPeopleEnabled}"]`);
-    if (fourPeopleRadio) fourPeopleRadio.checked = true;
+    setOptionState('fourPeople', data.onsiteFourPeopleEnabled === 'yes', false);
     if (el('fourPeoplePrice')) {
       el('fourPeoplePrice').value = data.onsiteFourPeoplePrice || '';
-      el('fourPeoplePrice').disabled = data.onsiteFourPeopleEnabled !== 'yes';
     }
   }
 
   if (data.onsiteSafetyEnabled) {
-    const safetyRadio = document.querySelector(`input[name="safetyEnabled"][value="${data.onsiteSafetyEnabled}"]`);
-    if (safetyRadio) safetyRadio.checked = true;
+    setOptionState('safety', data.onsiteSafetyEnabled === 'yes', false);
     if (el('safetyPrice')) {
       el('safetyPrice').value = data.onsiteSafetyPrice || '';
-      el('safetyPrice').disabled = data.onsiteSafetyEnabled !== 'yes';
     }
   }
 
@@ -205,58 +287,49 @@ export function setupOnsiteOptionsListeners(markDirty) {
     });
   });
 
-  // Crane option listeners
-  document.querySelectorAll('input[name="craneEnabled"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        setOnsiteCraneEnabled(e.target.value);
-        el('cranePrice').disabled = e.target.value !== 'yes';
-        updateOnsiteOptionsSubtotal();
-        if (markDirty) markDirty();
-      }
-    });
-  });
+  // Setup card toggle handlers with calcAll trigger
+  const handleOptionChange = async () => {
+    updateOnsiteOptionsSubtotal();
+    if (markDirty) markDirty();
+    // Trigger recalculation of Grand Total
+    try {
+      const { calcAll } = await import('./calculations.js');
+      calcAll();
+    } catch (err) {
+      console.error('[ONSITE-OPTIONS] Failed to trigger calcAll:', err);
+    }
+  };
+
+  setupCardToggle('crane', handleOptionChange);
+  setupCardToggle('fourPeople', handleOptionChange);
+  setupCardToggle('safety', handleOptionChange);
+
+  // Price input listeners - trigger calcAll to update Grand Total
+  const handlePriceChange = async () => {
+    updateOnsiteOptionsSubtotal();
+    if (markDirty) markDirty();
+    // Trigger recalculation of Grand Total
+    try {
+      const { calcAll } = await import('./calculations.js');
+      calcAll();
+    } catch (err) {
+      console.error('[ONSITE-OPTIONS] Failed to trigger calcAll on price change:', err);
+    }
+  };
 
   el('cranePrice')?.addEventListener('input', (e) => {
     setOnsiteCranePrice(e.target.value);
-    updateOnsiteOptionsSubtotal();
-    if (markDirty) markDirty();
-  });
-
-  // 4 People option listeners
-  document.querySelectorAll('input[name="fourPeopleEnabled"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        setOnsiteFourPeopleEnabled(e.target.value);
-        el('fourPeoplePrice').disabled = e.target.value !== 'yes';
-        updateOnsiteOptionsSubtotal();
-        if (markDirty) markDirty();
-      }
-    });
+    handlePriceChange();
   });
 
   el('fourPeoplePrice')?.addEventListener('input', (e) => {
     setOnsiteFourPeoplePrice(e.target.value);
-    updateOnsiteOptionsSubtotal();
-    if (markDirty) markDirty();
-  });
-
-  // Safety option listeners
-  document.querySelectorAll('input[name="safetyEnabled"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        setOnsiteSafetyEnabled(e.target.value);
-        el('safetyPrice').disabled = e.target.value !== 'yes';
-        updateOnsiteOptionsSubtotal();
-        if (markDirty) markDirty();
-      }
-    });
+    handlePriceChange();
   });
 
   el('safetyPrice')?.addEventListener('input', (e) => {
     setOnsiteSafetyPrice(e.target.value);
-    updateOnsiteOptionsSubtotal();
-    if (markDirty) markDirty();
+    handlePriceChange();
   });
 }
 
@@ -274,23 +347,20 @@ export function resetOnsiteOptions() {
   const accessEasyRadio = document.querySelector('input[name="siteAccess"][value="easy"]');
   if (accessEasyRadio) accessEasyRadio.checked = true;
 
-  // Reset onsite options to defaults
-  const craneNoRadio = document.querySelector('input[name="craneEnabled"][value="no"]');
-  if (craneNoRadio) craneNoRadio.checked = true;
+  // Reset onsite options to defaults (all disabled)
+  setOptionState('crane', false, false);
   if (el('cranePrice')) {
     el('cranePrice').value = '';
     el('cranePrice').disabled = true;
   }
 
-  const fourPeopleNoRadio = document.querySelector('input[name="fourPeopleEnabled"][value="no"]');
-  if (fourPeopleNoRadio) fourPeopleNoRadio.checked = true;
+  setOptionState('fourPeople', false, false);
   if (el('fourPeoplePrice')) {
     el('fourPeoplePrice').value = '';
     el('fourPeoplePrice').disabled = true;
   }
 
-  const safetyNoRadio = document.querySelector('input[name="safetyEnabled"][value="no"]');
-  if (safetyNoRadio) safetyNoRadio.checked = true;
+  setOptionState('safety', false, false);
   if (el('safetyPrice')) {
     el('safetyPrice').value = '';
     el('safetyPrice').disabled = true;

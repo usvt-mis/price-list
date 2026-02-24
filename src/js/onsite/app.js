@@ -12,7 +12,7 @@ import { initAuth, renderAuthSection } from '../auth/index.js';
 import { loadLabor, renderLabor } from './labor.js';
 import { addMaterialRow, renderMaterials } from './materials.js';
 import { calcAll } from './calculations.js';
-import { initializeOnsiteOptions, updateOnsiteOptionsSubtotal } from './onsite-options.js';
+import { initializeOnsiteOptions, updateOnsiteOptionsSubtotal, setupOnsiteOptionsListeners } from './onsite-options.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
 
@@ -265,58 +265,7 @@ function setupEventListeners() {
     });
   });
 
-  // Onsite Options event listeners
-  document.querySelectorAll('input[name="craneEnabled"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        localStorage.setItem('onsite-calculator-crane-enabled', e.target.value);
-        el('cranePrice').disabled = e.target.value !== 'yes';
-        updateOnsiteOptionsSubtotal();
-        if (globalExports.markDirty) globalExports.markDirty();
-      }
-    });
-  });
-
-  el('cranePrice')?.addEventListener('input', (e) => {
-    localStorage.setItem('onsite-calculator-crane-price', e.target.value);
-    updateOnsiteOptionsSubtotal();
-    if (globalExports.markDirty) globalExports.markDirty();
-  });
-
-  document.querySelectorAll('input[name="fourPeopleEnabled"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        localStorage.setItem('onsite-calculator-four-people-enabled', e.target.value);
-        el('fourPeoplePrice').disabled = e.target.value !== 'yes';
-        updateOnsiteOptionsSubtotal();
-        if (globalExports.markDirty) globalExports.markDirty();
-      }
-    });
-  });
-
-  el('fourPeoplePrice')?.addEventListener('input', (e) => {
-    localStorage.setItem('onsite-calculator-four-people-price', e.target.value);
-    updateOnsiteOptionsSubtotal();
-    if (globalExports.markDirty) globalExports.markDirty();
-  });
-
-  document.querySelectorAll('input[name="safetyEnabled"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        localStorage.setItem('onsite-calculator-safety-enabled', e.target.value);
-        el('safetyPrice').disabled = e.target.value !== 'yes';
-        updateOnsiteOptionsSubtotal();
-        if (globalExports.markDirty) globalExports.markDirty();
-      }
-    });
-  });
-
-  el('safetyPrice')?.addEventListener('input', (e) => {
-    localStorage.setItem('onsite-calculator-safety-price', e.target.value);
-    updateOnsiteOptionsSubtotal();
-    if (globalExports.markDirty) globalExports.markDirty();
-  });
-
+  // Onsite Options event listeners now handled by setupOnsiteOptionsListeners()
   el('addMaterial')?.addEventListener('click', async () => {
     await addMaterialRow();
     if (globalExports.markDirty) globalExports.markDirty();
@@ -516,6 +465,7 @@ async function initApp() {
     setupEventListeners();
     initializeOnsiteLaborFields();
     initializeOnsiteOptions();
+    setupOnsiteOptionsListeners(globalExports.markDirty);
     console.log('[INIT-APP] Step 4: Completed - event listeners initialized');
 
     // Check for shared record URL parameter
