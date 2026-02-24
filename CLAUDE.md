@@ -525,6 +525,8 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table (deprecated - no longer used for authentication)
 - `database/migrations/remove_database_logging.sql` - Remove legacy database logging tables after Application Insights migration
 - `database/add_onsite_jobs.sql` - Add 10 onsite-specific jobs (ถอด, ติดตั้ง, Alignment, etc.)
+- `database/update_onsite_manhours_with_logging.sql` - Update all onsite ManHours to 1 with backup and verification
+- `database/verify_manhours_update.sql` - Verification script for onsite ManHours update
 
 **Maintenance Scripts:**
 - `api/scripts/reset-admin-password.js` - Reset backoffice admin password (deprecated - no longer used for authentication)
