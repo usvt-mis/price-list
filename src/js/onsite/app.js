@@ -4,7 +4,7 @@
  */
 
 import { isLocalDev } from '../core/config.js';
-import { STORAGE_KEYS } from './config.js';
+import { STORAGE_KEYS, API } from './config.js';
 import { appState, setMode, resetCalculatorState, setCurrentSavedRecord, setDirty, setViewOnly, isViewOnly } from './state.js';
 // Import authState and currentUserRole from shared state to match auth modules
 import { authState as sharedAuthState, currentUserRole as sharedCurrentUserRole } from '../state.js';
@@ -92,7 +92,7 @@ async function loadInit() {
 
     const [motorTypes, branches] = await Promise.all([
       fetchWithAuthCheck('/api/motor-types'),
-      fetchWithAuthCheck('/api/branches')
+      fetchWithAuthCheck(API.BRANCHES)
     ]);
     console.log('[APP-INIT-6] Both fetch requests completed');
     console.log('[APP-INIT-7] Motor types count:', motorTypes?.length, 'Branches count:', branches?.length);

@@ -317,7 +317,7 @@ router.post('/', async (req, res, next) => {
           fourPeople: (onsiteFourPeopleEnabled === true || onsiteFourPeopleEnabled === 'yes') ? (parseFloat(onsiteFourPeoplePrice) || 0) : 0,
           safety: (onsiteSafetyEnabled === true || onsiteSafetyEnabled === 'yes') ? (parseFloat(onsiteSafetyPrice) || 0) : 0
         }
-      });
+      }, 'onsite');
 
       // Update the saved calculation with GrandTotal
       await new sql.Request(transaction)
@@ -792,7 +792,7 @@ router.put('/:id', async (req, res, next) => {
           fourPeople: (onsiteFourPeopleEnabled === true || onsiteFourPeopleEnabled === 'yes') ? (parseFloat(onsiteFourPeoplePrice) || 0) : 0,
           safety: (onsiteSafetyEnabled === true || onsiteSafetyEnabled === 'yes') ? (parseFloat(onsiteSafetyPrice) || 0) : 0
         }
-      });
+      }, 'onsite');
 
       // Update the saved calculation with GrandTotal
       await new sql.Request(transaction)

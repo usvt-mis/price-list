@@ -57,6 +57,7 @@ export const ONSITE_OPTION_VALUES = {
 
 // API endpoints for onsite calculator
 export const API = {
+  BRANCHES: '/api/onsite/branches',
   SAVES: '/api/onsite/calculations',
   SHARED: (token) => `/api/onsite/shared/${token}`
 };

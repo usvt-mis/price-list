@@ -184,6 +184,7 @@ The application includes comprehensive debug logging for troubleshooting initial
 ### Database Schema
 - **Core tables**: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
   - Jobs and Jobs2MotorType include CalculatorType column ('onsite', 'workshop', 'shared') for filtering jobs by calculator type
+  - Branches table includes CostPerHour (Workshop) and OnsiteCostPerHour (Onsite) for calculator-specific rates
 - **Onsite Saved Calculations**: OnsiteSavedCalculations, OnsiteSavedCalculationJobs, OnsiteSavedCalculationMaterials
   - Run number format: `ONS-YYYY-XXX` (e.g., ONS-2024-001)
   - Onsite-specific columns: Scope, PriorityLevel, SiteAccess
@@ -214,6 +215,7 @@ The application includes comprehensive debug logging for troubleshooting initial
   - `database/migrations/priority_site_access.sql` (adds SiteAccess column - legacy)
   - `database/migrations/remove_onsite_location_fields.sql` (removes CustomerLocation and SiteAccessNotes columns - legacy)
   - `database/migrations/separate_onsite_workshop_jobs.sql` (adds CalculatorType column to Jobs and Jobs2MotorType for separate job lists)
+  - `database/migrations/add_onsite_cost_per_hour.sql` (adds OnsiteCostPerHour column to Branches table for calculator-specific rates)
 - Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`, `database/diagnose_unique_constraint.sql`
 - **Deprecated scripts**: `database/deprecated/create_app_logs.sql`, `database/deprecated/diagnostics_logs.sql` (moved after Application Insights migration)
 
@@ -223,7 +225,7 @@ The application includes comprehensive debug logging for troubleshooting initial
 - Main server: `server.js` at root (Express app with static file serving and route mounting)
 - Route modules in `src/routes/`: Converted from Azure Functions to Express Router pattern
   - **Core routes**: motorTypes, branches, labor, materials, savedCalculations (legacy), sharedCalculations (legacy)
-  - **Onsite routes**: onsite/calculations, onsite/shared, onsite/labor
+  - **Onsite routes**: onsite/calculations, onsite/shared, onsite/labor, onsite/branches
   - **Workshop routes**: workshop/calculations, workshop/shared, workshop/labor
   - **Utility routes**: ping, version, auth
   - **Admin routes**: admin/roles, admin/diagnostics
@@ -562,14 +564,16 @@ The application provides two separate calculator applications, each with its own
 
 **Onsite Calculator** (`onsite.html`):
 - For field/onsite service calculations
+- Uses separate OnsiteCostPerHour rates from Branches table (URY=485, USB=554, UPB=479, UCB=872)
 - Onsite Options section: Three optional add-on items (Crane, 4 People, Safety)
 - Labor section: Scope dropdown, Priority Level, Site Access
 - Travel section: Distance in km × 15 baht/km rate
 - Run number format: `ONS-YYYY-XXX`
-- API endpoints: `/api/onsite/calculations`, `/api/onsite/shared`
+- API endpoints: `/api/onsite/calculations`, `/api/onsite/shared`, `/api/onsite/branches`
 
 **Workshop Calculator** (`workshop.html`):
 - For workshop/facility-based service calculations
+- Uses standard CostPerHour rates from Branches table (URY=429, USB=431, USR=331, UKK=359, UPB=403, UCB=518)
 - Simplified layout (Labor, Materials, Travel sections)
 - Run number format: `WKS-YYYY-XXX`
 - API endpoints: `/api/workshop/calculations`, `/api/workshop/shared`

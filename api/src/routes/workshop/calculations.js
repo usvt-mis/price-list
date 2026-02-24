@@ -283,7 +283,7 @@ router.post('/', async (req, res, next) => {
         materials,
         salesProfitPct,
         travelKm
-      });
+      }, 'workshop');
 
       // Update the saved calculation with GrandTotal
       await new sql.Request(transaction)
@@ -706,7 +706,7 @@ router.put('/:id', async (req, res, next) => {
         materials,
         salesProfitPct,
         travelKm
-      });
+      }, 'workshop');
 
       // Update the saved calculation with GrandTotal
       await new sql.Request(transaction)

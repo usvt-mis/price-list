@@ -31,22 +31,26 @@ const logger = require('./logger');
  * @param {number} saveData.salesProfitPct - Sales profit percentage
  * @param {number} saveData.travelKm - Travel distance in km
  * @param {Object} saveData.onsiteOptions - Onsite options (crane, fourPeople, safety)
+ * @param {string} calculatorType - Calculator type ('onsite' or 'workshop'), defaults to 'workshop'
  * @returns {Promise<number>} GrandTotal amount
  * @throws {Error} With detailed context when branch lookup fails
  */
-async function calculateGrandTotal(poolOrTransaction, saveData) {
+async function calculateGrandTotal(poolOrTransaction, saveData, calculatorType = 'workshop') {
   const correlationId = logger.getCorrelationId();
   const { branchId, jobs = [], materials = [], salesProfitPct = 0, travelKm = 0, onsiteOptions = {} } = saveData;
 
-  logger.debug(`[Calculation-${correlationId}] Starting GrandTotal calculation for BranchId: ${branchId}, Jobs: ${jobs.length}, Materials: ${materials.length}`);
+  logger.debug(`[Calculation-${correlationId}] Starting GrandTotal calculation for BranchId: ${branchId}, Jobs: ${jobs.length}, Materials: ${materials.length}, CalculatorType: ${calculatorType}`);
+
+  // Select appropriate CostPerHour column based on calculator type
+  const costPerHourColumn = calculatorType === 'onsite' ? 'OnsiteCostPerHour' : 'CostPerHour';
 
   // Fetch branch data with multipliers
   let branchResult;
   try {
-    logger.debug(`[Calculation-${correlationId}] Fetching branch data for BranchId: ${branchId}`);
+    logger.debug(`[Calculation-${correlationId}] Fetching branch data for BranchId: ${branchId}, using column: ${costPerHourColumn}`);
     branchResult = await new sql.Request(poolOrTransaction)
       .input('branchId', sql.Int, branchId)
-      .query('SELECT CostPerHour, OverheadPercent, PolicyProfit FROM Branches WHERE BranchId = @branchId');
+      .query(`SELECT ${costPerHourColumn} AS CostPerHour, OverheadPercent, PolicyProfit FROM Branches WHERE BranchId = @branchId`);
     logger.debug(`[Calculation-${correlationId}] Branch data fetched successfully`);
   } catch (err) {
     // Enhance error with context for better debugging

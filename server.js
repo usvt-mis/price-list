@@ -50,6 +50,7 @@ const authRouter = require('./api/src/routes/auth');
 const onsiteCalculationsRouter = require('./api/src/routes/onsite/calculations');
 const onsiteSharedRouter = require('./api/src/routes/onsite/shared');
 const onsiteLaborRouter = require('./api/src/routes/onsite/labor');
+const onsiteBranchesRouter = require('./api/src/routes/onsite/branches');
 const workshopCalculationsRouter = require('./api/src/routes/workshop/calculations');
 const workshopSharedRouter = require('./api/src/routes/workshop/shared');
 const workshopLaborRouter = require('./api/src/routes/workshop/labor');
@@ -141,6 +142,9 @@ app.use('/api/workshop/shared', workshopSharedRouter);
 
 // Onsite labor (requires authentication)
 app.use('/api/onsite/labor', requireAuth, onsiteLaborRouter);
+
+// Onsite branches (requires authentication)
+app.use('/api/onsite/branches', requireAuth, onsiteBranchesRouter);
 
 // Workshop labor (requires authentication)
 app.use('/api/workshop/labor', requireAuth, workshopLaborRouter);

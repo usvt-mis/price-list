@@ -122,7 +122,7 @@ The application expects these SQL Server tables:
 | Table | Description |
 |-------|-------------|
 | `MotorTypes` | Motor type definitions |
-| `Branches` | Branch locations with CostPerHour, OverheadPercent, OverheadFixed |
+| `Branches` | Branch locations with CostPerHour (Workshop), OnsiteCostPerHour (Onsite), OverheadPercent, OverheadFixed |
 | `Jobs` | Job definitions with JobCode, JobName, SortOrder |
 | `Jobs2MotorType` | Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours) |
 | `Materials` | Material catalog with MaterialCode, MaterialName, UnitCost, IsActive |
@@ -143,7 +143,7 @@ The application expects these SQL Server tables:
 | `PerformanceMetrics` | API performance metrics (response times, database latency) |
 | `AppLogs_Archive` | Historical application logs (archived after 30 days) |
 
-**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting. Run `database/migrations/calculator_types.sql` to add CalculatorType and type-specific columns. Run `database/migrations/add_scope_column.sql` to add Scope dropdown for Onsite calculator. Run `database/migrations/priority_site_access.sql` to add SiteAccess column for Onsite calculator (PriorityLevel column already exists and is shared with Workshop).
+**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting. Run `database/migrations/calculator_types.sql` to add CalculatorType and type-specific columns. Run `database/migrations/add_scope_column.sql` to add Scope dropdown for Onsite calculator. Run `database/migrations/priority_site_access.sql` to add SiteAccess column for Onsite calculator (PriorityLevel column already exists and is shared with Workshop). Run `database/migrations/add_onsite_cost_per_hour.sql` to add OnsiteCostPerHour column for calculator-specific branch rates.
 
 **Method 3: Run Migration Scripts**
 ```bash
@@ -189,6 +189,7 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 |----------|--------|-------------|---------------|
 | `/api/motor-types` | GET | Fetch all motor types | Yes |
 | `/api/branches` | GET | Fetch all branches | Yes |
+| `/api/onsite/branches` | GET | Fetch onsite-specific branches (only those with OnsiteCostPerHour set) | Yes |
 | `/api/labor?motorTypeId={id}` | GET | Fetch ALL jobs with motor-type-specific manhours (returns 0 for unmatched jobs) | Yes |
 | `/api/materials?query={search}` | GET | Search materials (min 2 chars, searches both code and name, returns top 20) | Yes |
 | `/api/onsite/calculations` | POST | Create new onsite saved calculation | Yes |

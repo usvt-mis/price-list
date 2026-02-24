@@ -52,7 +52,7 @@ export function renderLabor() {
   console.log('[LABOR-RENDER] Rendering', appState.labor.length, 'jobs');
   console.log('[LABOR-RENDER] Jobs sample:', appState.labor.slice(0, 3));
   const branch = getSelectedBranch();
-  const cph = branch ? Number(branch.CostPerHour) : NaN;
+  const cph = branch ? Number(branch.OnsiteCostPerHour ?? branch.CostPerHour) : NaN;
 
   // Get multipliers for adjusted cost per hour
   const multiplier = getCompleteMultiplier();
@@ -187,7 +187,7 @@ export function renderLabor() {
  */
 function updateRowCosts(row, idx) {
   const branch = getSelectedBranch();
-  const cph = branch ? Number(branch.CostPerHour) : NaN;
+  const cph = branch ? Number(branch.OnsiteCostPerHour ?? branch.CostPerHour) : NaN;
   const job = appState.labor[idx];
 
   if (!job) return;
@@ -241,7 +241,7 @@ function updateRowCosts(row, idx) {
  */
 export function laborSubtotalBase() {
   const branch = getSelectedBranch();
-  const cph = branch ? Number(branch.CostPerHour) : NaN;
+  const cph = branch ? Number(branch.OnsiteCostPerHour ?? branch.CostPerHour) : NaN;
   if (!Number.isFinite(cph)) return NaN;
   return appState.labor
     .filter(j => j.checked !== false)  // Only include checked jobs
@@ -257,7 +257,7 @@ export function laborSubtotalBase() {
  */
 export function laborSubtotal() {
   const branch = getSelectedBranch();
-  const cph = branch ? Number(branch.CostPerHour) : NaN;
+  const cph = branch ? Number(branch.OnsiteCostPerHour ?? branch.CostPerHour) : NaN;
   if (!Number.isFinite(cph)) return NaN;
 
   // Get multipliers
