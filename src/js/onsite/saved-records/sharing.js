@@ -101,7 +101,7 @@ export async function loadSharedRecord(shareToken) {
     await deserializeCalculatorState(record, { skipGrandTotalCalculation: true });
 
     // Skip displayRecordDetail() - we show the calculator form, not preview
-    showView('calculator', false, isViewOnly());
+    showView('calculator', false, isViewOnly);
 
     // Update breadcrumb for shared record
     const breadcrumbCurrent = el('breadcrumbCurrent');
@@ -123,7 +123,7 @@ export async function viewRecord(saveId) {
   try {
     const record = await fetchJson(`/api/onsite/calculations/${saveId}`);
     displayRecordDetail(record);
-    showView('detail', false, isViewOnly());
+    showView('detail', false, isViewOnly);
   } catch (e) {
     console.error(e);
     showNotification('Failed to load record');
@@ -146,7 +146,7 @@ export async function editRecord(saveId) {
     if (window.updateSaveButtonState) {
       window.updateSaveButtonState();
     }
-    showView('calculator', false, isViewOnly());
+    showView('calculator', false, isViewOnly);
     showNotification(`Editing ${record.runNumber}`);
   } catch (e) {
     console.error(e);

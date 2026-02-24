@@ -339,25 +339,25 @@ function setupEventListeners() {
     if (globalExports.setViewOnlyMode) await globalExports.setViewOnlyMode(false);
     await globalExports.applyFiltersAndRender();
     if (globalExports.updateViewToggleButtons) globalExports.updateViewToggleButtons();
-    showView('list', false, isViewOnly());
+    showView('list', false, isViewOnly);
   });
 
   el('backToCalculatorBtn')?.addEventListener('click', () => {
     startNewCalculation();
-    showView('calculator', false, isViewOnly());
+    showView('calculator', false, isViewOnly);
   });
 
   el('breadcrumbCalculator')?.addEventListener('click', (e) => {
     e.preventDefault();
     startNewCalculation();
-    showView('calculator', false, isViewOnly());
+    showView('calculator', false, isViewOnly);
   });
 
   el('detailBackBtn')?.addEventListener('click', async () => {
     if (globalExports.currentSavedRecord) {
-      showView('calculator', false, isViewOnly());
+      showView('calculator', false, isViewOnly);
     } else {
-      showView('list', false, isViewOnly());
+      showView('list', false, isViewOnly);
     }
   });
 
@@ -576,14 +576,14 @@ async function initApp() {
         if (globalExports.setViewOnlyMode) await globalExports.setViewOnlyMode(false);
         await globalExports.applyFiltersAndRender();
         if (globalExports.updateViewToggleButtons) globalExports.updateViewToggleButtons();
-        showView('list', false, isViewOnly());
+        showView('list', false, isViewOnly);
       } catch (error) {
         console.error('[Post-login redirect] Failed:', error);
         const { appState } = await import('./state.js');
         appState.materialLines = [];
         renderMaterials();
         calcAll();
-        showView('calculator', false, isViewOnly());
+        showView('calculator', false, isViewOnly);
       }
       return;
     } else if (sharedAuthState.isAuthenticated && sharedCurrentUserRole) {
@@ -591,14 +591,14 @@ async function initApp() {
       try {
         await applyFiltersAndRender();
         updateViewToggleButtons();
-        showView('list', false, isViewOnly());
+        showView('list', false, isViewOnly);
       } catch (error) {
         console.error('[Load records on init] Failed:', error);
         const { appState } = await import('./state.js');
         appState.materialLines = [];
         renderMaterials();
         calcAll();
-        showView('calculator', false, isViewOnly());
+        showView('calculator', false, isViewOnly);
       }
     } else {
       console.log('[INIT-APP] Unauthenticated or local dev - showing calculator');
@@ -606,7 +606,7 @@ async function initApp() {
       appState.materialLines = [];
       renderMaterials();
       calcAll();
-      showView('calculator', false, isViewOnly());
+      showView('calculator', false, isViewOnly);
     }
 
     console.log('[INIT-APP] Application initialization completed successfully');
