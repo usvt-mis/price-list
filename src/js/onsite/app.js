@@ -218,7 +218,7 @@ function setupEventListeners() {
     if (globalExports.markDirty) globalExports.markDirty();
   });
 
-  el('salesProfitPct')?.addEventListener('input', () => {
+  el('salesProfitPct')?.addEventListener('change', () => {
     syncFlatFromPercent();
     renderLabor();
     renderMaterials();
@@ -226,7 +226,7 @@ function setupEventListeners() {
     if (globalExports.markDirty) globalExports.markDirty();
   });
 
-  el('salesProfitFlat')?.addEventListener('input', () => {
+  el('salesProfitFlat')?.addEventListener('change', () => {
     syncPercentFromFlat();
     renderLabor();
     renderMaterials();
