@@ -214,7 +214,7 @@ export async function deserializeCalculatorState(data, options = {}) {
  */
 export async function loadSavedRecords() {
   try {
-    const records = await fetchJson('/api/saves');
+    const records = await fetchJson('/api/onsite/calculations');
     const { setSavedRecordsList } = await import('../state.js');
     setSavedRecordsList(records);
     return records;
@@ -250,13 +250,13 @@ export async function saveCalculation() {
 
     let response;
     if (currentSavedRecord) {
-      response = await fetchWithAuth(`/api/saves/${currentSavedRecord.saveId}`, {
+      response = await fetchWithAuth(`/api/onsite/calculations/${currentSavedRecord.saveId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(data)
       });
     } else {
-      response = await fetchWithAuth('/api/saves', {
+      response = await fetchWithAuth('/api/onsite/calculations', {
         method: 'POST',
         headers,
         body: JSON.stringify(data)

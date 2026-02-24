@@ -55,5 +55,11 @@ export const ONSITE_OPTION_VALUES = {
   NO: 'no'
 };
 
+// API endpoints for onsite calculator
+export const API = {
+  SAVES: '/api/onsite/calculations',
+  SHARED: (token) => `/api/onsite/shared/${token}`
+};
+
 // Re-export shared constants
 export { TRAVEL_RATE, COMMISSION_TIERS };
