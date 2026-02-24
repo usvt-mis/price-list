@@ -4,7 +4,7 @@
  */
 
 import { isLocalDev } from '../core/config.js';
-import { appState, setMode, resetCalculatorState, setCurrentSavedRecord, setDirty, setViewOnly, isViewOnly } from './state.js';
+import { appState, resetCalculatorState, setCurrentSavedRecord, setDirty, setViewOnly, isViewOnly } from './state.js';
 // Import authState and currentUserRole from shared state to match auth modules
 import { authState as sharedAuthState, currentUserRole as sharedCurrentUserRole } from '../state.js';
 import { el, setStatus, setDbLoadingModal, showView, updateModeButtons } from '../core/utils.js';
