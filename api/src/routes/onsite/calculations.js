@@ -206,7 +206,7 @@ router.post('/', async (req, res, next) => {
       // Get next run number (ONS prefix for onsite)
       const dbTimer = logger.startTimer(correlationId);
       const requestRunNumber = new sql.Request(transaction);
-      const runNumberResult = await requestRunNumber.output("runNumber", sql.NVarChar(10))
+      const runNumberResult = await requestRunNumber.output("runNumber", sql.NVarChar(12))
         .execute("GetNextOnsiteRunNumber");
       const runNumber = runNumberResult.output.runNumber;
       dbTimer.stop('DATABASE', 'GetNextOnsiteRunNumber', 'Executed GetNextOnsiteRunNumber stored procedure', { rowCount: 1 });
@@ -224,7 +224,7 @@ router.post('/', async (req, res, next) => {
       const shareToken = generateUUID();
       const requestSave = new sql.Request(transaction);
       const saveResult = await requestSave
-        .input("runNumber", sql.NVarChar(10), runNumber)
+        .input("runNumber", sql.NVarChar(12), runNumber)
         .input("creatorName", sql.NVarChar(100), creatorName)
         .input("creatorEmail", sql.NVarChar(255), creatorEmail)
         .input("branchId", sql.Int, branchId)

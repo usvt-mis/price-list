@@ -527,8 +527,10 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - `database/diagnose_saved_calculations.sql` - Data integrity checks for Onsite/Workshop saved calculations (orphaned records, invalid FKs, NULL values)
 - `database/diagnose_workshop_jobs.sql` - Diagnostic script for blank Workshop jobs list issue (checks CalculatorType distribution, simulates API queries)
 - `database/diagnose_unique_constraint.sql` - Diagnostic script for ShareToken UNIQUE KEY constraint violation
+- `database/diagnose_run_number_generation.sql` - Comprehensive diagnostic for run number generation (tests stored procedures, validates formats, identifies CAST errors)
 - `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions
 - `database/fix_workshop_jobs.sql` - Fix script for blank Workshop jobs list (multiple options: share all jobs, copy jobs, assign specific jobs)
+- `database/fix_run_number_data.sql` - Automated fix script for invalid run numbers (renumbers entries sequentially)
 - `database/ensure_backoffice_schema.sql` - Create all missing backoffice tables (comprehensive schema setup)
 - `database/diagnostics_timezone.sql` - Timezone diagnostics (server offset, column analysis, lockout status comparison)
 - `database/verify_onsite_to_workshop_migration.sql` - Verification script for onsite-to-workshop migration (checks record counts, orphaned records, data integrity)
