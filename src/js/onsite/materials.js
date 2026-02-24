@@ -207,7 +207,7 @@ function wireDeleteButtons() {
  */
 function wireQuantityInputs() {
   document.querySelectorAll('[data-qty]').forEach(inp => {
-    inp.addEventListener('input', async () => {
+    inp.addEventListener('change', async () => {
       const i = Number(inp.dataset.qty);
       const v = Math.max(0, Math.trunc(Number(inp.value))); // integer only
       inp.value = v;
