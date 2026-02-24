@@ -52,15 +52,9 @@ export let currentOnsiteSafetyPrice = localStorage.getItem(STORAGE_KEYS.ONSITE_S
 export let isNoRoleState = false;
 
 // ========== Authentication State ==========
-
-export const authState = {
-  isAuthenticated: false,
-  user: null, // { name, email, initials, roles, effectiveRole }
-  isLoading: true
-};
-
-// Current user's role
-export let currentUserRole = null; // ROLE.EXECUTIVE, ROLE.SALES, or ROLE.NO_ROLE
+// Re-export shared auth state to use single source of truth
+// The auth modules update the shared state in ../state.js during initialization
+export { authState, currentUserRole, setCurrentUserRole } from '../state.js';
 
 // ========== Save Feature State ==========
 
@@ -201,10 +195,6 @@ export function setOnsiteSafetyPrice(value) {
 
 export function setNoRoleState(value) {
   isNoRoleState = value;
-}
-
-export function setCurrentUserRole(role) {
-  currentUserRole = role;
 }
 
 export function setCurrentSavedRecord(record) {

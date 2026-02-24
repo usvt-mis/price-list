@@ -27,15 +27,9 @@ export let currentMode = null; // MODE.EXECUTIVE or MODE.SALES
 export let recordsViewMode = localStorage.getItem('pricelist-calculator-records-view') || 'list';
 
 // ========== Authentication State ==========
-
-export const authState = {
-  isAuthenticated: false,
-  user: null, // { name, email, initials, roles, effectiveRole }
-  isLoading: true
-};
-
-// Current user's role
-export let currentUserRole = null; // ROLE.EXECUTIVE, ROLE.SALES, or ROLE.NO_ROLE
+// Re-export shared auth state to use single source of truth
+// The auth modules update the shared state in ../state.js during initialization
+export { authState, currentUserRole, setCurrentUserRole } from '../state.js';
 
 // ========== Save Feature State ==========
 
@@ -89,10 +83,6 @@ export function setMode(mode) {
 export function setRecordsViewMode(mode) {
   recordsViewMode = mode;
   localStorage.setItem('pricelist-calculator-records-view', mode);
-}
-
-export function setCurrentUserRole(role) {
-  currentUserRole = role;
 }
 
 export function setCurrentSavedRecord(record) {

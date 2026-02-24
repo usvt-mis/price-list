@@ -565,7 +565,7 @@ The application provides two separate calculator applications, each with its own
 
 **State Management**:
 - Each calculator has its own isolated state in `src/js/onsite/state.js` and `src/js/workshop/state.js`
-- No shared state between calculators
+- **Shared auth state**: Both calculators re-export `authState`, `currentUserRole`, and `setCurrentUserRole` from `src/js/state.js` to ensure a single source of truth for authentication
 - LocalStorage namespaces: `onsite-calculator-*` and `workshop-calculator-*`
 
 ---
