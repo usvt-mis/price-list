@@ -4,7 +4,7 @@
  */
 
 import { isLocalDev } from '../core/config.js';
-import { appState, setMode, resetCalculatorState, setCurrentSavedRecord, setDirty, setViewOnly } from './state.js';
+import { appState, setMode, resetCalculatorState, setCurrentSavedRecord, setDirty, setViewOnly, isViewOnly } from './state.js';
 // Import authState and currentUserRole from shared state to match auth modules
 import { authState as sharedAuthState, currentUserRole as sharedCurrentUserRole } from '../state.js';
 import { el, setStatus, setDbLoadingModal, showView, updateModeButtons } from '../core/utils.js';
@@ -203,25 +203,25 @@ function setupEventListeners() {
     if (globalExports.setViewOnlyMode) await globalExports.setViewOnlyMode(false);
     await globalExports.applyFiltersAndRender();
     if (globalExports.updateViewToggleButtons) globalExports.updateViewToggleButtons();
-    showView('list');
+    showView('list', false, isViewOnly());
   });
 
   el('backToCalculatorBtn')?.addEventListener('click', () => {
     startNewCalculation();
-    showView('calculator');
+    showView('calculator', false, isViewOnly());
   });
 
   el('breadcrumbCalculator')?.addEventListener('click', (e) => {
     e.preventDefault();
     startNewCalculation();
-    showView('calculator');
+    showView('calculator', false, isViewOnly());
   });
 
   el('detailBackBtn')?.addEventListener('click', async () => {
     if (globalExports.currentSavedRecord) {
-      showView('calculator');
+      showView('calculator', false, isViewOnly());
     } else {
-      showView('list');
+      showView('list', false, isViewOnly());
     }
   });
 
@@ -438,14 +438,14 @@ async function initApp() {
         if (globalExports.setViewOnlyMode) await globalExports.setViewOnlyMode(false);
         await globalExports.applyFiltersAndRender();
         if (globalExports.updateViewToggleButtons) globalExports.updateViewToggleButtons();
-        showView('list');
+        showView('list', false, isViewOnly());
       } catch (error) {
         console.error('[Post-login redirect] Failed:', error);
         const { appState } = await import('./state.js');
         appState.materialLines = [];
         renderMaterials();
         calcAll();
-        showView('calculator');
+        showView('calculator', false, isViewOnly());
       }
       return;
     } else if (sharedAuthState.isAuthenticated && sharedCurrentUserRole) {
@@ -453,14 +453,14 @@ async function initApp() {
       try {
         await applyFiltersAndRender();
         updateViewToggleButtons();
-        showView('list');
+        showView('list', false, isViewOnly());
       } catch (error) {
         console.error('[Load records on init] Failed:', error);
         const { appState } = await import('./state.js');
         appState.materialLines = [];
         renderMaterials();
         calcAll();
-        showView('calculator');
+        showView('calculator', false, isViewOnly());
       }
     } else {
       console.log('[INIT-APP] Unauthenticated or local dev - showing calculator');
@@ -468,7 +468,7 @@ async function initApp() {
       appState.materialLines = [];
       renderMaterials();
       calcAll();
-      showView('calculator');
+      showView('calculator', false, isViewOnly());
     }
 
     console.log('[INIT-APP] Application initialization completed successfully');

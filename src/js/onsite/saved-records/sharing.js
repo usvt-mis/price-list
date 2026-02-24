@@ -4,7 +4,7 @@
  */
 
 import { el, showView, showNotification, fetchJson, fetchWithAuth } from '../../core/utils.js';
-import { setViewOnly, setCurrentSavedRecord, setDirty, setMode, getRecordsSortColumn, getRecordsSortDirection, getRecordsSearchQuery, selectedRecords } from '../state.js';
+import { setViewOnly, setCurrentSavedRecord, setDirty, setMode, getRecordsSortColumn, getRecordsSortDirection, getRecordsSearchQuery, selectedRecords, isViewOnly } from '../state.js';
 import { deserializeCalculatorState, loadSavedRecords } from './api.js';
 import { displayRecordDetail } from './ui.js';
 import { MODE } from '../../core/config.js';
@@ -101,7 +101,7 @@ export async function loadSharedRecord(shareToken) {
     await deserializeCalculatorState(record, { skipGrandTotalCalculation: true });
 
     // Skip displayRecordDetail() - we show the calculator form, not preview
-    showView('calculator');
+    showView('calculator', false, isViewOnly());
 
     // Update breadcrumb for shared record
     const breadcrumbCurrent = el('breadcrumbCurrent');
@@ -123,7 +123,7 @@ export async function viewRecord(saveId) {
   try {
     const record = await fetchJson(`/api/onsite/calculations/${saveId}`);
     displayRecordDetail(record);
-    showView('detail');
+    showView('detail', false, isViewOnly());
   } catch (e) {
     console.error(e);
     showNotification('Failed to load record');
@@ -146,7 +146,7 @@ export async function editRecord(saveId) {
     if (window.updateSaveButtonState) {
       window.updateSaveButtonState();
     }
-    showView('calculator');
+    showView('calculator', false, isViewOnly());
     showNotification(`Editing ${record.runNumber}`);
   } catch (e) {
     console.error(e);

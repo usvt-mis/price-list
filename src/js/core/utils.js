@@ -139,8 +139,9 @@ export function removeReadOnly() {
  * Navigate between views
  * @param {string} viewName - View name to show
  * @param {boolean} isNoRoleState - Whether in NoRole awaiting state
+ * @param {boolean} isViewOnly - Whether in view-only mode (shared links)
  */
-export function showView(viewName, isNoRoleState = false) {
+export function showView(viewName, isNoRoleState = false, isViewOnly = false) {
   // Guard: Prevent any view changes when in NoRole awaiting state
   if (isNoRoleState && viewName !== 'awaiting') {
     console.warn('View change blocked: User is in NoRole awaiting state');
@@ -148,7 +149,6 @@ export function showView(viewName, isNoRoleState = false) {
   }
 
   // Guard: Prevent navigation away from calculator when in view-only mode (shared links)
-  const { isViewOnly } = await import('./state.js');
   if (isViewOnly && viewName !== 'calculator') {
     console.warn('View change blocked: User is in view-only mode (shared link)');
     return;
