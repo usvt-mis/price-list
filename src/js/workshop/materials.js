@@ -186,15 +186,20 @@ function wireDeleteButtons() {
  * Wire quantity input event listeners
  */
 function wireQuantityInputs() {
+  const multiplier = getCompleteMultiplier();
+  const branchMultiplier = getBranchMultiplier();
+  const salesProfitMultiplier = getSalesProfitMultiplier();
+
   document.querySelectorAll('[data-qty]').forEach(inp => {
     inp.addEventListener('input', async () => {
       const i = Number(inp.dataset.qty);
       const v = Math.max(0, Math.trunc(Number(inp.value))); // integer only
       inp.value = v;
       appState.materialLines[i].qty = v;
+      // Update displays without full re-render (preserves input focus)
+      updateMaterialRowDisplay(i, multiplier, branchMultiplier, salesProfitMultiplier);
       const { calcAll } = await import('./calculations.js');
       calcAll();
-      renderMaterials(); // refresh totals
     });
   });
 }
