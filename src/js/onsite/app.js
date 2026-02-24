@@ -5,6 +5,8 @@
 
 import { isLocalDev } from '../core/config.js';
 import { appState, setMode, resetCalculatorState, setCurrentSavedRecord, setDirty, setViewOnly } from './state.js';
+// Import authState and currentUserRole from shared state to match auth modules
+import { authState as sharedAuthState, currentUserRole as sharedCurrentUserRole } from '../state.js';
 import { el, setStatus, setDbLoadingModal, showView, updateModeButtons, fetchJson, showNotification } from '../core/utils.js';
 import { initAuth, renderAuthSection } from '../auth/index.js';
 import { loadLabor, renderLabor } from './labor.js';
@@ -558,13 +560,13 @@ async function initApp() {
     const loginParams = new URLSearchParams(window.location.search);
     const justLoggedIn = loginParams.get('post_login') === 'true';
 
-    const { authState, currentUserRole } = await import('./state.js');
-    console.log('[INIT-APP] Auth state:', { isAuthenticated: authState.isAuthenticated, currentUserRole });
+    // Use shared authState (not onsite-specific state) to match auth modules
+    console.log('[INIT-APP] Auth state:', { isAuthenticated: sharedAuthState.isAuthenticated, currentUserRole: sharedCurrentUserRole });
 
-    if (authState.isAuthenticated && currentUserRole && currentUserRole === 'NoRole') {
+    if (sharedAuthState.isAuthenticated && sharedCurrentUserRole && sharedCurrentUserRole === 'NoRole') {
       console.log('[INIT-APP] User is NoRole - awaiting assignment');
       return;
-    } else if (justLoggedIn && authState.isAuthenticated && currentUserRole && currentUserRole !== 'NoRole') {
+    } else if (justLoggedIn && sharedAuthState.isAuthenticated && sharedCurrentUserRole && sharedCurrentUserRole !== 'NoRole') {
       console.log('[INIT-APP] Post-login redirect to list view');
       const cleanUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, document.title, cleanUrl);
@@ -584,7 +586,7 @@ async function initApp() {
         showView('calculator');
       }
       return;
-    } else if (authState.isAuthenticated && currentUserRole) {
+    } else if (sharedAuthState.isAuthenticated && sharedCurrentUserRole) {
       console.log('[INIT-APP] Authenticated user - loading records');
       try {
         await applyFiltersAndRender();
