@@ -270,9 +270,10 @@ router.post('/', async (req, res, next) => {
           .input("materialId", sql.Int, material.materialId)
           .input("unitCost", sql.Decimal(10, 2), material.unitCost)
           .input("quantity", sql.Int, material.quantity)
+          .input("overrideFinalPrice", sql.Decimal(10, 2), material.overrideFinalPrice)
           .query(`
-            INSERT INTO WorkshopSavedCalculationMaterials (SaveId, MaterialId, UnitCost, Quantity)
-            VALUES (@saveId, @materialId, @unitCost, @quantity)
+            INSERT INTO WorkshopSavedCalculationMaterials (SaveId, MaterialId, UnitCost, Quantity, OverrideFinalPrice)
+            VALUES (@saveId, @materialId, @unitCost, @quantity, @overrideFinalPrice)
           `);
       }
 
@@ -693,9 +694,10 @@ router.put('/:id', async (req, res, next) => {
           .input('materialId', sql.Int, material.materialId)
           .input('unitCost', sql.Decimal(10, 2), material.unitCost)
           .input('quantity', sql.Int, material.quantity)
+          .input('overrideFinalPrice', sql.Decimal(10, 2), material.overrideFinalPrice)
           .query(`
-            INSERT INTO WorkshopSavedCalculationMaterials (SaveId, MaterialId, UnitCost, Quantity)
-            VALUES (@saveId, @materialId, @unitCost, @quantity)
+            INSERT INTO WorkshopSavedCalculationMaterials (SaveId, MaterialId, UnitCost, Quantity, OverrideFinalPrice)
+            VALUES (@saveId, @materialId, @unitCost, @quantity, @overrideFinalPrice)
           `);
       }
 
@@ -1072,7 +1074,7 @@ async function fetchWorkshopCalculationById(pool, saveId) {
   const materialsResult = await pool.request()
     .input('saveId', sql.Int, saveId)
     .query(`
-      SELECT scm.SavedMaterialId, scm.MaterialId, scm.UnitCost, scm.Quantity,
+      SELECT scm.SavedMaterialId, scm.MaterialId, scm.UnitCost, scm.Quantity, scm.OverrideFinalPrice,
              m.MaterialCode AS code, m.MaterialName AS name
       FROM WorkshopSavedCalculationMaterials scm
       INNER JOIN Materials m ON scm.MaterialId = m.MaterialId
@@ -1108,7 +1110,8 @@ async function fetchWorkshopCalculationById(pool, saveId) {
       code: m.code,
       name: m.name,
       unitCost: m.UnitCost,
-      quantity: m.Quantity
+      quantity: m.Quantity,
+      overrideFinalPrice: m.OverrideFinalPrice
     }))
   };
 }

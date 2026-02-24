@@ -33,7 +33,8 @@ export function serializeCalculatorState() {
         code: m.code,
         name: m.name,
         unitCost: m.unitCost,
-        quantity: Math.trunc(m.qty)
+        quantity: Math.trunc(m.qty),
+        overrideFinalPrice: m.overrideFinalPrice ?? null
       }))
   };
 
@@ -142,7 +143,8 @@ export async function deserializeCalculatorState(data, options = {}) {
           code: savedMaterial.code,
           name: savedMaterial.name,
           unitCost: savedMaterial.unitCost,
-          qty: savedMaterial.quantity
+          qty: savedMaterial.quantity,
+          overrideFinalPrice: savedMaterial.overrideFinalPrice ?? null
         });
       } else {
         try {
@@ -154,7 +156,8 @@ export async function deserializeCalculatorState(data, options = {}) {
               code: material.MaterialCode,
               name: material.MaterialName,
               unitCost: savedMaterial.unitCost,
-              qty: savedMaterial.quantity
+              qty: savedMaterial.quantity,
+              overrideFinalPrice: savedMaterial.overrideFinalPrice ?? null
             });
           }
         } catch (e) {

@@ -45,6 +45,7 @@ Job line items for onsite records (linked via RunNumber)
 
 ### OnsiteSavedCalculationMaterials
 Material line items for onsite records (linked via RunNumber)
+- `OverrideFinalPrice` - Optional manual override for the material's final price (bypasses all multipliers)
 
 ---
 
@@ -60,6 +61,7 @@ Job line items for workshop records (linked via RunNumber)
 
 ### WorkshopSavedCalculationMaterials
 Material line items for workshop records (linked via RunNumber)
+- `OverrideFinalPrice` - Optional manual override for the material's final price (bypasses all multipliers)
 
 ---
 
@@ -137,6 +139,10 @@ Audit trail for all role changes:
 ### Jobs and Branches
 - `database/migrations/separate_onsite_workshop_jobs.sql` - Adds CalculatorType column to Jobs and Jobs2MotorType for separate job lists
 - `database/migrations/add_onsite_cost_per_hour.sql` - Adds OnsiteCostPerHour column to Branches table for calculator-specific rates
+
+### Materials Override Final Price
+- `database/migrations/add_override_final_price.sql` - Adds OverrideFinalPrice column to OnsiteSavedCalculationMaterials and WorkshopSavedCalculationMaterials tables for manual price overrides
+- `database/migrations/run-override-final-price-migration.js` - Node.js runner for the OverrideFinalPrice migration
 
 ### UTC Migration
 - `database/migrations/migrate_to_utc.sql` - Idempotent migration script to convert existing timestamps from local time to UTC

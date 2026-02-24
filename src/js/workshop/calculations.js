@@ -122,7 +122,7 @@ export function calcAll() {
   // Calculate new Grand Total = sum of all Final Prices + travel Final Price
   // Final Price for each row = Selling Price × (1 + commissionPercent/100)
   const laborFinalPricesSum = l * (1 + appState.commissionPercent / 100);
-  const materialsFinalPricesSum = m * (1 + appState.commissionPercent / 100);
+  const materialsFinalPricesSum = materialSubtotal(); // Already includes commission for overridden items
   const travelFinalPrice = travelCost * (1 + appState.commissionPercent / 100);
   const newGrandTotal = laborFinalPricesSum + materialsFinalPricesSum + travelFinalPrice;
 

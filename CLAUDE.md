@@ -22,7 +22,7 @@ This is a Price List Calculator - a web application for calculating service cost
 ### Cost Components
 
 1. **Labor**: Job manhours × branch-specific cost per hour
-2. **Materials**: User-selected materials with quantities
+2. **Materials**: User-selected materials with quantities (supports manual Final Price override per item)
 3. **Sales Profit**: User-editable percentage applied after branch multipliers (can be negative)
 4. **Travel/Shipping**: Distance in Km × 15 baht/km rate
 5. **Onsite Options** (Onsite only): Optional add-ons with custom prices
