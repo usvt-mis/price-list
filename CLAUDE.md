@@ -165,11 +165,15 @@ The application includes comprehensive debug logging for troubleshooting initial
 ## Architecture Overview
 
 ### Database Schema
-- Core tables: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
-- Saved calculations: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence
-  - **Calculator Types**: SavedCalculations.CalculatorType stores 'onsite' or 'workshop'
-  - **Onsite Columns**: Scope, PriorityLevel (shared with Workshop), SiteAccess
-  - **Workshop Columns**: EquipmentUsed, MachineHours, PriorityLevel (shared with Onsite), PickupDeliveryOption, QualityCheckRequired
+- **Core tables**: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
+- **Onsite Saved Calculations**: OnsiteSavedCalculations, OnsiteSavedCalculationJobs, OnsiteSavedCalculationMaterials
+  - Run number format: `ONS-YYYY-XXX` (e.g., ONS-2024-001)
+  - Onsite-specific columns: Scope, PriorityLevel, SiteAccess
+  - Onsite Options: OnsiteCraneEnabled, OnsiteCranePrice, OnsiteFourPeopleEnabled, OnsiteFourPeoplePrice, OnsiteSafetyEnabled, OnsiteSafetyPrice
+- **Workshop Saved Calculations**: WorkshopSavedCalculations, WorkshopSavedCalculationJobs, WorkshopSavedCalculationMaterials
+  - Run number format: `WKS-YYYY-XXX` (e.g., WKS-2024-001)
+  - Workshop-specific columns: EquipmentUsed, MachineHours, PickupDeliveryOption, QualityCheckRequired
+- **Legacy tables**: SavedCalculations, SavedCalculationJobs, SavedCalculationMaterials, RunNumberSequence (kept for rollback)
 - Role management: UserRoles (stores role assignments - can be Executive, Sales, Customer, or NULL/NoRole)
   - Columns: Email (PK), Role, AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt
   - FirstLoginAt: Tracks when user first logged in
@@ -182,10 +186,11 @@ The application includes comprehensive debug logging for troubleshooting initial
   - `database/migrations/phase1_backoffice_3tabs.sql` (adds FirstLoginAt/LastLoginAt columns and role index)
   - `database/migrations/two_factor_auth.sql` (backoffice two-factor auth schema)
   - `database/migrations/remove_database_logging.sql` (removes legacy logging tables)
-  - `database/migrations/calculator_types.sql` (adds CalculatorType and type-specific columns to SavedCalculations)
-  - `database/migrations/add_scope_column.sql` (adds Scope dropdown for onsite calculations)
-  - `database/migrations/priority_site_access.sql` (adds SiteAccess column; PriorityLevel column already exists and is shared)
-  - `database/migrations/remove_onsite_location_fields.sql` (removes CustomerLocation and SiteAccessNotes columns from SavedCalculations)
+  - `database/migrations/split_calculator_tables.sql` (splits SavedCalculations into OnsiteSavedCalculations and WorkshopSavedCalculations)
+  - `database/migrations/calculator_types.sql` (adds CalculatorType and type-specific columns to SavedCalculations - legacy)
+  - `database/migrations/add_scope_column.sql` (adds Scope dropdown for onsite calculations - legacy)
+  - `database/migrations/priority_site_access.sql` (adds SiteAccess column - legacy)
+  - `database/migrations/remove_onsite_location_fields.sql` (removes CustomerLocation and SiteAccessNotes columns - legacy)
 - **Deprecated scripts**: `database/deprecated/create_app_logs.sql`, `database/deprecated/diagnostics_logs.sql` (moved after Application Insights migration)
 
 ### Backend Structure (`api/`)
@@ -193,13 +198,15 @@ The application includes comprehensive debug logging for troubleshooting initial
 **Express.js (Primary - App Service):**
 - Main server: `server.js` at root (Express app with static file serving and route mounting)
 - Route modules in `src/routes/`: Converted from Azure Functions to Express Router pattern
-  - Core routes: motorTypes, branches, labor, materials, savedCalculations, sharedCalculations
-  - Utility routes: ping, version, auth
-  - Admin routes: admin/roles, admin/diagnostics
-  - Backoffice routes: backoffice, backoffice/login
+  - **Core routes**: motorTypes, branches, labor, materials, savedCalculations (legacy), sharedCalculations (legacy)
+  - **Onsite routes**: onsite/calculations, onsite/shared
+  - **Workshop routes**: workshop/calculations, workshop/shared
+  - **Utility routes**: ping, version, auth
+  - **Admin routes**: admin/roles, admin/diagnostics
+  - **Backoffice routes**: backoffice, backoffice/login
 - Authentication middleware in `src/middleware/`: authExpress.js, twoFactorAuthExpress.js (Express-compatible)
 - Shared connection pool via `mssql` package in `src/db.js`
-- Utilities in `src/utils/`: logger.js (console-based with correlation ID support)
+- Utilities in `src/utils/`: logger.js (console-based with correlation ID support), calculator.js (GrandTotal calculation)
 - Environment configuration via `dotenv` package (loads `.env.local` from repository root)
 
 **Azure Functions (Legacy - still functional):**
@@ -208,40 +215,76 @@ The application includes comprehensive debug logging for troubleshooting initial
 - Original authentication middleware in `src/middleware/`: auth.js, twoFactorAuth.js (Azure Functions format)
 
 ### Frontend Structure (`src/`)
-- **Main Calculator** (`index.html`): Single-page HTML application using ES6 modules
-  - **Modular JavaScript**: Code split into 15 ES6 modules in `src/js/` directory
-  - **No build process** - Uses native ES6 modules with import maps (browser support: 96%+)
-  - **Module Organization**:
-    ```
-    src/js/
-    ├── app.js                    # Main entry point, initializes all modules
-    ├── config.js                 # Constants, environment detection, API endpoints
-    ├── state.js                  # Global state management
-    ├── utils.js                  # Helper functions (DOM, formatting, UI)
-    ├── auth/                     # Authentication module
-    │   ├── index.js              # Auth exports
-    │   ├── token-handling.js     # SWA token parsing
-    │   ├── mode-detection.js     # Role-based mode logic
-    │   └── ui.js                 # Auth UI rendering
-    ├── calculator/               # Calculator logic module
-    │   ├── index.js              # Calculator exports
-    │   ├── labor.js              # Labor section logic
-    │   ├── materials.js          # Materials section logic
-    │   ├── type.js               # Calculator type switching (Onsite/Workshop)
-    │   └── calculations.js       # Cost calculations
-    ├── saved-records/           # Saved calculations module
-    │   ├── index.js              # Saved records exports
-    │   ├── api.js                # API calls for saved calculations
-    │   ├── ui.js                 # Records list/grid rendering
-    │   └── sharing.js            # Share functionality
-    └── admin/                   # Admin role management module
-        ├── index.js              # Admin exports
-        └── role-assignment.js    # Admin panel logic
-    ```
-  - **Import Map**: Clean module resolution without relative path clutter
-  - **State Management**: Centralized in `state.js` with getters/setters
-  - **API Communication**: Via `fetch()` through utility functions
-  - **Azure AD Authentication**: For Executive/Sales users
+
+**Three Separate Calculator Applications:**
+
+1. **Landing Page** (`index.html`): Calculator selection page
+   - Simple landing page with links to Onsite and Workshop calculators
+   - No calculator functionality
+
+2. **Onsite Calculator** (`onsite.html`): Standalone onsite calculator
+   - **Modular JavaScript**: Code in `src/js/onsite/` directory
+   - **No build process** - Uses native ES6 modules with import maps
+   - **Module Organization**:
+     ```
+     src/js/onsite/
+     ├── app.js                    # Onsite app initialization
+     ├── config.js                 # Onsite-specific configuration
+     ├── state.js                  # Onsite-specific state management
+     ├── labor.js                  # Labor section logic
+     ├── materials.js              # Materials section logic
+     ├── calculations.js           # Onsite cost calculations
+     ├── onsite-options.js         # Onsite Options (Crane, 4 People, Safety)
+     └── saved-records/            # Saved records module
+         ├── api.js                # API calls for onsite calculations
+         ├── ui.js                 # Records list/grid rendering
+         ├── sharing.js            # Share functionality
+         ├── filters.js            # Universal search and sort
+         └── index.js              # Exports
+     ```
+   - **Onsite-specific fields**: Scope, Priority Level, Site Access, Onsite Options (Crane, 4 People, Safety)
+   - **API endpoints**: `/api/onsite/calculations`, `/api/onsite/shared`
+
+3. **Workshop Calculator** (`workshop.html`): Standalone workshop calculator
+   - **Modular JavaScript**: Code in `src/js/workshop/` directory
+   - **No build process** - Uses native ES6 modules with import maps
+   - **Module Organization**:
+     ```
+     src/js/workshop/
+     ├── app.js                    # Workshop app initialization
+     ├── config.js                 # Workshop-specific configuration
+     ├── state.js                  # Workshop-specific state management
+     ├── labor.js                  # Labor section logic
+     ├── materials.js              # Materials section logic
+     ├── calculations.js           # Workshop cost calculations
+     └── saved-records/            # Saved records module
+         ├── api.js                # API calls for workshop calculations
+         ├── ui.js                 # Records list/grid rendering
+         ├── sharing.js            # Share functionality
+         ├── filters.js            # Universal search and sort
+         └── index.js              # Exports
+     ```
+   - **API endpoints**: `/api/workshop/calculations`, `/api/workshop/shared`
+
+**Shared Core Utilities** (`src/js/core/`):
+- `config.js` - Shared constants and API endpoints
+- `utils.js` - Helper functions (DOM, formatting, UI)
+- `calculations.js` - Shared calculation formulas
+
+**Shared Authentication** (`src/js/auth/`):
+- `index.js` - Auth exports
+- `token-handling.js` - Token parsing
+- `mode-detection.js` - Role-based mode logic
+- `ui.js` - Auth UI rendering
+
+**Shared Admin** (`src/js/admin/`):
+- `index.js` - Admin exports
+- `role-assignment.js` - Admin panel logic
+
+- **Import Map**: Clean module resolution without relative path clutter
+- **State Management**: Each calculator has its own isolated state
+- **API Communication**: Via `fetch()` through utility functions
+- **Azure AD Authentication**: For Executive/Sales users
 - **Backoffice Admin** (`backoffice.html`): Standalone backoffice interface with 3-tab role management
   - Separate HTML file with complete UI independence
   - **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`
@@ -479,70 +522,39 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 
 **UTC Timezone**: All database timestamps use `GETUTCDATE()` for consistent UTC timezone across all servers; JavaScript uses `Date.toISOString()` for UTC datetime parameters
 
-### Calculator Type Management
+### Calculator Applications
 
-The application supports two calculator types that can be switched via tab navigation:
+The application provides two separate calculator applications, each with its own HTML file and JavaScript modules:
 
-**Constants** (`src/js/config.js`):
-```js
-export const CALCULATOR_TYPE = {
-  ONSITE: 'onsite',
-  WORKSHOP: 'workshop'
-};
+**Onsite Calculator** (`onsite.html`):
+- For field/onsite service calculations
+- Onsite Options section: Three optional add-on items (Crane, 4 People, Safety)
+- Labor section: Scope dropdown, Priority Level, Site Access
+- Travel section: Distance in km × 15 baht/km rate
+- Run number format: `ONS-YYYY-XXX`
+- API endpoints: `/api/onsite/calculations`, `/api/onsite/shared`
 
-export const SCOPE_OPTIONS = [
-  { value: 'low-volt', label: 'Low Volt' },
-  { value: 'medium-volt', label: 'Medium Volt' },
-  { value: 'large', label: 'Large' }
-];
+**Workshop Calculator** (`workshop.html`):
+- For workshop/facility-based service calculations
+- Simplified layout (Labor, Materials, Travel sections)
+- Run number format: `WKS-YYYY-XXX`
+- API endpoints: `/api/workshop/calculations`, `/api/workshop/shared`
 
-export const PRIORITY_LEVEL_OPTIONS = [
-  { value: 'high', label: 'High' },
-  { value: 'low', label: 'Low' }
-];
+**Shared Components**:
+- Authentication system (Azure AD)
+- Reference data APIs (motor types, branches, labor, materials)
+- Calculation utilities (cost formulas)
+- Admin panel (role management)
 
-export const SITE_ACCESS_OPTIONS = [
-  { value: 'easy', label: 'Easy' },
-  { value: 'difficult', label: 'Difficult' }
-];
-```
+**Constants** (`src/js/core/config.js`):
+- SCOPE_OPTIONS: Low Volt, Medium Volt, Large
+- PRIORITY_LEVEL_OPTIONS: High, Low
+- SITE_ACCESS_OPTIONS: Easy, Difficult
 
-**State Management** (`src/js/state.js`):
-- `currentCalculatorType`: Stores currently selected type (defaults to 'onsite')
-- `getCalculatorType()`: Returns current calculator type
-- `setCalculatorType(type)`: Updates calculator type and persists to localStorage
-- Selection persists across page loads via `localStorage.getItem(STORAGE_KEYS.CALCULATOR_TYPE)`
-- `currentScope`: Stores selected scope for onsite calculations
-- `getScope()`: Returns current scope value
-- `setScope(scope)`: Updates scope and persists to localStorage
-- `getInitialScope()`: Returns stored scope from localStorage
-- `currentPriorityLevel`: Stores selected priority level (defaults to 'low')
-- `getPriorityLevel()`: Returns current priority level value
-- `setPriorityLevel(level)`: Updates priority level and persists to localStorage
-- `getInitialPriorityLevel()`: Returns stored priority level from localStorage
-- `currentSiteAccess`: Stores selected site access (defaults to 'easy')
-- `getSiteAccess()`: Returns current site access value
-- `setSiteAccess(access)`: Updates site access and persists to localStorage
-- `getInitialSiteAccess()`: Returns stored site access from localStorage
-
-**Tab Switching Logic** (`src/js/calculator/type.js`):
-- `initCalculatorTypeTabs()`: Initializes tab click handlers and visual state
-- `switchCalculatorType(type)`: Switches between Onsite and Workshop modes
-- `updateFieldVisibility()`: Shows/hides type-specific form fields based on current type
-- `getCalculatorTypeLabel()`: Returns display label ('Onsite' or 'Workshop')
-- `getCalculatorTypeColorClass()`: Returns Tailwind color classes for badges (blue for Onsite, orange for Workshop)
-
-**Field Visibility**:
-- **Onsite Labor fields**: Scope (dropdown), Priority Level (radio buttons: High/Low), Site Access (radio buttons: Easy/Difficult)
-- **Onsite Location fields**: Customer Location, Site Access Notes
-- **Workshop fields**: None (uses original calculator layout)
-- Travel section is always visible for both calculator types
-
-**Saved Calculations Display**:
-- Calculator type badges shown in both Grid and List views
-- Blue badge with location icon for Onsite
-- Orange badge with building icon for Workshop
-- Detail view displays type-specific information
+**State Management**:
+- Each calculator has its own isolated state in `src/js/onsite/state.js` and `src/js/workshop/state.js`
+- No shared state between calculators
+- LocalStorage namespaces: `onsite-calculator-*` and `workshop-calculator-*`
 
 ---
 

@@ -1,0 +1,837 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Onsite Calculator - Price List Calculator</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Customer View hiding utility */
+    .customer-hidden {
+      display: none !important;
+    }
+    /* Customer View-specific manhours column hiding */
+    .customer-hidden-manhours {
+      display: none !important;
+    }
+    /* Customer View-specific styling */
+    body.customer-view {
+      background-color: #f9fafb;
+    }
+    .customer-view input:disabled,
+    .customer-view select:disabled,
+    .customer-view button:disabled {
+      background-color: #f3f4f6 !important;
+      color: #6b7280 !important;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <!-- Database Connection Loading Modal -->
+  <div id="dbLoadingModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 text-center">
+      <div class="animate-pulse mb-4">
+        <div class="inline-block w-12 h-12 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+      </div>
+      <h2 class="text-xl font-semibold text-slate-900">Connecting to Database</h2>
+      <p class="text-slate-600 mt-2">Please wait while we establish a connection...</p>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto p-6 space-y-12">
+    <header>
+      <div class="flex items-center justify-between gap-4 flex-wrap">
+        <div class="flex items-center gap-4">
+          <a href="/" class="text-slate-400 hover:text-slate-600 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+          </a>
+          <div>
+            <div class="flex items-center gap-3">
+              <h1 class="text-3xl font-bold tracking-tight">Onsite Calculator</h1>
+              <span class="px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800">Onsite</span>
+            </div>
+            <p class="text-sm text-slate-500">For field and onsite service calculations</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 flex-wrap">
+          <!-- Role Badge Indicator -->
+          <div id="roleBadge" class="hidden px-2 py-1 text-xs font-semibold rounded border">
+            <span id="roleBadgeText"></span>
+          </div>
+          <!-- My Records Button -->
+          <button id="myRecordsBtn" class="hidden px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+            </svg>
+            My Records
+          </button>
+          <!-- Save Button -->
+          <button id="saveBtn" class="hidden px-3 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+            </svg>
+            <span id="saveBtnText">Save</span>
+          </button>
+          <!-- Auth Control Section -->
+          <div id="authSection" class="flex items-center gap-4">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Breadcrumb Navigation (hidden by default) -->
+    <nav id="breadcrumbNav" class="hidden text-sm text-slate-600">
+      <ol class="flex items-center gap-2">
+        <li><a href="#" id="breadcrumbCalculator" class="hover:text-slate-900">Calculator</a></li>
+        <li class="text-slate-400">/</li>
+        <li id="breadcrumbCurrent">Records</li>
+      </ol>
+    </nav>
+
+    <!-- Main Calculator View -->
+    <div id="calculatorView" class="space-y-16">
+      <!-- Onsite Options Section (shown first for UX) -->
+      <section id="onsiteOptionsSection" class="bg-white rounded-2xl shadow p-8">
+        <div class="mb-6">
+          <h2 class="text-xl font-bold text-slate-800">Onsite Options</h2>
+          <p class="text-sm text-slate-500 mt-1">Select optional services for onsite work</p>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Crane Option -->
+          <div class="border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition-colors">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex items-center gap-4 flex-1">
+                <label class="text-sm font-medium text-slate-700 whitespace-nowrap">ใช้ Crane</label>
+                <div class="flex gap-4">
+                  <label class="inline-flex items-center">
+                    <input type="radio" name="craneEnabled" value="yes" class="text-blue-600 focus:ring-blue-500">
+                    <span class="ml-1">Yes</span>
+                  </label>
+                  <label class="inline-flex items-center">
+                    <input type="radio" name="craneEnabled" value="no" checked class="text-blue-600 focus:ring-blue-500">
+                    <span class="ml-1">No</span>
+                  </label>
+                </div>
+              </div>
+              <div class="sm:w-40">
+                <label class="block text-xs font-medium text-slate-600 mb-1">ราคาขาย (บาท)</label>
+                <input id="cranePrice" type="number" step="0.01" min="0" placeholder="0.00"
+                  class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 disabled:bg-slate-100 disabled:text-slate-400"
+                  disabled>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 People Option -->
+          <div class="border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition-colors">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex items-center gap-4 flex-1">
+                <label class="text-sm font-medium text-slate-700 whitespace-nowrap">ใช้ 4 ผู้</label>
+                <div class="flex gap-4">
+                  <label class="inline-flex items-center">
+                    <input type="radio" name="fourPeopleEnabled" value="yes" class="text-blue-600 focus:ring-blue-500">
+                    <span class="ml-1">Yes</span>
+                  </label>
+                  <label class="inline-flex items-center">
+                    <input type="radio" name="fourPeopleEnabled" value="no" checked class="text-blue-600 focus:ring-blue-500">
+                    <span class="ml-1">No</span>
+                  </label>
+                </div>
+              </div>
+              <div class="sm:w-40">
+                <label class="block text-xs font-medium text-slate-600 mb-1">ราคาขาย (บาท)</label>
+                <input id="fourPeoplePrice" type="number" step="0.01" min="0" placeholder="0.00"
+                  class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 disabled:bg-slate-100 disabled:text-slate-400"
+                  disabled>
+              </div>
+            </div>
+          </div>
+
+          <!-- Safety Option -->
+          <div class="border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition-colors">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex items-center gap-4 flex-1">
+                <label class="text-sm font-medium text-slate-700 whitespace-nowrap">ใช้ Safety</label>
+                <div class="flex gap-4">
+                  <label class="inline-flex items-center">
+                    <input type="radio" name="safetyEnabled" value="yes" class="text-blue-600 focus:ring-blue-500">
+                    <span class="ml-1">Yes</span>
+                  </label>
+                  <label class="inline-flex items-center">
+                    <input type="radio" name="safetyEnabled" value="no" checked class="text-blue-600 focus:ring-blue-500">
+                    <span class="ml-1">No</span>
+                  </label>
+                </div>
+              </div>
+              <div class="sm:w-40">
+                <label class="block text-xs font-medium text-slate-600 mb-1">ราคาขาย (บาท)</label>
+                <input id="safetyPrice" type="number" step="0.01" min="0" placeholder="0.00"
+                  class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 disabled:bg-slate-100 disabled:text-slate-400"
+                  disabled>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Onsite Options Subtotal -->
+        <div class="mt-6 pt-4 border-t border-slate-200">
+          <div class="flex justify-end">
+            <div class="text-right">
+              <span class="text-sm text-slate-600">Onsite Options Subtotal:</span>
+              <span id="onsiteOptionsSubtotal" class="ml-2 text-lg font-bold text-slate-800">0.00</span>
+              <span class="text-slate-600">baht</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PART 1: Labor -->
+      <section class="bg-white rounded-2xl shadow p-8">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+          <h2 class="text-xl font-semibold">Labor</h2>
+          <div class="text-sm text-slate-600">
+            Cost per hour: <span id="costPerHour" class="font-semibold">—</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700">Motor Type</label>
+            <select id="motorType" class="mt-1 w-full rounded-lg border-slate-200">
+              <option value="">Loading…</option>
+            </select>
+          </div>
+          <div id="branchDropdown">
+            <label class="block text-sm font-medium text-slate-700">Branch</label>
+            <select id="branch" class="mt-1 w-full rounded-lg border-slate-200">
+              <option value="">Loading…</option>
+            </select>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-5">
+            <div class="text-sm text-slate-500">Labor subtotal</div>
+            <div id="laborSubtotal" class="text-2xl font-bold">—</div>
+          </div>
+        </div>
+
+        <!-- Scope, Priority Level, and Site Access (Onsite-specific, shown in Labor section) -->
+        <div id="onsiteLaborFields" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Scope Dropdown -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700">Scope</label>
+            <div class="relative mt-1">
+              <select id="scope" name="scope" class="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                <option value="">Select Scope…</option>
+                <option value="low-volt">Low Volt</option>
+                <option value="medium-volt">Medium Volt</option>
+                <option value="large">Large</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Priority Level Radio Buttons -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700">Priority Level</label>
+            <div class="mt-2 space-y-2">
+              <label class="flex items-center">
+                <input type="radio" name="priorityLevel" value="high" class="mr-2 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                <span class="text-sm text-gray-700">High</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="priorityLevel" value="low" checked class="mr-2 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                <span class="text-sm text-gray-700">Low</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Site Access Radio Buttons -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700">Site Access</label>
+            <div class="mt-2 space-y-2">
+              <label class="flex items-center">
+                <input type="radio" name="siteAccess" value="easy" checked class="mr-2 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                <span class="text-sm text-gray-700">Easy</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="siteAccess" value="difficult" class="mr-2 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                <span class="text-sm text-gray-700">Difficult</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-slate-600">
+              <tr class="border-b">
+                <th class="w-10 py-2"></th>
+                <th class="text-left py-2">Job</th>
+                <th class="text-right py-2">Manhours</th>
+                <th class="text-right py-2">Cost+Ovh+PP</th>
+                <th class="text-right py-2">Final Price</th>
+              </tr>
+            </thead>
+            <tbody id="laborRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+
+      <!-- PART 2: Materials -->
+      <section class="bg-white rounded-2xl shadow p-8">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+          <h2 class="text-xl font-semibold">Materials</h2>
+          <button id="addMaterial" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm">
+            + Add row
+          </button>
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-slate-600 hidden md:table-header-group" id="materialTableHead"></thead>
+            <tbody id="materialRows"></tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <div class="rounded-xl border border-slate-200 p-5 w-full md:w-64">
+            <div class="text-sm text-slate-500">Materials subtotal</div>
+            <div id="materialSubtotal" class="text-2xl font-bold">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PART 3: Travel -->
+      <section id="travelSection" class="bg-white rounded-2xl shadow p-8">
+        <h2 class="text-xl font-semibold">Travel</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700">Travel/Shipping Distance (Km)</label>
+            <input id="travelKm" type="number" step="1" min="0" class="mt-1 w-full rounded-lg border-2 border-slate-400"/>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-5">
+            <div class="text-sm text-slate-500">Travel/Shipping Final Price</div>
+            <div id="travelCost" class="text-2xl font-bold">—</div>
+            <div class="text-xs text-slate-500 mt-1">Km × 15 baht/km (with commission)</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GRAND TOTAL -->
+      <section class="mt-8 space-y-8">
+        <div id="bottomSummaryGrid" class="grid grid-cols-1 md:grid-cols-3 gap-16">
+
+          <!-- Left Card: Sub Grand Total + Sales Profit -->
+          <div id="grandTotalWithoutCommission" class="bg-slate-900 text-white rounded-2xl shadow p-8">
+            <div class="text-center md:text-left">
+              <div class="text-sm font-medium text-slate-300 mb-2">Grand Total without Commission</div>
+              <div id="grandTotal" class="text-5xl font-extrabold text-white mb-6">—</div>
+              <div id="salesProfitCard" class="space-y-2">
+                <label for="salesProfitPct" class="block text-sm font-medium text-slate-300">Sales Profit %</label>
+                <input id="salesProfitPct" type="number" step="0.01"
+                       class="w-full rounded-lg border-2 border-slate-500 bg-slate-800 text-white px-4 py-3 text-lg"
+                       placeholder="0.00"/>
+                <p class="text-xs text-slate-400 mt-1">Can be negative for discounts</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Card: Breakdown Items -->
+          <div id="breakdownCard" class="bg-slate-900 text-white rounded-2xl shadow p-8">
+            <div class="space-y-3">
+              <!-- Labor -->
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-slate-300">Labor</span>
+                <span id="grandLabor" class="font-semibold text-white">—</span>
+              </div>
+              <!-- Materials -->
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-slate-300">Materials</span>
+                <span id="grandMaterials" class="font-semibold text-white">—</span>
+              </div>
+              <!-- Separator -->
+              <div id="totalRawCostSection">
+                <div class="border-t border-slate-700 pt-4 mt-4"></div>
+                <!-- Total Raw Cost -->
+                <div class="flex justify-between items-center">
+                  <span class="text-sm text-slate-300">Total Raw Cost</span>
+                  <span id="grandTotalRawCost" class="font-semibold text-white">—</span>
+                </div>
+              </div>
+              <!-- Overhead -->
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-slate-300">Total Ovh+PP</span>
+                <span id="grandOverhead" class="font-semibold text-white">—</span>
+              </div>
+              <!-- Sub Total Cost -->
+              <div id="subTotalCostSection" class="flex justify-between items-center">
+                <span class="text-base font-medium text-slate-200">Total Cost+Ovh+PP</span>
+                <span id="grandSubTotalBeforeSalesProfit" class="text-xl font-bold text-white">—</span>
+              </div>
+              <!-- Commission Section -->
+              <div id="commissionSection" class="border-t border-slate-700 pt-4 mt-4 space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-base font-medium text-emerald-400">Commission%</span>
+                  <span id="grandCommissionPercent" class="text-2xl font-bold text-emerald-400">—</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-base font-medium text-emerald-400">Sales Commission</span>
+                  <span id="grandCommission" class="text-2xl font-bold text-emerald-400">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Percentage Breakdown Card (Executive Only) -->
+          <div id="percentageBreakdownCard" class="bg-slate-900 text-white rounded-2xl shadow p-8 hidden">
+            <h3 class="text-base font-semibold text-white mb-4">Percentage Breakdown</h3>
+            <div class="space-y-3">
+              <!-- Labor % -->
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-slate-300">Labor</span>
+                <span id="laborPercent" class="font-semibold text-cyan-400">—</span>
+              </div>
+              <!-- Materials % -->
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-slate-300">Materials</span>
+                <span id="materialsPercent" class="font-semibold text-cyan-400">—</span>
+              </div>
+              <!-- Overhead + Policy Profit % -->
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-slate-300">Ovh+PP</span>
+                <span id="overheadPercent" class="font-semibold text-cyan-400">—</span>
+              </div>
+              <!-- Commission % -->
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-slate-300">Commission</span>
+                <span id="commissionPercentOfTotal" class="font-semibold text-cyan-400">—</span>
+              </div>
+              <!-- Separator -->
+              <div class="border-t border-slate-700 pt-3 mt-3"></div>
+              <!-- Gross Profit % -->
+              <div class="flex justify-between items-center">
+                <span class="text-base font-medium text-emerald-400">Gross Profit</span>
+                <span id="grossProfitPercent" class="text-lg font-bold text-emerald-400">—</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- New Grand Total (sum of Final Prices) -->
+        <div id="grandTotalBottomCard" class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl shadow-xl p-8">
+          <div class="text-center md:text-left">
+            <div class="text-sm font-medium text-slate-300 mb-2">Grand Total</div>
+            <div id="newGrandTotal" class="text-6xl font-extrabold text-white">—</div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <!-- End Main Calculator View -->
+
+    <!-- Saved Records List View (hidden by default) -->
+    <div id="listView" class="hidden">
+      <div class="bg-white rounded-2xl shadow p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold">My Saved Records</h2>
+          <button id="backToCalculatorBtn" class="px-4 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            New Calculation
+          </button>
+        </div>
+
+        <!-- View Toggle and Filters -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <!-- View Toggle Buttons -->
+          <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1 self-start">
+            <button onclick="setRecordsView('list')" id="listViewBtn" class="p-2 rounded-md transition-colors" aria-label="List view">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+            </button>
+            <button onclick="setRecordsView('grid')" id="gridViewBtn" class="p-2 rounded-md transition-colors" aria-label="Grid view">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <!-- Universal Search -->
+          <div class="md:col-span-1">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Search Records</label>
+            <div class="relative">
+              <input type="text" id="searchRecords"
+                     class="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                     placeholder="Search all columns..."
+                     autocomplete="off">
+              <svg class="absolute left-3 top-2.5 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <button type="button" id="clearSearch" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 hidden" aria-label="Clear search">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <div id="searchResults" class="text-sm text-slate-500 mt-1"></div>
+          </div>
+          <!-- Date Range -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Date Range</label>
+            <select id="dateRange" class="w-full rounded-lg border-slate-200 px-3 py-2">
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
+        </div>
+        <!-- Sort hint -->
+        <div class="mb-4 text-sm text-slate-500">
+          <span class="inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Click any column header to sort
+          </span>
+        </div>
+
+        <!-- Records Grid -->
+        <div id="recordsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <p class="text-slate-500 col-span-full text-center py-8">Loading saved records...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Record Detail View (hidden by default) -->
+    <div id="detailView" class="hidden">
+      <div class="bg-white rounded-2xl shadow p-6">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 id="detailRunNumber" class="text-2xl font-bold">2024-001</h2>
+            <p id="detailDate" class="text-sm text-slate-500">Created: Jan 1, 2024</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="detailShareBtn" class="px-4 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+              </svg>
+              Share
+            </button>
+            <button id="detailEditBtn" class="px-4 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors">
+              Edit Record
+            </button>
+            <button id="detailBackBtn" class="px-4 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+              ← Back
+            </button>
+          </div>
+        </div>
+
+        <!-- Read-only display of calculation data -->
+        <div class="space-y-6" id="detailContent">
+          <p class="text-slate-500">Loading record details...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Modal (hidden by default) -->
+    <div id="shareModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold">Share Record</h3>
+          <button id="closeShareModal" class="text-slate-400 hover:text-slate-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="text-sm text-slate-600 mb-4">
+          Anyone with the link can view this record. They must be signed in to access it.
+        </p>
+        <div class="flex gap-2">
+          <input id="shareUrlInput" type="text" readonly class="flex-1 rounded-lg border-slate-200 px-3 py-2 bg-slate-50 text-sm">
+          <button id="copyShareBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 transition-colors">
+            Copy
+          </button>
+        </div>
+        <div id="copyFeedback" class="hidden mt-3 text-sm text-emerald-600 font-medium">
+          ✓ Copied to clipboard!
+        </div>
+      </div>
+    </div>
+
+    <!-- Save Success Modal (hidden by default) -->
+    <div id="saveSuccessModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+        <!-- Success Icon -->
+        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+
+        <h3 class="text-2xl font-bold text-slate-900 mb-1">Calculation Saved!</h3>
+        <p class="text-slate-500 text-sm mb-6">Your calculation has been saved successfully.</p>
+
+        <!-- Run Number Display -->
+        <div class="bg-slate-50 rounded-xl p-4 mb-4">
+          <p class="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">Run Number</p>
+          <p id="saveSuccessRunNumber" class="text-3xl font-bold text-slate-900">2024-001</p>
+        </div>
+
+        <!-- Timestamp -->
+        <p id="saveSuccessTimestamp" class="text-xs text-slate-400 mb-6"></p>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-3">
+          <button id="saveSuccessViewBtn" class="flex-1 px-4 py-3 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors">
+            View Record
+          </button>
+          <button id="saveSuccessCloseBtn" class="flex-1 px-4 py-3 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Success Modal (hidden by default) -->
+    <div id="deleteSuccessModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+        <!-- Success Icon -->
+        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </div>
+
+        <h3 class="text-2xl font-bold text-slate-900 mb-1">Record Deleted!</h3>
+        <p class="text-slate-500 text-sm mb-6">The record has been permanently deleted.</p>
+
+        <!-- Run Number Display -->
+        <div class="bg-slate-50 rounded-xl p-4 mb-4">
+          <p class="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">Deleted Record</p>
+          <p id="deleteSuccessRunNumber" class="text-3xl font-bold text-slate-900">2024-001</p>
+        </div>
+
+        <!-- Timestamp -->
+        <p id="deleteSuccessTimestamp" class="text-xs text-slate-400 mb-6"></p>
+
+        <!-- Action Button -->
+        <button id="deleteSuccessDoneBtn" class="w-full px-4 py-3 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors">
+          Done
+        </button>
+      </div>
+    </div>
+
+    <!-- Batch Delete Progress Modal (hidden by default) -->
+    <div id="batchDeleteProgressModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+        <!-- Progress Spinner -->
+        <div class="w-16 h-16 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin flex items-center justify-center mx-auto mb-4"></div>
+
+        <h3 class="text-2xl font-bold text-slate-900 mb-1">Deleting Records...</h3>
+        <p id="batchDeleteProgressText" class="text-slate-500 text-sm mb-6">Preparing to delete records...</p>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-slate-200 rounded-full h-2 mb-4">
+          <div id="batchDeleteProgressBar" class="bg-red-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch Delete Summary Modal (hidden by default) -->
+    <div id="batchDeleteSummaryModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+        <!-- Summary Icon -->
+        <div id="batchDeleteSummaryIcon" class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+
+        <h3 id="batchDeleteSummaryTitle" class="text-2xl font-bold text-slate-900 mb-1">Batch Delete Complete</h3>
+        <p id="batchDeleteSummaryText" class="text-slate-500 text-sm mb-6">Successfully deleted 5 records.</p>
+
+        <!-- Summary Stats -->
+        <div class="bg-slate-50 rounded-xl p-4 mb-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p id="batchDeleteSuccessCount" class="text-2xl font-bold text-emerald-600">5</p>
+              <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Deleted</p>
+            </div>
+            <div id="batchDeleteFailureCount" class="hidden">
+              <p class="text-2xl font-bold text-red-600">0</p>
+              <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Failed</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button id="batchDeleteSummaryDoneBtn" class="w-full px-4 py-3 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors">
+          Done
+        </button>
+      </div>
+    </div>
+
+    <!-- Admin Panel Modal (hidden by default) -->
+    <div id="adminPanelModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-slate-900">Role Management</h2>
+          <button id="closeAdminPanel" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Assign Role Section -->
+        <div class="mb-6 p-4 bg-slate-50 rounded-xl">
+          <h3 class="text-sm font-semibold text-slate-700 mb-3">Assign Executive Role</h3>
+          <div class="flex gap-2">
+            <input id="assignRoleEmail" type="email" placeholder="user@example.com" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            <button id="assignRoleBtn" class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors">
+              Assign
+            </button>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">User will receive Executive privileges. They can view costs and manage all records.</p>
+        </div>
+
+        <!-- Role Assignments List -->
+        <div class="flex-1 overflow-y-auto">
+          <h3 class="text-sm font-semibold text-slate-700 mb-2">Role Assignments</h3>
+          <div id="adminRolesList" class="border border-slate-200 rounded-lg divide-y divide-slate-100">
+            <p class="text-sm text-slate-500 text-center py-4">Loading...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Awaiting Assignment View (hidden by default) -->
+    <!-- pointer-events-auto re-enables interactions for this view only -->
+    <div id="awaitingView" class="hidden pointer-events-auto" role="dialog" aria-modal="true" aria-labelledby="awaitingTitle">
+      <div class="flex items-center justify-center min-h-[60vh]">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 text-center relative z-50">
+          <!-- Clock Icon -->
+          <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+
+          <h2 id="awaitingTitle" class="text-2xl font-bold text-slate-900 mb-2">Account Pending</h2>
+          <p class="text-slate-600 mb-6">
+            Your account is awaiting role assignment. Please contact your administrator to get access to the calculator.
+          </p>
+
+          <div class="bg-slate-50 rounded-xl p-4 mb-6 text-left">
+            <p class="text-sm text-slate-600 mb-2">
+              <strong>Your email:</strong> <span id="awaitingEmail"></span>
+            </p>
+            <p class="text-xs text-slate-500">
+              Once assigned a role, you'll be able to create calculations and manage your records.
+            </p>
+          </div>
+
+          <a href="/.auth/logout?post_logout_redirect_uri=/onsite.html" class="inline-block px-6 py-3 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors">
+            Sign Out
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- NoRole State Overlay (hidden by default) -->
+    <!-- This overlay prevents interactions with background elements when in NoRole state -->
+    <div id="noroleOverlay" class="hidden fixed inset-0 bg-slate-900/5 backdrop-blur-sm z-40 pointer-events-none" aria-hidden="true"></div>
+
+    <!-- Bulk Actions Bar (hidden by default) -->
+    <div id="bulkActionsBar" class="hidden fixed left-0 right-0 z-40 bg-slate-900 shadow-lg">
+      <!-- Desktop: Top bar -->
+      <div class="hidden md:flex items-center justify-between px-6 py-3">
+        <div class="flex items-center gap-4">
+          <span id="bulkSelectedCount" class="text-white font-semibold">0 selected</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="bulkSelectAllBtn" class="px-4 py-2 text-sm text-white hover:bg-slate-800 rounded-lg transition-colors">
+            Select All
+          </button>
+          <button id="bulkClearBtn" class="px-4 py-2 text-sm text-slate-300 hover:text-white rounded-lg transition-colors">
+            Clear Selection
+          </button>
+          <div class="h-6 w-px bg-slate-700"></div>
+          <button id="bulkDeleteBtn" class="px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors">
+            Delete Selected
+          </button>
+        </div>
+      </div>
+      <!-- Mobile: Bottom bar -->
+      <div class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 px-4 py-3">
+        <div class="flex items-center justify-between">
+          <span id="bulkSelectedCountMobile" class="text-white font-semibold">0 selected</span>
+          <div class="flex items-center gap-2">
+            <button id="bulkDeleteBtnMobile" class="px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors">
+              Delete
+            </button>
+            <button id="bulkClearBtnMobile" class="px-4 py-2 text-sm text-slate-300 hover:text-white rounded-lg transition-colors">
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="status" class="text-sm text-slate-600"></div>
+  </div>
+
+  </div>
+
+<!-- ES6 Modules Import Map -->
+<script type="importmap">
+{
+  "imports": {
+    "./onsite/config.js": "./js/onsite/config.js",
+    "./onsite/state.js": "./js/onsite/state.js",
+    "./core/utils.js": "./js/core/utils.js",
+    "./core/calculations.js": "./js/core/calculations.js",
+    "./auth/": "./js/auth/",
+    "./onsite/": "./js/onsite/",
+    "./onsite/saved-records/": "./js/onsite/saved-records/",
+    "./admin/": "./js/admin/"
+  }
+}
+</script>
+
+<!-- Main Application Entry Point -->
+<script type="module">
+  // Add global error handlers for debugging
+  window.addEventListener('error', (event) => {
+    console.error('[GLOBAL ERROR]', event.error);
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[UNHANDLED PROMISE REJECTION]', event.reason);
+  });
+
+  // Load the onsite app
+  import('./js/onsite/app.js');
+</script>
+
+</body>
+</html>

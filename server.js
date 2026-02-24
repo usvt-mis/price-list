@@ -46,6 +46,11 @@ const adminRolesRouter = require('./api/src/routes/admin/roles');
 const backofficeRouter = require('./api/src/routes/backoffice');
 const backofficeLoginRouter = require('./api/src/routes/backoffice/login');
 const authRouter = require('./api/src/routes/auth');
+// NEW: Onsite and Workshop calculation routes
+const onsiteCalculationsRouter = require('./api/src/routes/onsite/calculations');
+const onsiteSharedRouter = require('./api/src/routes/onsite/shared');
+const workshopCalculationsRouter = require('./api/src/routes/workshop/calculations');
+const workshopSharedRouter = require('./api/src/routes/workshop/shared');
 
 // Import authentication middleware
 const { requireAuth } = require('./api/src/middleware/authExpress');
@@ -92,6 +97,15 @@ app.get('/backoffice', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'backoffice.html'));
 });
 
+// NEW: Routes for Onsite and Workshop calculators
+app.get('/onsite.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'onsite.html'));
+});
+
+app.get('/workshop.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'workshop.html'));
+});
+
 // ============================================================
 // API Routes
 // ============================================================
@@ -108,8 +122,20 @@ app.use('/api/labor', requireAuth, laborRouter);
 // Materials (requires authentication)
 app.use('/api/materials', requireAuth, materialsRouter);
 
-// Saved calculations (requires authentication)
+// Saved calculations (requires authentication) - LEGACY, kept for compatibility
 app.use('/api/saves', requireAuth, savedCalculationsRouter);
+
+// Onsite calculations (requires authentication) - NEW split architecture
+app.use('/api/onsite/calculations', requireAuth, onsiteCalculationsRouter);
+
+// Onsite shared calculations (POST requires auth, GET is public - handled in router)
+app.use('/api/onsite/shared', onsiteSharedRouter);
+
+// Workshop calculations (requires authentication) - NEW split architecture
+app.use('/api/workshop/calculations', requireAuth, workshopCalculationsRouter);
+
+// Workshop shared calculations (POST requires auth, GET is public - handled in router)
+app.use('/api/workshop/shared', workshopSharedRouter);
 
 // Shared calculations (POST requires auth, GET is public - handled in router)
 app.use('/api/shared', sharedCalculationsRouter);

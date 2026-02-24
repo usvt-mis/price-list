@@ -12,13 +12,28 @@ The Price List Calculator computes total cost based on three components:
 ## Architecture
 
 ### Frontend
-- **Main Calculator** (`src/index.html`): Single-page HTML application
-  - **ES6 Modules**: JavaScript organized into 15 modular files in `src/js/` directory
-  - **No build process**: Uses native ES6 modules with import maps (browser support: 96%+)
-  - **Modular Structure**: Clear separation of concerns - auth, calculator, saved-records, admin
+- **Landing Page** (`src/index.html`): Calculator selection page with links to Onsite and Workshop calculators
+- **Onsite Calculator** (`src/onsite.html`): Standalone onsite calculator application
+  - **ES6 Modules**: JavaScript in `src/js/onsite/` directory
+  - **No build process**: Uses native ES6 modules with import maps
   - Tailwind CSS via CDN
-  - Azure AD authentication for main app users
-  - Responsive design with mobile-friendly material panel (card-based layout on screens < 768px)
+  - Azure AD authentication
+- **Workshop Calculator** (`src/workshop.html`): Standalone workshop calculator application
+  - **ES6 Modules**: JavaScript in `src/js/workshop/` directory
+  - **No build process**: Uses native ES6 modules with import maps
+  - Tailwind CSS via CDN
+  - Azure AD authentication
+- **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
+  - Separate HTML file with complete UI independence
+  - **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`
+  - No password step - Azure AD handles full authentication
+  - No navigation links to main calculator
+  - **3-Tab Role Management**: Executives, Sales, Customers tabs for pre-assigning roles by email
+  - **Inline Add Forms**: Add users directly in each tab with real-time validation
+  - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
+  - **Count Badges**: User count displayed on each tab
+  - **Audit Log Tab**: View complete role change history
+  - **Settings Tab**: Displays authentication info
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
   - Separate HTML file with complete UI independence
   - **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`
@@ -108,10 +123,16 @@ The application expects these SQL Server tables:
 | `Jobs` | Job definitions with JobCode, JobName, SortOrder |
 | `Jobs2MotorType` | Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours) |
 | `Materials` | Material catalog with MaterialCode, MaterialName, UnitCost, IsActive |
-| `SavedCalculations` | Saved calculation records with run numbers (e.g., 2024-001), GrandTotal (pre-calculated for sorting), CalculatorType (onsite/workshop), Scope, PriorityLevel (shared with Workshop), SiteAccess, CustomerLocation, SiteAccessNotes, EquipmentUsed, MachineHours, PickupDeliveryOption, QualityCheckRequired |
-| `SavedCalculationJobs` | Jobs associated with each saved calculation |
-| `SavedCalculationMaterials` | Materials associated with each saved calculation |
-| `RunNumberSequence` | Tracks year-based sequential run numbers |
+| `OnsiteSavedCalculations` | Onsite saved calculation records with run numbers (e.g., ONS-2024-001), GrandTotal, Scope, PriorityLevel, SiteAccess, Onsite Options (Crane, 4 People, Safety) |
+| `OnsiteSavedCalculationJobs` | Jobs associated with each onsite saved calculation |
+| `OnsiteSavedCalculationMaterials` | Materials associated with each onsite saved calculation |
+| `WorkshopSavedCalculations` | Workshop saved calculation records with run numbers (e.g., WKS-2024-001), GrandTotal, EquipmentUsed, MachineHours, PickupDeliveryOption, QualityCheckRequired |
+| `WorkshopSavedCalculationJobs` | Jobs associated with each workshop saved calculation |
+| `WorkshopSavedCalculationMaterials` | Materials associated with each workshop saved calculation |
+| `SavedCalculations` | Legacy saved calculation records (kept for rollback) |
+| `SavedCalculationJobs` | Legacy jobs table (kept for rollback) |
+| `SavedCalculationMaterials` | Legacy materials table (kept for rollback) |
+| `RunNumberSequence` | Tracks year-based sequential run numbers (legacy) |
 | `UserRoles` | Role assignments (Email, Role [Executive/Sales/Customer/NULL], AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt) |
 | `BackofficeAdmins` | Backoffice admin accounts (deprecated - no longer used for authentication) |
 | `RoleAssignmentAudit` | Immutable audit log of all role changes |
@@ -166,13 +187,27 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/branches` | GET | Fetch all branches | Yes |
 | `/api/labor?motorTypeId={id}` | GET | Fetch ALL jobs with motor-type-specific manhours (returns 0 for unmatched jobs) | Yes |
 | `/api/materials?query={search}` | GET | Search materials (min 2 chars, searches both code and name, returns top 20) | Yes |
-| `/api/saves` | POST | Create new saved calculation | Yes |
-| `/api/saves` | GET | List saved records (role-filtered) | Yes |
-| `/api/saves/{id}` | GET | Get single saved record | Yes |
-| `/api/saves/{id}` | PUT | Update saved record (creator only) | Yes |
-| `/api/saves/{id}` | DELETE | Delete saved record (creator or executive) | Yes |
-| `/api/saves/{id}/share` | POST | Generate share token for record | Yes |
-| `/api/shared/{token}` | GET | Access shared record (public, no auth required) | No |
+| `/api/onsite/calculations` | POST | Create new onsite saved calculation | Yes |
+| `/api/onsite/calculations` | GET | List onsite saved records (role-filtered) | Yes |
+| `/api/onsite/calculations/{id}` | GET | Get single onsite saved record | Yes |
+| `/api/onsite/calculations/{id}` | PUT | Update onsite saved record (creator only) | Yes |
+| `/api/onsite/calculations/{id}` | DELETE | Delete onsite saved record (creator or executive) | Yes |
+| `/api/onsite/shared/{saveId}/share` | POST | Generate share token for onsite record | Yes |
+| `/api/onsite/shared/{token}` | GET | Access shared onsite record (public, no auth required) | No |
+| `/api/workshop/calculations` | POST | Create new workshop saved calculation | Yes |
+| `/api/workshop/calculations` | GET | List workshop saved records (role-filtered) | Yes |
+| `/api/workshop/calculations/{id}` | GET | Get single workshop saved record | Yes |
+| `/api/workshop/calculations/{id}` | PUT | Update workshop saved record (creator only) | Yes |
+| `/api/workshop/calculations/{id}` | DELETE | Delete workshop saved record (creator or executive) | Yes |
+| `/api/workshop/shared/{saveId}/share` | POST | Generate share token for workshop record | Yes |
+| `/api/workshop/shared/{token}` | GET | Access shared workshop record (public, no auth required) | No |
+| `/api/saves` | POST | Create new saved calculation (legacy) | Yes |
+| `/api/saves` | GET | List saved records (role-filtered) (legacy) | Yes |
+| `/api/saves/{id}` | GET | Get single saved record (legacy) | Yes |
+| `/api/saves/{id}` | PUT | Update saved record (creator only) (legacy) | Yes |
+| `/api/saves/{id}` | DELETE | Delete saved record (creator or executive) (legacy) | Yes |
+| `/api/saves/{id}/share` | POST | Generate share token for record (legacy) | Yes |
+| `/api/shared/{token}` | GET | Access shared record (public, no auth required) (legacy) | No |
 | `/api/adm/roles` | GET | List all role assignments | Executive only |
 | `/api/adm/roles/assign` | POST | Assign Executive or Sales role to user | Executive only |
 | `/api/adm/roles/{email}` | DELETE | Remove role assignment (sets to NoRole) | Executive only |
@@ -319,6 +354,12 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │   ├── materials.js
 │   │   │   ├── savedCalculations.js
 │   │   │   ├── sharedCalculations.js
+│   │   │   ├── onsite/
+│   │   │   │   ├── calculations.js    # Onsite CRUD operations
+│   │   │   │   └── shared.js          # Onsite share routes
+│   │   │   ├── workshop/
+│   │   │   │   ├── calculations.js    # Workshop CRUD operations
+│   │   │   │   └── shared.js          # Workshop share routes
 │   │   │   ├── ping.js
 │   │   │   ├── version.js
 │   │   │   ├── admin/
@@ -384,31 +425,50 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │       ├── migrate_to_utc.sql
 │       ├── priority_site_access.sql
 │       ├── remove_database_logging.sql
+│       ├── split_calculator_tables.sql    # Splits SavedCalculations into Onsite/Workshop
 │       └── two_factor_auth.sql
 ├── src/
-│   ├── index.html                # Main calculator (HTML with ES6 modules)
+│   ├── index.html                # Landing page (calculator selection)
+│   ├── onsite.html               # Onsite calculator
+│   ├── workshop.html              # Workshop calculator
 │   ├── backoffice.html           # Backoffice admin interface
 │   └── js/                      # ES6 JavaScript modules
-│       ├── app.js               # Main entry point
-│       ├── config.js            # Configuration & constants
-│       ├── state.js             # State management
-│       ├── utils.js             # Helper functions
+│       ├── core/                # Shared utilities
+│       │   ├── config.js
+│       │   ├── utils.js
+│       │   └── calculations.js
+│       ├── onsite/              # Onsite-specific modules
+│       │   ├── app.js
+│       │   ├── config.js
+│       │   ├── state.js
+│       │   ├── labor.js
+│       │   ├── materials.js
+│       │   ├── calculations.js
+│       │   ├── onsite-options.js
+│       │   └── saved-records/
+│       │       ├── api.js
+│       │       ├── ui.js
+│       │       ├── sharing.js
+│       │       ├── filters.js
+│       │       └── index.js
+│       ├── workshop/            # Workshop-specific modules
+│       │   ├── app.js
+│       │   ├── config.js
+│       │   ├── state.js
+│       │   ├── labor.js
+│       │   ├── materials.js
+│       │   ├── calculations.js
+│       │   └── saved-records/
+│       │       ├── api.js
+│       │       ├── ui.js
+│       │       ├── sharing.js
+│       │       ├── filters.js
+│       │       └── index.js
 │       ├── auth/                # Authentication module
 │       │   ├── index.js
 │       │   ├── token-handling.js
 │       │   ├── mode-detection.js
 │       │   └── ui.js
-│       ├── calculator/          # Calculator module
-│       │   ├── index.js
-│       │   ├── labor.js
-│       │   ├── materials.js
-│       │   └── calculations.js
-│       ├── saved-records/      # Saved records module
-│       │   ├── index.js
-│       │   ├── api.js
-│       │   ├── filters.js       # Universal search and sort utilities
-│       │   ├── ui.js
-│       │   └── sharing.js
 │       └── admin/               # Admin module
 │           ├── index.js
 │           └── role-assignment.js
