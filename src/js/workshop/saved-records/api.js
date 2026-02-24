@@ -218,6 +218,16 @@ export async function saveCalculation() {
     saveBtnText.textContent = 'Saving...';
 
     const data = serializeCalculatorState();
+
+    // Save draft to localStorage before API call for data recovery
+    const draftKey = `workshop-calculator-draft-${Date.now()}`;
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(data));
+      console.log(`[Draft] Saved to localStorage: ${draftKey}`);
+    } catch (draftError) {
+      console.warn('[Draft] Failed to save draft to localStorage:', draftError);
+    }
+
     const headers = { ...getApiHeaders(), 'Content-Type': 'application/json' };
 
     let response;
@@ -235,6 +245,9 @@ export async function saveCalculation() {
       });
     }
 
+    // Get correlation ID for support reference
+    const correlationId = response.headers.get('x-correlation-id');
+
     if (!response.ok) {
       if (response.status === 401) {
         showNotification('Authentication required');
@@ -248,9 +261,9 @@ export async function saveCalculation() {
       try {
         const errorData = await response.json();
         if (errorData.error) {
-          errorMessage = errorData.error;
-          if (errorData.details) {
-            errorMessage += `: ${errorData.details}`;
+          errorMessage = mapTechnicalErrorToUserFriendly(errorData.error);
+          if (correlationId) {
+            errorMessage += `\n\nReference ID: ${correlationId}`;
           }
         }
       } catch (parseError) {
@@ -264,6 +277,14 @@ export async function saveCalculation() {
     setCurrentSavedRecord(result);
     setDirty(false);
 
+    // Clear draft on successful save
+    try {
+      localStorage.removeItem(draftKey);
+      console.log(`[Draft] Cleared draft: ${draftKey}`);
+    } catch (draftError) {
+      console.warn('[Draft] Failed to clear draft from localStorage:', draftError);
+    }
+
     const { showSaveSuccessModal } = await import('./ui.js');
     showSaveSuccessModal(result.runNumber, result.saveId);
     updateSaveButtonState();
@@ -275,6 +296,43 @@ export async function saveCalculation() {
     saveBtn.disabled = false;
     saveBtnText.textContent = originalText;
   }
+}
+
+/**
+ * Map technical error messages to user-friendly messages
+ * @param {string} technicalError - The technical error message
+ * @returns {string} User-friendly error message
+ */
+function mapTechnicalErrorToUserFriendly(technicalError) {
+  if (technicalError.includes('UNIQUE') || technicalError.includes('unique')) {
+    if (technicalError.includes('RunNumber') || technicalError.includes('ONS-') || technicalError.includes('WKS-')) {
+      return 'Unable to Generate Run Number. The system could not generate a unique run number. Please try again or contact support.';
+    }
+    return 'Duplicate Data. A calculation with this data already exists.';
+  }
+
+  if (technicalError.includes('generate') && technicalError.includes('run number')) {
+    return 'Unable to Generate Run Number. The system could not generate a unique run number. Please try again or contact support.';
+  }
+
+  if (technicalError.includes('FOREIGN KEY') || technicalError.includes('invalid reference')) {
+    return 'Invalid Data. Unable to save calculation due to invalid reference data. Please try again.';
+  }
+
+  if (technicalError.includes('validation')) {
+    return 'Validation Error. Unable to save calculation. The operation was cancelled due to a data validation error.';
+  }
+
+  if (technicalError.includes('timeout')) {
+    return 'Timeout Error. The operation timed out. Please try again.';
+  }
+
+  if (technicalError.includes('connection')) {
+    return 'Connection Error. Unable to connect to the server. Please try again.';
+  }
+
+  // Return original message if no mapping found
+  return technicalError;
 }
 
 /**

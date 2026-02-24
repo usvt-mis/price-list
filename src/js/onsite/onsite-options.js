@@ -209,6 +209,19 @@ export function getOnsiteOptionsSubtotal() {
 }
 
 /**
+ * Normalize boolean value from various formats (string, boolean, null/undefined)
+ * Handles backward compatibility with existing saved records
+ * @param {any} val - Value to normalize
+ * @returns {boolean|null} Normalized boolean value
+ */
+function normalizeBool(val) {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'boolean') return val;
+  if (typeof val === 'string') return val === 'yes' || val === 'true';
+  return Boolean(val);
+}
+
+/**
  * Get onsite options data for serialization
  * @returns {Object} Onsite options data
  */
@@ -218,36 +231,37 @@ export function getOnsiteOptionsData() {
   const safetyEnabled = getOptionState('safety');
 
   return {
-    onsiteCraneEnabled: craneEnabled ? 'yes' : 'no',
+    onsiteCraneEnabled: craneEnabled,   // Boolean, not 'yes'/'no' string
     onsiteCranePrice: craneEnabled ? (el('cranePrice')?.value || null) : null,
-    onsiteFourPeopleEnabled: fourPeopleEnabled ? 'yes' : 'no',
+    onsiteFourPeopleEnabled: fourPeopleEnabled,  // Boolean
     onsiteFourPeoplePrice: fourPeopleEnabled ? (el('fourPeoplePrice')?.value || null) : null,
-    onsiteSafetyEnabled: safetyEnabled ? 'yes' : 'no',
+    onsiteSafetyEnabled: safetyEnabled,  // Boolean
     onsiteSafetyPrice: safetyEnabled ? (el('safetyPrice')?.value || null) : null
   };
 }
 
 /**
  * Restore onsite options data
+ * Handles both boolean (true/false) and string ('yes'/'no') formats for backward compatibility
  * @param {Object} data - Onsite options data
  */
 export function restoreOnsiteOptions(data) {
-  if (data.onsiteCraneEnabled) {
-    setOptionState('crane', data.onsiteCraneEnabled === 'yes', false);
+  if (data.onsiteCraneEnabled != null) {  // Check for null/undefined (not just falsy)
+    setOptionState('crane', normalizeBool(data.onsiteCraneEnabled), false);
     if (el('cranePrice')) {
       el('cranePrice').value = data.onsiteCranePrice || '';
     }
   }
 
-  if (data.onsiteFourPeopleEnabled) {
-    setOptionState('fourPeople', data.onsiteFourPeopleEnabled === 'yes', false);
+  if (data.onsiteFourPeopleEnabled != null) {  // Check for null/undefined (not just falsy)
+    setOptionState('fourPeople', normalizeBool(data.onsiteFourPeopleEnabled), false);
     if (el('fourPeoplePrice')) {
       el('fourPeoplePrice').value = data.onsiteFourPeoplePrice || '';
     }
   }
 
-  if (data.onsiteSafetyEnabled) {
-    setOptionState('safety', data.onsiteSafetyEnabled === 'yes', false);
+  if (data.onsiteSafetyEnabled != null) {  // Check for null/undefined (not just falsy)
+    setOptionState('safety', normalizeBool(data.onsiteSafetyEnabled), false);
     if (el('safetyPrice')) {
       el('safetyPrice').value = data.onsiteSafetyPrice || '';
     }

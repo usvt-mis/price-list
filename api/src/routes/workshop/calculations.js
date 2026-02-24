@@ -201,7 +201,17 @@ router.post('/', async (req, res, next) => {
       const runNumber = runNumberResult.output.runNumber;
       dbTimer.stop('DATABASE', 'GetNextWorkshopRunNumber', 'Executed GetNextWorkshopRunNumber stored procedure', { rowCount: 1 });
 
+      // Validate run number format (WKS-YYYY-XXX)
+      if (!runNumber || !/^WKS-\d{4}-\d{3}$/.test(runNumber)) {
+        scopedLogger.error('DATABASE', 'InvalidRunNumber', `Stored procedure returned invalid run number: ${runNumber}`, {
+          serverContext: { runNumber, expectedFormat: 'WKS-YYYY-XXX' }
+        });
+        throw new Error('System error: Unable to generate valid run number. Please contact support.');
+      }
+
       // Insert main workshop saved calculation
+      // Generate ShareToken on save to prevent UNIQUE constraint violation with NULL values
+      const shareToken = generateUUID();
       const requestSave = new sql.Request(transaction);
       const saveResult = await requestSave
         .input("runNumber", sql.NVarChar(10), runNumber)
@@ -211,17 +221,20 @@ router.post('/', async (req, res, next) => {
         .input("motorTypeId", sql.Int, motorTypeId)
         .input("salesProfitPct", sql.Decimal(5, 2), salesProfitPct)
         .input("travelKm", sql.Int, travelKm)
+        .input("shareToken", sql.NVarChar(36), shareToken)
         .query(`
           INSERT INTO WorkshopSavedCalculations (
             RunNumber, CreatorName, CreatorEmail, BranchId, MotorTypeId,
-            SalesProfitPct, TravelKm
+            SalesProfitPct, TravelKm,
+            ShareToken
           )
           OUTPUT INSERTED.SaveId, INSERTED.RunNumber, INSERTED.CreatorName, INSERTED.CreatorEmail,
                  INSERTED.CreatedAt, INSERTED.ModifiedAt, INSERTED.ShareToken,
                  INSERTED.BranchId, INSERTED.MotorTypeId, INSERTED.SalesProfitPct, INSERTED.TravelKm
           VALUES (
             @runNumber, @creatorName, @creatorEmail, @branchId, @motorTypeId,
-            @salesProfitPct, @travelKm
+            @salesProfitPct, @travelKm,
+            @shareToken
           )
         `);
 
@@ -353,8 +366,7 @@ router.post('/', async (req, res, next) => {
       });
       return res.status(500).json({
         error: e.userMessage,
-        correlationId,
-        details: process.env.NODE_ENV === 'development' ? e.message : undefined
+        correlationId
       });
     }
 
@@ -383,6 +395,11 @@ function getUserFriendlyErrorMessage(err) {
 
   if (message.includes('FOREIGN KEY') || message.includes('foreign key')) {
     return 'Unable to save calculation due to invalid reference data. Please try again.';
+  }
+
+  // Handle UNIQUE constraint violations for RunNumber specifically
+  if (message.includes('UNIQUE') && (message.includes('RunNumber') || message.includes('ONS-') || message.includes('WKS-'))) {
+    return 'Unable to generate a unique run number. The system may need maintenance. Please contact support.';
   }
 
   if (message.includes('UNIQUE') || message.includes('unique')) {

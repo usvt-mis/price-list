@@ -207,11 +207,14 @@ The application includes comprehensive debug logging for troubleshooting initial
   - `database/migrations/split_calculator_tables.sql` (splits SavedCalculations into OnsiteSavedCalculations and WorkshopSavedCalculations)
   - `database/migrations/migrate_onsite_to_workshop.sql` (migrates all Onsite records to Workshop with new WKS- run numbers, discards onsite-specific fields)
   - `database/migrations/rollback_onsite_to_workshop.sql` (rolls back the onsite-to-workshop migration)
+  - `database/migrations/fix_sharetoken_unique_constraint.sql` (replaces inline UNIQUE constraint with filtered index allowing multiple NULLs)
+  - `database/migrations/fix_stored_procedures_error_handling.sql` (adds TRY/CATCH error handling and fixes SUBSTRING bug in run number generation)
   - `database/migrations/calculator_types.sql` (adds CalculatorType and type-specific columns to SavedCalculations - legacy)
   - `database/migrations/add_scope_column.sql` (adds Scope dropdown for onsite calculations - legacy)
   - `database/migrations/priority_site_access.sql` (adds SiteAccess column - legacy)
   - `database/migrations/remove_onsite_location_fields.sql` (removes CustomerLocation and SiteAccessNotes columns - legacy)
   - `database/migrations/separate_onsite_workshop_jobs.sql` (adds CalculatorType column to Jobs and Jobs2MotorType for separate job lists)
+- Diagnostic scripts: `database/diagnose_backoffice_login.sql`, `database/fix_backoffice_issues.sql`, `database/diagnose_unique_constraint.sql`
 - **Deprecated scripts**: `database/deprecated/create_app_logs.sql`, `database/deprecated/diagnostics_logs.sql` (moved after Application Insights migration)
 
 ### Backend Structure (`api/`)
@@ -523,6 +526,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - `database/diagnose_backoffice_login.sql` - Run to check table existence and admin accounts
 - `database/diagnose_saved_calculations.sql` - Data integrity checks for Onsite/Workshop saved calculations (orphaned records, invalid FKs, NULL values)
 - `database/diagnose_workshop_jobs.sql` - Diagnostic script for blank Workshop jobs list issue (checks CalculatorType distribution, simulates API queries)
+- `database/diagnose_unique_constraint.sql` - Diagnostic script for ShareToken UNIQUE KEY constraint violation
 - `database/fix_backoffice_issues.sql` - Quick fixes for locked accounts, disabled accounts, expired sessions
 - `database/fix_workshop_jobs.sql` - Fix script for blank Workshop jobs list (multiple options: share all jobs, copy jobs, assign specific jobs)
 - `database/ensure_backoffice_schema.sql` - Create all missing backoffice tables (comprehensive schema setup)

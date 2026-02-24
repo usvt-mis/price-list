@@ -81,11 +81,11 @@ router.post('/', async (req, res, next) => {
     } = req.body;
 
     // Validate required fields
-    if (!branchId || !motorTypeId || salesProfitPct === undefined || travelKm === undefined) {
+    if (!branchId || !motorTypeId || salesProfitPct == null || travelKm == null) {
       scopedLogger.warn('BUSINESS', 'OnsiteCalculationSaveValidationFailed', 'Missing required fields', {
         userEmail,
         userRole,
-        serverContext: { hasBranchId: !!branchId, hasMotorTypeId: !!motorTypeId, hasSalesProfitPct: salesProfitPct !== undefined, hasTravelKm: travelKm !== undefined }
+        serverContext: { hasBranchId: !!branchId, hasMotorTypeId: !!motorTypeId, hasSalesProfitPct: salesProfitPct != null, hasTravelKm: travelKm != null }
       });
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -211,7 +211,17 @@ router.post('/', async (req, res, next) => {
       const runNumber = runNumberResult.output.runNumber;
       dbTimer.stop('DATABASE', 'GetNextOnsiteRunNumber', 'Executed GetNextOnsiteRunNumber stored procedure', { rowCount: 1 });
 
+      // Validate run number format (ONS-YYYY-XXX)
+      if (!runNumber || !/^ONS-\d{4}-\d{3}$/.test(runNumber)) {
+        scopedLogger.error('DATABASE', 'InvalidRunNumber', `Stored procedure returned invalid run number: ${runNumber}`, {
+          serverContext: { runNumber, expectedFormat: 'ONS-YYYY-XXX' }
+        });
+        throw new Error('System error: Unable to generate valid run number. Please contact support.');
+      }
+
       // Insert main onsite saved calculation
+      // Generate ShareToken on save to prevent UNIQUE constraint violation with NULL values
+      const shareToken = generateUUID();
       const requestSave = new sql.Request(transaction);
       const saveResult = await requestSave
         .input("runNumber", sql.NVarChar(10), runNumber)
@@ -230,13 +240,15 @@ router.post('/', async (req, res, next) => {
         .input("onsiteFourPeoplePrice", sql.Decimal(18, 2), onsiteFourPeoplePrice || null)
         .input("onsiteSafetyEnabled", sql.Bit, onsiteSafetyEnabled || false)
         .input("onsiteSafetyPrice", sql.Decimal(18, 2), onsiteSafetyPrice || null)
+        .input("shareToken", sql.NVarChar(36), shareToken)
         .query(`
           INSERT INTO OnsiteSavedCalculations (
             RunNumber, CreatorName, CreatorEmail, BranchId, MotorTypeId,
             SalesProfitPct, TravelKm, Scope, PriorityLevel, SiteAccess,
             OnsiteCraneEnabled, OnsiteCranePrice,
             OnsiteFourPeopleEnabled, OnsiteFourPeoplePrice,
-            OnsiteSafetyEnabled, OnsiteSafetyPrice
+            OnsiteSafetyEnabled, OnsiteSafetyPrice,
+            ShareToken
           )
           OUTPUT INSERTED.SaveId, INSERTED.RunNumber, INSERTED.CreatorName, INSERTED.CreatorEmail,
                  INSERTED.CreatedAt, INSERTED.ModifiedAt, INSERTED.ShareToken,
@@ -250,7 +262,8 @@ router.post('/', async (req, res, next) => {
             @salesProfitPct, @travelKm, @scope, @priorityLevel, @siteAccess,
             @onsiteCraneEnabled, @onsiteCranePrice,
             @onsiteFourPeopleEnabled, @onsiteFourPeoplePrice,
-            @onsiteSafetyEnabled, @onsiteSafetyPrice
+            @onsiteSafetyEnabled, @onsiteSafetyPrice,
+            @shareToken
           )
         `);
 
@@ -387,8 +400,7 @@ router.post('/', async (req, res, next) => {
       });
       return res.status(500).json({
         error: e.userMessage,
-        correlationId,
-        details: process.env.NODE_ENV === 'development' ? e.message : undefined
+        correlationId
       });
     }
 
@@ -417,6 +429,11 @@ function getUserFriendlyErrorMessage(err) {
 
   if (message.includes('FOREIGN KEY') || message.includes('foreign key')) {
     return 'Unable to save calculation due to invalid reference data. Please try again.';
+  }
+
+  // Handle UNIQUE constraint violations for RunNumber specifically
+  if (message.includes('UNIQUE') && (message.includes('RunNumber') || message.includes('ONS-') || message.includes('WKS-'))) {
+    return 'Unable to generate a unique run number. The system may need maintenance. Please contact support.';
   }
 
   if (message.includes('UNIQUE') || message.includes('unique')) {
@@ -577,7 +594,7 @@ router.put('/:id', async (req, res, next) => {
     } = req.body;
 
     // Validate required fields
-    if (!branchId || !motorTypeId || salesProfitPct === undefined || travelKm === undefined) {
+    if (!branchId || !motorTypeId || salesProfitPct == null || travelKm == null) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     if (!Array.isArray(jobs) || !Array.isArray(materials)) {
