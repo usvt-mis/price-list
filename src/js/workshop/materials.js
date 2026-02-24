@@ -11,7 +11,7 @@ import { getCompleteMultiplier, getBranchMultiplier, getSalesProfitMultiplier } 
  * Add a new material row
  */
 export async function addMaterialRow() {
-  appState.materialLines.push({ materialId: null, code: '', name: '', unitCost: NaN, qty: 1 });
+  appState.materialLines.push({ materialId: null, code: '', name: '', unitCost: NaN, qty: 1, overrideFinalPrice: null });
   renderMaterials();
   (await import('./calculations.js')).calcAll();
 }
@@ -79,6 +79,11 @@ export function renderMaterials() {
       ? ln.unitCost * ln.qty * branchMultiplier
       : NaN;
     const finalPrice = Number.isFinite(lineTotal) ? lineTotal * (1 + appState.commissionPercent / 100) : NaN;
+    const displayFinalPrice = (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) ? ln.overrideFinalPrice : finalPrice;
+    const isOverridden = (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0);
+    const finalPriceInputClass = isOverridden
+      ? 'w-full text-right rounded-lg border-amber-300 bg-amber-50 px-2 py-1 font-semibold'
+      : 'w-full text-right rounded-lg border-slate-200 px-2 py-1';
 
     return `
       <!-- Mobile Card (visible < md) -->
@@ -124,9 +129,15 @@ export function renderMaterials() {
 
         <!-- Final Price -->
         ${ln.code ? `
-        <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200">
+        <div class="flex justify-between items-center p-3 rounded-lg border ${isOverridden ? 'bg-amber-50 border-amber-300' : 'bg-white border-slate-200'}">
           <span class="text-sm text-slate-600">Final Price</span>
-          <span class="text-xl font-bold">${fmt(finalPrice)}</span>
+          <div class="flex items-center gap-2">
+            <input data-final-price="${i}" type="number" min="0" step="0.01"
+                   class="w-32 text-right text-xl font-bold ${isOverridden ? 'bg-amber-50 border-amber-300' : 'bg-transparent border-none'}"
+                   value="${isOverridden ? ln.overrideFinalPrice.toFixed(2) : ''}"
+                   placeholder="${fmt(finalPrice)}"/>
+            ${isOverridden ? `<button data-reset-price="${i}" class="text-amber-600 hover:text-amber-800 p-1" title="Reset to calculated price">↺</button>` : ''}
+          </div>
         </div>
         ` : ''}
 
@@ -153,7 +164,15 @@ export function renderMaterials() {
         </td>
         ${isExecutiveMode() ? `<td class="py-2 text-right">${fmt(rawCost)}</td>` : ''}
         ${isExecutiveMode() ? `<td class="py-2 text-right">${fmt(costBeforeSalesProfit)}</td>` : ''}
-        <td class="py-2 text-right">${fmt(finalPrice)}</td>
+        <td class="py-2 text-right">
+          <div class="flex items-center justify-end gap-1">
+            <input data-final-price="${i}" type="number" min="0" step="0.01"
+                   class="${finalPriceInputClass}"
+                   value="${isOverridden ? ln.overrideFinalPrice.toFixed(2) : ''}"
+                   placeholder="${fmt(finalPrice)}"/>
+            ${isOverridden ? `<button data-reset-price="${i}" class="text-amber-600 hover:text-amber-800 p-1 ml-1" title="Reset to calculated price">↺</button>` : ''}
+          </div>
+        </td>
         <td class="py-2 text-right">
           <button data-del="${i}" class="text-sm px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-50">Remove</button>
         </td>
@@ -167,6 +186,7 @@ export function renderMaterials() {
   // Wire events
   wireDeleteButtons();
   wireQuantityInputs();
+  wireFinalPriceInputs();
   wireSearchInputs(multiplier, branchMultiplier, salesProfitMultiplier);
 }
 
@@ -186,18 +206,65 @@ function wireDeleteButtons() {
  * Wire quantity input event listeners
  */
 function wireQuantityInputs() {
-  const multiplier = getCompleteMultiplier();
-  const branchMultiplier = getBranchMultiplier();
-  const salesProfitMultiplier = getSalesProfitMultiplier();
-
   document.querySelectorAll('[data-qty]').forEach(inp => {
     inp.addEventListener('input', async () => {
       const i = Number(inp.dataset.qty);
       const v = Math.max(0, Math.trunc(Number(inp.value))); // integer only
       inp.value = v;
       appState.materialLines[i].qty = v;
-      // Update displays without full re-render (preserves input focus)
-      updateMaterialRowDisplay(i, multiplier, branchMultiplier, salesProfitMultiplier);
+      // Clear override when quantity changes (per user requirement)
+      if (appState.materialLines[i].overrideFinalPrice != null) {
+        appState.materialLines[i].overrideFinalPrice = null;
+      }
+      // Re-render to update displays (needed for override state)
+      renderMaterials();
+      const { calcAll } = await import('./calculations.js');
+      calcAll();
+    });
+  });
+}
+
+/**
+ * Wire Final Price input and reset button event listeners
+ */
+function wireFinalPriceInputs() {
+  const multiplier = getCompleteMultiplier();
+  const branchMultiplier = getBranchMultiplier();
+  const salesProfitMultiplier = getSalesProfitMultiplier();
+
+  // Wire Final Price input fields (use change event to avoid recalculation during typing)
+  document.querySelectorAll('[data-final-price]').forEach(inp => {
+    inp.addEventListener('change', async () => {
+      const i = Number(inp.dataset.finalPrice);
+      const val = Number(inp.value);
+
+      if (inp.value.trim() === '' || isNaN(val) || val < 0) {
+        // Clear override if empty, invalid, or negative
+        appState.materialLines[i].overrideFinalPrice = null;
+      } else {
+        // Validate: max 999999.99, 2 decimal places
+        const roundedVal = Math.round(val * 100) / 100;
+        if (roundedVal > 999999.99) {
+          inp.value = '';
+          appState.materialLines[i].overrideFinalPrice = null;
+        } else {
+          appState.materialLines[i].overrideFinalPrice = roundedVal;
+        }
+      }
+      // Re-render to show updated styling
+      renderMaterials();
+      const { calcAll } = await import('./calculations.js');
+      calcAll();
+    });
+  });
+
+  // Wire reset buttons
+  document.querySelectorAll('[data-reset-price]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const i = Number(btn.dataset.resetPrice);
+      appState.materialLines[i].overrideFinalPrice = null;
+      // Re-render to remove reset button and update styling
+      renderMaterials();
       const { calcAll } = await import('./calculations.js');
       calcAll();
     });
@@ -259,9 +326,10 @@ function wireSearchInputs(multiplier, branchMultiplier, salesProfitMultiplier) {
             appState.materialLines[i].code = btn.dataset.code;
             appState.materialLines[i].name = btn.dataset.name;
             appState.materialLines[i].unitCost = Number(btn.dataset.cost);
+            appState.materialLines[i].overrideFinalPrice = null;
             box.classList.add('hidden');
             box.innerHTML = '';
-            await updateMaterialRowDisplay(i, multiplier, branchMultiplier, salesProfitMultiplier);
+            renderMaterials();
             (await import('./calculations.js')).calcAll();
           });
         });
@@ -416,10 +484,13 @@ function updateMaterialRowDisplay(i, multiplier, branchMultiplier, salesProfitMu
 
 /**
  * Calculate material subtotal (base cost without multipliers)
- * @returns {number} Material base subtotal
+ * Used for commission tier calculation - excludes overridden rows
+ * @returns {number} Material base subtotal (excluding overrides)
  */
 export function materialSubtotalBase() {
   return appState.materialLines.reduce((sum, ln) => {
+    // Exclude overridden rows from commission tier calculation
+    if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) return sum;
     if (!Number.isFinite(ln.unitCost)) return sum;
     return sum + ln.unitCost * ln.qty;
   }, 0);
@@ -431,12 +502,18 @@ export function materialSubtotalBase() {
  */
 export function materialSubtotal() {
   const multiplier = getCompleteMultiplier();
+  const commissionPercent = appState.commissionPercent || 0;
 
   return appState.materialLines.reduce((sum, ln) => {
+    // If override is set, use it directly (bypass all multipliers, already includes commission)
+    if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
+      return sum + ln.overrideFinalPrice;
+    }
     if (!Number.isFinite(ln.unitCost)) return sum;
     // Apply multipliers to UnitCost first, then multiply by quantity
     const adjustedUnitCost = ln.unitCost * multiplier;
-    return sum + adjustedUnitCost * ln.qty;
+    const finalPrice = adjustedUnitCost * ln.qty * (1 + commissionPercent / 100);
+    return sum + finalPrice;
   }, 0);
 }
 

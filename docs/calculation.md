@@ -95,10 +95,23 @@ Final_Price = Line_Total × (1 + commissionPercent / 100)
 
 Where `Line_Total` = `UnitCost × Quantity × CompleteMultiplier`
 
+**Manual Override** (new feature):
+- Users can manually override the Final Price for individual material lines
+- When `overrideFinalPrice` is set, it bypasses ALL multipliers (branch, sales profit, commission)
+- Overridden rows display with amber styling (`border-amber-300`, `bg-amber-50`)
+- Reset button (↺) clears the override and reverts to calculated price
+- Quantity changes automatically clear the override
+- Validation: >= 0, max 999999.99, 2 decimal places
+
 ### Materials Subtotal
 ```
-Materials Subtotal = sum of all Final Prices
+Materials Subtotal = sum of all Final Prices (or override values if set)
 ```
+
+**Note on Commission Calculation**:
+- Overridden material rows are **excluded** from the commission tier calculation base (`materialSubtotalBase()`)
+- This prevents circular dependencies since override prices already include all markups
+- Only non-overridden materials contribute to the Sub Total Cost (STC) used for commission ratio
 
 ---
 
@@ -212,10 +225,15 @@ Commission = Commission% × Sub Grand Total
 - When Sales Profit % > 0: shows lower value than Final Price
 
 #### Final Price Column
-- Shows price including commission
-- Formula: `Final_Price = Line_Total × (1 + commissionPercent / 100)`
+- **Editable input field** - Users can manually override the calculated Final Price
+- Default formula: `Final_Price = Line_Total × (1 + commissionPercent / 100)`
+- When manual override is set:
+  - Amber styling (`border-amber-300`, `bg-amber-50`) indicates override is active
+  - Reset button (↺) appears to clear override
+  - Override bypasses ALL multipliers (branch, sales profit, commission)
 - Displayed in both desktop table column and mobile card
 - Updates in real-time when commission percentage changes
+- Quantity changes clear the override and recalculate
 
 ---
 

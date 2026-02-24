@@ -14,7 +14,7 @@ export const appState = {
   labor: [],
 
   // Materials
-  materialLines: [], // {materialId, code, name, unitCost, qty}
+  materialLines: [], // {materialId, code, name, unitCost, qty, overrideFinalPrice}
 
   // Commission
   commissionPercent: 0,
