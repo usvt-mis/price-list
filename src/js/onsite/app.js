@@ -105,32 +105,21 @@ async function loadInit() {
 
     appState.branches = branches;
 
-    const motorTypeEl = el('motorType');
+    // Note: motorType dropdown not used in onsite calculator (auto-selected internally)
     const branchEl = el('branch');
-
-    if (!motorTypeEl) {
-      console.warn('[APP-INIT] motorType element not found in DOM');
-    } else {
-      motorTypeEl.innerHTML = `<option value="">Select…</option>` + motorTypes
-        .map(x => `<option value="${x.MotorTypeId}">${x.MotorTypeName}</option>`).join('');
-      // Auto-select first motor type for onsite calculator (fixed jobs)
-      if (motorTypes.length > 0) {
-        motorTypeEl.value = motorTypes[0].MotorTypeId;
-        console.log('[APP-INIT-8] Motor types dropdown populated and first option auto-selected:', motorTypes[0].MotorTypeName);
-        // Load labor jobs immediately with auto-selected motor type
-        await loadLabor();
-      } else {
-        console.log('[APP-INIT-8] Motor types dropdown populated (no motor types available)');
-      }
-    }
 
     if (!branchEl) {
       console.warn('[APP-INIT] branch element not found in DOM');
     } else {
       branchEl.innerHTML = `<option value="">Select…</option>` + branches
         .map(x => `<option value="${x.BranchId}">${x.BranchName}</option>`).join('');
-      console.log('[APP-INIT-9] Branches dropdown populated');
+      console.log('[APP-INIT-8] Branches dropdown populated');
     }
+
+    // Load labor jobs for onsite calculator (no motorType selection needed)
+    console.log('[APP-INIT-9] Loading onsite labor jobs...');
+    await loadLabor();
+    console.log('[APP-INIT-9] Onsite labor jobs loaded');
 
     setStatus('');
     console.log('[APP-INIT-10] loadInit COMPLETED SUCCESSFULLY');
@@ -158,7 +147,7 @@ function startNewCalculation() {
 
   // Reset form
   el('branch').value = '';
-  el('motorType').value = '';
+  // motorType element removed - auto-selection handled in loadInit()
   el('salesProfitPct').value = '';
   el('travelKm').value = '';
   el('scope').value = '';
@@ -233,11 +222,7 @@ function initializeOnsiteLaborFields() {
 
 function setupEventListeners() {
   // Calculator event listeners
-  el('motorType')?.addEventListener('change', async () => {
-    await loadLabor();
-    if (globalExports.markDirty) globalExports.markDirty();
-  });
-
+  // Note: motorType dropdown not used in onsite calculator
   el('branch')?.addEventListener('change', async () => {
     renderLabor();
     calcAll();

@@ -17,6 +17,19 @@ export function el(id) {
   return document.getElementById(id);
 }
 
+/**
+ * Safely set a DOM element's value if it exists
+ * @param {string} id - Element ID
+ * @param {string} value - Value to set
+ */
+export function setElValue(id, value) {
+  const element = el(id);
+  if (element) {
+    element.value = value;
+  }
+  // Silent fail - element might not exist in all calculator types
+}
+
 // ========== Formatting ==========
 
 /**

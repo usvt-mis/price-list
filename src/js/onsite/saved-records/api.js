@@ -20,7 +20,8 @@ export function serializeCalculatorState() {
   const baseState = {
     calculatorType: CALCULATOR_TYPE.ONSITE,
     branchId: Number(el('branch').value),
-    motorTypeId: Number(el('motorType').value),
+    // Onsite calculator uses default motor type (fixed jobs) - backend handles selection
+    motorTypeId: 1, // Default to first motor type
     salesProfitPct: Number(el('salesProfitPct').value || 0),
     travelKm: Number(el('travelKm').value || 0),
     jobs: appState.labor.map(j => ({
@@ -109,30 +110,9 @@ export async function deserializeCalculatorState(data, options = {}) {
     }
   }
 
-  // IMPORTANT: Ensure motor type dropdown is populated before setting value
-  const motorTypeEl = el('motorType');
-  const currentOptions = motorTypeEl.querySelectorAll('option[value]:not([value=""])');
-
-  if (currentOptions.length === 0) {
-    const { fetchJson } = await import('../../core/utils.js');
-    const motorTypes = await fetchJson('/api/motor-types');
-    motorTypeEl.innerHTML = `<option value="">Select…</option>` + motorTypes
-      .map(x => `<option value="${x.MotorTypeId}">${x.MotorTypeName}</option>`).join('');
-  }
-
-  motorTypeEl.value = data.motorTypeId;
-
-  if (!motorTypeEl.value && data.motorTypeId) {
-    console.warn(`Motor type ID ${data.motorTypeId} not found in available options`);
-    const motorTypeName = data.motorTypeName || `Unknown (${data.motorTypeId})`;
-    const missingOption = document.createElement('option');
-    missingOption.value = data.motorTypeId;
-    missingOption.textContent = motorTypeName;
-    motorTypeEl.appendChild(missingOption);
-    motorTypeEl.value = data.motorTypeId;
-  }
-
-  // Load labor for this motor type
+  // Note: Onsite calculator doesn't use motorType dropdown - labor is loaded directly
+  // Skip motorType population for onsite calculator
+  // Load labor for onsite calculator (no motorType selection needed)
   await (await import('../labor.js')).loadLabor();
 
   // Update labor with saved values
