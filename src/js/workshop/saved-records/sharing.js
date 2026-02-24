@@ -4,7 +4,7 @@
  */
 
 import { el, showView, showNotification, fetchJson, fetchWithAuth } from '../../core/utils.js';
-import { setViewOnly, setCurrentSavedRecord, setDirty, setMode, getRecordsSortColumn, getRecordsSortDirection, getRecordsSearchQuery } from '../state.js';
+import { setViewOnly, setCurrentSavedRecord, setDirty, setMode, getRecordsSortColumn, getRecordsSortDirection, getRecordsSearchQuery, selectedRecords } from '../state.js';
 import { deserializeCalculatorState, loadSavedRecords } from './api.js';
 import { displayRecordDetail } from './ui.js';
 import { MODE } from '../../core/config.js';
@@ -477,6 +477,3 @@ export function setupSearchHandlers() {
     }
   });
 }
-
-// Import selectedRecords for bulkDeleteRecords
-import { selectedRecords } from '../state.js';
