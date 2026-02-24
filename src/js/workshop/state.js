@@ -34,7 +34,7 @@ export let recordsViewMode = localStorage.getItem('pricelist-calculator-records-
 // ========== Authentication State ==========
 // Re-export shared auth state to use single source of truth
 // The auth modules update the shared state in ../state.js during initialization
-export { authState, currentUserRole, setCurrentUserRole } from '../state.js';
+export { authState, currentUserRole, setCurrentUserRole, currentMode, setMode } from '../state.js';
 
 // ========== Save Feature State ==========
 
