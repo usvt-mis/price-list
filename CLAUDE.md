@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a Price List Calculator - a web application for calculating service costs.
 
 ### Tech Stack
-- **Frontend**: Single-page HTML application (`src/index.html`) using vanilla JavaScript and Tailwind CSS
+- **Frontend**: Single-page HTML application (`src/index.html`) using vanilla JavaScript and Tailwind CSS (compiled locally via Tailwind CLI)
 - **Backend**:
   - **Primary**: Express.js (Node.js) for Azure App Service deployment
   - **Legacy**: Azure Functions v4 (Node.js) - still functional in `api/src/functions/`

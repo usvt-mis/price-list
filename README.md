@@ -16,12 +16,12 @@ The Price List Calculator computes total cost based on three components:
 - **Onsite Calculator** (`src/onsite.html`): Standalone onsite calculator application
   - **ES6 Modules**: JavaScript in `src/js/onsite/` directory
   - **No build process**: Uses native ES6 modules with import maps
-  - Tailwind CSS via CDN
+  - Tailwind CSS (compiled locally via `npm run build:css`)
   - Azure AD authentication
 - **Workshop Calculator** (`src/workshop.html`): Standalone workshop calculator application
   - **ES6 Modules**: JavaScript in `src/js/workshop/` directory
   - **No build process**: Uses native ES6 modules with import maps
-  - Tailwind CSS via CDN
+  - Tailwind CSS (compiled locally via `npm run build:css`)
   - Azure AD authentication
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
   - Separate HTML file with complete UI independence
@@ -242,6 +242,7 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 
 ```bash
 npm install
+npm run build:css     # Build Tailwind CSS (one-time setup)
 ```
 
 Configure the database connection. You can use environment variables or `api/local.settings.json`:
