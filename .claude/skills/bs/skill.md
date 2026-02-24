@@ -1,254 +1,190 @@
 ---
 name: bs
-description: Research information from the internet to present new perspectives to other agents to help them make decisions
-version: 1.0.0
+description: Coordinate all agents to brainstorm multi-perspective solutions for any command
+version: 2.0.0
 user-invocable: true
 ---
 
-# Internet Researcher Skill (`/bs`)
+# Brainstorm Coordinator Skill (`/bs`)
 
-**Purpose**: Research information from the internet to present new perspectives to other agents to help them make decisions
+**Purpose**: Summon ALL agents in `.claude/agents/` to provide multi-perspective insights and solutions for ANY command, regardless of domain or complexity.
 
 ## When to Use This Skill
 
-Use this skill when you need to:
-- Research best practices, patterns, or technologies
-- Compare different approaches or libraries
-- Find documentation or examples for a specific technology
-- Investigate bugs or issues reported online
-- Stay current with industry trends
-- Validate technical decisions with external sources
-- Find alternative solutions to problems
-- Research API changes or deprecations
-- Gather context before making architectural decisions
+Use this skill when you want:
+- **Multiple perspectives** on a problem or decision
+- **Cross-domain insights** from all specialist agents
+- **Comprehensive analysis** before making changes
+- **Creative solutions** that span multiple areas of the codebase
+- **Validation** of approaches across all domains
+- **"All-hands" input** on any command or question
 
 ## Core Responsibilities
 
-1. **Web Search** - Use `WebSearch` or `mcp__web-search-prime__webSearchPrime` to find relevant sources
-2. **Content Analysis** - Use `mcp__web-reader__webReader` to fetch and analyze web content
-3. **Synthesis** - Combine information from multiple sources into coherent insights
-4. **Source Citation** - Always provide source links for verification
-5. **Objective Analysis** - Present facts and opinions distinctly, noting uncertainties
+1. **Agent Discovery** - Enumerate ALL agents in `.claude/agents/` directory
+2. **Parallel Summoning** - Launch ALL agents simultaneously with the user's command
+3. **Response Aggregation** - Collect insights from each agent
+4. **Synthesis** - Combine perspectives into coherent recommendations
+5. **Conflict Resolution** - Highlight where agents disagree and provide resolution guidance
 
-## Research Process Flow
+## Brainstorm Process Flow
 
-### 1. Define Research Query
-- Clarify the specific question or goal
-- Identify key terms and concepts
-- Determine time relevance (recent vs. historical information)
+### 1. Receive User Command
+- Accept any command, question, or task from the user
+- No filtering by domain or complexity
 
-### 2. Execute Search
-- Use `WebSearch` for general queries
-- Use `mcp__web-search-prime__webSearchPrime` for location-specific or time-filtered results
-- Refine query if initial results are poor
+### 2. Discover All Agents
+- Scan `.claude/agents/` directory for all `.md` agent files
+- Exclude: `TEAM.md` and `Template.md`
+- Build agent list with their roles and specialties
 
-### 3. Fetch and Analyze Content
-- Use `mcp__web-reader__webReader` to read relevant pages
-- Extract key information from each source
-- Note publication dates for recency context
+### 3. Summon All Agents in Parallel
+- Launch ALL agents simultaneously using the Task tool
+- Provide each agent with the full user command
+- Request each agent's unique perspective on the command
 
-### 4. Synthesize Findings
-- Organize information by theme or relevance
-- Identify consensus vs. conflicting views
-- Extract actionable insights
+### 4. Aggregate Responses
+- Collect output from each agent as they complete
+- Track which agents have responded
+- Handle agent errors gracefully (log error, continue aggregation)
 
-### 5. Present Results
-- Summary of findings
-- Key points with sources
-- Pros/cons analysis (for comparisons)
-- Recommendations (if applicable)
-- Source links for verification
+### 5. Synthesize and Present
+- Organize insights by domain/perspective
+- Identify common themes across agents
+- Highlight conflicts or disagreements
+- Provide consolidated recommendations
 
 ## Output Format
 
-### Research Summary Structure
+### Brainstorm Summary Structure
 
 ```markdown
-## Research Topic: [Topic Name]
+## Brainstorm Session: [User Command]
 
 ### Summary
-[Brief 2-3 sentence overview of findings]
+[Brief overview of the brainstorm session]
 
-### Key Findings
+### Agent Perspectives
 
-1. **[Finding Title]**
-   - Details...
-   - Source: [Link]
-   - Date: [Publication date]
+#### [Agent Name] ([Domain])
+[Agent's insights and recommendations]
 
-2. **[Finding Title]**
-   - Details...
-   - Source: [Link]
-   - Date: [Publication date]
+#### [Agent Name] ([Domain])
+[Agent's insights and recommendations]
 
-### Comparison (if applicable)
-| Aspect | Option A | Option B | Option C |
-|--------|----------|----------|----------|
-| [Criteria] | [Details] | [Details] | [Details] |
+[... continue for all agents ...]
 
-### Recommendations
-- [If applicable, provide recommendations based on research]
+### Cross-Cutting Themes
+- [Theme 1] - [Which agents mentioned this]
+- [Theme 2] - [Which agents mentioned this]
 
-### Sources
-- [Full list of sources consulted]
+### Conflicts & Resolutions
+| Issue | Agent A View | Agent B View | Resolution |
+|-------|-------------|-------------|------------|
+| [Issue] | [View] | [View] | [Suggested resolution] |
+
+### Consolidated Recommendations
+1. [Priority 1 recommendation with rationale]
+2. [Priority 2 recommendation with rationale]
+3. [Priority 3 recommendation with rationale]
+
+### Next Steps
+- [Actionable next steps based on brainstorm]
 ```
-
-## Quality Standards
-
-### Source Verification
-- **Cross-reference**: Verify claims across multiple sources when possible
-- **Recency check**: Note publication dates; prioritize recent sources for fast-moving topics
-- **Authority**: Prefer official documentation, reputable blogs, and established communities
-- **Diversity**: Include diverse perspectives (vendor docs, community discussions, tutorials)
-
-### Information Accuracy
-- **Fact vs. Opinion**: Clearly distinguish between documented facts and community opinions
-- **Conflicts**: Note when sources disagree or provide conflicting information
-- **Uncertainties**: Explicitly state when information is unclear or incomplete
-- **Limitations**: Acknowledge research constraints (time, access, language)
-
-### Citation Standards
-- Always include source URLs
-- Note publication dates when available
-- Reference author/organization when relevant
-- Indicate if information could not be verified
-
-## Edge Cases and Handling
-
-### No Relevant Results Found
-- Expand search terms (synonyms, broader concepts)
-- Try different search tools (WebSearch vs. webSearchPrime)
-- Report back to requester with query refinement suggestions
-
-### Conflicting Information
-- Present all perspectives with sources
-- Note which sources are more authoritative/recent
-- Identify if conflict is due to version differences or context
-
-### Outdated Sources
-- Explicitly note source age
-- Prioritize recent sources for version-specific questions
-- Warn if information may be deprecated
-
-### Paywalled Content
-- Note that source is paywalled
-- Look for alternative sources covering same topic
-- Extract available information from preview/summary
-
-## Common Research Scenarios
-
-### Technology Comparison
-```markdown
-## Comparison: [Technology A] vs [Technology B]
-
-### Overview
-[Context for the comparison]
-
-### Feature Comparison
-| Feature | [Tech A] | [Tech B] |
-|---------|----------|----------|
-| [Feature 1] | [Details] | [Details] |
-
-### Community Signals
-- GitHub Stars: [A] vs [B]
-- Stack Overflow Questions: [A] vs [B]
-- Recent Activity: [A] vs [B]
-
-### Recommendation
-[Based on requirements, recommend option with rationale]
-```
-
-### Best Practices Research
-```markdown
-## Best Practices: [Topic]
-
-### Community Consensus
-- [Practice 1] - Supported by [sources]
-- [Practice 2] - Supported by [sources]
-
-### Alternative Approaches
-- [Alternative] - Use case: [context]
-
-### Official Recommendations
-- [Official docs recommendations]
-```
-
-### Bug Investigation
-```markdown
-## Issue: [Bug Description]
-
-### Reports
-- [Source 1] - Reported: [Date]
-- [Source 2] - Reported: [Date]
-
-### Root Cause Analysis
-- [Identified causes from research]
-
-### Workarounds
-1. [Workaround 1] - Source: [Link]
-2. [Workaround 2] - Source: [Link]
-
-### Official Status
-- [Fixed in version] / [Open issue] / [Not acknowledged]
-```
-
-## Search Tool Selection
-
-### WebSearch (`WebSearch`)
-- General web searches
-- Current events and recent information
-- Default for most queries
-
-### WebSearchPrime (`mcp__web-search-prime__webSearchPrime`)
-- Location-specific results (CN vs US regions)
-- Time-filtered results (oneDay, oneWeek, oneMonth, oneYear)
-- Domain-filtered results (whitelist specific sites)
-- High-content mode for comprehensive results
-
-### WebReader (`mcp__web-reader__webReader`)
-- Fetch and convert web pages to markdown
-- Extract clean text from HTML
-- Support for timeout configuration
-- Optional image/link summaries
-
-## Research Logging Prefixes
-
-Use these prefixes for clear logging:
-- `[RESEARCH]` - General research activity
-- `[RESEARCH][SEARCH]` - Search queries executed
-- `[RESEARCH][FETCH]` - Content fetching
-- `[RESEARCH][SYNTHESIS]` - Information synthesis
-- `[RESEARCH][SOURCE]` - Source citations
 
 ## Example Usage
 
 ```
-/bs Research the best pattern for handling BC API ETag conflicts
-/bs Compare Express.js vs Fastify for Azure Functions migration
-/bs Find best practices for SQL Server connection pooling
-/bs Investigate Tailwind CSS v4 breaking changes
-/bs Research Azure App Service deployment strategies
-/bs Find documentation for JavaScript ES6 modules in browsers
-/bs Compare different authentication patterns for multi-tenant apps
+/bs How should we add a new discount feature?
+/bs What's the best approach for refactoring the auth system?
+/bs Design a comprehensive testing strategy
+/bs How can we improve application security across all layers?
+/bs Evaluate pros and cons of migrating to TypeScript
+/bs What should we prioritize for the next sprint?
+/bs How do we implement real-time notifications?
+/bs Design approach for adding multi-language support
 ```
 
-## Example Research Session
+## Example Brainstorm Session
 
-**Request**: "Research the best pattern for handling BC API ETag conflicts"
+**User Command**: "How should we add a new discount feature?"
 
 **Process**:
-1. Search for "BC API ETag handling patterns"
-2. Search for "Business Central ETag conflict resolution"
-3. Fetch relevant Microsoft documentation
-4. Fetch community discussions (Stack Overflow, GitHub)
-5. Synthesize findings into comparison table
-6. Provide recommendation with sources
+1. Discover all agents in `.claude/agents/`
+2. Launch ALL agents in parallel with command
+3. Architect Agent: Design patterns for discount system
+4. Planner Agent: Implementation steps and dependencies
+5. Frontend Agent: UI requirements for discount inputs
+6. Backend Agent: API endpoints needed
+7. Calculation Agent: Formula modifications
+8. Database Agent: Schema changes required
+9. Auth & Security Agent: Permission considerations
+10. [All other agents provide their perspectives]
+11. Synthesize all perspectives into consolidated recommendations
+
+## Agent Discovery
+
+The skill automatically discovers all agents in `.claude/agents/`:
+1. Scans directory for `*.md` files
+2. Excludes `TEAM.md` and `Template.md`
+3. Parses each agent's role from file content
+4. Builds agent list for parallel summoning
+
+**Known Agents** (as of last update):
+- Orchestrator Agent (Coordinator - usually skipped, avoid infinite loop)
+- Architect Agent (Technical Lead)
+- Planner Agent (Implementation Lead)
+- Chinese Foreman Agent (Chinese Coordinator)
+- Universal Translator Agent (Translation-only)
+- Frontend Agent (Main Calculator UI)
+- Backoffice Agent (Backoffice UI)
+- Backend Agent (API Endpoints)
+- Auth & Security Agent (Authentication & Security)
+- Logging & Monitoring Agent (Logging & Performance)
+- Calculation Agent (Pricing Formulas)
+- Database Agent (SQL Schema & Queries)
+- Deployment Agent (Azure Deployment)
+- Internet Researcher Agent (Web Research)
+
+## Error Handling
+
+### Agent Launch Failures
+- Log error with agent name
+- Continue with remaining agents
+- Note failure in final summary
+
+### Agent Timeouts
+- Set reasonable timeout per agent
+- Include partial results in summary
+- Note which agents timed out
+
+### Empty Responses
+- Note agent provided no input
+- Continue aggregation
+- Don't fail entire session
+
+## Parallel Execution Strategy
+
+When summoning all agents:
+1. Use single message with multiple Task tool calls (parallel execution)
+2. Each agent gets identical prompt with user's command
+3. Prompt includes agent's role context for relevant perspective
+4. Collect all responses before synthesis
+
+## Brainstorm Logging Prefixes
+
+Use these prefixes for clear logging:
+- `[BRAINSTORM]` - General brainstorm activity
+- `[BRAINSTORM][DISCOVER]` - Agent discovery
+- `[BRAINSTORM][SUMMON]` - Agent summoning
+- `[BRAINSTORM][AGGREGATE]` - Response collection
+- `[BRAINSTORM][SYNTHESIS]` - Perspective synthesis
 
 ---
 
 ## Agent Team Coordination
 
-The `/bs` skill (Internet Researcher) is part of a hierarchical agent team with clear coordination protocols. This section provides comprehensive team context for coordinating research tasks effectively.
+The `/bs` skill (Brainstorm Coordinator) is part of a hierarchical agent team with clear coordination protocols. This section provides comprehensive team context for coordinating brainstorm tasks effectively.
 
 ### Team Structure
 
@@ -283,16 +219,16 @@ The `/bs` skill (Internet Researcher) is part of a hierarchical agent team with 
 │            Coordination + Utility Agents                      │
 │  ┌──────────────────────┐  ┌──────────────────────────────┐ │
 │  │  Chinese Foreman     │  │ Internet Researcher          │ │
-│  │  (工头/Gongtou)      │  │ (Scout - /bs skill)          │ │
-│  │  Translation +       │  │ Research support for all     │ │
-│  │  Chinese Coordination│  │ agents                       │ │
+│  │  (工头/Gongtou)      │  │ (Scout - research support)   │ │
+│  │  Translation +       │  │                              │ │
+│  │  Chinese Coordination│  │                              │ │
 │  └──────────────────────┘  └──────────────────────────────┘ │
-│  ┌──────────────────────┐                                   │
-│  │ Universal Translator │                                   │
-│  │ (WanNengYi/万能译)   │                                   │
-│  │ Multi-language       │                                   │
-│  │ translation-only     │                                   │
-│  └──────────────────────┘                                   │
+│  ┌──────────────────────┐  ┌──────────────────────────────┐ │
+│  │ Universal Translator │  │ Brainstorm Coordinator       │ │
+│  │ (WanNengYi/万能译)   │  │ (/bs skill - ALL agents)     │ │
+│  │ Multi-language       │  │ Multi-perspective synthesis  │ │
+│  │ translation-only     │  │                              │ │
+│  └──────────────────────┘  └──────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -313,13 +249,13 @@ The `/bs` skill (Internet Researcher) is part of a hierarchical agent team with 
 **Architect Agent (Technical Lead)**
 - **Role**: System architecture and technical decisions
 - **File**: `.claude/agents/architect.md`
-- **Responsibilities**: Design new features, ensure consistency, identify technical debt, make cross-cutting decisions
+**Responsibilities**: Design new features, ensure consistency, identify technical debt, make cross-cutting decisions
 - **Coordinates**: Frontend, Backoffice, Backend, Auth & Security, Logging & Monitoring, Calculation, Database agents
 
 **Planner Agent (Implementation Lead)**
 - **Role**: Implementation planning and task breakdown
 - **File**: `.claude/agents/planner.md`
-- **Responsibilities**: Create implementation plans, break down tasks, define dependencies, identify specialists
+**Responsibilities**: Create implementation plans, break down tasks, define dependencies, identify specialists
 - **Coordinates**: All specialist agents based on task requirements
 
 #### Coordination Agents (Level 2)
@@ -327,7 +263,7 @@ The `/bs` skill (Internet Researcher) is part of a hierarchical agent team with 
 **Chinese Foreman Agent (工头/Gongtou)**
 - **Role**: Translate prompts from any language to Chinese and coordinate Chinese-language agents
 - **File**: `.claude/agents/chinese-foreman.md`
-- **Responsibilities**: Translation, agent discovery, task distribution, result aggregation
+**Responsibilities**: Translation, agent discovery, task distribution, result aggregation
 - **Use When**: Chinese-language task requires both translation AND multi-agent coordination
 
 #### Level 3: Specialist Agents
@@ -351,38 +287,52 @@ The `/bs` skill (Internet Researcher) is part of a hierarchical agent team with 
 - **Use When**: Only translation is needed (no coordination)
 - **Supported Languages**: English, Thai, Japanese, Korean, and more
 
-**Internet Researcher Agent (Scout - `/bs` skill)**
+**Internet Researcher Agent (Scout)**
 - **Role**: Research information from internet to support other agents' decisions
 - **File**: `.claude/agents/internet-researcher.md`
 - **Responsibilities**: Web search, content analysis, best practices research, source citation
 - **Supports**: All specialist agents with research needs
 
+**Brainstorm Coordinator Agent (`/bs` skill)**
+- **Role**: Summon ALL agents for multi-perspective brainstorming
+- **File**: This skill (`.claude/skills/bs/SKILL.md`)
+- **Responsibilities**: Agent discovery, parallel summoning, response aggregation, synthesis
+- **Use When**: Multiple perspectives needed on ANY command
+
 ### Coordination Protocols
 
-#### Protocol 9: Research Tasks
+#### Protocol: Brainstorm Tasks (`/bs` skill)
 ```
-Research Task Identified
+User invokes `/bs` command
                 ↓
-    Orchestrator routes to Internet Researcher Agent (Scout)
+    Skill receives user command
                 ↓
-    Scout performs web search and content analysis
+    Discover ALL agents in `.claude/agents/`
                 ↓
-    Scout synthesizes findings with sources
+    Summon ALL agents in parallel with command
                 ↓
-    Scout presents research to requesting agent
+    Aggregate perspectives from each agent
                 ↓
-    Requesting agent uses research for decision/implementation
+    Synthesize into consolidated recommendations
+                ↓
+    Present multi-perspective summary to user
 ```
+
+**Key Difference**: Unlike normal task routing (which selects ONE agent), `/bs` summons ALL agents regardless of command type.
 
 ### Decision Tree for Task Routing
 
 ```
+Did user invoke `/bs` command?
+    YES → Brainstorm Coordinator → Summon ALL agents in parallel
+    NO  → Continue
+
 Is the task simple and single-domain?
     YES → Direct to specialist agent
     NO  → Continue
 
 Is it a research task?
-    YES → Internet Researcher Agent (Scout / /bs skill)
+    YES → Internet Researcher Agent (Scout)
     NO  → Continue
 
 Is it a Chinese-language task?
@@ -406,11 +356,14 @@ Does the task require implementation planning?
     NO  → Orchestrator to coordinate
 ```
 
+**Special Case**: `/bs` bypasses normal routing and forces all-agent coordination.
+
 ### When to Involve Each Agent
 
 | Trigger | Agent to Involve |
 |---------|-----------------|
-| Research best practices/patterns | Internet Researcher Agent (Scout / /bs skill) |
+| Multi-perspective brainstorm on ANY command | Brainstorm Coordinator (`/bs` skill) |
+| Research best practices/patterns | Internet Researcher Agent (Scout) |
 | Translate any language to Chinese prompt | Universal Translator (translation only) or Chinese Foreman (translation + coordination) |
 | Fix button alignment (main calculator) | Frontend Agent (direct) |
 | Fix backoffice UI layout | Backoffice Agent (direct) |
@@ -424,20 +377,21 @@ Does the task require implementation planning?
 
 ### How `/bs` Coordinates with Other Agents
 
-The `/bs` skill (Internet Researcher Agent) supports all specialist agents with research needs:
+The `/bs` skill (Brainstorm Coordinator) summons ALL agents for any command:
 
-1. **Direct Invocation**: User calls `/bs` directly for research tasks
-2. **Orchestrator Routing**: Orchestrator routes research tasks to Scout automatically
-3. **Specialist Support**: Specialist agents may request research support from Scout for domain-specific questions
-4. **Findings Delivery**: Scout presents synthesized research with sources to requesting agent
-5. **Decision Support**: Requesting agent uses research findings to inform technical decisions or implementations
+1. **Direct Invocation**: User calls `/bs` directly for any command
+2. **Agent Discovery**: Scans `.claude/agents/` for all agent files
+3. **Parallel Summoning**: Launches ALL agents simultaneously with user's command
+4. **Response Aggregation**: Collects insights from each agent as they complete
+5. **Synthesis**: Combines perspectives, identifies themes, resolves conflicts
+6. **Presentation**: Delivers consolidated multi-perspective recommendations
 
 ### Tools and Permissions
 
-#### Internet Researcher Agent (Scout)
-- **Tools**: WebSearch, WebSearchPrime, WebReader (research tools only)
-- **Spawns**: None (research-only, escalates findings)
-- **Access**: External web sources, project docs for context
+#### Brainstorm Coordinator (`/bs` skill)
+- **Tools**: Task tool (for summoning agents), Read tool (for agent discovery)
+- **Spawns**: ALL agents in `.claude/agents/` (parallel execution)
+- **Access**: Agent files for discovery, user command for propagation
 
 #### Other Agents (for reference)
 - **Orchestrator**: All tools, spawns all agents, full access
@@ -463,6 +417,6 @@ The `/bs` skill (Internet Researcher Agent) supports all specialist agents with 
 ├── calculation.md               (Level 3: Specialist - Formulas)
 ├── database.md                  (Level 3: Specialist - Schema)
 ├── deployment.md                (Level 3: Specialist - Azure)
-├── internet-researcher.md       (Utility: Web research - /bs skill)
+├── internet-researcher.md       (Utility: Web research)
 └── Template.md                  (Universal template)
 ```
