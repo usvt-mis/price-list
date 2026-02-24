@@ -7,7 +7,9 @@ import { fetchJson, fetchWithAuth, showNotification, el } from '../../core/utils
 import { appState, authState, currentSavedRecord, isDirty, isViewOnly } from '../state.js';
 import { getApiHeaders } from '../../core/config.js';
 import { CALCULATOR_TYPE } from '../config.js';
-import { renderLabor, renderMaterials, calcAll } from '../labor.js';
+import { renderLabor } from '../labor.js';
+import { renderMaterials } from '../materials.js';
+import { calcAll } from '../calculations.js';
 import { getOnsiteOptionsData } from '../onsite-options.js';
 
 /**

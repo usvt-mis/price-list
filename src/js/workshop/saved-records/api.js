@@ -6,7 +6,8 @@
 import { fetchJson, fetchWithAuth, showNotification, el } from '../../core/utils.js';
 import { appState, authState, currentSavedRecord, isDirty, isViewOnly } from '../state.js';
 import { getApiHeaders } from '../../core/config.js';
-import { renderLabor, renderMaterials } from '../labor.js';
+import { renderLabor } from '../labor.js';
+import { renderMaterials } from '../materials.js';
 
 /**
  * Serialize current workshop calculator state to JSON
