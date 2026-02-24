@@ -93,6 +93,102 @@ router.post('/', async (req, res, next) => {
     const creatorName = userEmail.split('@')[0];
 
     const pool = await getPool();
+
+    // ========================================
+    // PRE-TRANSACTION VALIDATION
+    // Validate all data BEFORE starting transaction to prevent "Transaction has been aborted" errors
+    // ========================================
+    const validationTimer = logger.startTimer(correlationId);
+
+    // 1. Validate branch exists
+    const branchCheck = await pool.request()
+      .input('branchId', sql.Int, branchId)
+      .query('SELECT BranchId, BranchName FROM Branches WHERE BranchId = @branchId');
+
+    if (branchCheck.recordset.length === 0) {
+      validationTimer.stop('DATABASE', 'PreTransactionValidationFailed', 'Branch validation failed', { branchId });
+      scopedLogger.warn('BUSINESS', 'WorkshopCalculationSaveValidationFailed', 'Branch not found', {
+        userEmail,
+        userRole,
+        serverContext: { branchId }
+      });
+      return res.status(400).json({ error: `Branch with ID ${branchId} not found` });
+    }
+
+    // 2. Validate motor type exists
+    const motorTypeCheck = await pool.request()
+      .input('motorTypeId', sql.Int, motorTypeId)
+      .query('SELECT MotorTypeId, MotorTypeName FROM MotorTypes WHERE MotorTypeId = @motorTypeId');
+
+    if (motorTypeCheck.recordset.length === 0) {
+      validationTimer.stop('DATABASE', 'PreTransactionValidationFailed', 'Motor type validation failed', { motorTypeId });
+      scopedLogger.warn('BUSINESS', 'WorkshopCalculationSaveValidationFailed', 'Motor type not found', {
+        userEmail,
+        userRole,
+        serverContext: { motorTypeId }
+      });
+      return res.status(400).json({ error: `Motor type with ID ${motorTypeId} not found` });
+    }
+
+    // 3. Validate all job IDs exist
+    if (jobs.length > 0) {
+      const jobIds = jobs.map(j => j.jobId).filter(id => id != null);
+      if (jobIds.length > 0) {
+        const jobsValidationRequest = pool.request();
+        jobIds.forEach((id, idx) => {
+          jobsValidationRequest.input(`jobId${idx}`, sql.Int, id);
+        });
+        const jobsValidationResult = await jobsValidationRequest
+          .query(`SELECT JobId FROM Jobs WHERE JobId IN (${jobIds.map((_, i) => `@jobId${i}`).join(',')})`);
+
+        const validJobIds = new Set(jobsValidationResult.recordset.map(r => r.JobId));
+        const invalidJobIds = jobIds.filter(id => !validJobIds.has(id));
+
+        if (invalidJobIds.length > 0) {
+          validationTimer.stop('DATABASE', 'PreTransactionValidationFailed', 'Job validation failed', { invalidJobIds });
+          scopedLogger.warn('BUSINESS', 'WorkshopCalculationSaveValidationFailed', 'Invalid job IDs', {
+            userEmail,
+            userRole,
+            serverContext: { invalidJobIds }
+          });
+          return res.status(400).json({ error: `Job IDs not found: ${invalidJobIds.join(', ')}` });
+        }
+      }
+    }
+
+    // 4. Validate all material IDs exist and are active
+    if (materials.length > 0) {
+      const materialIds = materials.map(m => m.materialId).filter(id => id != null);
+      if (materialIds.length > 0) {
+        const materialsValidationRequest = pool.request();
+        materialIds.forEach((id, idx) => {
+          materialsValidationRequest.input(`materialId${idx}`, sql.Int, id);
+        });
+        const materialsValidationResult = await materialsValidationRequest
+          .query(`SELECT MaterialId FROM Materials WHERE MaterialId IN (${materialIds.map((_, i) => `@materialId${i}`).join(',')}) AND IsActive = 1`);
+
+        const validMaterialIds = new Set(materialsValidationResult.recordset.map(r => r.MaterialId));
+        const invalidMaterialIds = materialIds.filter(id => !validMaterialIds.has(id));
+
+        if (invalidMaterialIds.length > 0) {
+          validationTimer.stop('DATABASE', 'PreTransactionValidationFailed', 'Material validation failed', { invalidMaterialIds });
+          scopedLogger.warn('BUSINESS', 'WorkshopCalculationSaveValidationFailed', 'Invalid or inactive material IDs', {
+            userEmail,
+            userRole,
+            serverContext: { invalidMaterialIds }
+          });
+          return res.status(400).json({ error: `Material IDs not found or inactive: ${invalidMaterialIds.join(', ')}` });
+        }
+      }
+    }
+
+    validationTimer.stop('DATABASE', 'PreTransactionValidationPassed', 'All pre-transaction validations passed', {
+      jobCount: jobs.length,
+      materialCount: materials.length,
+      branchId,
+      motorTypeId
+    });
+
     const transaction = pool.transaction();
     await transaction.begin();
 
@@ -146,23 +242,12 @@ router.post('/', async (req, res, next) => {
           `);
       }
 
-      // Insert materials with validation
+      // Insert materials (validation done in pre-transaction check)
       for (const material of materials) {
-        // Validate materialId exists and is active
-        const materialCheck = await new sql.Request(transaction)
-          .input("materialId", sql.Int, material.materialId)
-          .query("SELECT 1 FROM Materials WHERE MaterialId = @materialId AND IsActive = 1");
-
-        if (materialCheck.recordset.length === 0) {
-          throw new Error(`MaterialId ${material.materialId} does not exist or is inactive`);
-        }
-
-        // Validate unitCost
+        // Validate unitCost and quantity (basic validation)
         if (material.unitCost === null || material.unitCost === undefined || isNaN(material.unitCost) || material.unitCost < 0) {
           throw new Error(`Invalid UnitCost for MaterialId ${material.materialId}: must be a non-negative number`);
         }
-
-        // Validate quantity
         if (material.quantity < 0 || !Number.isInteger(material.quantity)) {
           throw new Error(`Invalid Quantity for MaterialId ${material.materialId}: must be a non-negative integer`);
         }
@@ -179,7 +264,7 @@ router.post('/', async (req, res, next) => {
       }
 
       // Calculate GrandTotal
-      const grandTotal = await calculateGrandTotal(pool, {
+      const grandTotal = await calculateGrandTotal(transaction, {
         branchId,
         jobs,
         materials,
@@ -213,8 +298,43 @@ router.post('/', async (req, res, next) => {
         .json(result);
 
     } catch (err) {
+      // ========================================
+      // ENHANCED ERROR LOGGING FOR TRANSACTION FAILURES
+      // Capture detailed error information before rollback
+      // ========================================
       await transaction.rollback();
-      throw err;
+
+      // Log the actual error with full context
+      const errorDetail = {
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        state: err.state,
+        class: err.class,
+        serverName: err.serverName,
+        lineNumber: err.lineNumber,
+        stack: err.stack,
+        correlationId,
+        userEmail,
+        branchId,
+        motorTypeId,
+        jobCount: jobs?.length || 0,
+        materialCount: materials?.length || 0
+      };
+
+      scopedLogger.error('DATABASE', 'TransactionError', `Transaction failed: ${err.message}`, {
+        error: err,
+        serverContext: errorDetail
+      });
+
+      // Re-throw with additional context for the outer handler
+      const enhancedError = new Error(
+        err.message || 'Failed to save workshop calculation'
+      );
+      enhancedError.originalError = err;
+      enhancedError.context = errorDetail;
+      enhancedError.userMessage = getUserFriendlyErrorMessage(err);
+      throw enhancedError;
     }
 
   } catch (e) {
@@ -224,6 +344,21 @@ router.post('/', async (req, res, next) => {
       });
       return res.status(401).json({ error: 'Authentication required' });
     }
+
+    // Handle transaction errors with user-friendly message
+    if (e.userMessage) {
+      scopedLogger.error('BUSINESS', 'WorkshopCalculationSaveFailed', `Failed to create workshop calculation: ${e.message}`, {
+        error: e.originalError || e,
+        serverContext: e.context || { endpoint: '/api/workshop/calculations' }
+      });
+      return res.status(500).json({
+        error: e.userMessage,
+        correlationId,
+        details: process.env.NODE_ENV === 'development' ? e.message : undefined
+      });
+    }
+
+    // Handle other errors
     scopedLogger.error('BUSINESS', 'WorkshopCalculationSaveFailed', 'Failed to create workshop calculation', {
       error: e,
       serverContext: { endpoint: '/api/workshop/calculations' }
@@ -233,6 +368,46 @@ router.post('/', async (req, res, next) => {
     scopedLogger.release();
   }
 });
+
+// ============================================================
+// Helper Functions
+// ============================================================
+
+/**
+ * Convert SQL error messages to user-friendly error messages
+ * @param {Error} err - The original error
+ * @returns {string} User-friendly error message
+ */
+function getUserFriendlyErrorMessage(err) {
+  const message = err.message || '';
+
+  if (message.includes('FOREIGN KEY') || message.includes('foreign key')) {
+    return 'Unable to save calculation due to invalid reference data. Please try again.';
+  }
+
+  if (message.includes('UNIQUE') || message.includes('unique')) {
+    return 'A calculation with this data already exists.';
+  }
+
+  if (message.includes('Cannot insert the value NULL')) {
+    return 'Required information is missing. Please fill all required fields.';
+  }
+
+  if (message.includes('transaction') && message.toLowerCase().includes('aborted')) {
+    return 'Unable to save calculation. The operation was cancelled due to a data validation error.';
+  }
+
+  if (message.includes('timeout') || message.toLowerCase().includes('timeout')) {
+    return 'The operation timed out. Please try again.';
+  }
+
+  if (message.includes('connection') || message.toLowerCase().includes('connection')) {
+    return 'Unable to connect to the database. Please try again.';
+  }
+
+  // Default message for unknown errors
+  return 'An error occurred while saving the calculation. Please try again or contact support if the problem persists.';
+}
 
 /**
  * GET /api/workshop/calculations
@@ -379,6 +554,69 @@ router.put('/:id', async (req, res, next) => {
       return res.status(403).json({ error: 'This record has been deleted' });
     }
 
+    // ========================================
+    // PRE-TRANSACTION VALIDATION
+    // Validate all data BEFORE starting transaction to prevent "Transaction has been aborted" errors
+    // ========================================
+
+    // 1. Validate branch exists
+    const branchCheck = await pool.request()
+      .input('branchId', sql.Int, branchId)
+      .query('SELECT BranchId FROM Branches WHERE BranchId = @branchId');
+
+    if (branchCheck.recordset.length === 0) {
+      return res.status(400).json({ error: `Branch with ID ${branchId} not found` });
+    }
+
+    // 2. Validate motor type exists
+    const motorTypeCheck = await pool.request()
+      .input('motorTypeId', sql.Int, motorTypeId)
+      .query('SELECT MotorTypeId FROM MotorTypes WHERE MotorTypeId = @motorTypeId');
+
+    if (motorTypeCheck.recordset.length === 0) {
+      return res.status(400).json({ error: `Motor type with ID ${motorTypeId} not found` });
+    }
+
+    // 3. Validate all job IDs exist
+    if (jobs.length > 0) {
+      const jobIds = jobs.map(j => j.jobId).filter(id => id != null);
+      if (jobIds.length > 0) {
+        const jobsValidationRequest = pool.request();
+        jobIds.forEach((id, idx) => {
+          jobsValidationRequest.input(`jobId${idx}`, sql.Int, id);
+        });
+        const jobsValidationResult = await jobsValidationRequest
+          .query(`SELECT JobId FROM Jobs WHERE JobId IN (${jobIds.map((_, i) => `@jobId${i}`).join(',')})`);
+
+        const validJobIds = new Set(jobsValidationResult.recordset.map(r => r.JobId));
+        const invalidJobIds = jobIds.filter(id => !validJobIds.has(id));
+
+        if (invalidJobIds.length > 0) {
+          return res.status(400).json({ error: `Job IDs not found: ${invalidJobIds.join(', ')}` });
+        }
+      }
+    }
+
+    // 4. Validate all material IDs exist and are active
+    if (materials.length > 0) {
+      const materialIds = materials.map(m => m.materialId).filter(id => id != null);
+      if (materialIds.length > 0) {
+        const materialsValidationRequest = pool.request();
+        materialIds.forEach((id, idx) => {
+          materialsValidationRequest.input(`materialId${idx}`, sql.Int, id);
+        });
+        const materialsValidationResult = await materialsValidationRequest
+          .query(`SELECT MaterialId FROM Materials WHERE MaterialId IN (${materialIds.map((_, i) => `@materialId${i}`).join(',')}) AND IsActive = 1`);
+
+        const validMaterialIds = new Set(materialsValidationResult.recordset.map(r => r.MaterialId));
+        const invalidMaterialIds = materialIds.filter(id => !validMaterialIds.has(id));
+
+        if (invalidMaterialIds.length > 0) {
+          return res.status(400).json({ error: `Material IDs not found or inactive: ${invalidMaterialIds.join(', ')}` });
+        }
+      }
+    }
+
     const transaction = pool.transaction();
     await transaction.begin();
 
@@ -419,27 +657,16 @@ router.put('/:id', async (req, res, next) => {
           `);
       }
 
-      // Delete and re-insert materials with validation
+      // Delete and re-insert materials (validation done in pre-transaction check)
       await new sql.Request(transaction)
         .input('saveId', sql.Int, saveId)
         .query('DELETE FROM WorkshopSavedCalculationMaterials WHERE SaveId = @saveId');
 
       for (const material of materials) {
-        // Validate materialId exists and is active
-        const materialCheck = await new sql.Request(transaction)
-          .input("materialId", sql.Int, material.materialId)
-          .query('SELECT 1 FROM Materials WHERE MaterialId = @materialId AND IsActive = 1');
-
-        if (materialCheck.recordset.length === 0) {
-          throw new Error(`MaterialId ${material.materialId} does not exist or is inactive`);
-        }
-
-        // Validate unitCost
+        // Validate unitCost and quantity (basic validation)
         if (material.unitCost === null || material.unitCost === undefined || isNaN(material.unitCost) || material.unitCost < 0) {
           throw new Error(`Invalid UnitCost for MaterialId ${material.materialId}: must be a non-negative number`);
         }
-
-        // Validate quantity
         if (material.quantity < 0 || !Number.isInteger(material.quantity)) {
           throw new Error(`Invalid Quantity for MaterialId ${material.materialId}: must be a non-negative integer`);
         }
@@ -456,7 +683,7 @@ router.put('/:id', async (req, res, next) => {
       }
 
       // Calculate GrandTotal
-      const grandTotal = await calculateGrandTotal(pool, {
+      const grandTotal = await calculateGrandTotal(transaction, {
         branchId,
         jobs,
         materials,
@@ -483,14 +710,43 @@ router.put('/:id', async (req, res, next) => {
       res.status(200).json(result);
 
     } catch (err) {
+      // Enhanced error logging for PUT transaction failures
       await transaction.rollback();
-      throw err;
+
+      const errorDetail = {
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        state: err.state,
+        class: err.class,
+        serverName: err.serverName,
+        lineNumber: err.lineNumber,
+        saveId,
+        userEmail
+      };
+
+      console.error('Transaction failed for update:', errorDetail);
+
+      const enhancedError = new Error(err.message || 'Failed to update workshop calculation');
+      enhancedError.originalError = err;
+      enhancedError.context = errorDetail;
+      enhancedError.userMessage = getUserFriendlyErrorMessage(err);
+      throw enhancedError;
     }
 
   } catch (e) {
     if (e.statusCode === 401) {
       return res.status(401).json({ error: 'Authentication required' });
     }
+
+    // Handle transaction errors with user-friendly message
+    if (e.userMessage) {
+      return res.status(500).json({
+        error: e.userMessage,
+        details: process.env.NODE_ENV === 'development' ? e.message : undefined
+      });
+    }
+
     next(e);
   }
 });

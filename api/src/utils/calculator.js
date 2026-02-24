@@ -22,7 +22,7 @@ const { COMMISSION_TIERS } = require('../../config');
  * 9. Commission % based on ratio (tiered: 0%, 1%, 2%, 2.5%, 5%)
  * 10. Grand Total = Sub Grand Total × (1 + Commission% / 100)
  *
- * @param {Object} pool - SQL connection pool
+ * @param {Object} poolOrTransaction - SQL connection pool or transaction object
  * @param {Object} saveData - Calculation data
  * @param {number} saveData.branchId - Branch ID
  * @param {Array} saveData.jobs - Array of jobs with effectiveManHours and isChecked (only checked jobs are calculated)
@@ -31,17 +31,35 @@ const { COMMISSION_TIERS } = require('../../config');
  * @param {number} saveData.travelKm - Travel distance in km
  * @param {Object} saveData.onsiteOptions - Onsite options (crane, fourPeople, safety)
  * @returns {Promise<number>} GrandTotal amount
+ * @throws {Error} With detailed context when branch lookup fails
  */
-async function calculateGrandTotal(pool, saveData) {
+async function calculateGrandTotal(poolOrTransaction, saveData) {
   const { branchId, jobs = [], materials = [], salesProfitPct = 0, travelKm = 0, onsiteOptions = {} } = saveData;
 
   // Fetch branch data with multipliers
-  const branchResult = await pool.request()
-    .input('branchId', sql.Int, branchId)
-    .query('SELECT CostPerHour, OverheadPercent, PolicyProfit FROM Branches WHERE BranchId = @branchId');
+  let branchResult;
+  try {
+    branchResult = await new sql.Request(poolOrTransaction)
+      .input('branchId', sql.Int, branchId)
+      .query('SELECT CostPerHour, OverheadPercent, PolicyProfit FROM Branches WHERE BranchId = @branchId');
+  } catch (err) {
+    // Enhance error with context for better debugging
+    const error = new Error(`Failed to fetch branch data for BranchId ${branchId}: ${err.message}`);
+    error.originalError = err;
+    error.context = { branchId, jobsCount: jobs.length, materialsCount: materials.length };
+    throw error;
+  }
 
   if (branchResult.recordset.length === 0) {
-    throw new Error(`Branch ${branchId} not found`);
+    const error = new Error(`Branch ${branchId} not found in Branches table`);
+    error.context = {
+      branchId,
+      jobsCount: jobs.length,
+      materialsCount: materials.length,
+      salesProfitPct,
+      travelKm
+    };
+    throw error;
   }
 
   const branch = branchResult.recordset[0];
