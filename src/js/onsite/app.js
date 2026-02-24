@@ -12,7 +12,7 @@ import { el, setStatus, setDbLoadingModal, showView, updateModeButtons, fetchJso
 import { initAuth, renderAuthSection } from '../auth/index.js';
 import { loadLabor, renderLabor } from './labor.js';
 import { addMaterialRow, renderMaterials } from './materials.js';
-import { calcAll } from './calculations.js';
+import { calcAll, syncFlatFromPercent, syncPercentFromFlat } from './calculations.js';
 import { initializeOnsiteOptions, updateOnsiteOptionsSubtotal, setupOnsiteOptionsListeners, resetOnsiteOptions } from './onsite-options.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
@@ -150,6 +150,7 @@ function startNewCalculation() {
   el('branch').value = '';
   // motorType element removed - auto-selection handled in loadInit()
   el('salesProfitPct').value = '';
+  el('salesProfitFlat').value = '';
   el('travelKm').value = '';
   el('scope').value = '';
 
@@ -218,6 +219,15 @@ function setupEventListeners() {
   });
 
   el('salesProfitPct')?.addEventListener('input', () => {
+    syncFlatFromPercent();
+    renderLabor();
+    renderMaterials();
+    calcAll();
+    if (globalExports.markDirty) globalExports.markDirty();
+  });
+
+  el('salesProfitFlat')?.addEventListener('input', () => {
+    syncPercentFromFlat();
     renderLabor();
     renderMaterials();
     calcAll();

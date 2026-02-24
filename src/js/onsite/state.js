@@ -18,7 +18,11 @@ export const appState = {
   materialLines: [], // {materialId, code, name, unitCost, qty}
 
   // Commission
-  commissionPercent: 0
+  commissionPercent: 0,
+
+  // Sales Profit Flat Amount tracking
+  subTotalBeforeSalesProfit: 0, // Track base for flat calculation
+  isUpdatingSalesProfit: false,  // Guard flag to prevent infinite loops
 };
 
 // Mode management (role-based, not user-selectable)

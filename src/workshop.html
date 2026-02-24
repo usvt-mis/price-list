@@ -220,12 +220,21 @@
             <div class="text-center md:text-left">
               <div class="text-sm font-medium text-slate-300 mb-2">Grand Total without Commission</div>
               <div id="grandTotal" class="text-5xl font-extrabold text-white mb-6">—</div>
-              <div id="salesProfitCard" class="space-y-2">
-                <label for="salesProfitPct" class="block text-sm font-medium text-slate-300">Sales Profit %</label>
-                <input id="salesProfitPct" type="number" step="0.01"
-                       class="w-full rounded-lg border-2 border-slate-500 bg-slate-800 text-white px-4 py-3 text-lg"
-                       placeholder="0.00"/>
-                <p class="text-xs text-slate-400 mt-1">Can be negative for discounts</p>
+              <div id="salesProfitCard" class="space-y-4">
+                <div>
+                  <label for="salesProfitPct" class="block text-sm font-medium text-slate-300">Sales Profit %</label>
+                  <input id="salesProfitPct" type="number" step="0.01"
+                         class="w-full rounded-lg border-2 border-slate-500 bg-slate-800 text-white px-4 py-3 text-lg"
+                         placeholder="0.00"/>
+                  <p class="text-xs text-slate-400 mt-1">Can be negative for discounts</p>
+                </div>
+                <div>
+                  <label for="salesProfitFlat" class="block text-sm font-medium text-slate-300">Sales Profit Amount</label>
+                  <input id="salesProfitFlat" type="number" step="0.01"
+                         class="w-full rounded-lg border-2 border-slate-500 bg-slate-800 text-white px-4 py-3 text-lg"
+                         placeholder="0.00"/>
+                  <p class="text-xs text-slate-400 mt-1">Auto-calculated from Labor + Materials</p>
+                </div>
               </div>
             </div>
           </div>

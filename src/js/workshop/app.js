@@ -11,7 +11,7 @@ import { el, setStatus, setDbLoadingModal, showView, updateModeButtons } from '.
 import { initAuth, renderAuthSection } from '../auth/index.js';
 import { loadLabor, renderLabor } from './labor.js';
 import { addMaterialRow, renderMaterials } from './materials.js';
-import { calcAll } from './calculations.js';
+import { calcAll, syncFlatFromPercent, syncPercentFromFlat } from './calculations.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
 
@@ -150,6 +150,7 @@ function startNewCalculation() {
   el('branch').value = '';
   el('motorType').value = '';
   el('salesProfitPct').value = '';
+  el('salesProfitFlat').value = '';
   el('travelKm').value = '';
 
   renderLabor();
@@ -177,6 +178,15 @@ function setupEventListeners() {
   });
 
   el('salesProfitPct')?.addEventListener('input', () => {
+    syncFlatFromPercent();
+    renderLabor();
+    renderMaterials();
+    calcAll();
+    if (globalExports.markDirty) globalExports.markDirty();
+  });
+
+  el('salesProfitFlat')?.addEventListener('input', () => {
+    syncPercentFromFlat();
     renderLabor();
     renderMaterials();
     calcAll();

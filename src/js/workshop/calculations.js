@@ -92,6 +92,14 @@ export function calcAll() {
   // Sub Total Cost = labor + materials + travel (before sales profit multiplier)
   const subTotalBeforeSalesProfit = lAfterBranch + mAfterBranch + travelBase;
 
+  // Store subtotal before sales profit for flat amount calculation
+  appState.subTotalBeforeSalesProfit = subTotalBeforeSalesProfit;
+
+  // Sync flat amount from percentage (if not already updating)
+  if (!appState.isUpdatingSalesProfit) {
+    syncFlatFromPercent();
+  }
+
   // Calculate commission percentage based on Sub Grand Total vs STC ratio
   const gtToStcRatio = Number.isFinite(subGrandTotal) && Number.isFinite(subTotalBeforeSalesProfit) && subTotalBeforeSalesProfit > 0
     ? subGrandTotal / subTotalBeforeSalesProfit
@@ -231,4 +239,46 @@ export function calcAll() {
     // Remove customer-view class from body
     document.body.classList.remove('customer-view');
   }
+}
+
+// ========== Sales Profit Flat Amount Sync Functions ==========
+
+/**
+ * Sync Sales Profit (Baht) input from Sales Profit % input
+ * Called when percentage changes or during calculation updates
+ */
+export function syncFlatFromPercent() {
+  if (appState.isUpdatingSalesProfit) return;
+
+  const pctInput = el('salesProfitPct');
+  const flatInput = el('salesProfitFlat');
+  if (!pctInput || !flatInput) return;
+
+  const pct = Number(pctInput.value) || 0;
+  const subTotal = appState.subTotalBeforeSalesProfit || 0;
+  const flat = subTotal * (pct / 100);
+
+  appState.isUpdatingSalesProfit = true;
+  flatInput.value = flat.toFixed(2);
+  appState.isUpdatingSalesProfit = false;
+}
+
+/**
+ * Sync Sales Profit % input from Sales Profit (Baht) input
+ * Called when flat amount changes
+ */
+export function syncPercentFromFlat() {
+  if (appState.isUpdatingSalesProfit) return;
+
+  const pctInput = el('salesProfitPct');
+  const flatInput = el('salesProfitFlat');
+  if (!pctInput || !flatInput) return;
+
+  const flat = Number(flatInput.value) || 0;
+  const subTotal = appState.subTotalBeforeSalesProfit || 0;
+  const pct = subTotal > 0 ? (flat / subTotal) * 100 : 0;
+
+  appState.isUpdatingSalesProfit = true;
+  pctInput.value = pct.toFixed(2);
+  appState.isUpdatingSalesProfit = false;
 }
