@@ -524,6 +524,7 @@ The application extracts email from Azure AD tokens using multiple fallback meth
 - `database/migrations/migrate_to_utc.sql` - Idempotent migration script to convert existing timestamps from local time to UTC
 - `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table (deprecated - no longer used for authentication)
 - `database/migrations/remove_database_logging.sql` - Remove legacy database logging tables after Application Insights migration
+- `database/add_onsite_jobs.sql` - Add 10 onsite-specific jobs (ถอด, ติดตั้ง, Alignment, etc.)
 
 **Maintenance Scripts:**
 - `api/scripts/reset-admin-password.js` - Reset backoffice admin password (deprecated - no longer used for authentication)

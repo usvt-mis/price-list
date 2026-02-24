@@ -155,6 +155,7 @@ This will:
 For quick fixes:
 - `database/fix_backoffice_issues.sql` - Unlock accounts, enable disabled accounts, clear expired sessions
 - `database/migrations/two_factor_auth.sql` - Create BackofficeAdmins table (deprecated)
+- `database/add_onsite_jobs.sql` - Add 10 onsite-specific jobs with CalculatorType='onsite' filter
 
 **Timezone Diagnostics:**
 - `database/diagnostics_timezone.sql` - Check server timezone configuration, column types, and identify mixed timezone sources (GETDATE vs GETUTCDATE)
