@@ -4,6 +4,7 @@
  */
 
 import { MODE, ROLE, VIEW } from '../core/config.js';
+import { currentMode, setMode } from '../state.js';
 
 // ========== Core Application State ==========
 
@@ -25,8 +26,7 @@ export const appState = {
 };
 
 // Mode management (role-based, not user-selectable)
-// Re-export from core state.js to use single source of truth
-export { currentMode, setMode } from '../state.js';
+// currentMode and setMode are imported from core state.js (single source of truth)
 
 // Records view mode
 export let recordsViewMode = localStorage.getItem('pricelist-calculator-records-view') || 'list';
