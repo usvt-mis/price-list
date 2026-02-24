@@ -7,6 +7,7 @@ import { el, fmt, fmtPercent, makeInputsReadOnly, removeReadOnly } from '../core
 import { appState, isExecutiveMode, isSalesMode, isCustomerMode } from './state.js';
 import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
 import { materialSubtotalBase, materialSubtotal } from './materials.js';
+import { getOnsiteOptionsSubtotal } from './onsite-options.js';
 import { COMMISSION_TIERS } from './config.js';
 
 /**
@@ -57,9 +58,11 @@ export function calcAll() {
   const mBase = materialSubtotalBase();
   // Get travel cost (base: Km × TRAVEL_RATE)
   const travelBase = getTravelCost();
+  // Get onsite options subtotal
+  const onsiteOptionsBase = getOnsiteOptionsSubtotal();
 
-  // Calculate total raw cost (labor + materials + travel without any multipliers)
-  const totalRawCost = (Number.isFinite(lBase) ? lBase : 0) + (Number.isFinite(mBase) ? mBase : 0) + travelBase;
+  // Calculate total raw cost (labor + materials + travel + onsite options without any multipliers)
+  const totalRawCost = (Number.isFinite(lBase) ? lBase : 0) + (Number.isFinite(mBase) ? mBase : 0) + travelBase + onsiteOptionsBase;
 
   // Get branch multiplier (Overhead% + PolicyProfit% from branch defaults)
   const branchMultiplier = getBranchMultiplier();
@@ -80,17 +83,22 @@ export function calcAll() {
   // Calculate travel sales profit amount
   const travelSalesProfit = travelCost - travelBase;
 
+  // Apply sales profit multiplier to onsite options
+  const onsiteOptionsCost = onsiteOptionsBase * salesProfitMultiplier;
+  // Calculate onsite options sales profit amount
+  const onsiteOptionsSalesProfit = onsiteOptionsCost - onsiteOptionsBase;
+
   // Calculate overhead (difference between base and after-branch amounts)
   const overhead = (lAfterBranch + mAfterBranch) - (lBase + mBase);
 
   // Calculate sales profit adjustment (labor + materials only)
   const salesProfitAdj = (l + m) - (lAfterBranch + mAfterBranch);
 
-  // Sub Grand Total = labor + materials + travel cost (with sales profit applied)
-  const subGrandTotal = l + m + travelCost;
+  // Sub Grand Total = labor + materials + travel + onsite options (with sales profit applied)
+  const subGrandTotal = l + m + travelCost + onsiteOptionsCost;
 
-  // Sub Total Cost = labor + materials + travel (before sales profit multiplier)
-  const subTotalBeforeSalesProfit = lAfterBranch + mAfterBranch + travelBase;
+  // Sub Total Cost = labor + materials + travel + onsite options (before sales profit multiplier)
+  const subTotalBeforeSalesProfit = lAfterBranch + mAfterBranch + travelBase + onsiteOptionsBase;
 
   // Calculate commission percentage based on Sub Grand Total vs STC ratio
   const gtToStcRatio = Number.isFinite(subGrandTotal) && Number.isFinite(subTotalBeforeSalesProfit) && subTotalBeforeSalesProfit > 0
@@ -111,12 +119,13 @@ export function calcAll() {
   // Calculate commission value
   const commission = subGrandTotal * (appState.commissionPercent / 100);
 
-  // Calculate new Grand Total = sum of all Final Prices + travel Final Price
+  // Calculate new Grand Total = sum of all Final Prices + travel Final Price + onsite options Final Price
   // Final Price for each row = Selling Price × (1 + commissionPercent/100)
   const laborFinalPricesSum = l * (1 + appState.commissionPercent / 100);
   const materialsFinalPricesSum = m * (1 + appState.commissionPercent / 100);
   const travelFinalPrice = travelCost * (1 + appState.commissionPercent / 100);
-  const newGrandTotal = laborFinalPricesSum + materialsFinalPricesSum + travelFinalPrice;
+  const onsiteOptionsFinalPrice = onsiteOptionsCost * (1 + appState.commissionPercent / 100);
+  const newGrandTotal = laborFinalPricesSum + materialsFinalPricesSum + travelFinalPrice + onsiteOptionsFinalPrice;
 
   // Update display elements
   el('laborSubtotal').textContent = fmt(laborFinalPricesSum);
@@ -133,18 +142,25 @@ export function calcAll() {
   el('grandCommissionPercent').textContent = appState.commissionPercent + '%';
   el('grandCommission').textContent = fmt(commission);
 
+  // Update onsite options display
+  const grandOnsiteOptions = el('grandOnsiteOptions');
+  if (grandOnsiteOptions) {
+    grandOnsiteOptions.textContent = Number.isFinite(onsiteOptionsCost) ? fmt(onsiteOptionsCost) : '—';
+  }
+
   // === Percentage Breakdown (Executive Only) ===
-  let laborPercent = 0, materialsPercent = 0, overheadPercent = 0;
+  let laborPercent = 0, materialsPercent = 0, overheadPercent = 0, onsiteOptionsPercent = 0;
   let commissionPercentOfTotal = 0, grossProfitPercent = 0;
 
   if (Number.isFinite(newGrandTotal) && newGrandTotal > 0) {
     laborPercent = (laborFinalPricesSum / newGrandTotal) * 100;
     materialsPercent = (materialsFinalPricesSum / newGrandTotal) * 100;
     overheadPercent = (overhead / newGrandTotal) * 100;
+    onsiteOptionsPercent = (onsiteOptionsFinalPrice / newGrandTotal) * 100;
     commissionPercentOfTotal = (commission / newGrandTotal) * 100;
 
     // Gross Profit = Grand Total - (Total Labor + Total Materials)
-    // Using subGrandTotal (before commission) minus (l + m) = travelCost
+    // Using subGrandTotal (before commission) minus (l + m) = travelCost + onsiteOptionsCost
     const grossProfit = subGrandTotal - (l + m);
     grossProfitPercent = (grossProfit / newGrandTotal) * 100;
   }
@@ -153,6 +169,13 @@ export function calcAll() {
   el('laborPercent').textContent = fmtPercent(laborPercent);
   el('materialsPercent').textContent = fmtPercent(materialsPercent);
   el('overheadPercent').textContent = fmtPercent(overheadPercent);
+
+  // Update onsite options percentage display
+  const onsiteOptionsPercentEl = el('onsiteOptionsPercent');
+  if (onsiteOptionsPercentEl) {
+    onsiteOptionsPercentEl.textContent = fmtPercent(onsiteOptionsPercent);
+  }
+
   el('commissionPercentOfTotal').textContent = fmtPercent(commissionPercentOfTotal);
   el('grossProfitPercent').textContent = fmtPercent(grossProfitPercent);
 

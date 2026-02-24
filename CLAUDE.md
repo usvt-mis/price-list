@@ -20,6 +20,12 @@ The calculator computes total cost based on four components:
 2. **Materials**: User-selected materials with quantities
 3. **Sales Profit**: User-editable percentage applied after branch multipliers (can be negative for discounts)
 4. **Travel/Shipping**: Distance in Km multiplied by 15 baht/km rate (both calculator types)
+5. **Onsite Options** (Onsite Calculator only): Optional add-ons (Crane, 4 People, Safety) with custom prices
+
+**Treatment of cost components:**
+- **Labor & Materials**: Affected by branch multipliers (Overhead%, PolicyProfit%) and Sales Profit multiplier
+- **Travel & Onsite Options**: NOT affected by branch multipliers, only affected by Sales Profit multiplier
+- All components are included in the commission calculation base
 
 **Note**: Branch defaults (OverheadPercent and PolicyProfit) are applied silently in the calculation and are not user-editable.
 
@@ -35,6 +41,7 @@ The application supports two distinct calculator modes selected via tab navigati
   - ใช้ Safety (Safety equipment) → Yes/No → Price input (บาท)
   - Onsite Options Subtotal displayed at bottom
   - Card-like layout with hover effects for better UX
+  - **Onsite Options are included in Grand Total calculation** (treated like Travel costs - no branch multipliers, only Sales Profit multiplier)
 - Labor section includes: Scope (dropdown), Priority Level (High/Low radio buttons), Site Access (Easy/Difficult radio buttons)
 - Separate job list from Workshop calculator (filtered by CalculatorType column)
 - Travel section is visible (shared with Workshop)

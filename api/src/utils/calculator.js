@@ -14,12 +14,13 @@ const { COMMISSION_TIERS } = require('../../config');
  * 1. Labor Subtotal = Sum(Job Hours × CostPerHour × BranchMultiplier) [Only isChecked=true jobs]
  * 2. Materials Subtotal = Sum(Quantity × UnitCost × BranchMultiplier)
  * 3. Travel Cost = TravelKm × 15 × SalesProfitMultiplier
- * 4. Branch Multiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)
- * 5. Sales Profit Multiplier = 1 + SalesProfitPct / 100
- * 6. Subtotal Before Sales Profit = (Labor + Materials) × BranchMultiplier + Travel Cost
- * 7. Sub Grand Total = Subtotal Before Sales Profit × SalesProfitMultiplier
- * 8. Commission % based on ratio (tiered: 0%, 1%, 2%, 2.5%, 5%)
- * 9. Grand Total = Sub Grand Total × (1 + Commission% / 100)
+ * 4. Onsite Options = Crane + 4People + Safety (if enabled) × SalesProfitMultiplier
+ * 5. Branch Multiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)
+ * 6. Sales Profit Multiplier = 1 + SalesProfitPct / 100
+ * 7. Subtotal Before Sales Profit = (Labor + Materials) × BranchMultiplier + Travel Cost + Onsite Options
+ * 8. Sub Grand Total = Subtotal Before Sales Profit × SalesProfitMultiplier
+ * 9. Commission % based on ratio (tiered: 0%, 1%, 2%, 2.5%, 5%)
+ * 10. Grand Total = Sub Grand Total × (1 + Commission% / 100)
  *
  * @param {Object} pool - SQL connection pool
  * @param {Object} saveData - Calculation data
@@ -28,10 +29,11 @@ const { COMMISSION_TIERS } = require('../../config');
  * @param {Array} saveData.materials - Array of materials with quantity and unitCost
  * @param {number} saveData.salesProfitPct - Sales profit percentage
  * @param {number} saveData.travelKm - Travel distance in km
+ * @param {Object} saveData.onsiteOptions - Onsite options (crane, fourPeople, safety)
  * @returns {Promise<number>} GrandTotal amount
  */
 async function calculateGrandTotal(pool, saveData) {
-  const { branchId, jobs = [], materials = [], salesProfitPct = 0, travelKm = 0 } = saveData;
+  const { branchId, jobs = [], materials = [], salesProfitPct = 0, travelKm = 0, onsiteOptions = {} } = saveData;
 
   // Fetch branch data with multipliers
   const branchResult = await pool.request()
@@ -69,15 +71,19 @@ async function calculateGrandTotal(pool, saveData) {
   const travelBase = (travelKm || 0) * 15;
   const travelCost = travelBase * salesProfitMultiplier;
 
+  // Calculate onsite options (treat like travel - no branch multipliers, only sales profit)
+  const onsiteOptionsBase = (onsiteOptions?.crane || 0) + (onsiteOptions?.fourPeople || 0) + (onsiteOptions?.safety || 0);
+  const onsiteOptionsCost = onsiteOptionsBase * salesProfitMultiplier;
+
   // Apply sales profit multiplier to labor and materials
   const laborAfterSalesProfit = laborSubtotal * salesProfitMultiplier;
   const materialsAfterSalesProfit = materialSubtotal * salesProfitMultiplier;
 
-  // Subtotal before sales profit (labor + materials with branch multiplier only, plus travel base)
-  const subTotalBeforeSalesProfit = laborSubtotal + materialSubtotal + travelBase;
+  // Subtotal before sales profit (labor + materials with branch multiplier only, plus travel base, plus onsite options base)
+  const subTotalBeforeSalesProfit = laborSubtotal + materialSubtotal + travelBase + onsiteOptionsBase;
 
   // Sub Grand Total (after sales profit multiplier)
-  const subGrandTotal = laborAfterSalesProfit + materialsAfterSalesProfit + travelCost;
+  const subGrandTotal = laborAfterSalesProfit + materialsAfterSalesProfit + travelCost + onsiteOptionsCost;
 
   // Calculate commission percentage based on ratio
   const ratio = subGrandTotal / (subTotalBeforeSalesProfit || 1);

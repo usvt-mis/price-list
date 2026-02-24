@@ -4,10 +4,12 @@ A web application for calculating service costs based on labor, materials, and o
 
 ## Overview
 
-The Price List Calculator computes total cost based on three components:
+The Price List Calculator computes total cost based on four components:
 1. **Labor**: Job manhours × branch-specific cost per hour
 2. **Materials**: User-selected materials with quantities
 3. **Overhead**: Percentage-based and fixed amounts (with branch defaults)
+4. **Travel/Shipping**: Distance in Km multiplied by 15 baht/km rate (both calculator types)
+5. **Onsite Options** (Onsite Calculator only): Optional add-ons (Crane, 4 People, Safety) with custom prices
 
 ## Architecture
 
@@ -18,6 +20,7 @@ The Price List Calculator computes total cost based on three components:
   - **No build process**: Uses native ES6 modules with import maps
   - Tailwind CSS (compiled locally via `npm run build:css`)
   - Azure AD authentication
+  - **Onsite Options**: Crane, 4 People, Safety - optional add-ons included in Grand Total (treated like Travel costs)
 - **Workshop Calculator** (`src/workshop.html`): Standalone workshop calculator application
   - **ES6 Modules**: JavaScript in `src/js/workshop/` directory
   - **No build process**: Uses native ES6 modules with import maps

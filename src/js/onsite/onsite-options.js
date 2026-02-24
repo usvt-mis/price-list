@@ -96,6 +96,31 @@ export function updateOnsiteOptionsSubtotal() {
 }
 
 /**
+ * Get onsite options subtotal for calculation
+ * @returns {number} Onsite options subtotal
+ */
+export function getOnsiteOptionsSubtotal() {
+  let subtotal = 0;
+
+  const craneEnabled = document.querySelector('input[name="craneEnabled"]:checked')?.value === 'yes';
+  if (craneEnabled) {
+    subtotal += parseFloat(el('cranePrice').value) || 0;
+  }
+
+  const fourPeopleEnabled = document.querySelector('input[name="fourPeopleEnabled"]:checked')?.value === 'yes';
+  if (fourPeopleEnabled) {
+    subtotal += parseFloat(el('fourPeoplePrice').value) || 0;
+  }
+
+  const safetyEnabled = document.querySelector('input[name="safetyEnabled"]:checked')?.value === 'yes';
+  if (safetyEnabled) {
+    subtotal += parseFloat(el('safetyPrice').value) || 0;
+  }
+
+  return subtotal;
+}
+
+/**
  * Get onsite options data for serialization
  * @returns {Object} Onsite options data
  */

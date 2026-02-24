@@ -214,9 +214,9 @@ router.post('/', async (req, res, next) => {
         salesProfitPct,
         travelKm,
         onsiteOptions: {
-          crane: onsiteCraneEnabled ? (onsiteCranePrice || 0) : 0,
-          fourPeople: onsiteFourPeopleEnabled ? (onsiteFourPeoplePrice || 0) : 0,
-          safety: onsiteSafetyEnabled ? (onsiteSafetyPrice || 0) : 0
+          crane: (onsiteCraneEnabled === true || onsiteCraneEnabled === 'yes') ? (parseFloat(onsiteCranePrice) || 0) : 0,
+          fourPeople: (onsiteFourPeopleEnabled === true || onsiteFourPeopleEnabled === 'yes') ? (parseFloat(onsiteFourPeoplePrice) || 0) : 0,
+          safety: (onsiteSafetyEnabled === true || onsiteSafetyEnabled === 'yes') ? (parseFloat(onsiteSafetyPrice) || 0) : 0
         }
       });
 
@@ -531,9 +531,9 @@ router.put('/:id', async (req, res, next) => {
         salesProfitPct,
         travelKm,
         onsiteOptions: {
-          crane: onsiteCraneEnabled ? (onsiteCranePrice || 0) : 0,
-          fourPeople: onsiteFourPeopleEnabled ? (onsiteFourPeoplePrice || 0) : 0,
-          safety: onsiteSafetyEnabled ? (onsiteSafetyPrice || 0) : 0
+          crane: (onsiteCraneEnabled === true || onsiteCraneEnabled === 'yes') ? (parseFloat(onsiteCranePrice) || 0) : 0,
+          fourPeople: (onsiteFourPeopleEnabled === true || onsiteFourPeopleEnabled === 'yes') ? (parseFloat(onsiteFourPeoplePrice) || 0) : 0,
+          safety: (onsiteSafetyEnabled === true || onsiteSafetyEnabled === 'yes') ? (parseFloat(onsiteSafetyPrice) || 0) : 0
         }
       });
 
