@@ -34,7 +34,6 @@ export function renderRecordsGrid(records) {
       <div class="space-y-1 text-sm text-slate-600 mb-4">
         <div><strong>Created by:</strong> ${record.CreatorName || record.CreatorEmail || 'Unknown'}</div>
         <div><strong>Branch:</strong> ${record.BranchName}</div>
-        <div><strong>Motor:</strong> ${record.MotorTypeName}</div>
         <div><strong>Jobs:</strong> ${record.JobCount || 0} · <strong>Materials:</strong> ${record.MaterialCount || 0}</div>
       </div>
       <div class="flex gap-2">
@@ -151,7 +150,6 @@ export function renderRecordsListView(records) {
             ${renderSortableHeader('CreatedAt', 'Date')}
             ${renderSortableHeader('CreatorName', 'Created By')}
             ${renderSortableHeader('BranchName', 'Branch')}
-            ${renderSortableHeader('MotorTypeName', 'Motor')}
             ${renderSortableHeader('JobCount', 'Jobs', 'text-center')}
             ${renderSortableHeader('MaterialCount', 'Materials', 'text-center')}
             ${renderSortableHeader('GrandTotal', 'Amount', 'text-right')}
@@ -168,7 +166,6 @@ export function renderRecordsListView(records) {
               <td class="p-3 text-sm text-slate-600">${formatDate(record.CreatedAt)}</td>
               <td class="p-3 text-sm text-slate-600">${record.CreatorName || record.CreatorEmail || 'Unknown'}</td>
               <td class="p-3 text-sm text-slate-600">${record.BranchName}</td>
-              <td class="p-3 text-sm text-slate-600">${record.MotorTypeName}</td>
               <td class="p-3 text-sm text-slate-600 text-center">${record.JobCount || 0}</td>
               <td class="p-3 text-sm text-slate-600 text-center">${record.MaterialCount || 0}</td>
               <td class="p-3 text-sm font-medium text-right">${fmt(record.GrandTotal || 0)}</td>
