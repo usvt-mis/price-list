@@ -143,27 +143,6 @@ router.post('/', async (req, res, next) => {
     if (jobs.length > 0) {
       const jobIds = jobs.map(j => j.jobId).filter(id => id != null);
       if (jobIds.length > 0) {
-        // Check if jobs exist in Jobs table
-        const jobsCheck = await pool.request()
-          .input('jobIds', sql.VarChar, jobIds.join(','))
-          .query(`SELECT JobId FROM Jobs WHERE JobId IN (${jobIds.map((_, i) => `@jobIds${i}`).join(',')})`);
-
-        // Dynamic parameter binding for job IDs
-        const jobsRequest = pool.request();
-        const jobIdParams = {};
-        jobIds.forEach((id, idx) => {
-          jobIdParams[`jobId${idx}`] = id;
-        });
-
-        // Build parameterized query
-        const jobParams = jobIds.map((id, idx) => {
-          jobsRequest.input(`jobId${idx}`, sql.Int, id);
-          return `@jobId${idx}`;
-        }).join(',');
-
-        const validJobsResult = await pool.request()
-          .query(`SELECT JobId FROM Jobs WHERE JobId IN (${jobIds.map((_, i) => `@jobId${i}`).join(',')})`);
-
         // Add parameters dynamically
         const jobsValidationRequest = pool.request();
         jobIds.forEach((id, idx) => {
