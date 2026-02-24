@@ -48,6 +48,11 @@ router.get('/', async (req, res, next) => {
         ORDER BY j.SortOrder;
       `);
 
+    console.log(`[ONSITE-LABOR] motorTypeId: ${motorTypeId}, jobs returned: ${result.recordset.length}`);
+    if (result.recordset.length === 0) {
+      console.warn('[ONSITE-LABOR] No jobs found for onsite calculator - check Jobs.CalculatorType');
+    }
+
     res.status(200).json(result.recordset);
   } catch (e) {
     next(e);

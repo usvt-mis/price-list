@@ -17,6 +17,12 @@ export async function loadLabor() {
   try {
     // For onsite calculator, let the API auto-select the first motor type
     const labor = await fetchJson(`${API.ONSITE_LABOR}`);
+    console.log('[LABOR-LOAD] URL:', API.ONSITE_LABOR);
+    console.log('[LABOR-LOAD] Response:', labor);
+    console.log('[LABOR-LOAD] Jobs loaded:', labor?.length || 0);
+    if (!labor || labor.length === 0) {
+      console.warn('[LABOR-LOAD] Empty response - check database for onsite/shared jobs');
+    }
     appState.labor = labor;
     setStatus('');
     // Import calcAll dynamically to avoid circular dependency - calculate FIRST
@@ -32,6 +38,8 @@ export async function loadLabor() {
  * Render labor table
  */
 export function renderLabor() {
+  console.log('[LABOR-RENDER] Rendering', appState.labor.length, 'jobs');
+  console.log('[LABOR-RENDER] Jobs sample:', appState.labor.slice(0, 3));
   const branch = getSelectedBranch();
   const cph = branch ? Number(branch.CostPerHour) : NaN;
 
