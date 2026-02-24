@@ -140,7 +140,12 @@ The `.vscode/launch.json` configuration supports debugging:
 The application includes comprehensive debug logging for troubleshooting initialization and authentication issues. Debug logs are prefixed with clear identifiers to trace execution flow:
 
 **Log Prefixes:**
+- `[INIT-APP-*]` - Main application initialization flow (Step 1-5 with progress tracking)
 - `[APP-INIT-*]` - Application initialization flow (loadInit function)
+- `[INIT-TIMEOUT]` - Loading modal timeout warning (auto-hides after 30 seconds)
+- `[INIT-ERROR]` - Fatal initialization errors with stack trace
+- `[APP-INIT-AUTH-ERROR]` - Authentication initialization errors
+- `[APP-INIT-FETCH]` - API fetch operations with network error handling
 - `[AUTH-INIT-*]` - Authentication initialization
 - `[AUTH-USERINFO-*]` - User info fetching from `/api/auth/me`
 - `[AUTH-RENDER-*]` - Auth UI rendering
@@ -155,10 +160,12 @@ The application includes comprehensive debug logging for troubleshooting initial
 4. Each async operation logs its start and completion
 
 **Common Troubleshooting Patterns:**
-- Loading screen stuck: Look for the last log before execution stops
+- Loading screen stuck: Look for the last `[INIT-APP]` or `[APP-INIT-*]` log before execution stops
+- Loading modal timeout: After 30 seconds, the modal auto-hides with `[INIT-TIMEOUT]` warning
 - Auth issues: Check `[AUTH-USERINFO-*]` logs for `/api/auth/me` response
 - Role detection: Check `[MODE-*]` logs for effectiveRole determination
-- Network issues: Check `[APP-INIT-FETCH]` logs for API request status
+- Network issues: Check `[APP-INIT-FETCH]` logs for API request status and network errors
+- Module import errors: Check `[INIT-ERROR]` logs for import failures with stack traces
 
 ---
 

@@ -44,8 +44,13 @@ async function loadInit() {
 
   // Check auth first
   console.log('[APP-INIT-3] Calling initAuth...');
-  await initAuth();
-  console.log('[APP-INIT-4] initAuth completed successfully');
+  try {
+    await initAuth();
+    console.log('[APP-INIT-4] initAuth completed successfully');
+  } catch (authError) {
+    console.error('[APP-INIT-AUTH-ERROR] initAuth failed:', authError);
+    throw new Error('Authentication initialization failed: ' + authError.message);
+  }
 
   setStatus('Loading motor types & branches...');
   try {
@@ -53,15 +58,31 @@ async function loadInit() {
     const fetchWithAuthCheck = async (url) => {
       console.log(`[APP-INIT-FETCH] Fetching: ${url}`);
       const headers = isLocalDev ? { 'x-local-dev': 'true' } : {};
-      const response = await fetch(url, { headers });
+
+      let response;
+      try {
+        response = await fetch(url, { headers });
+      } catch (networkError) {
+        console.error(`[APP-INIT-FETCH] Network error for ${url}:`, networkError);
+        throw new Error(`Network error: Cannot connect to ${url}. Server may be down.`);
+      }
+
       console.log(`[APP-INIT-FETCH] Response status for ${url}:`, response.status);
       if (response.status === 401) {
         throw new Error('AUTH_REQUIRED');
       }
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
       }
-      const data = await response.json();
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error(`[APP-INIT-FETCH] JSON parse error for ${url}:`, jsonError);
+        throw new Error(`Invalid JSON response from ${url}`);
+      }
+
       console.log(`[APP-INIT-FETCH] Data received from ${url}:`, Array.isArray(data) ? `${data.length} items` : typeof data);
       return data;
     };
@@ -73,18 +94,29 @@ async function loadInit() {
     console.log('[APP-INIT-6] Both fetch requests completed');
     console.log('[APP-INIT-7] Motor types count:', motorTypes?.length, 'Branches count:', branches?.length);
 
+    if (!motorTypes || !Array.isArray(motorTypes)) {
+      throw new Error('Invalid motor types data received');
+    }
+    if (!branches || !Array.isArray(branches)) {
+      throw new Error('Invalid branches data received');
+    }
+
     appState.branches = branches;
 
     const motorTypeEl = el('motorType');
     const branchEl = el('branch');
 
-    if (motorTypeEl) {
+    if (!motorTypeEl) {
+      console.warn('[APP-INIT] motorType element not found in DOM');
+    } else {
       motorTypeEl.innerHTML = `<option value="">Select…</option>` + motorTypes
         .map(x => `<option value="${x.MotorTypeId}">${x.MotorTypeName}</option>`).join('');
       console.log('[APP-INIT-8] Motor types dropdown populated');
     }
 
-    if (branchEl) {
+    if (!branchEl) {
+      console.warn('[APP-INIT] branch element not found in DOM');
+    } else {
       branchEl.innerHTML = `<option value="">Select…</option>` + branches
         .map(x => `<option value="${x.BranchId}">${x.BranchName}</option>`).join('');
       console.log('[APP-INIT-9] Branches dropdown populated');
@@ -93,8 +125,21 @@ async function loadInit() {
     setStatus('');
     console.log('[APP-INIT-10] loadInit COMPLETED SUCCESSFULLY');
   } catch (e) {
-    console.log('[APP-INIT-ERROR] Error in loadInit:', e);
-    throw e;
+    console.error('[APP-INIT-ERROR] Error in loadInit:', e);
+    console.error('[APP-INIT-ERROR] Error details:', {
+      message: e.message,
+      stack: e.stack,
+      name: e.name
+    });
+
+    // Re-throw with more context
+    if (e.message === 'AUTH_REQUIRED') {
+      throw e; // Re-throw auth errors as-is
+    } else if (e.message.includes('Network error')) {
+      throw new Error('Network error: Cannot connect to server. Please check if the backend is running.');
+    } else {
+      throw new Error('Data loading failed: ' + e.message);
+    }
   }
 }
 
@@ -380,103 +425,147 @@ function setupEventListeners() {
 
 // ========== Application Initialization ==========
 
-async function initApp() {
-  // Import all saved records functions and assign to global exports
-  const {
-    saveCalculation,
-    updateSaveButtonState,
-    markDirty,
-    setViewOnlyMode,
-    applyFiltersAndRender,
-    viewRecord,
-    editRecord,
-    deleteRecord,
-    shareRecord,
-    loadSharedRecord,
-    copyShareUrl,
-    showSaveSuccessModal,
-    hideSaveSuccessModal,
-    showDeleteSuccessModal,
-    hideDeleteSuccessModal,
-    bulkDeleteRecords,
-    setRecordsView,
-    toggleRecordSelection,
-    selectAllRecords,
-    deselectAllRecords,
-    updateViewToggleButtons,
-    setupSearchHandlers
-  } = await import('./saved-records/index.js');
-
-  // Import admin functions
-  const { initAdminPanelListeners, updateRoleBadge } = await import('../admin/index.js');
-
-  // Assign to global exports
-  globalExports = {
-    saveCalculation,
-    updateSaveButtonState,
-    markDirty,
-    setViewOnlyMode,
-    applyFiltersAndRender,
-    viewRecord,
-    editRecord,
-    deleteRecord,
-    shareRecord,
-    loadSharedRecord,
-    copyShareUrl,
-    showSaveSuccessModal,
-    hideSaveSuccessModal,
-    showDeleteSuccessModal,
-    hideDeleteSuccessModal,
-    bulkDeleteRecords,
-    setRecordsView,
-    toggleRecordSelection,
-    selectAllRecords,
-    deselectAllRecords,
-    updateViewToggleButtons,
-    updateRoleBadge,
-    initAdminPanelListeners,
-    removeUserRole: null
-  };
-
-  setGlobalExports();
-  initAdminPanelListeners();
-  setupSearchHandlers();
-  setupEventListeners();
-  initializeOnsiteLaborFields();
-  initializeOnsiteOptions();
-
-  // Check for shared record URL parameter
-  const urlParams = new URLSearchParams(window.location.search);
-  const shareToken = urlParams.get('share');
-
-  if (shareToken) {
-    try {
-      console.log('[Shared Record] Share token detected, loading immediately...');
-      await loadSharedRecord(shareToken);
-      setDbLoadingModal(false);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      return;
-    } catch (e) {
-      console.error('[Shared Record] Failed to load:', e);
-      setDbLoadingModal(false);
-      showNotification('Failed to load shared record');
-    }
+// Loading modal timeout handler - prevents infinite loading
+let loadingModalTimeout = null;
+function clearLoadingModalTimeout() {
+  if (loadingModalTimeout) {
+    clearTimeout(loadingModalTimeout);
+    loadingModalTimeout = null;
   }
+}
 
-  // Normal initialization flow
+function setLoadingModalTimeout() {
+  clearLoadingModalTimeout();
+  loadingModalTimeout = setTimeout(() => {
+    const modal = el('dbLoadingModal');
+    if (modal && !modal.classList.contains('hidden')) {
+      console.error('[INIT-TIMEOUT] Loading modal still visible after 30 seconds - forcing hide');
+      setDbLoadingModal(false);
+      setStatus('Initialization timed out. Please refresh the page or check your network connection.');
+    }
+  }, 30000);
+}
+
+async function initApp() {
+  console.log('[INIT-APP] Starting application initialization...');
+  setLoadingModalTimeout();
+
   try {
+    console.log('[INIT-APP] Step 1: Importing saved-records module...');
+    // Import all saved records functions and assign to global exports
+    const {
+      saveCalculation,
+      updateSaveButtonState,
+      markDirty,
+      setViewOnlyMode,
+      applyFiltersAndRender,
+      viewRecord,
+      editRecord,
+      deleteRecord,
+      shareRecord,
+      loadSharedRecord,
+      copyShareUrl,
+      showSaveSuccessModal,
+      hideSaveSuccessModal,
+      showDeleteSuccessModal,
+      hideDeleteSuccessModal,
+      bulkDeleteRecords,
+      setRecordsView,
+      toggleRecordSelection,
+      selectAllRecords,
+      deselectAllRecords,
+      updateViewToggleButtons,
+      setupSearchHandlers
+    } = await import('./saved-records/index.js');
+    console.log('[INIT-APP] Step 1: Completed - saved-records module imported');
+
+    console.log('[INIT-APP] Step 2: Importing admin module...');
+    // Import admin functions
+    const { initAdminPanelListeners, updateRoleBadge } = await import('../admin/index.js');
+    console.log('[INIT-APP] Step 2: Completed - admin module imported');
+
+    // Assign to global exports
+    console.log('[INIT-APP] Step 3: Setting up global exports...');
+    globalExports = {
+      saveCalculation,
+      updateSaveButtonState,
+      markDirty,
+      setViewOnlyMode,
+      applyFiltersAndRender,
+      viewRecord,
+      editRecord,
+      deleteRecord,
+      shareRecord,
+      loadSharedRecord,
+      copyShareUrl,
+      showSaveSuccessModal,
+      hideSaveSuccessModal,
+      showDeleteSuccessModal,
+      hideDeleteSuccessModal,
+      bulkDeleteRecords,
+      setRecordsView,
+      toggleRecordSelection,
+      selectAllRecords,
+      deselectAllRecords,
+      updateViewToggleButtons,
+      updateRoleBadge,
+      initAdminPanelListeners,
+      removeUserRole: null
+    };
+    setGlobalExports();
+    console.log('[INIT-APP] Step 3: Completed - global exports configured');
+
+    console.log('[INIT-APP] Step 4: Setting up event listeners...');
+    initAdminPanelListeners();
+    setupSearchHandlers();
+    setupEventListeners();
+    initializeOnsiteLaborFields();
+    initializeOnsiteOptions();
+    console.log('[INIT-APP] Step 4: Completed - event listeners initialized');
+
+    // Check for shared record URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const shareToken = urlParams.get('share');
+
+    if (shareToken) {
+      console.log('[INIT-APP] Shared record detected, loading...');
+      try {
+        console.log('[Shared Record] Share token detected, loading immediately...');
+        await loadSharedRecord(shareToken);
+        clearLoadingModalTimeout();
+        setDbLoadingModal(false);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        console.log('[INIT-APP] Shared record loaded successfully');
+        return;
+      } catch (e) {
+        console.error('[Shared Record] Failed to load:', e);
+        clearLoadingModalTimeout();
+        setDbLoadingModal(false);
+        showNotification('Failed to load shared record');
+        return;
+      }
+    }
+
+    // Normal initialization flow
+    console.log('[INIT-APP] Step 5: Starting normal initialization flow...');
     await loadInit();
+    console.log('[INIT-APP] Step 5: Completed - loadInit finished');
+
+    clearLoadingModalTimeout();
     setDbLoadingModal(false);
     updateModeButtons();
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const justLoggedIn = urlParams.get('post_login') === 'true';
+    const loginParams = new URLSearchParams(window.location.search);
+    const justLoggedIn = loginParams.get('post_login') === 'true';
 
     const { authState, currentUserRole } = await import('./state.js');
+    console.log('[INIT-APP] Auth state:', { isAuthenticated: authState.isAuthenticated, currentUserRole });
 
     if (authState.isAuthenticated && currentUserRole && currentUserRole === 'NoRole') {
+      console.log('[INIT-APP] User is NoRole - awaiting assignment');
       return;
     } else if (justLoggedIn && authState.isAuthenticated && currentUserRole && currentUserRole !== 'NoRole') {
+      console.log('[INIT-APP] Post-login redirect to list view');
       const cleanUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, document.title, cleanUrl);
 
@@ -496,6 +585,7 @@ async function initApp() {
       }
       return;
     } else if (authState.isAuthenticated && currentUserRole) {
+      console.log('[INIT-APP] Authenticated user - loading records');
       try {
         await applyFiltersAndRender();
         updateViewToggleButtons();
@@ -509,15 +599,21 @@ async function initApp() {
         showView('calculator');
       }
     } else {
+      console.log('[INIT-APP] Unauthenticated or local dev - showing calculator');
       const { appState } = await import('./state.js');
       appState.materialLines = [];
       renderMaterials();
       calcAll();
       showView('calculator');
     }
+
+    console.log('[INIT-APP] Application initialization completed successfully');
   } catch (e) {
-    console.error(e);
+    console.error('[INIT-ERROR] Fatal initialization error:', e);
+    console.error('[INIT-ERROR] Stack trace:', e.stack);
+    clearLoadingModalTimeout();
     setDbLoadingModal(false);
+
     if (e.message === 'AUTH_REQUIRED') {
       if (!isLocalDev) {
         setStatus('Authentication required. Redirecting to login...');
@@ -527,8 +623,12 @@ async function initApp() {
       } else {
         setStatus('Authentication error in local dev. Check backend auth bypass.');
       }
+    } else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+      setStatus('Network error: Cannot connect to server. Please check if the backend is running.');
+    } else if (e.message.includes('Import')) {
+      setStatus('Module import error. Please refresh the page.');
     } else {
-      setStatus('Init failed. Check console & /api endpoints.');
+      setStatus('Initialization failed: ' + e.message + '. Check console for details.');
     }
   }
 }
