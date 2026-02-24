@@ -123,6 +123,20 @@ export function renderLabor() {
 
   // Only attach event listeners if not in Customer View Mode
   if (!isCustomerMode()) {
+    // Select All Jobs checkbox
+    const selectAllJobs = document.getElementById('selectAllJobs');
+    if (selectAllJobs) {
+      selectAllJobs.addEventListener('change', async (e) => {
+        const checkboxes = document.querySelectorAll('#laborRows input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+          const idx = Number(cb.dataset.idx);
+          appState.labor[idx].checked = e.target.checked;
+        });
+        renderLabor();
+        (await import('./calculations.js')).calcAll();
+      });
+    }
+
     // Attach event listeners to checkboxes
     document.querySelectorAll('.job-checkbox').forEach(cb => {
       cb.addEventListener('click', async (e) => {
