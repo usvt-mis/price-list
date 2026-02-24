@@ -331,7 +331,7 @@ export function showAwaitingAssignmentScreen(data) {
  * Must be imported dynamically to avoid circular dependency with state.js
  */
 export async function updateModeButtons() {
-  const { isExecutiveMode, isCustomerMode } = await import('./state.js');
+  const { isExecutiveMode, isCustomerMode } = await import('../state.js');
 
   const grandTotalEl = el('grandTotal');
   const overheadSection = el('grandOverhead')?.parentElement;
