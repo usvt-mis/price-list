@@ -46,6 +46,8 @@ export const API = {
   MOTOR_TYPES: '/api/motor-types',
   BRANCHES: '/api/branches',
   LABOR: '/api/labor',
+  ONSITE_LABOR: '/api/onsite/labor',
+  WORKSHOP_LABOR: '/api/workshop/labor',
   MATERIALS: '/api/materials',
   SAVES: '/api/saves',
   SHARED: (token) => `/api/shared/${token}`,

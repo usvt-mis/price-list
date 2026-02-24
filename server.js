@@ -49,8 +49,10 @@ const authRouter = require('./api/src/routes/auth');
 // NEW: Onsite and Workshop calculation routes
 const onsiteCalculationsRouter = require('./api/src/routes/onsite/calculations');
 const onsiteSharedRouter = require('./api/src/routes/onsite/shared');
+const onsiteLaborRouter = require('./api/src/routes/onsite/labor');
 const workshopCalculationsRouter = require('./api/src/routes/workshop/calculations');
 const workshopSharedRouter = require('./api/src/routes/workshop/shared');
+const workshopLaborRouter = require('./api/src/routes/workshop/labor');
 
 // Import authentication middleware
 const { requireAuth } = require('./api/src/middleware/authExpress');
@@ -136,6 +138,12 @@ app.use('/api/workshop/calculations', requireAuth, workshopCalculationsRouter);
 
 // Workshop shared calculations (POST requires auth, GET is public - handled in router)
 app.use('/api/workshop/shared', workshopSharedRouter);
+
+// Onsite labor (requires authentication)
+app.use('/api/onsite/labor', requireAuth, onsiteLaborRouter);
+
+// Workshop labor (requires authentication)
+app.use('/api/workshop/labor', requireAuth, workshopLaborRouter);
 
 // Shared calculations (POST requires auth, GET is public - handled in router)
 app.use('/api/shared', sharedCalculationsRouter);

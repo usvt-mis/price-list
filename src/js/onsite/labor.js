@@ -5,7 +5,7 @@
 
 import { el, fmt, fetchJson, setStatus } from '../core/utils.js';
 import { appState, getSelectedBranch, isExecutiveMode, isCustomerMode } from './state.js';
-import { TRAVEL_RATE } from './config.js';
+import { TRAVEL_RATE, API } from '../core/config.js';
 
 /**
  * Load labor data for selected motor type
@@ -23,7 +23,7 @@ export async function loadLabor() {
 
   setStatus('Loading labor (jobs + manhours)...');
   try {
-    const labor = await fetchJson(`/api/labor?motorTypeId=${motorTypeId}`);
+    const labor = await fetchJson(`${API.ONSITE_LABOR}?motorTypeId=${motorTypeId}`);
     appState.labor = labor;
     setStatus('');
     // Import calcAll dynamically to avoid circular dependency - calculate FIRST

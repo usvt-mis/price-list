@@ -36,12 +36,14 @@ The application supports two distinct calculator modes selected via tab navigati
   - Onsite Options Subtotal displayed at bottom
   - Card-like layout with hover effects for better UX
 - Labor section includes: Scope (dropdown), Priority Level (High/Low radio buttons), Site Access (Easy/Difficult radio buttons)
+- Separate job list from Workshop calculator (filtered by CalculatorType column)
 - Travel section is visible (shared with Workshop)
 
 **Workshop Calculator (Monitor)**:
 - For workshop/facility-based service calculations
 - Uses original calculator layout (Labor, Materials, Travel sections)
 - No type-specific fields (simplified from previous version)
+- Separate job list from Onsite calculator (filtered by CalculatorType column)
 
 ---
 
@@ -174,6 +176,7 @@ The application includes comprehensive debug logging for troubleshooting initial
 
 ### Database Schema
 - **Core tables**: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
+  - Jobs and Jobs2MotorType include CalculatorType column ('onsite', 'workshop', 'shared') for filtering jobs by calculator type
 - **Onsite Saved Calculations**: OnsiteSavedCalculations, OnsiteSavedCalculationJobs, OnsiteSavedCalculationMaterials
   - Run number format: `ONS-YYYY-XXX` (e.g., ONS-2024-001)
   - Onsite-specific columns: Scope, PriorityLevel, SiteAccess
@@ -201,6 +204,7 @@ The application includes comprehensive debug logging for troubleshooting initial
   - `database/migrations/add_scope_column.sql` (adds Scope dropdown for onsite calculations - legacy)
   - `database/migrations/priority_site_access.sql` (adds SiteAccess column - legacy)
   - `database/migrations/remove_onsite_location_fields.sql` (removes CustomerLocation and SiteAccessNotes columns - legacy)
+  - `database/migrations/separate_onsite_workshop_jobs.sql` (adds CalculatorType column to Jobs and Jobs2MotorType for separate job lists)
 - **Deprecated scripts**: `database/deprecated/create_app_logs.sql`, `database/deprecated/diagnostics_logs.sql` (moved after Application Insights migration)
 
 ### Backend Structure (`api/`)
@@ -209,8 +213,8 @@ The application includes comprehensive debug logging for troubleshooting initial
 - Main server: `server.js` at root (Express app with static file serving and route mounting)
 - Route modules in `src/routes/`: Converted from Azure Functions to Express Router pattern
   - **Core routes**: motorTypes, branches, labor, materials, savedCalculations (legacy), sharedCalculations (legacy)
-  - **Onsite routes**: onsite/calculations, onsite/shared
-  - **Workshop routes**: workshop/calculations, workshop/shared
+  - **Onsite routes**: onsite/calculations, onsite/shared, onsite/labor
+  - **Workshop routes**: workshop/calculations, workshop/shared, workshop/labor
   - **Utility routes**: ping, version, auth
   - **Admin routes**: admin/roles, admin/diagnostics
   - **Backoffice routes**: backoffice, backoffice/login
