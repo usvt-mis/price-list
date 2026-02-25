@@ -53,13 +53,15 @@ export function renderLabor() {
   const laborTableHead = el('laborRows').previousElementSibling;
   if (laborTableHead) {
     laborTableHead.innerHTML = `
-      <tr class="border-b">
-        <th class="w-10 py-2"></th>
-        <th class="text-left py-2">Job</th>
-        <th class="text-right py-2 manhours-col">Manhours</th>
-        ${isExecutiveMode() ? '<th class="text-right py-2">Raw Cost</th>' : ''}
-        ${isExecutiveMode() ? '<th class="text-right py-2">Cost+Ovh+PP</th>' : ''}
-        <th class="text-right py-2">Final Price</th>
+      <tr class="border-b border-slate-200">
+        <th class="w-10 py-3 px-4 text-center" scope="col">
+          <input type="checkbox" id="selectAllJobs" class="text-blue-600 focus:ring-2 focus:ring-blue-500 rounded">
+        </th>
+        <th class="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Job</th>
+        <th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Manhours</th>
+        ${isExecutiveMode() ? '<th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Raw Cost</th>' : ''}
+        ${isExecutiveMode() ? '<th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Cost+Ovh+PP</th>' : ''}
+        <th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide text-blue-600 bg-blue-50/50" scope="col">Final Price</th>
       </tr>
     `;
   }
@@ -98,27 +100,42 @@ export function renderLabor() {
     const rowClass = isChecked ? 'border-b' : 'border-b bg-slate-50';
     const textClass = isChecked ? '' : 'line-through text-slate-400';
 
-    return `<tr class="${rowClass}" data-idx="${originalIdx}">
-      <td class="py-2">
-        <input type="checkbox" class="job-checkbox w-5 h-5 ${isCustomer ? '' : 'cursor-pointer'}"
+    return `<tr class="${rowClass} hover:bg-slate-50/50 transition-colors duration-150" data-idx="${originalIdx}">
+      <td class="py-3 px-4">
+        <input type="checkbox" class="job-checkbox w-5 h-5 ${isCustomer ? '' : 'cursor-pointer'} focus:ring-2 focus:ring-blue-500 rounded"
                data-idx="${originalIdx}" ${isChecked ? 'checked' : ''} ${isCustomer ? 'disabled' : ''}>
       </td>
-      <td class="py-2 ${textClass}">${j.JobName}</td>
-      <td class="py-2 text-right ${textClass} manhours-col">
+      <td class="py-3 px-4 ${textClass}">${j.JobName}</td>
+      <td class="py-3 px-4 text-right ${textClass} manhours-col">
         <input type="number" min="0" step="0.25" data-mh="${originalIdx}"
-               class="w-20 text-right rounded border-slate-200 px-2 py-1 ${isDisabled ? 'bg-slate-100' : ''}"
+               class="w-20 text-right rounded border-slate-200 px-2 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${isDisabled ? 'bg-slate-100' : ''} [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                value="${j.effectiveManHours}" ${isDisabled ? 'disabled' : ''}>
       </td>
-      ${isExecutiveMode() ? `<td class="py-2 text-right ${textClass}">${fmt(rawCost)}</td>` : ''}
-      ${isExecutiveMode() ? `<td class="py-2 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>` : ''}
-      <td class="py-2 text-right ${textClass}">${fmt(finalPrice)}</td>
+      ${isExecutiveMode() ? `<td class="py-3 px-4 text-right ${textClass}">${fmt(rawCost)}</td>` : ''}
+      ${isExecutiveMode() ? `<td class="py-3 px-4 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>` : ''}
+      <td class="py-3 px-4 text-right ${textClass} ${isChecked ? 'font-semibold text-slate-900' : ''}">${fmt(finalPrice)}</td>
     </tr>`;
   }).join('');
 
   const colspan = isExecutiveMode() ? 6 : 5;
   const laborRowsEl = el('laborRows');
   if (laborRowsEl) {
-    laborRowsEl.innerHTML = rows || `<tr><td class="py-3 text-slate-500" colspan="${colspan}">Select Motor Type to load jobs.</td></tr>`;
+    if (!rows) {
+      laborRowsEl.innerHTML = `
+        <tr>
+          <td colspan="${colspan}" class="py-8 text-center text-slate-500">
+            <div class="flex flex-col items-center gap-2">
+              <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+              </svg>
+              <span>Select Motor Type to load jobs.</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    } else {
+      laborRowsEl.innerHTML = rows;
+    }
   }
 
   // Only attach event listeners if not in Customer View Mode
@@ -199,26 +216,26 @@ function updateRowCosts(row, idx) {
   const cells = row.querySelectorAll('td');
   let cellIndex = 3; // Start after checkbox, job name, and input cells
 
+  const isChecked = job.checked !== false;
+  const textClass = isChecked ? '' : 'line-through text-slate-400';
+
   if (isExecutiveMode()) {
     // Update Raw Cost
     if (cells[cellIndex]) {
-      const textClass = job.checked !== false ? '' : 'line-through text-slate-400';
-      cells[cellIndex].className = `py-2 text-right ${textClass}`;
+      cells[cellIndex].className = `py-3 px-4 text-right ${textClass}`;
       cells[cellIndex].textContent = fmt(rawCost);
     }
     cellIndex++;
     // Update Cost+Ovh+PP
     if (cells[cellIndex]) {
-      const textClass = job.checked !== false ? '' : 'line-through text-slate-400';
-      cells[cellIndex].className = `py-2 text-right ${textClass}`;
+      cells[cellIndex].className = `py-3 px-4 text-right ${textClass}`;
       cells[cellIndex].textContent = fmt(costBeforeSalesProfit);
     }
     cellIndex++;
   }
-  // Update Final Price
+  // Update Final Price with emphasis
   if (cells[cellIndex]) {
-    const textClass = job.checked !== false ? '' : 'line-through text-slate-400';
-    cells[cellIndex].className = `py-2 text-right ${textClass}`;
+    cells[cellIndex].className = `py-3 px-4 text-right ${textClass} ${isChecked ? 'font-semibold text-slate-900' : ''}`;
     cells[cellIndex].textContent = fmt(finalPrice);
   }
 }
