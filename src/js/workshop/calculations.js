@@ -6,7 +6,7 @@
 import { el, fmt, fmtPercent, makeInputsReadOnly, removeReadOnly } from '../core/utils.js';
 import { appState, isExecutiveMode, isSalesMode, isCustomerMode } from './state.js';
 import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
-import { materialSubtotalBase, materialSubtotal, materialSubtotalWithoutCommission } from './materials.js';
+import { materialSubtotalBase, materialSubtotal, materialSubtotalWithoutCommission, materialSubtotalBeforeSalesProfit } from './materials.js';
 import { COMMISSION_TIERS } from '../core/config.js';
 
 /**
@@ -73,7 +73,7 @@ export function calcAll() {
 
   // Get amounts after sales profit multiplier
   const l = lAfterBranch * salesProfitMultiplier;
-  const m = mAfterBranch * salesProfitMultiplier;
+  const m = materialSubtotalWithoutCommission(); // Includes overridden materials (with commission backed out)
 
   // Apply sales profit multiplier to travel cost
   const travelCost = travelBase * salesProfitMultiplier;
@@ -90,7 +90,8 @@ export function calcAll() {
   const subGrandTotal = l + m + travelCost;
 
   // Sub Total Cost = labor + materials + travel (before sales profit multiplier)
-  const subTotalBeforeSalesProfit = lAfterBranch + mAfterBranch + travelBase;
+  const mBeforeSalesProfit = materialSubtotalBeforeSalesProfit(); // Includes overridden materials with sales profit backed out
+  const subTotalBeforeSalesProfit = lAfterBranch + mBeforeSalesProfit + travelBase;
 
   // Store subtotal before sales profit for flat amount calculation
   appState.subTotalBeforeSalesProfit = subTotalBeforeSalesProfit;

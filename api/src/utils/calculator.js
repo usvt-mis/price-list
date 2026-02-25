@@ -92,14 +92,24 @@ async function calculateGrandTotal(poolOrTransaction, saveData, calculatorType =
   }
   logger.debug(`[Calculation-${correlationId}] Labor subtotal calculated: ${laborSubtotal.toFixed(2)}`);
 
-  // Calculate materials subtotal
-  let materialSubtotal = 0;
+  // Calculate materials subtotal - separate overridden and normal materials
+  // Normal materials need sales profit multiplier applied, overridden don't (already included)
+  let materialSubtotalNormal = 0; // Before sales profit multiplier
+  let materialSubtotalOverridden = 0; // Already includes multipliers (except commission)
   for (const material of materials) {
-    const qty = material.quantity || 0;
-    const unitCost = material.unitCost || 0;
-    materialSubtotal += qty * unitCost * branchMultiplier;
+    // Check for override first - override values already include multipliers
+    if (material.overrideFinalPrice != null && material.overrideFinalPrice >= 0) {
+      // Override already includes branch multiplier + sales profit multiplier
+      // We'll back out commission later
+      materialSubtotalOverridden += material.overrideFinalPrice;
+    } else {
+      // Normal calculation (before sales profit multiplier)
+      const qty = material.quantity || 0;
+      const unitCost = material.unitCost || 0;
+      materialSubtotalNormal += qty * unitCost * branchMultiplier;
+    }
   }
-  logger.debug(`[Calculation-${correlationId}] Materials subtotal calculated: ${materialSubtotal.toFixed(2)}`);
+  logger.debug(`[Calculation-${correlationId}] Materials calculated - Normal: ${materialSubtotalNormal.toFixed(2)}, Overridden: ${materialSubtotalOverridden.toFixed(2)}`);
 
   // Calculate travel cost (Km × 15 baht/km)
   const travelBase = (travelKm || 0) * 15;
@@ -111,12 +121,20 @@ async function calculateGrandTotal(poolOrTransaction, saveData, calculatorType =
   const onsiteOptionsCost = onsiteOptionsBase * salesProfitMultiplier;
   logger.debug(`[Calculation-${correlationId}] Onsite options calculated - Base: ${onsiteOptionsBase.toFixed(2)}, After multiplier: ${onsiteOptionsCost.toFixed(2)}`);
 
-  // Apply sales profit multiplier to labor and materials
+  // Apply sales profit multiplier to labor and NORMAL materials only
+  // Overridden materials already have sales profit multiplier included
   const laborAfterSalesProfit = laborSubtotal * salesProfitMultiplier;
-  const materialsAfterSalesProfit = materialSubtotal * salesProfitMultiplier;
+  const materialsAfterSalesProfit = (materialSubtotalNormal * salesProfitMultiplier) + materialSubtotalOverridden;
+
+  // For subTotalBeforeSalesProfit calculation:
+  // - Normal materials: use materialSubtotalNormal (after branch multiplier, before sales profit)
+  // - Overridden materials: need to BACK OUT sales profit multiplier from override
+  //   because override includes (branch + sales profit) multipliers
+  const materialSubtotalBeforeSalesProfit =
+    materialSubtotalNormal + (materialSubtotalOverridden / salesProfitMultiplier);
 
   // Subtotal before sales profit (labor + materials with branch multiplier only, plus travel base, plus onsite options base)
-  const subTotalBeforeSalesProfit = laborSubtotal + materialSubtotal + travelBase + onsiteOptionsBase;
+  const subTotalBeforeSalesProfit = laborSubtotal + materialSubtotalBeforeSalesProfit + travelBase + onsiteOptionsBase;
 
   // Sub Grand Total (after sales profit multiplier)
   const subGrandTotal = laborAfterSalesProfit + materialsAfterSalesProfit + travelCost + onsiteOptionsCost;

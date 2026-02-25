@@ -518,6 +518,26 @@ export function materialSubtotal() {
 }
 
 /**
+ * Calculate materials subtotal BEFORE sales profit multiplier
+ * This includes overridden materials with sales profit backed out
+ * Used for subTotalBeforeSalesProfit calculation
+ * @returns {number} Material subtotal before sales profit multiplier
+ */
+export function materialSubtotalBeforeSalesProfit() {
+  const branchMultiplier = getBranchMultiplier();
+  const salesProfitMultiplier = getSalesProfitMultiplier();
+
+  return appState.materialLines.reduce((sum, ln) => {
+    if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
+      // Override includes branch + sales profit multipliers, back out sales profit
+      return sum + (ln.overrideFinalPrice / salesProfitMultiplier);
+    }
+    if (!Number.isFinite(ln.unitCost)) return sum;
+    return sum + (ln.unitCost * ln.qty * branchMultiplier);
+  }, 0);
+}
+
+/**
  * Calculate materials subtotal WITHOUT commission
  * For overridden items: backs out commission from override price
  * For normal items: returns base price × multipliers (no commission)
