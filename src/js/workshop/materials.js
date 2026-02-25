@@ -517,6 +517,29 @@ export function materialSubtotal() {
   }, 0);
 }
 
+/**
+ * Calculate materials subtotal WITHOUT commission
+ * For overridden items: backs out commission from override price
+ * For normal items: returns base price × multipliers (no commission)
+ * Used for the Percentage Breakdown card display
+ * @returns {number} Material subtotal without commission
+ */
+export function materialSubtotalWithoutCommission() {
+  const multiplier = getCompleteMultiplier(); // Excludes commission
+  const commissionPercent = appState.commissionPercent || 0;
+
+  return appState.materialLines.reduce((sum, ln) => {
+    if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
+      // Override was set WITH commission included, back it out
+      const divisor = 1 + (commissionPercent / 100);
+      return sum + (ln.overrideFinalPrice / divisor);
+    }
+    // Normal calculation without commission
+    if (!Number.isFinite(ln.unitCost)) return sum;
+    return sum + (ln.unitCost * ln.quantity * multiplier);
+  }, 0);
+}
+
 // Import calcAll dynamically to avoid circular dependency
 async function calcAll() {
   const { calcAll } = await import('./calculations.js');

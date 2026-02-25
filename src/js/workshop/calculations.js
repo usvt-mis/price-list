@@ -6,7 +6,7 @@
 import { el, fmt, fmtPercent, makeInputsReadOnly, removeReadOnly } from '../core/utils.js';
 import { appState, isExecutiveMode, isSalesMode, isCustomerMode } from './state.js';
 import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
-import { materialSubtotalBase, materialSubtotal } from './materials.js';
+import { materialSubtotalBase, materialSubtotal, materialSubtotalWithoutCommission } from './materials.js';
 import { COMMISSION_TIERS } from '../core/config.js';
 
 /**
@@ -123,6 +123,7 @@ export function calcAll() {
   // Final Price for each row = Selling Price × (1 + commissionPercent/100)
   const laborFinalPricesSum = l * (1 + appState.commissionPercent / 100);
   const materialsFinalPricesSum = materialSubtotal(); // Already includes commission for overridden items
+  const materialsFinalPricesNoCommission = materialSubtotalWithoutCommission(); // WITHOUT commission (for breakdown display)
   const travelFinalPrice = travelCost * (1 + appState.commissionPercent / 100);
   const newGrandTotal = laborFinalPricesSum + materialsFinalPricesSum + travelFinalPrice;
 
@@ -134,7 +135,7 @@ export function calcAll() {
   el('newGrandTotal').textContent = fmt(newGrandTotal);
   el('grandTotal').textContent = fmt(subGrandTotal);
   el('grandLabor').textContent = Number.isFinite(l) ? fmt(l) : '—';
-  el('grandMaterials').textContent = fmt(m);
+  el('grandMaterials').textContent = fmt(materialsFinalPricesNoCommission);
   el('grandTotalRawCost').textContent = fmt(totalRawCost);
   el('grandOverhead').textContent = fmt(overhead); // Overhead + Policy Profit (branch multipliers only, no sales profit)
   el('grandSubTotalBeforeSalesProfit').textContent = fmt(subTotalBeforeSalesProfit);
@@ -147,7 +148,7 @@ export function calcAll() {
 
   if (Number.isFinite(newGrandTotal) && newGrandTotal > 0) {
     laborPercent = (laborFinalPricesSum / newGrandTotal) * 100;
-    materialsPercent = (materialsFinalPricesSum / newGrandTotal) * 100;
+    materialsPercent = (materialsFinalPricesNoCommission / newGrandTotal) * 100;
     overheadPercent = (overhead / newGrandTotal) * 100;
     commissionPercentOfTotal = (commission / newGrandTotal) * 100;
 
