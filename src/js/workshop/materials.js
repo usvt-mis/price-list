@@ -536,7 +536,7 @@ export function materialSubtotalWithoutCommission() {
     }
     // Normal calculation without commission
     if (!Number.isFinite(ln.unitCost)) return sum;
-    return sum + (ln.unitCost * ln.quantity * multiplier);
+    return sum + (ln.unitCost * ln.qty * multiplier);
   }, 0);
 }
 
