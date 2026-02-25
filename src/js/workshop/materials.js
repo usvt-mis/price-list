@@ -167,11 +167,10 @@ export function renderMaterials() {
                    class="w-28 text-right text-lg font-bold ${isOverridden ? 'bg-transparent border-none' : 'bg-transparent border-none'}"
                    value="${isOverridden ? ln.overrideFinalPrice.toFixed(2) : ''}"
                    placeholder="${fmt(finalPrice)}"/>
-            ${isOverridden ? `<button data-reset-price="${i}" class="flex items-center gap-1 text-sm font-medium text-amber-700 hover:text-amber-900 px-2 py-1 rounded bg-amber-100 hover:bg-amber-200 transition-colors duration-200" title="Reset to calculated price">
+            ${isOverridden ? `<button data-reset-price="${i}" class="text-amber-700 hover:text-amber-900 p-1.5 rounded bg-amber-100 hover:bg-amber-200 transition-colors duration-200" title="Reset to calculated price">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Reset
             </button>` : ''}
           </div>
         </div>
@@ -209,11 +208,10 @@ export function renderMaterials() {
                    class="${finalPriceInputClass}"
                    value="${isOverridden ? ln.overrideFinalPrice.toFixed(2) : ''}"
                    placeholder="${fmt(finalPrice)}"/>
-            ${isOverridden ? `<button data-reset-price="${i}" class="flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 px-2 py-1 rounded bg-amber-100 hover:bg-amber-200 transition-colors duration-200 ml-1" title="Reset to calculated price">
+            ${isOverridden ? `<button data-reset-price="${i}" class="text-amber-700 hover:text-amber-900 p-1 rounded bg-amber-100 hover:bg-amber-200 transition-colors duration-200 ml-1" title="Reset to calculated price">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Reset
             </button>` : ''}
           </div>
         </td>
