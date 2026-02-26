@@ -10,6 +10,7 @@ import { appState, setMode, resetCalculatorState, setCurrentSavedRecord, setDirt
 import { authState as sharedAuthState, currentUserRole as sharedCurrentUserRole } from '../state.js';
 import { el, setStatus, setDbLoadingModal, showView, updateModeButtons, fetchJson, showNotification } from '../core/utils.js';
 import { initAuth, renderAuthSection } from '../auth/index.js';
+import { initSalesQuoteDropdown, resetSalesQuoteDropdown } from '../core/sales-quote-dropdown.js';
 import { loadLabor, renderLabor } from './labor.js';
 import { addMaterialRow, renderMaterials } from './materials.js';
 import { calcAll, syncFlatFromPercent, syncPercentFromFlat } from './calculations.js';
@@ -153,6 +154,7 @@ function startNewCalculation() {
   el('salesProfitFlat').value = '';
   el('travelKm').value = '';
   el('scope').value = '';
+  el('salesQuoteNumber').value = '';
 
   // Reset radio buttons to defaults
   const priorityLowRadio = document.querySelector('input[name="priorityLevel"][value="low"]');
@@ -163,6 +165,9 @@ function startNewCalculation() {
 
   // Reset onsite options using the proper function
   resetOnsiteOptions();
+
+  // Reset sales quote dropdown
+  resetSalesQuoteDropdown();
 
   // Clear localStorage keys for onsite options to ensure fresh state
   localStorage.removeItem(STORAGE_KEYS.ONSITE_CRANE_ENABLED);
@@ -464,6 +469,11 @@ async function initApp() {
     initializeOnsiteLaborFields();
     initializeOnsiteOptions();
     setupOnsiteOptionsListeners(globalExports.markDirty);
+    // Initialize sales quote dropdown (currently empty, ready for future data)
+    initSalesQuoteDropdown([], (quoteNumber) => {
+      console.log('[SalesQuote] Quote selected:', quoteNumber);
+      if (globalExports.markDirty) globalExports.markDirty();
+    });
     console.log('[INIT-APP] Step 4: Completed - event listeners initialized');
 
     // Check for shared record URL parameter

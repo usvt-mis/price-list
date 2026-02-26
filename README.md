@@ -91,6 +91,11 @@ The Price List Calculator computes total cost based on four components:
   - Role-based visibility: Sales users see own records, Executive users see all records
   - Only creators can edit their records; Executives can delete any record, creators can delete their own
   - Delete operation is idempotent and shows success modal immediately
+- **Details section**: New section above Labor with Sales Quote Number searchable dropdown (placeholder for future data)
+  - Professional styling with indigo document icon
+  - Searchable dropdown with keyboard navigation (arrow keys, enter, escape, tab)
+  - Click-outside-to-close functionality
+  - localStorage persistence for selected value
 - **Labor section**: Displays job names only (JobCode is hidden for cleaner presentation)
 - **Material search**:
   - Type-to-search with debounced API calls (250ms delay, min 2 characters)

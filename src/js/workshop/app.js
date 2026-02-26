@@ -9,6 +9,7 @@ import { appState, resetCalculatorState, setCurrentSavedRecord, setDirty, setVie
 import { authState as sharedAuthState, currentUserRole as sharedCurrentUserRole } from '../state.js';
 import { el, setStatus, setDbLoadingModal, showView, updateModeButtons } from '../core/utils.js';
 import { initAuth, renderAuthSection } from '../auth/index.js';
+import { initSalesQuoteDropdown, resetSalesQuoteDropdown } from '../core/sales-quote-dropdown.js';
 import { loadLabor, renderLabor } from './labor.js';
 import { addMaterialRow, renderMaterials } from './materials.js';
 import { calcAll, syncFlatFromPercent, syncPercentFromFlat } from './calculations.js';
@@ -152,6 +153,10 @@ function startNewCalculation() {
   el('salesProfitPct').value = '';
   el('salesProfitFlat').value = '';
   el('travelKm').value = '';
+  el('salesQuoteNumber').value = '';
+
+  // Reset sales quote dropdown
+  resetSalesQuoteDropdown();
 
   renderLabor();
   renderMaterials();
@@ -395,6 +400,11 @@ async function initApp() {
     initAdminPanelListeners();
     setupSearchHandlers();
     setupEventListeners();
+    // Initialize sales quote dropdown (currently empty, ready for future data)
+    initSalesQuoteDropdown([], (quoteNumber) => {
+      console.log('[SalesQuote] Quote selected:', quoteNumber);
+      if (globalExports.markDirty) globalExports.markDirty();
+    });
     console.log('[INIT-APP] Step 4: Completed - event listeners initialized');
 
     // Check for shared record URL parameter
