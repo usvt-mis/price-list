@@ -6,6 +6,7 @@
 import { el, fmt, fetchJson } from '../core/utils.js';
 import { appState, materialSearchTimeouts, isExecutiveMode } from './state.js';
 import { getCompleteMultiplier, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
+import { calculateTieredMaterialPrice, calculateTieredMaterialPriceWithCommission, getMaterialTierLabel } from '../core/tieredMaterials.js';
 
 /**
  * Add a new material row
@@ -75,7 +76,7 @@ export function renderMaterials() {
           </div>
         </th>
         ${isExecutiveMode() ? '<th class="text-right py-3 px-3 font-semibold text-slate-500 text-xs">Raw Cost</th>' : ''}
-        ${isExecutiveMode() ? '<th class="text-right py-3 px-3 font-semibold text-slate-500 text-xs">Cost+Ovh+PP</th>' : ''}
+        <!-- Cost+Ovh+PP column hidden for Materials - not applicable with tiered pricing -->
         <th class="text-right py-3 px-3 font-semibold text-emerald-700">Final Price</th>
         <th class="text-right py-3 px-3 w-16"></th>
       </tr>
@@ -87,12 +88,13 @@ export function renderMaterials() {
 
   materialRowsEl.innerHTML = appState.materialLines.map((ln, i) => {
     const rawCost = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
-    const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
-    const salesProfitAmount = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier * (salesProfitMultiplier - 1) : NaN;
-    const costBeforeSalesProfit = Number.isFinite(ln.unitCost)
-      ? ln.unitCost * ln.qty * branchMultiplier
-      : NaN;
-    const finalPrice = Number.isFinite(lineTotal) ? lineTotal * (1 + appState.commissionPercent / 100) : NaN;
+    // TIERED PRICING: Use tiered formula instead of branch multipliers for Materials
+    // Materials skip Overhead, Policy Profit, AND Sales Profit multipliers (per user decision)
+    // Only commission is applied to the tiered price
+    const finalPrice = calculateTieredMaterialPriceWithCommission(rawCost, appState.commissionPercent);
+    // Cost+Ovh+PP is not applicable with tiered pricing (column hidden)
+    const salesProfitAmount = 0; // No sales profit on tiered pricing
+    const costBeforeSalesProfit = rawCost; // For backward compatibility, but column is hidden
     const displayFinalPrice = (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) ? ln.overrideFinalPrice : finalPrice;
     const isOverridden = (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0);
     const finalPriceInputClass = isOverridden
@@ -140,13 +142,7 @@ export function renderMaterials() {
         </div>
         ` : ''}
 
-        <!-- Cost+Ovh+PP -->
-        ${isExecutiveMode() && ln.code ? `
-        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
-          <span class="text-xs text-slate-500 uppercase tracking-wide">Cost+Ovh+PP</span>
-          <span class="text-lg font-bold text-slate-600">${fmt(costBeforeSalesProfit)}</span>
-        </div>
-        ` : ''}
+        <!-- Cost+Ovh+PP - Hidden for Materials (not applicable with tiered pricing) -->
 
         <!-- Final Price -->
         ${ln.code ? `
@@ -200,7 +196,7 @@ export function renderMaterials() {
                  value="${ln.qty}"/>
         </td>
         ${isExecutiveMode() ? `<td class="py-3 px-3 text-right text-sm text-slate-500">${fmt(rawCost)}</td>` : ''}
-        ${isExecutiveMode() ? `<td class="py-3 px-3 text-right text-sm text-slate-500">${fmt(costBeforeSalesProfit)}</td>` : ''}
+        <!-- Cost+Ovh+PP column hidden for Materials -->
         <td class="py-3 px-3 text-right">
           <div class="flex items-center justify-end gap-1">
             <input data-final-price="${i}" type="number" min="0" step="0.01"
@@ -235,7 +231,7 @@ export function renderMaterials() {
       <p class="text-slate-500 text-sm">Click "Add row" to search and add materials</p>
     </div>
     <tr class="hidden md:table-row">
-      <td class="py-8 text-slate-500 text-center" colspan="${isExecutiveMode() ? 9 : 6}">
+      <td class="py-8 text-slate-500 text-center" colspan="${isExecutiveMode() ? 8 : 5}">
         <div class="flex flex-col items-center gap-3">
           <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100">
             <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -425,10 +421,10 @@ function updateMaterialRowDisplay(i, multiplier, branchMultiplier, salesProfitMu
   const ln = appState.materialLines[i];
 
   const rawCost = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
-  const lineTotal = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * multiplier : NaN;
-  const salesProfitAmount = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier * (salesProfitMultiplier - 1) : NaN;
-  const costBeforeSalesProfit = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty * branchMultiplier : NaN;
-  const finalPrice = Number.isFinite(lineTotal) ? lineTotal * (1 + appState.commissionPercent / 100) : NaN;
+  // TIERED PRICING: Use tiered formula instead of branch multipliers for Materials
+  const finalPrice = calculateTieredMaterialPriceWithCommission(rawCost, appState.commissionPercent);
+  // Cost+Ovh+PP is not applicable with tiered pricing (column hidden)
+  const costBeforeSalesProfit = rawCost; // For backward compatibility
 
   // Find and update desktop row using data-i attribute
   const desktopInput = el('materialRows').querySelector(`tr.hidden.md\\:table-row .matSearch[data-i="${i}"]`);
@@ -441,14 +437,12 @@ function updateMaterialRowDisplay(i, multiplier, branchMultiplier, salesProfitMu
       // Unit Cost cell at index 3 (Executive mode only)
       const unitCostCell = isExecutiveMode() ? cells[3] : null;
       if (unitCostCell) unitCostCell.textContent = fmt(ln.unitCost);
-      // Raw Cost: index 5 in Executive mode only
-      const rawCostCell = isExecutiveMode() ? cells[5] : null;
+      // Raw Cost: index 4 in Executive mode only (shifted after Cost+Ovh+PP removal)
+      const rawCostCell = isExecutiveMode() ? cells[4] : null;
       if (rawCostCell) rawCostCell.textContent = fmt(rawCost);
-      // Cost+Ovh+PP: index 6 in Executive mode only
-      const costBeforeCell = isExecutiveMode() ? cells[6] : null;
-      if (costBeforeCell) costBeforeCell.textContent = fmt(costBeforeSalesProfit);
-      // Final Price: index 7 in Executive, index 4 in Sales
-      const finalPriceCellIndex = isExecutiveMode() ? 7 : 4;
+      // Cost+Ovh+PP column removed - not applicable with tiered pricing
+      // Final Price: index 5 in Executive, index 4 in Sales (shifted after Cost+Ovh+PP removal)
+      const finalPriceCellIndex = isExecutiveMode() ? 5 : 4;
       if (cells[finalPriceCellIndex]) cells[finalPriceCellIndex].textContent = fmt(finalPrice);
     }
     desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : '';
@@ -509,31 +503,7 @@ function updateMaterialRowDisplay(i, multiplier, branchMultiplier, salesProfitMu
       }
     }
 
-    // Update or create the Cost+Ovh+PP card (only in Executive mode)
-    let costBeforeSection = Array.from(mobileCard.querySelectorAll('.flex.justify-between.items-center'))
-      .find(el => el.textContent.includes('Cost+Ovh+PP'));
-
-    if (isExecutiveMode() && !costBeforeSection && ln.code) {
-      // Create Cost+Ovh+PP section
-      costBeforeSection = document.createElement('div');
-      costBeforeSection.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200';
-      costBeforeSection.innerHTML = `
-        <span class="text-xs text-slate-500 uppercase tracking-wide">Cost+Ovh+PP</span>
-        <span class="text-lg font-bold text-slate-600">${fmt(costBeforeSalesProfit)}</span>
-      `;
-      const qtySection = mobileCard.querySelector('label')?.closest('div');
-      if (qtySection) {
-        qtySection.parentNode.insertBefore(costBeforeSection, qtySection.nextSibling);
-      }
-    } else if (costBeforeSection) {
-      if (isExecutiveMode()) {
-        // Update existing Cost+Ovh+PP section
-        costBeforeSection.querySelector('.text-lg.font-bold').textContent = fmt(costBeforeSalesProfit);
-      } else {
-        // Remove Cost+Ovh+PP section when switching to Sales mode
-        costBeforeSection.remove();
-      }
-    }
+    // Cost+Ovh+PP card removed - not applicable with tiered pricing
 
     // Update or create the Final Price card
     let finalPriceSection = Array.from(mobileCard.querySelectorAll('.flex.justify-between.items-center'))
@@ -572,55 +542,57 @@ export function materialSubtotalBase() {
 }
 
 /**
- * Calculate material subtotal (with multipliers)
- * @returns {number} Material subtotal with multipliers
+ * Calculate material subtotal (with tiered pricing)
+ * @returns {number} Material subtotal with tiered pricing
  */
 export function materialSubtotal() {
-  const multiplier = getCompleteMultiplier();
   const commissionPercent = appState.commissionPercent || 0;
 
   return appState.materialLines.reduce((sum, ln) => {
-    // If override is set, use it directly (bypass all multipliers, already includes commission)
+    // If override is set, use it directly (bypass all calculations, already includes commission)
     if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
       return sum + ln.overrideFinalPrice;
     }
     if (!Number.isFinite(ln.unitCost)) return sum;
-    // Apply multipliers to UnitCost first, then multiply by quantity
-    const adjustedUnitCost = ln.unitCost * multiplier;
-    const finalPrice = adjustedUnitCost * ln.qty * (1 + commissionPercent / 100);
+    // Use tiered pricing formula for Materials
+    const rawCost = ln.unitCost * ln.qty;
+    const finalPrice = calculateTieredMaterialPriceWithCommission(rawCost, commissionPercent);
     return sum + finalPrice;
   }, 0);
 }
 
 /**
- * Calculate materials subtotal BEFORE sales profit multiplier
- * This includes overridden materials with sales profit backed out
+ * Calculate materials subtotal BEFORE commission (tiered base price)
+ * For overridden items: backs out commission from override price
+ * For normal items: returns tiered base price (without commission)
  * Used for subTotalBeforeSalesProfit calculation
- * @returns {number} Material subtotal before sales profit multiplier
+ * @returns {number} Material subtotal before commission
  */
 export function materialSubtotalBeforeSalesProfit() {
-  const branchMultiplier = getBranchMultiplier();
+  const commissionPercent = appState.commissionPercent || 0;
   const salesProfitMultiplier = getSalesProfitMultiplier();
 
   return appState.materialLines.reduce((sum, ln) => {
     if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
-      // Override includes branch + sales profit multipliers, back out sales profit
-      return sum + (ln.overrideFinalPrice / salesProfitMultiplier);
+      // Override was set WITH commission included, back it out
+      const divisor = 1 + (commissionPercent / 100);
+      return sum + (ln.overrideFinalPrice / divisor);
     }
     if (!Number.isFinite(ln.unitCost)) return sum;
-    return sum + (ln.unitCost * ln.qty * branchMultiplier);
+    // TIERED PRICING: Return tiered base price (without commission)
+    const rawCost = ln.unitCost * ln.qty;
+    return sum + calculateTieredMaterialPrice(rawCost);
   }, 0);
 }
 
 /**
  * Calculate materials subtotal WITHOUT commission
  * For overridden items: backs out commission from override price
- * For normal items: returns base price × multipliers (no commission)
+ * For normal items: returns tiered base price (no commission)
  * Used for the Percentage Breakdown card display
  * @returns {number} Material subtotal without commission
  */
 export function materialSubtotalWithoutCommission() {
-  const multiplier = getCompleteMultiplier(); // Excludes commission
   const commissionPercent = appState.commissionPercent || 0;
 
   return appState.materialLines.reduce((sum, ln) => {
@@ -629,9 +601,10 @@ export function materialSubtotalWithoutCommission() {
       const divisor = 1 + (commissionPercent / 100);
       return sum + (ln.overrideFinalPrice / divisor);
     }
-    // Normal calculation without commission
+    // TIERED PRICING: Return tiered base price without commission
     if (!Number.isFinite(ln.unitCost)) return sum;
-    return sum + (ln.unitCost * ln.qty * multiplier);
+    const rawCost = ln.unitCost * ln.qty;
+    return sum + calculateTieredMaterialPrice(rawCost);
   }, 0);
 }
 

@@ -9,6 +9,7 @@ import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, g
 import { materialSubtotalBase, materialSubtotal, materialSubtotalWithoutCommission, materialSubtotalBeforeSalesProfit } from './materials.js';
 import { getOnsiteOptionsSubtotal } from './onsite-options.js';
 import { COMMISSION_TIERS } from './config.js';
+import { calculateTieredMaterialPrice } from '../core/tieredMaterials.js';
 
 /**
  * Update bottom summary grid layout based on mode
@@ -69,7 +70,18 @@ export function calcAll() {
 
   // Get amounts after branch multipliers
   const lAfterBranch = Number.isFinite(lBase) ? lBase * branchMultiplier : 0;
-  const mAfterBranch = Number.isFinite(mBase) ? mBase * branchMultiplier : 0;
+  // TIERED PRICING: Materials use tiered pricing instead of branch multipliers
+  // Calculate tiered base price (without commission) for materials
+  const mAfterBranch = appState.materialLines.reduce((sum, ln) => {
+    if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
+      // For overridden items, back out commission to get base price
+      const divisor = 1 + ((appState.commissionPercent || 0) / 100);
+      return sum + (ln.overrideFinalPrice / divisor);
+    }
+    if (!Number.isFinite(ln.unitCost)) return sum;
+    const rawCost = ln.unitCost * ln.qty;
+    return sum + calculateTieredMaterialPrice(rawCost);
+  }, 0);
 
   // Get sales profit multiplier (user-editable)
   const salesProfitMultiplier = getSalesProfitMultiplier();

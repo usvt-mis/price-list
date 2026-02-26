@@ -8,17 +8,48 @@ const { COMMISSION_TIERS } = require('../../config');
 const logger = require('./logger');
 
 /**
+ * Calculate tiered material price based on raw cost
+ * Per user decision: Materials skip Overhead, Policy Profit, AND Sales Profit multipliers
+ * Only commission is applied to the tiered price
+ *
+ * Formula:
+ *   if (X < 50)      F = 250
+ *   else if (X < 100) F = 400
+ *   else if (X < 200) F = 800
+ *   else if (X < 300) F = 1000
+ *   else if (X < 600) F = 1500
+ *   else if (X < 1000) F = 2000
+ *   else              F = X × 2
+ *
+ * @param {number} rawCost - UnitCost × Quantity
+ * @returns {number} Final price before commission (F value from tier table)
+ */
+function calculateTieredMaterialPrice(rawCost) {
+  if (!Number.isFinite(rawCost) || rawCost < 0) return NaN;
+
+  if (rawCost < 50) return 250;
+  if (rawCost < 100) return 400;
+  if (rawCost < 200) return 800;
+  if (rawCost < 300) return 1000;
+  if (rawCost < 600) return 1500;
+  if (rawCost < 1000) return 2000;
+  return rawCost * 2;
+}
+
+/**
  * Calculate GrandTotal for a saved calculation
  * This replicates the frontend calculation logic in backend
  *
  * Formula:
  * 1. Labor Subtotal = Sum(Job Hours × CostPerHour × BranchMultiplier) [Only isChecked=true jobs]
- * 2. Materials Subtotal = Sum(Quantity × UnitCost × BranchMultiplier)
+ * 2. Materials Subtotal = TIERED PRICING (no branch multipliers, no sales profit)
+ *    - Normal materials: Use tiered pricing formula
+ *    - Overridden materials: Use override value (bypasses all calculations)
  * 3. Travel Cost = TravelKm × 15 × SalesProfitMultiplier
  * 4. Onsite Options = Crane + 4People + Safety (if enabled) × SalesProfitMultiplier
  * 5. Branch Multiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)
  * 6. Sales Profit Multiplier = 1 + SalesProfitPct / 100
- * 7. Subtotal Before Sales Profit = (Labor + Materials) × BranchMultiplier + Travel Cost + Onsite Options
+ * 7. Subtotal Before Sales Profit = Labor × BranchMultiplier + Materials (tiered base) + Travel + Onsite Options
  * 8. Sub Grand Total = Subtotal Before Sales Profit × SalesProfitMultiplier
  * 9. Commission % based on ratio (tiered: 0%, 1%, 2%, 2.5%, 5%)
  * 10. Grand Total = Sub Grand Total × (1 + Commission% / 100)
@@ -93,23 +124,25 @@ async function calculateGrandTotal(poolOrTransaction, saveData, calculatorType =
   logger.debug(`[Calculation-${correlationId}] Labor subtotal calculated: ${laborSubtotal.toFixed(2)}`);
 
   // Calculate materials subtotal - separate overridden and normal materials
-  // Normal materials need sales profit multiplier applied, overridden don't (already included)
-  let materialSubtotalNormal = 0; // Before sales profit multiplier
-  let materialSubtotalOverridden = 0; // Already includes multipliers (except commission)
+  // TIERED PRICING: Materials skip branch multipliers and sales profit
+  // Only commission is applied to tiered pricing
+  let materialSubtotalNormal = 0; // Tiered base price (before commission)
+  let materialSubtotalOverridden = 0; // Already includes commission
   for (const material of materials) {
-    // Check for override first - override values already include multipliers
+    // Check for override first - override values already include all calculations
     if (material.overrideFinalPrice != null && material.overrideFinalPrice >= 0) {
-      // Override already includes branch multiplier + sales profit multiplier
-      // We'll back out commission later
+      // Override already includes commission
+      // We'll back out commission later for before-sales-profit calculation
       materialSubtotalOverridden += material.overrideFinalPrice;
     } else {
-      // Normal calculation (before sales profit multiplier)
+      // TIERED PRICING: Use tiered formula instead of branch multipliers
       const qty = material.quantity || 0;
       const unitCost = material.unitCost || 0;
-      materialSubtotalNormal += qty * unitCost * branchMultiplier;
+      const rawCost = qty * unitCost;
+      materialSubtotalNormal += calculateTieredMaterialPrice(rawCost);
     }
   }
-  logger.debug(`[Calculation-${correlationId}] Materials calculated - Normal: ${materialSubtotalNormal.toFixed(2)}, Overridden: ${materialSubtotalOverridden.toFixed(2)}`);
+  logger.debug(`[Calculation-${correlationId}] Materials calculated - Normal (tiered): ${materialSubtotalNormal.toFixed(2)}, Overridden: ${materialSubtotalOverridden.toFixed(2)}`);
 
   // Calculate travel cost (Km × 15 baht/km)
   const travelBase = (travelKm || 0) * 15;
@@ -121,17 +154,18 @@ async function calculateGrandTotal(poolOrTransaction, saveData, calculatorType =
   const onsiteOptionsCost = onsiteOptionsBase * salesProfitMultiplier;
   logger.debug(`[Calculation-${correlationId}] Onsite options calculated - Base: ${onsiteOptionsBase.toFixed(2)}, After multiplier: ${onsiteOptionsCost.toFixed(2)}`);
 
-  // Apply sales profit multiplier to labor and NORMAL materials only
-  // Overridden materials already have sales profit multiplier included
+  // Apply sales profit multiplier to labor only
+  // TIERED PRICING: Materials do NOT use sales profit multiplier
+  // Overridden materials already have all calculations included
   const laborAfterSalesProfit = laborSubtotal * salesProfitMultiplier;
-  const materialsAfterSalesProfit = (materialSubtotalNormal * salesProfitMultiplier) + materialSubtotalOverridden;
+  const materialsAfterSalesProfit = materialSubtotalNormal + materialSubtotalOverridden; // No sales profit on materials
 
   // For subTotalBeforeSalesProfit calculation:
-  // - Normal materials: use materialSubtotalNormal (after branch multiplier, before sales profit)
-  // - Overridden materials: need to BACK OUT sales profit multiplier from override
-  //   because override includes (branch + sales profit) multipliers
-  const materialSubtotalBeforeSalesProfit =
-    materialSubtotalNormal + (materialSubtotalOverridden / salesProfitMultiplier);
+  // - Normal materials: use materialSubtotalNormal (tiered base price, no commission)
+  // - Overridden materials: need to BACK OUT commission from override
+  //   because override includes commission
+  // Note: We don't know commission % yet, so we'll back it out after calculating commission
+  const materialSubtotalBeforeSalesProfit = materialSubtotalNormal + materialSubtotalOverridden; // Will back out commission later
 
   // Subtotal before sales profit (labor + materials with branch multiplier only, plus travel base, plus onsite options base)
   const subTotalBeforeSalesProfit = laborSubtotal + materialSubtotalBeforeSalesProfit + travelBase + onsiteOptionsBase;
@@ -152,12 +186,19 @@ async function calculateGrandTotal(poolOrTransaction, saveData, calculatorType =
   }
 
   // Calculate commission amount
-  const commission = subGrandTotal * (commissionPercent / 100);
+  // TIERED PRICING: Commission applies to Labor + Travel + Onsite Options + Materials (tiered base price)
+  // Overridden materials already include commission, so we calculate commission separately
+  const baseForCommission = laborAfterSalesProfit + travelCost + onsiteOptionsCost + materialSubtotalNormal;
+  const commission = baseForCommission * (commissionPercent / 100);
+
+  // Add commission to tiered materials (overridden materials already have commission included)
+  const materialsWithCommission = materialSubtotalNormal * (1 + commissionPercent / 100) + materialSubtotalOverridden;
 
   logger.debug(`[Calculation-${correlationId}] Commission calculated - Ratio: ${ratio.toFixed(4)}, Percent: ${commissionPercent}%, Amount: ${commission.toFixed(2)}`);
 
   // Final Grand Total with commission
-  const grandTotal = subGrandTotal + commission;
+  // TIERED PRICING: Use materialsWithCommission instead of materialsAfterSalesProfit
+  const grandTotal = laborAfterSalesProfit + materialsWithCommission + travelCost + onsiteOptionsCost;
 
   logger.debug(`[Calculation-${correlationId}] Grand Total calculated: ${grandTotal.toFixed(2)}`);
 

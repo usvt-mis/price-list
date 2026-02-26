@@ -22,12 +22,29 @@ This is a Price List Calculator - a web application for calculating service cost
 ### Cost Components
 
 1. **Labor**: Job manhours × branch-specific cost per hour
-2. **Materials**: User-selected materials with quantities (supports manual Final Price override per item)
-3. **Sales Profit**: User-editable percentage applied after branch multipliers (can be negative)
+2. **Materials**: User-selected materials with quantities using **tiered pricing** (supports manual Final Price override per item)
+3. **Sales Profit**: User-editable percentage applied after branch multipliers for Labor only (can be negative)
 4. **Travel/Shipping**: Distance in Km × 15 baht/km rate
 5. **Onsite Options** (Onsite only): Optional add-ons with custom prices
 
-**Treatment**: Labor & Materials are affected by branch multipliers (Overhead%, PolicyProfit%) and Sales Profit. Travel & Onsite Options are NOT affected by branch multipliers, only by Sales Profit.
+**Treatment**:
+- **Labor**: Affected by branch multipliers (Overhead%, PolicyProfit%) and Sales Profit
+- **Materials**: Uses **tiered pricing** (skips branch multipliers and Sales Profit; only commission applies)
+- **Travel & Onsite Options**: NOT affected by branch multipliers, only by Sales Profit
+
+**Tiered Materials Pricing Formula**:
+```
+if (X < 50)      F = 250
+else if (X < 100) F = 400
+else if (X < 200) F = 800
+else if (X < 300) F = 1000
+else if (X < 600) F = 1500
+else if (X < 1000) F = 2000
+else              F = X × 2
+
+Final Price = F × (1 + commission%)
+```
+where X = UnitCost × Quantity
 
 ---
 
