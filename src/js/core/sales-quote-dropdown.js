@@ -1,6 +1,6 @@
 /**
  * Sales Quote Dropdown Component
- * Searchable dropdown for selecting sales quote numbers
+ * Type-to-search input for selecting sales quote numbers
  * (Shared between onsite and workshop calculators)
  */
 
@@ -24,16 +24,15 @@ export function initSalesQuoteDropdown(quotes = [], onSelect = null) {
   onQuoteSelectCallback = onSelect;
 
   const inputEl = el('salesQuoteNumber');
-  const toggleBtn = el('salesQuoteToggle');
   const dropdownList = el('salesQuoteList');
 
-  if (!inputEl || !toggleBtn || !dropdownList) {
+  if (!inputEl || !dropdownList) {
     console.warn('[SalesQuoteDropdown] Required elements not found');
     return;
   }
 
   // Setup event listeners
-  setupDropdownListeners(inputEl, toggleBtn, dropdownList);
+  setupDropdownListeners(inputEl, dropdownList);
 
   // Load saved value from localStorage
   const savedQuote = localStorage.getItem('sales-quote-number');
@@ -46,14 +45,8 @@ export function initSalesQuoteDropdown(quotes = [], onSelect = null) {
 /**
  * Setup dropdown event listeners
  */
-function setupDropdownListeners(inputEl, toggleBtn, dropdownList) {
-  // Toggle dropdown on button click
-  toggleBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleDropdown(dropdownList);
-  });
-
-  // Toggle dropdown on input focus
+function setupDropdownListeners(inputEl, dropdownList) {
+  // Show dropdown on input focus
   inputEl.addEventListener('focus', () => {
     showDropdown(dropdownList);
   });
