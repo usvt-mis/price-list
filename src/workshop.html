@@ -272,18 +272,60 @@
       </section>
 
       <!-- PART 3: Travel -->
-      <section id="travelSection" class="bg-white rounded-2xl shadow p-8">
-        <h2 class="text-xl font-semibold">Travel</h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label class="block text-sm font-medium text-slate-700">Travel/Shipping Distance (Km)</label>
-            <input id="travelKm" type="number" step="1" min="0" class="mt-1 w-full rounded-lg border-2 border-slate-400"/>
+      <section id="travelSection" class="bg-white rounded-2xl shadow-lg border border-sky-100 p-8">
+        <!-- Section Header with Icon -->
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+            </svg>
           </div>
-          <div class="rounded-xl border border-slate-200 p-5">
-            <div class="text-sm text-slate-500">Travel/Shipping Final Price</div>
-            <div id="travelCost" class="text-2xl font-bold">—</div>
-            <div class="text-xs text-slate-500 mt-1">Km × 15 baht/km (with commission)</div>
+          <div>
+            <h2 class="text-xl font-semibold text-slate-900">Travel &amp; Shipping</h2>
+            <p class="text-sm text-slate-500">Distance-based transportation costs</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Input Section -->
+          <div class="space-y-2">
+            <label for="travelKm" class="block text-sm font-medium text-slate-700">
+              Distance
+            </label>
+            <div class="relative">
+              <input
+                id="travelKm"
+                type="number"
+                step="1"
+                min="0"
+                placeholder="Enter distance in km..."
+                class="w-full rounded-lg border-2 border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all duration-200 px-4 py-3 text-lg"
+              />
+              <span class="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-slate-500 font-medium">km</span>
+            </div>
+            <p class="text-xs text-slate-500 flex items-center gap-1">
+              <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Standard rate: 15 baht/km
+            </p>
+          </div>
+
+          <!-- Price Display Card -->
+          <div class="bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200 rounded-xl p-6">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-sky-900">Travel Cost</span>
+              <span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">
+                With Commission
+              </span>
+            </div>
+            <div id="travelCost" class="text-3xl font-bold text-sky-900">—</div>
+            <div class="mt-3 pt-3 border-t border-sky-200">
+              <div class="flex justify-between text-xs text-slate-600">
+                <span>Base Rate</span>
+                <span class="font-mono">Km × 15 THB/km</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
