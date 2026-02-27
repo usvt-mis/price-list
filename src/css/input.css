@@ -1,3 +1,135 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ========================================
+   Scrollspy Navigation Styles
+   ======================================== */
+
+/* Main container */
+.scrollspy-nav {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 40;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Floating Action Button (FAB) */
+.scrollspy-fab {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgb(30 58 138) 0%, rgb(37 99 235) 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+}
+
+.scrollspy-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+}
+
+.scrollspy-fab:active {
+  transform: scale(0.95);
+}
+
+.scrollspy-fab:focus-visible {
+  outline: 2px solid rgb(251 191 36);
+  outline-offset: 2px;
+}
+
+/* Navigation menu */
+.scrollspy-menu {
+  position: absolute;
+  bottom: calc(100% + 0.75rem);
+  right: 0;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  border: 1px solid rgb(226 232 240);
+  min-width: 12rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(0.5rem) scale(0.95);
+  transition: all 0.2s ease-in-out;
+  overflow: hidden;
+}
+
+.scrollspy-nav.scrollspy-open .scrollspy-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+/* Section links */
+.scrollspy-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  text-decoration: none;
+  color: rgb(71 85 105);
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.scrollspy-link:hover {
+  background: rgb(248 250 252);
+  color: rgb(30 58 138);
+}
+
+.scrollspy-link.scrollspy-active {
+  background: rgb(239 246 255);
+  color: rgb(30 58 138);
+  border-left-color: rgb(37 99 235);
+}
+
+.scrollspy-icon {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.scrollspy-label {
+  flex: 1;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .scrollspy-nav {
+    bottom: 1.5rem;
+    right: 1rem;
+  }
+
+  /* Larger tap target for mobile (44x44px min) */
+  .scrollspy-fab {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .scrollspy-menu {
+    min-width: 10rem;
+    right: -0.5rem;
+  }
+
+  .scrollspy-link {
+    padding: 0.75rem 0.875rem;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .scrollspy-fab,
+  .scrollspy-menu,
+  .scrollspy-link {
+    transition: none;
+  }
+}

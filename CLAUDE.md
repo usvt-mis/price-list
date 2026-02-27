@@ -72,6 +72,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
 - **Three separate calculator applications**: `index.html` (landing), `onsite.html` (onsite calculator), `workshop.html` (workshop calculator)
 - **Modular JavaScript**: Each calculator has its own isolated state in `src/js/onsite/` and `src/js/workshop/`
 - **Shared utilities**: `src/js/core/` for common functions, `src/js/auth/` for authentication
+  - `scrollspy.js` - Floating section navigation with Intersection Observer for active section detection
 - **No build process** - Uses native ES6 modules with import maps
 
 See [docs/frontend.md](docs/frontend.md) for complete frontend documentation.

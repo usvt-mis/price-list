@@ -50,6 +50,13 @@ The Price List Calculator computes total cost based on four components:
   - **Settings Tab**: Displays authentication info
 
 ### UI Features
+- **Scrollspy Navigation**: Floating table of contents in bottom-right corner
+  - Highlights current section as you scroll (via Intersection Observer)
+  - Quick jumps to any section (Onsite Options, Labor, Materials, Travel/Shipping, Summary)
+  - Auto-opens on scroll, stays open on desktop, auto-closes on mobile
+  - Mobile-responsive with 44x44px minimum tap targets
+  - Keyboard accessible (Escape closes menu, proper ARIA labels)
+  - Icons per section: ⚙️ Options, 👷 Labor, 📦 Materials, 🚗 Travel/Shipping, 📊 Summary
 - **Authentication UI**: Login/logout button in header with user avatar (initials) when signed in
 - **Post-login redirect**: After successful authentication, users are automatically redirected to "My Records" page
   - NoRole users see "awaiting assignment" screen instead

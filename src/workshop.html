@@ -131,7 +131,7 @@
       </section>
 
       <!-- PART 1: Labor -->
-      <section class="bg-white rounded-2xl shadow p-8">
+      <section id="laborSection" class="bg-white rounded-2xl shadow p-8">
         <div class="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h2 class="text-xl font-semibold text-slate-800">Labor</h2>
@@ -206,7 +206,7 @@
 
 
       <!-- PART 2: Materials -->
-      <section class="bg-white rounded-2xl shadow-lg p-8 border border-emerald-100">
+      <section id="materialsSection" class="bg-white rounded-2xl shadow-lg p-8 border border-emerald-100">
         <div class="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <div class="flex items-center gap-2">
@@ -331,7 +331,7 @@
       </section>
 
       <!-- GRAND TOTAL -->
-      <section class="mt-6 space-y-6">
+      <section id="summarySection" class="mt-6 space-y-6">
         <div id="bottomSummaryGrid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
           <!-- Left Card: Sub Grand Total + Sales Profit -->
@@ -850,6 +850,10 @@
 
   // Load the workshop app
   import('./js/workshop/app.js');
+
+  // Initialize scrollspy navigation
+  import { initScrollspy } from './js/core/scrollspy.js';
+  initScrollspy('workshop');
 </script>
 
 <!-- Toast Notification Container -->
