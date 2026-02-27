@@ -294,12 +294,11 @@ Gross Profit % = (Gross Profit / Grand Total) × 100
 ```
 
 Where:
-- **Gross Profit** = Grand Total - (Total Labor + Total Materials) = Travel Cost + Onsite Options Cost
-- May be negative if travel cost is zero
+- **Gross Profit** = Sub Grand Total - Total Raw Cost = Total markup from branch multipliers + sales profit + tiered materials pricing
+- Should always be positive when branch multipliers and/or tiered pricing are applied
 
 ### Edge Cases
 - **Zero Grand Total**: All percentages show "0.00%" (handled via `Number.isFinite()` check)
-- **Negative values**: Gross Profit may be negative (displayed with "-" prefix)
 - **Formatting**: Uses `fmtPercent(value)` helper for 2 decimal places with "%" suffix
 
 ### Implementation

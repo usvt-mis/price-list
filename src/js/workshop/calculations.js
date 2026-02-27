@@ -165,9 +165,9 @@ export function calcAll() {
     overheadPercent = (overhead / newGrandTotal) * 100;
     commissionPercentOfTotal = (commission / newGrandTotal) * 100;
 
-    // Gross Profit = Grand Total - (Total Labor + Total Materials)
-    // Using subGrandTotal (before commission) minus (l + m) = travelCost
-    const grossProfit = subGrandTotal - (l + m);
+    // Gross Profit = Sub Grand Total - Total Raw Cost
+    // Shows total markup from branch multipliers, sales profit, and tiered materials pricing
+    const grossProfit = subGrandTotal - totalRawCost;
     grossProfitPercent = (grossProfit / newGrandTotal) * 100;
   }
 
