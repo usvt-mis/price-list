@@ -100,10 +100,14 @@ The Price List Calculator computes total cost based on four components:
 - **Material search**:
   - Type-to-search with debounced API calls (250ms delay, min 2 characters)
   - Returns top 20 matches searching both MaterialCode and MaterialName
+  - **Auto-add on selection**: Clicking a dropdown item immediately adds the material (no "Add Item" button)
+  - **Toast notifications**: Visual feedback confirms when materials are added
+  - **Flash animation**: Newly added rows highlight briefly with green flash
+  - **Keyboard navigation**: Arrow keys to navigate, Enter to select, Escape to close
   - Desktop dropdown uses fixed positioning for reliable overlay behavior
   - Global click-away handler closes dropdowns when clicking outside
   - Timeout cleanup prevents stale search results
-  - Search input immediately updates to show "CODE - NAME" format on selection (both mobile and desktop)
+  - Search input height increased to 48px for WCAG AAA accessibility
   - Partial DOM updates via `updateMaterialRowDisplay()` using data-i attributes for reliable row updates
 - **Mobile materials**:
   - Compact material info display

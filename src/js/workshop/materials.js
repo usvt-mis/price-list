@@ -95,7 +95,8 @@ export function renderMaterials() {
 
     return `
       <!-- Mobile Card (visible < md) -->
-      <div class="md:hidden p-4 bg-white rounded-xl border border-slate-200 shadow-md hover:shadow-lg transition-shadow duration-200 space-y-4">
+      <div class="md:hidden p-4 bg-white rounded-xl border border-slate-200 shadow-md hover:shadow-lg transition-shadow duration-200 space-y-4"
+           data-material-card="${i}">
         <!-- Material Info (always shown when material exists) -->
         ${ln.code ? `
         <div class="text-sm p-3 bg-emerald-50 rounded-lg border border-emerald-100">
@@ -164,7 +165,7 @@ export function renderMaterials() {
       </div>
 
       <!-- Desktop Table Row (visible md+) -->
-      <tr class="hidden md:table-row border-b border-slate-100 ${i % 2 === 0 ? 'bg-white hover:bg-emerald-50/50' : 'bg-slate-50/50 hover:bg-emerald-50'} transition-colors duration-200">
+      <tr data-material-row="${i}" class="hidden md:table-row border-b border-slate-100 ${i % 2 === 0 ? 'bg-white hover:bg-emerald-50/50' : 'bg-slate-50/50 hover:bg-emerald-50'} transition-colors duration-200">
         <td class="py-3 px-3 text-sm text-slate-600 font-mono">${ln.code || '—'}</td>
         <td class="py-3 px-3 text-sm font-medium text-slate-900">${ln.name || '—'}</td>
         ${isExecutiveMode() ? `<td class="py-3 px-3 text-right text-sm text-slate-500">${fmt(ln.unitCost)}</td>` : ''}
@@ -206,7 +207,7 @@ export function renderMaterials() {
         </svg>
       </div>
       <p class="text-slate-600 font-medium mb-1">No materials added yet</p>
-      <p class="text-slate-500 text-sm">Search above and click "Add Item" to add materials</p>
+      <p class="text-slate-500 text-sm">Search above to add materials instantly</p>
     </div>
     <tr class="hidden md:table-row">
       <td class="py-8 text-slate-500 text-center" colspan="${isExecutiveMode() ? 7 : 4}">
@@ -217,7 +218,7 @@ export function renderMaterials() {
             </svg>
           </div>
           <span class="font-medium">No materials added yet</span>
-          <span class="text-sm text-slate-400">Search above and click "Add Item" to add materials</span>
+          <span class="text-sm text-slate-400">Search above to add materials instantly</span>
         </div>
       </td>
     </tr>
@@ -406,22 +407,76 @@ async function calcAll() {
 // ========== External Material Search ==========
 
 /**
- * Initialize external material search functionality
- * This replaces the per-row search inputs with a single external search box
+ * Show toast notification for visual feedback
+ * @param {string} message - Toast message
+ * @param {string} type - Notification type ('success' | 'error' | 'info')
+ */
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  const bgColors = {
+    success: 'bg-emerald-600',
+    error: 'bg-red-600',
+    info: 'bg-blue-600'
+  };
+  const icons = {
+    success: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>',
+    error: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>',
+    info: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+  };
+
+  toast.className = `${bgColors[type]} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 transform transition-all duration-300 translate-y-full opacity-0 pointer-events-auto`;
+  toast.innerHTML = `${icons[type]}<span class="font-medium">${message}</span>`;
+  container.appendChild(toast);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    toast.classList.remove('translate-y-full', 'opacity-0');
+  });
+
+  // Remove after delay
+  setTimeout(() => {
+    toast.classList.add('translate-y-full', 'opacity-0');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+/**
+ * Flash animation on newly added material row
+ * @param {number} rowIndex - Index of the row to flash
+ */
+function flashNewRow(rowIndex) {
+  setTimeout(() => {
+    const tableRow = document.querySelector(`[data-material-row="${rowIndex}"]`);
+    const mobileCard = document.querySelector(`[data-material-card="${rowIndex}"]`);
+
+    [tableRow, mobileCard].forEach(el => {
+      if (el) {
+        el.classList.add('animate-flash-new');
+        setTimeout(() => el.classList.remove('animate-flash-new'), 1000);
+      }
+    });
+  }, 50);
+}
+
+/**
+ * Initialize external material search functionality with auto-add on selection
  */
 export function initMaterialSearch() {
   const searchInput = document.getElementById('materialSearchInput');
   const dropdown = document.getElementById('materialSearchDropdown');
   const clearBtn = document.getElementById('clearMaterialSearch');
-  const addBtn = document.getElementById('addMaterialItem');
-  const validationMsg = document.getElementById('materialSearchValidation');
 
-  if (!searchInput || !dropdown || !clearBtn || !addBtn) {
+  // Track keyboard navigation state
+  let focusedIndex = -1;
+
+  if (!searchInput || !dropdown || !clearBtn) {
     const missing = [];
     if (!searchInput) missing.push('searchInput (#materialSearchInput)');
     if (!dropdown) missing.push('dropdown (#materialSearchDropdown)');
     if (!clearBtn) missing.push('clearBtn (#clearMaterialSearch)');
-    if (!addBtn) missing.push('addBtn (#addMaterialItem)');
     console.error('[MaterialSearch] Required elements not found:', missing.join(', '));
     console.error('[MaterialSearch] Check HTML structure in onsite.html/workshop.html');
     return;
@@ -466,26 +521,44 @@ export function initMaterialSearch() {
     }, 250);
   });
 
-  // Handle material selection from dropdown
-  dropdown.addEventListener('click', (e) => {
+  // Handle material selection from dropdown - auto-add immediately
+  dropdown.addEventListener('click', async (e) => {
     const materialItem = e.target.closest('[data-material-id]');
     if (materialItem) {
       const materialId = parseInt(materialItem.dataset.materialId);
       const material = materialSearchState.searchResults.find(m => m.MaterialId === materialId);
 
       if (material) {
-        materialSearchState.selectedMaterial = {
+        // Validate UnitCost before adding
+        if (!material.UnitCost || material.UnitCost <= 0) {
+          showToast('Material has invalid cost data. Please contact admin.', 'error');
+          return;
+        }
+
+        // Add material row immediately
+        await addMaterialRow({
           materialId: material.MaterialId,
           materialCode: material.MaterialCode,
           materialName: material.MaterialName,
           unitCost: material.UnitCost
-        };
-        searchInput.value = `${material.MaterialCode} - ${material.MaterialName}`;
+        });
+
+        // Flash the newly added row
+        const newIndex = appState.materialLines.length - 1;
+        flashNewRow(newIndex);
+
+        // Show toast notification
+        showToast(`Added: ${material.MaterialCode} - ${material.MaterialName}`);
+
+        // Reset search state
+        searchInput.value = '';
         dropdown.classList.add('hidden');
         materialSearchState.isOpen = false;
-        clearBtn.classList.remove('hidden');
-        addBtn.disabled = false;
+        materialSearchState.searchResults = [];
+        clearBtn.classList.add('hidden');
+        focusedIndex = -1;
         searchInput.setAttribute('aria-expanded', 'false');
+        searchInput.focus();
       }
     }
   });
@@ -495,12 +568,8 @@ export function initMaterialSearch() {
     materialSearchState.selectedMaterial = null;
     searchInput.value = '';
     clearBtn.classList.add('hidden');
-    addBtn.disabled = true;
     searchInput.focus();
   });
-
-  // Add Item button
-  addBtn.addEventListener('click', handleAddItem);
 
   // Close dropdown on click outside
   document.addEventListener('click', (e) => {
@@ -511,12 +580,57 @@ export function initMaterialSearch() {
     }
   });
 
-  // Keyboard navigation (Escape to close dropdown)
-  searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && materialSearchState.isOpen) {
-      dropdown.classList.add('hidden');
-      materialSearchState.isOpen = false;
-      searchInput.setAttribute('aria-expanded', 'false');
+  // Keyboard navigation (arrows, Enter, Escape)
+  searchInput.addEventListener('keydown', async (e) => {
+    if (!materialSearchState.isOpen) return;
+
+    const items = dropdown.querySelectorAll('[data-material-id]');
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        focusedIndex = Math.min(focusedIndex + 1, items.length - 1);
+        updateFocusedItem(items, focusedIndex);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        focusedIndex = Math.max(focusedIndex - 1, 0);
+        updateFocusedItem(items, focusedIndex);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (focusedIndex >= 0 && items[focusedIndex]) {
+          items[focusedIndex].click();
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        dropdown.classList.add('hidden');
+        materialSearchState.isOpen = false;
+        focusedIndex = -1;
+        searchInput.setAttribute('aria-expanded', 'false');
+        break;
+    }
+  });
+
+  // Reset focused index when dropdown opens
+  searchInput.addEventListener('focus', () => {
+    focusedIndex = -1;
+  });
+}
+
+/**
+ * Update focused item in dropdown for keyboard navigation
+ * @param {NodeList} items - All dropdown items
+ * @param {number} index - Current focused index
+ */
+function updateFocusedItem(items, index) {
+  items.forEach((item, i) => {
+    if (i === index) {
+      item.classList.add('bg-emerald-100', 'ring-2', 'ring-emerald-500', 'ring-inset');
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('bg-emerald-100', 'ring-2', 'ring-emerald-500', 'ring-inset');
     }
   });
 }
@@ -532,7 +646,7 @@ function renderSearchDropdown(materials, dropdown) {
 
   dropdown.innerHTML = materials.map(m => `
     <div class="px-3 py-2 hover:bg-slate-100 cursor-pointer transition-colors flex justify-between items-center"
-         data-material-id="${m.MaterialId}" role="option">
+         data-material-id="${m.MaterialId}" role="option" tabindex="-1">
       <div>
         <div class="font-medium text-slate-900">${escapeHtml(m.MaterialCode)}</div>
         <div class="text-sm text-slate-500">${escapeHtml(m.MaterialName)}</div>
@@ -549,46 +663,4 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
-}
-
-/**
- * Handle Add Item button click
- */
-async function handleAddItem() {
-  const material = materialSearchState.selectedMaterial;
-  const validationMsg = document.getElementById('materialSearchValidation');
-  const searchInput = document.getElementById('materialSearchInput');
-  const clearBtn = document.getElementById('clearMaterialSearch');
-  const addBtn = document.getElementById('addMaterialItem');
-
-  // Validation
-  if (!material) {
-    if (validationMsg) {
-      validationMsg.classList.remove('hidden');
-      if (searchInput) {
-        searchInput.classList.add('animate-shake');
-        setTimeout(() => {
-          validationMsg.classList.add('hidden');
-          searchInput.classList.remove('animate-shake');
-        }, 3000);
-      }
-    }
-    return;
-  }
-
-  // Critical: Validate UnitCost (Calculation Agent requirement)
-  if (!material.unitCost || material.unitCost <= 0) {
-    alert('Selected material has invalid cost data. Please contact admin.');
-    return;
-  }
-
-  // Add material row
-  await addMaterialRow(material);
-
-  // Reset search
-  materialSearchState.selectedMaterial = null;
-  if (searchInput) searchInput.value = '';
-  if (clearBtn) clearBtn.classList.add('hidden');
-  if (addBtn) addBtn.disabled = true;
-  if (searchInput) searchInput.focus();
 }
