@@ -11,7 +11,7 @@ import { el, setStatus, setDbLoadingModal, showView, updateModeButtons } from '.
 import { initAuth, renderAuthSection } from '../auth/index.js';
 import { initSalesQuoteDropdown, resetSalesQuoteDropdown } from '../core/sales-quote-dropdown.js';
 import { loadLabor, renderLabor } from './labor.js';
-import { addMaterialRow, renderMaterials } from './materials.js';
+import { initMaterialSearch, renderMaterials } from './materials.js';
 import { calcAll, syncFlatFromPercent, syncPercentFromFlat } from './calculations.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
@@ -203,10 +203,7 @@ function setupEventListeners() {
     if (globalExports.markDirty) globalExports.markDirty();
   });
 
-  el('addMaterial')?.addEventListener('click', async () => {
-    await addMaterialRow();
-    if (globalExports.markDirty) globalExports.markDirty();
-  });
+  // Material search now handled by initMaterialSearch() - external search UI
 
   // Save feature event listeners
   el('saveBtn')?.addEventListener('click', async () => {
@@ -400,6 +397,8 @@ async function initApp() {
     initAdminPanelListeners();
     setupSearchHandlers();
     setupEventListeners();
+    // Initialize material search (external search UI)
+    initMaterialSearch();
     // Initialize sales quote dropdown (currently empty, ready for future data)
     initSalesQuoteDropdown([], (quoteNumber) => {
       console.log('[SalesQuote] Quote selected:', quoteNumber);

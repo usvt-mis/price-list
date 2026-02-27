@@ -91,9 +91,22 @@ app.use((req, res, next) => {
 // Static Files
 // ============================================================
 
-// Serve static files from src directory
+// Serve static files from src directory with cache-control headers
 const staticDir = path.join(__dirname, 'src');
-app.use(express.static(staticDir));
+app.use(express.static(staticDir, {
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    // Prevent HTML caching to ensure UI updates are always loaded
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+    // Short cache for JS files to allow updates while preventing excessive revalidation
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Cache-Control', 'public, max-age=0');
+    }
+  }
+}));
 
 // Specific route for backoffice.html
 app.get('/backoffice', (req, res) => {

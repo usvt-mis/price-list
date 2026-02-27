@@ -12,7 +12,7 @@ import { el, setStatus, setDbLoadingModal, showView, updateModeButtons, fetchJso
 import { initAuth, renderAuthSection } from '../auth/index.js';
 import { initSalesQuoteDropdown, resetSalesQuoteDropdown } from '../core/sales-quote-dropdown.js';
 import { loadLabor, renderLabor } from './labor.js';
-import { addMaterialRow, renderMaterials } from './materials.js';
+import { initMaterialSearch, renderMaterials } from './materials.js';
 import { calcAll, syncFlatFromPercent, syncPercentFromFlat } from './calculations.js';
 import { initializeOnsiteOptions, updateOnsiteOptionsSubtotal, setupOnsiteOptionsListeners, resetOnsiteOptions } from './onsite-options.js';
 
@@ -269,10 +269,7 @@ function setupEventListeners() {
   });
 
   // Onsite Options event listeners now handled by setupOnsiteOptionsListeners()
-  el('addMaterial')?.addEventListener('click', async () => {
-    await addMaterialRow();
-    if (globalExports.markDirty) globalExports.markDirty();
-  });
+  // Material search now handled by initMaterialSearch() - external search UI
 
   // Save feature event listeners
   el('saveBtn')?.addEventListener('click', async () => {
@@ -469,6 +466,8 @@ async function initApp() {
     initializeOnsiteLaborFields();
     initializeOnsiteOptions();
     setupOnsiteOptionsListeners(globalExports.markDirty);
+    // Initialize material search (external search UI)
+    initMaterialSearch();
     // Initialize sales quote dropdown (currently empty, ready for future data)
     initSalesQuoteDropdown([], (quoteNumber) => {
       console.log('[SalesQuote] Quote selected:', quoteNumber);

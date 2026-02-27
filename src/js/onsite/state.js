@@ -83,6 +83,14 @@ let _recordsSearchQuery = '';
 // Track search timeouts for cleanup
 export const materialSearchTimeouts = new Map();
 
+// Material search state for external search functionality
+export const materialSearchState = {
+  selectedMaterial: null,      // { materialId, materialCode, materialName, unitCost }
+  searchResults: [],           // Array of matching materials
+  searchTimeout: null,         // Debounce timeout
+  isOpen: false                // Dropdown open state
+};
+
 // ========== State Getters ==========
 
 export function isExecutiveMode() {
