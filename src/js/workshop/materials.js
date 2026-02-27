@@ -275,7 +275,21 @@ function wireFinalPriceInputs() {
 
   // Wire Final Price input fields (use change event to avoid recalculation during typing)
   document.querySelectorAll('[data-final-price]').forEach(inp => {
+    // Track if user manually edited this value (FIX: prevents race condition)
+    let userManuallyEdited = false;
+
+    // Track user edits with input event - fires when user types/pastes in the field
+    inp.addEventListener('input', () => {
+      userManuallyEdited = true; // User is actively typing/editing
+    });
+
     inp.addEventListener('change', async () => {
+      // FIX: Only process if user actually edited this value
+      // If input event never fired, this change event is just focus loss (e.g., from quantity change)
+      if (!userManuallyEdited) {
+        return; // Skip - this was just a focus loss, not a user edit
+      }
+
       const i = Number(inp.dataset.finalPrice);
       const val = Number(inp.value);
 
@@ -292,6 +306,8 @@ function wireFinalPriceInputs() {
           appState.materialLines[i].overrideFinalPrice = roundedVal;
         }
       }
+
+      userManuallyEdited = false; // Reset for next interaction
       // Re-render to show updated styling
       renderMaterials();
       const { calcAll } = await import('./calculations.js');
