@@ -156,12 +156,13 @@ export function calcAll() {
   el('grandCommission').textContent = fmt(commission);
 
   // === Percentage Breakdown (Executive Only) ===
-  let laborPercent = 0, materialsPercent = 0, overheadPercent = 0;
+  let laborPercent = 0, materialsPercent = 0, travelPercent = 0, overheadPercent = 0;
   let commissionPercentOfTotal = 0, grossProfitPercent = 0;
 
   if (Number.isFinite(newGrandTotal) && newGrandTotal > 0) {
     laborPercent = (laborFinalPricesSum / newGrandTotal) * 100;
     materialsPercent = (materialsFinalPricesNoCommission / newGrandTotal) * 100;
+    travelPercent = (travelFinalPrice / newGrandTotal) * 100;
     overheadPercent = (overhead / newGrandTotal) * 100;
     commissionPercentOfTotal = (commission / newGrandTotal) * 100;
 
@@ -174,6 +175,7 @@ export function calcAll() {
   // Update percentage display elements
   el('laborPercent').textContent = fmtPercent(laborPercent);
   el('materialsPercent').textContent = fmtPercent(materialsPercent);
+  el('travelPercent').textContent = fmtPercent(travelPercent);
   el('overheadPercent').textContent = fmtPercent(overheadPercent);
   el('commissionPercentOfTotal').textContent = fmtPercent(commissionPercentOfTotal);
   el('grossProfitPercent').textContent = fmtPercent(grossProfitPercent);

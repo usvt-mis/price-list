@@ -219,6 +219,7 @@ When in Customer View Mode (accessed via shared links):
 Displays percentage breakdown of Grand Total components:
 - **Labor %**: Labor Final Prices Sum ÷ Grand Total × 100
 - **Materials %**: Materials Final Prices Sum ÷ Grand Total × 100
+- **Travel %**: Travel Final Price ÷ Grand Total × 100
 - **Ovh+PP %**: Overhead ÷ Grand Total × 100
 - **Commission %**: Commission amount ÷ Grand Total × 100
 - **Gross Profit %**: Gross Profit ÷ Grand Total × 100 (highlighted)
