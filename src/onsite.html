@@ -538,15 +538,15 @@
       </section>
 
       <!-- GRAND TOTAL -->
-      <section id="summarySection" class="mt-8 bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200/50">
+      <section id="summarySection" class="mt-8 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 rounded-3xl p-6 md:p-8 shadow-lg border border-slate-700/60">
         <div id="bottomSummaryGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
           <!-- Left Card: Sub Grand Total + Sales Profit -->
-          <div id="grandTotalWithoutCommission" class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 border border-slate-200/60 p-6">
+          <div id="grandTotalWithoutCommission" class="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 border border-slate-300/80 p-6">
             <div class="text-center md:text-left">
               <div class="flex items-center justify-center md:justify-start gap-2 mb-3">
                 <span class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Subtotal</span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs font-medium">Before Commission</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 text-xs font-medium">Before Commission</span>
               </div>
               <div id="grandTotal" class="text-5xl font-extrabold text-slate-900 mb-6 tracking-tight">—</div>
               <div id="salesProfitCard" class="space-y-4">
@@ -575,7 +575,7 @@
           </div>
 
           <!-- Right Card: Breakdown Items -->
-          <div id="breakdownCard" class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 border border-slate-200/60 p-6">
+          <div id="breakdownCard" class="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 border border-slate-300/80 p-6">
             <div class="flex items-center gap-2 mb-4">
               <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Cost Breakdown</h3>
             </div>
@@ -589,7 +589,7 @@
               <div class="flex justify-between items-center py-1.5">
                 <div class="flex items-center gap-1.5">
                   <span class="text-sm text-slate-600">Materials</span>
-                  <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-semibold uppercase tracking-wider">Tiered</span>
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-900 text-blue-200 text-[10px] font-semibold uppercase tracking-wider">Tiered</span>
                 </div>
                 <span id="grandMaterials" class="font-semibold text-slate-900">—</span>
               </div>
@@ -600,7 +600,7 @@
               </div>
               <!-- Separator -->
               <div id="totalRawCostSection">
-                <div class="border-t border-slate-200 my-3"></div>
+                <div class="border-t border-slate-700 my-3"></div>
                 <!-- Total Raw Cost -->
                 <div class="flex justify-between items-center py-1.5">
                   <span class="text-sm font-medium text-slate-700">Total Raw Cost</span>
@@ -619,12 +619,12 @@
                 <span id="grandOverhead" class="font-semibold text-slate-900">—</span>
               </div>
               <!-- Sub Total Cost -->
-              <div id="subTotalCostSection" class="flex justify-between items-center py-2 px-3 bg-slate-50 rounded-lg border border-slate-200">
+              <div id="subTotalCostSection" class="flex justify-between items-center py-2 px-3 bg-slate-700/60 rounded-lg border border-slate-600/50">
                 <span class="text-sm font-semibold text-slate-700">Total Cost+Ovh+PP</span>
                 <span id="grandSubTotalBeforeSalesProfit" class="text-xl font-bold text-slate-900">—</span>
               </div>
               <!-- Commission Section -->
-              <div id="commissionSection" class="border-t border-slate-200 pt-3 mt-3 space-y-2.5">
+              <div id="commissionSection" class="border-t border-slate-700 pt-3 mt-3 space-y-2.5">
                 <div class="flex justify-between items-center py-1.5">
                   <span class="text-sm font-semibold text-emerald-600 flex items-center gap-1.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -641,10 +641,10 @@
           </div>
 
           <!-- Percentage Breakdown Card (Executive Only) -->
-          <div id="percentageBreakdownCard" class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 border border-slate-200/60 p-6 hidden">
+          <div id="percentageBreakdownCard" class="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 border border-slate-300/80 p-6 hidden">
             <div class="flex items-center gap-2 mb-4">
               <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Analysis</h3>
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-semibold uppercase tracking-wider">Executive</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-900 text-amber-200 text-[10px] font-semibold uppercase tracking-wider">Executive</span>
             </div>
             <div class="space-y-2.5">
               <!-- Labor % -->
@@ -658,7 +658,7 @@
                 <span id="materialsPercent" class="font-semibold text-blue-600">—</span>
               </div>
               <!-- Separator -->
-              <div class="border-t border-slate-200 my-2"></div>
+              <div class="border-t border-slate-700 my-2"></div>
               <!-- Overhead + Policy Profit % -->
               <div class="flex justify-between items-center py-1.5">
                 <span class="text-sm text-slate-600">Ovh+PP</span>
@@ -675,10 +675,10 @@
                 <span id="commissionPercentOfTotal" class="font-semibold text-blue-600">—</span>
               </div>
               <!-- Separator -->
-              <div class="border-t border-slate-200 my-2"></div>
+              <div class="border-t border-slate-700 my-2"></div>
               <!-- Gross Profit % -->
-              <div class="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                <span class="text-sm font-bold text-emerald-700">Gross Profit</span>
+              <div class="flex justify-between items-center py-2 px-3 bg-emerald-900/40 rounded-lg border border-emerald-700/50">
+                <span class="text-sm font-bold text-emerald-300">Gross Profit</span>
                 <span id="grossProfitPercent" class="text-lg font-bold text-emerald-600">—</span>
               </div>
             </div>
@@ -687,7 +687,7 @@
         </div>
 
         <!-- New Grand Total (sum of Final Prices) -->
-        <div id="grandTotalBottomCard" class="mt-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 p-8 border border-blue-500/30">
+        <div id="grandTotalBottomCard" class="mt-6 bg-gradient-to-r from-blue-700 to-blue-800 text-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-200 p-8 border border-blue-600/40">
           <div class="text-center md:text-left">
             <div class="text-sm font-semibold text-blue-100 mb-2 uppercase tracking-wide">Final Grand Total</div>
             <div id="newGrandTotal" class="text-6xl font-extrabold text-white tracking-tight">—</div>
