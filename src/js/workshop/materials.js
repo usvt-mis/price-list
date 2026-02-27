@@ -4,15 +4,29 @@
  */
 
 import { el, fmt, fetchJson } from '../core/utils.js';
-import { appState, materialSearchTimeouts, isExecutiveMode } from './state.js';
+import { appState, materialSearchTimeouts, materialSearchState, isExecutiveMode } from './state.js';
 import { getCompleteMultiplier, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
 import { calculateTieredMaterialPrice, calculateTieredMaterialPriceWithCommission, getMaterialTierLabel } from '../core/tieredMaterials.js';
 
 /**
  * Add a new material row
+ * @param {Object} material - Optional material object {materialId, materialCode, materialName, unitCost}
  */
-export async function addMaterialRow() {
-  appState.materialLines.push({ materialId: null, code: '', name: '', unitCost: NaN, qty: 1, overrideFinalPrice: null });
+export async function addMaterialRow(material = null) {
+  if (material) {
+    // Add pre-populated row from selected material
+    appState.materialLines.push({
+      materialId: material.materialId,
+      code: material.materialCode,
+      name: material.materialName,
+      unitCost: material.unitCost,
+      qty: 1,
+      overrideFinalPrice: null
+    });
+  } else {
+    // Legacy: add empty row (should not be called with new external search pattern)
+    appState.materialLines.push({ materialId: null, code: '', name: '', unitCost: NaN, qty: 1, overrideFinalPrice: null });
+  }
   renderMaterials();
   (await import('./calculations.js')).calcAll();
 }
@@ -28,21 +42,6 @@ export async function removeMaterialRow(i) {
 }
 
 /**
- * Search for materials
- * @param {string} q - Search query
- * @returns {Promise<Array>} Material results
- */
-async function searchMaterials(q) {
-  if (q.trim().length < 2) return [];
-  try {
-    return await fetchJson(`/api/materials?query=${encodeURIComponent(q)}`);
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
-}
-
-/**
  * Render materials table and cards
  */
 export function renderMaterials() {
@@ -51,19 +50,11 @@ export function renderMaterials() {
   const branchMultiplier = getBranchMultiplier();
   const salesProfitMultiplier = getSalesProfitMultiplier();
 
-  // Update table header based on mode - Enhanced with icons and styling
+  // Update table header based on mode - Enhanced with icons and styling (no Material column - moved to external search)
   const materialsTableHead = el('materialTableHead');
   if (materialsTableHead) {
     materialsTableHead.innerHTML = `
       <tr class="border-b border-slate-200 bg-slate-50">
-        <th class="text-left py-3 px-3 font-semibold text-slate-700">
-          <div class="flex items-center gap-1.5">
-            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            Material
-          </div>
-        </th>
         <th class="text-left py-3 px-3 font-semibold text-slate-700">Code</th>
         <th class="text-left py-3 px-3 font-semibold text-slate-700">Name</th>
         ${isExecutiveMode() ? '<th class="text-right py-3 px-3 font-semibold text-slate-700">Unit Cost</th>' : ''}
@@ -101,19 +92,11 @@ export function renderMaterials() {
       ? 'w-full text-right rounded-lg border-2 border-amber-400 bg-amber-50 px-3 py-2 font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-all duration-200'
       : 'w-full text-right rounded-lg border-2 border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200';
     const qtyInputClass = 'w-full text-center rounded-lg border-2 border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200';
-    const searchInputClass = 'matSearch w-full rounded-lg border-2 border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200';
 
     return `
       <!-- Mobile Card (visible < md) -->
       <div class="md:hidden p-4 bg-white rounded-xl border border-slate-200 shadow-md hover:shadow-lg transition-shadow duration-200 space-y-4">
-        <!-- Search Section -->
-        <div>
-          <input data-i="${i}" class="${searchInputClass} text-base"
-                 placeholder="Search material..."/>
-          <div data-sug="${i}" class="mt-2 space-y-2 max-h-60 overflow-y-auto"></div>
-        </div>
-
-        <!-- Selected Material Info (compact, when material selected) -->
+        <!-- Material Info (always shown when material exists) -->
         ${ln.code ? `
         <div class="text-sm p-3 bg-emerald-50 rounded-lg border border-emerald-100">
           <div class="font-semibold text-emerald-900">${ln.name}</div>
@@ -182,11 +165,6 @@ export function renderMaterials() {
 
       <!-- Desktop Table Row (visible md+) -->
       <tr class="hidden md:table-row border-b border-slate-100 ${i % 2 === 0 ? 'bg-white hover:bg-emerald-50/50' : 'bg-slate-50/50 hover:bg-emerald-50'} transition-colors duration-200">
-        <td class="py-3 px-3 min-w-[200px] relative">
-          <input data-i="${i}" class="${searchInputClass} text-sm"
-                 placeholder="Type to search..."/>
-          <div data-sug="${i}" class="fixed z-50 space-y-1 bg-white shadow-xl rounded-lg border border-slate-200 max-h-60 overflow-y-auto hidden"></div>
-        </td>
         <td class="py-3 px-3 text-sm text-slate-600 font-mono">${ln.code || '—'}</td>
         <td class="py-3 px-3 text-sm font-medium text-slate-900">${ln.name || '—'}</td>
         ${isExecutiveMode() ? `<td class="py-3 px-3 text-right text-sm text-slate-500">${fmt(ln.unitCost)}</td>` : ''}
@@ -228,10 +206,10 @@ export function renderMaterials() {
         </svg>
       </div>
       <p class="text-slate-600 font-medium mb-1">No materials added yet</p>
-      <p class="text-slate-500 text-sm">Click "Add row" to search and add materials</p>
+      <p class="text-slate-500 text-sm">Search above and click "Add Item" to add materials</p>
     </div>
     <tr class="hidden md:table-row">
-      <td class="py-8 text-slate-500 text-center" colspan="${isExecutiveMode() ? 8 : 5}">
+      <td class="py-8 text-slate-500 text-center" colspan="${isExecutiveMode() ? 7 : 4}">
         <div class="flex flex-col items-center gap-3">
           <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100">
             <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,7 +217,7 @@ export function renderMaterials() {
             </svg>
           </div>
           <span class="font-medium">No materials added yet</span>
-          <span class="text-sm text-slate-400">Click "Add row" to search and add materials</span>
+          <span class="text-sm text-slate-400">Search above and click "Add Item" to add materials</span>
         </div>
       </td>
     </tr>
@@ -249,7 +227,7 @@ export function renderMaterials() {
   wireDeleteButtons();
   wireQuantityInputs();
   wireFinalPriceInputs();
-  wireSearchInputs(multiplier, branchMultiplier, salesProfitMultiplier);
+  // Note: wireSearchInputs() removed - replaced by external initMaterialSearch()
 }
 
 /**
@@ -335,197 +313,8 @@ function wireFinalPriceInputs() {
 
 /**
  * Wire search input event listeners
+ * REMOVED - Replaced by external initMaterialSearch() function
  */
-function wireSearchInputs(multiplier, branchMultiplier, salesProfitMultiplier) {
-  document.querySelectorAll('.matSearch').forEach(inp => {
-    const i = Number(inp.dataset.i);
-    inp.value = appState.materialLines[i].code ? `${appState.materialLines[i].code} - ${appState.materialLines[i].name}` : '';
-
-    const box = inp.nextElementSibling;
-    // Clear any existing timeout for this input
-    if (materialSearchTimeouts.has(i)) {
-      clearTimeout(materialSearchTimeouts.get(i));
-    }
-
-    inp.addEventListener('input', () => {
-      const t = materialSearchTimeouts.get(i);
-      if (t) clearTimeout(t);
-      // Clear dropdown if input is empty
-      if (!inp.value.trim()) {
-        box.classList.add('hidden');
-        box.innerHTML = '';
-        return;
-      }
-      const timeoutId = setTimeout(async () => {
-        const q = inp.value;
-        const sug = await searchMaterials(q);
-        box.innerHTML = sug.map(m => `
-          <button class="block w-full text-left px-4 py-3 rounded-lg border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 text-sm transition-all duration-200 group"
-                  data-pick="${i}"
-                  data-id="${m.MaterialId}"
-                  data-code="${m.MaterialCode}"
-                  data-name="${m.MaterialName}"
-                  data-cost="${m.UnitCost}">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex-1 min-w-0">
-                <div class="font-semibold text-slate-900 group-hover:text-emerald-900">${m.MaterialCode}</div>
-                <div class="text-xs text-slate-600 truncate mt-0.5">${m.MaterialName}</div>
-              </div>
-              <div class="flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-100 px-2 py-1 rounded text-sm whitespace-nowrap">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                ${fmt(Number(m.UnitCost))}
-              </div>
-            </div>
-          </button>
-        `).join('');
-        // Position and show dropdown (for desktop fixed positioning)
-        if (sug.length > 0) {
-          const rect = inp.getBoundingClientRect();
-          // Fixed positioning is relative to viewport, NOT document - don't add scrollY
-          box.style.top = `${rect.bottom + 4}px`;
-          box.style.left = `${rect.left}px`;
-          box.style.width = `${rect.width}px`;
-          box.classList.remove('hidden');
-        } else {
-          box.classList.add('hidden');
-        }
-        box.querySelectorAll('[data-pick]').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            appState.materialLines[i].materialId = Number(btn.dataset.id);
-            appState.materialLines[i].code = btn.dataset.code;
-            appState.materialLines[i].name = btn.dataset.name;
-            appState.materialLines[i].unitCost = Number(btn.dataset.cost);
-            appState.materialLines[i].overrideFinalPrice = null;
-            box.classList.add('hidden');
-            box.innerHTML = '';
-            renderMaterials();
-            (await import('./calculations.js')).calcAll();
-          });
-        });
-      }, 250);
-      materialSearchTimeouts.set(i, timeoutId);
-    });
-  });
-}
-
-/**
- * Update a single material row's display without full re-render
- * @param {number} i - Row index
- * @param {number} multiplier - Complete multiplier
- * @param {number} branchMultiplier - Branch multiplier
- * @param {number} salesProfitMultiplier - Sales profit multiplier
- */
-function updateMaterialRowDisplay(i, multiplier, branchMultiplier, salesProfitMultiplier) {
-  const ln = appState.materialLines[i];
-
-  const rawCost = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
-  // TIERED PRICING: Use tiered formula instead of branch multipliers for Materials
-  const finalPrice = calculateTieredMaterialPriceWithCommission(rawCost, appState.commissionPercent);
-  // Cost+Ovh+PP is not applicable with tiered pricing (column hidden)
-  const costBeforeSalesProfit = rawCost; // For backward compatibility
-
-  // Find and update desktop row using data-i attribute
-  const desktopInput = el('materialRows').querySelector(`tr.hidden.md\\:table-row .matSearch[data-i="${i}"]`);
-  if (desktopInput) {
-    const desktopRow = desktopInput.closest('tr');
-    if (desktopRow) {
-      const cells = desktopRow.querySelectorAll('td');
-      if (cells[1]) cells[1].textContent = ln.code || '—';
-      if (cells[2]) cells[2].textContent = ln.name || '—';
-      // Unit Cost cell at index 3 (Executive mode only)
-      const unitCostCell = isExecutiveMode() ? cells[3] : null;
-      if (unitCostCell) unitCostCell.textContent = fmt(ln.unitCost);
-      // Raw Cost: index 4 in Executive mode only (shifted after Cost+Ovh+PP removal)
-      const rawCostCell = isExecutiveMode() ? cells[4] : null;
-      if (rawCostCell) rawCostCell.textContent = fmt(rawCost);
-      // Cost+Ovh+PP column removed - not applicable with tiered pricing
-      // Final Price: index 5 in Executive, index 4 in Sales (shifted after Cost+Ovh+PP removal)
-      const finalPriceCellIndex = isExecutiveMode() ? 5 : 4;
-      if (cells[finalPriceCellIndex]) cells[finalPriceCellIndex].textContent = fmt(finalPrice);
-    }
-    desktopInput.value = ln.code ? `${ln.code} - ${ln.name}` : '';
-  }
-
-  // Find and update mobile card using data-i attribute
-  const mobileInput = el('materialRows').querySelector(`.md\\:hidden .matSearch[data-i="${i}"]`);
-  if (mobileInput) {
-    const mobileCard = mobileInput.closest('.md\\:hidden');
-    // Update the search input value
-    mobileInput.value = ln.code ? `${ln.code} - ${ln.name}` : '';
-    // Update the material info section
-    let infoSection = mobileCard.querySelector('.p-3.bg-emerald-50');
-    if (!infoSection && ln.code) {
-      // Need to create the info section
-      const searchSection = mobileInput.parentElement;
-      if (searchSection) {
-        infoSection = document.createElement('div');
-        infoSection.className = 'text-sm p-3 bg-emerald-50 rounded-lg border border-emerald-100';
-        const unitCostHtml = isExecutiveMode() ? `<div class="text-emerald-600 text-xs mt-1">${ln.code} · ${fmt(ln.unitCost)}/unit</div>` : `<div class="text-emerald-600 text-xs mt-1">${ln.code}</div>`;
-        infoSection.innerHTML = `
-          <div class="font-semibold text-emerald-900">${ln.name}</div>
-          ${unitCostHtml}
-        `;
-        searchSection.parentNode.insertBefore(infoSection, searchSection.nextSibling);
-      }
-    } else if (infoSection) {
-      const unitCostHtml = isExecutiveMode() ? `<div class="text-emerald-600 text-xs mt-1">${ln.code} · ${fmt(ln.unitCost)}/unit</div>` : `<div class="text-emerald-600 text-xs mt-1">${ln.code}</div>`;
-      infoSection.innerHTML = `
-        <div class="font-semibold text-emerald-900">${ln.name}</div>
-        ${unitCostHtml}
-      `;
-    }
-
-    // Update or create the Raw Cost card (only in Executive mode)
-    let rawCostSection = Array.from(mobileCard.querySelectorAll('.flex.justify-between.items-center'))
-      .find(el => el.textContent.includes('Raw Cost'));
-
-    if (isExecutiveMode() && !rawCostSection && ln.code) {
-      // Create Raw Cost section
-      rawCostSection = document.createElement('div');
-      rawCostSection.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200';
-      rawCostSection.innerHTML = `
-        <span class="text-xs text-slate-500 uppercase tracking-wide">Raw Cost</span>
-        <span class="text-lg font-bold text-slate-600">${fmt(rawCost)}</span>
-      `;
-      const qtySection = mobileCard.querySelector('label')?.closest('div');
-      if (qtySection) {
-        qtySection.parentNode.insertBefore(rawCostSection, qtySection.nextSibling);
-      }
-    } else if (rawCostSection) {
-      if (isExecutiveMode()) {
-        // Update existing Raw Cost section
-        rawCostSection.querySelector('.text-lg.font-bold').textContent = fmt(rawCost);
-      } else {
-        // Remove Raw Cost section when switching to Sales mode
-        rawCostSection.remove();
-      }
-    }
-
-    // Cost+Ovh+PP card removed - not applicable with tiered pricing
-
-    // Update or create the Final Price card
-    let finalPriceSection = Array.from(mobileCard.querySelectorAll('.flex.justify-between.items-center'))
-      .find(el => el.textContent.includes('Final Price'));
-    if (!finalPriceSection && ln.code) {
-      finalPriceSection = document.createElement('div');
-      finalPriceSection.className = 'flex justify-between items-center p-3 rounded-lg border-2 bg-gradient-to-r from-emerald-50 to-slate-50 border-emerald-200';
-      finalPriceSection.innerHTML = `
-        <span class="text-sm font-semibold text-emerald-700">Final Price</span>
-        <span class="text-lg font-bold text-emerald-900">${fmt(finalPrice)}</span>
-      `;
-      if (costBeforeSection) {
-        costBeforeSection.parentNode.insertBefore(finalPriceSection, costBeforeSection.nextSibling);
-      }
-    } else if (finalPriceSection) {
-      finalPriceSection.querySelector('.text-lg.font-bold').textContent = fmt(finalPrice);
-    }
-  }
-
-  // Update the material subtotal display
-  el('materialSubtotal').textContent = fmt(materialSubtotal());
-}
 
 /**
  * Calculate material subtotal (base cost without multipliers)
@@ -612,4 +401,177 @@ export function materialSubtotalWithoutCommission() {
 async function calcAll() {
   const { calcAll } = await import('./calculations.js');
   calcAll();
+}
+
+// ========== External Material Search ==========
+
+/**
+ * Initialize external material search functionality
+ * This replaces the per-row search inputs with a single external search box
+ */
+export function initMaterialSearch() {
+  const searchInput = document.getElementById('materialSearchInput');
+  const dropdown = document.getElementById('materialSearchDropdown');
+  const clearBtn = document.getElementById('clearMaterialSearch');
+  const addBtn = document.getElementById('addMaterialItem');
+  const validationMsg = document.getElementById('materialSearchValidation');
+
+  if (!searchInput || !dropdown || !clearBtn || !addBtn) {
+    console.warn('[MaterialSearch] Required elements not found, skipping initialization');
+    return;
+  }
+
+  // Debounced search
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(materialSearchState.searchTimeout);
+    const query = e.target.value.trim();
+
+    if (query.length < 2) {
+      dropdown.classList.add('hidden');
+      materialSearchState.isOpen = false;
+      clearBtn.classList.add('hidden');
+      return;
+    }
+
+    clearBtn.classList.remove('hidden');
+
+    materialSearchState.searchTimeout = setTimeout(async () => {
+      try {
+        const results = await fetchJson(`/api/materials?query=${encodeURIComponent(query)}`);
+        materialSearchState.searchResults = results;
+        renderSearchDropdown(results, dropdown);
+        dropdown.classList.remove('hidden');
+        materialSearchState.isOpen = true;
+        searchInput.setAttribute('aria-expanded', 'true');
+      } catch (err) {
+        console.error('[MaterialSearch] Search failed:', err);
+      }
+    }, 250);
+  });
+
+  // Handle material selection from dropdown
+  dropdown.addEventListener('click', (e) => {
+    const materialItem = e.target.closest('[data-material-id]');
+    if (materialItem) {
+      const materialId = parseInt(materialItem.dataset.materialId);
+      const material = materialSearchState.searchResults.find(m => m.MaterialId === materialId);
+
+      if (material) {
+        materialSearchState.selectedMaterial = {
+          materialId: material.MaterialId,
+          materialCode: material.MaterialCode,
+          materialName: material.MaterialName,
+          unitCost: material.UnitCost
+        };
+        searchInput.value = `${material.MaterialCode} - ${material.MaterialName}`;
+        dropdown.classList.add('hidden');
+        materialSearchState.isOpen = false;
+        clearBtn.classList.remove('hidden');
+        addBtn.disabled = false;
+        searchInput.setAttribute('aria-expanded', 'false');
+      }
+    }
+  });
+
+  // Clear button
+  clearBtn.addEventListener('click', () => {
+    materialSearchState.selectedMaterial = null;
+    searchInput.value = '';
+    clearBtn.classList.add('hidden');
+    addBtn.disabled = true;
+    searchInput.focus();
+  });
+
+  // Add Item button
+  addBtn.addEventListener('click', handleAddItem);
+
+  // Close dropdown on click outside
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.add('hidden');
+      materialSearchState.isOpen = false;
+      searchInput.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Keyboard navigation (Escape to close dropdown)
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && materialSearchState.isOpen) {
+      dropdown.classList.add('hidden');
+      materialSearchState.isOpen = false;
+      searchInput.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+
+/**
+ * Render search dropdown results
+ */
+function renderSearchDropdown(materials, dropdown) {
+  if (materials.length === 0) {
+    dropdown.innerHTML = '<div class="p-3 text-sm text-slate-500">No materials found</div>';
+    return;
+  }
+
+  dropdown.innerHTML = materials.map(m => `
+    <div class="px-3 py-2 hover:bg-slate-100 cursor-pointer transition-colors flex justify-between items-center"
+         data-material-id="${m.MaterialId}" role="option">
+      <div>
+        <div class="font-medium text-slate-900">${escapeHtml(m.MaterialCode)}</div>
+        <div class="text-sm text-slate-500">${escapeHtml(m.MaterialName)}</div>
+      </div>
+      <div class="text-sm font-medium text-emerald-600">${fmt(Number(m.UnitCost))}</div>
+    </div>
+  `).join('');
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
+ * Handle Add Item button click
+ */
+async function handleAddItem() {
+  const material = materialSearchState.selectedMaterial;
+  const validationMsg = document.getElementById('materialSearchValidation');
+  const searchInput = document.getElementById('materialSearchInput');
+  const clearBtn = document.getElementById('clearMaterialSearch');
+  const addBtn = document.getElementById('addMaterialItem');
+
+  // Validation
+  if (!material) {
+    if (validationMsg) {
+      validationMsg.classList.remove('hidden');
+      if (searchInput) {
+        searchInput.classList.add('animate-shake');
+        setTimeout(() => {
+          validationMsg.classList.add('hidden');
+          searchInput.classList.remove('animate-shake');
+        }, 3000);
+      }
+    }
+    return;
+  }
+
+  // Critical: Validate UnitCost (Calculation Agent requirement)
+  if (!material.unitCost || material.unitCost <= 0) {
+    alert('Selected material has invalid cost data. Please contact admin.');
+    return;
+  }
+
+  // Add material row
+  await addMaterialRow(material);
+
+  // Reset search
+  materialSearchState.selectedMaterial = null;
+  if (searchInput) searchInput.value = '';
+  if (clearBtn) clearBtn.classList.add('hidden');
+  if (addBtn) addBtn.disabled = true;
+  if (searchInput) searchInput.focus();
 }

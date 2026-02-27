@@ -95,8 +95,8 @@ export function calcAll() {
   // Calculate overhead (difference between base and after-branch amounts)
   const overhead = (lAfterBranch + mAfterBranch) - (lBase + mBase);
 
-  // Calculate sales profit adjustment (labor + materials only)
-  const salesProfitAdj = (l + m) - (lAfterBranch + mAfterBranch);
+  // Calculate sales profit adjustment (labor only - materials skip sales profit per spec)
+  const salesProfitAdj = l - lAfterBranch;
 
   // Sub Grand Total = labor + materials + travel cost (with sales profit applied)
   const subGrandTotal = l + m + travelCost;
