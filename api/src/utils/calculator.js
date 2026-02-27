@@ -8,32 +8,32 @@ const { COMMISSION_TIERS } = require('../../config');
 const logger = require('./logger');
 
 /**
- * Calculate tiered material price based on raw cost
+ * Calculate tiered material price per unit based on unit cost
  * Per user decision: Materials skip Overhead, Policy Profit, AND Sales Profit multipliers
  * Only commission is applied to the tiered price
  *
  * Formula:
- *   if (X < 50)      F = 250
- *   else if (X < 100) F = 400
- *   else if (X < 200) F = 800
- *   else if (X < 300) F = 1000
- *   else if (X < 600) F = 1500
- *   else if (X < 1000) F = 2000
- *   else              F = X × 2
+ *   if (unitCost < 50)      pricePerUnit = 250
+ *   else if (unitCost < 100) pricePerUnit = 400
+ *   else if (unitCost < 200) pricePerUnit = 800
+ *   else if (unitCost < 300) pricePerUnit = 1000
+ *   else if (unitCost < 600) pricePerUnit = 1500
+ *   else if (unitCost < 1000) pricePerUnit = 2000
+ *   else                     pricePerUnit = unitCost × 2
  *
- * @param {number} rawCost - UnitCost × Quantity
- * @returns {number} Final price before commission (F value from tier table)
+ * @param {number} unitCost - Cost per unit
+ * @returns {number} Final price per unit before commission (F value from tier table)
  */
-function calculateTieredMaterialPrice(rawCost) {
-  if (!Number.isFinite(rawCost) || rawCost < 0) return NaN;
+function calculateTieredMaterialPrice(unitCost) {
+  if (!Number.isFinite(unitCost) || unitCost < 0) return NaN;
 
-  if (rawCost < 50) return 250;
-  if (rawCost < 100) return 400;
-  if (rawCost < 200) return 800;
-  if (rawCost < 300) return 1000;
-  if (rawCost < 600) return 1500;
-  if (rawCost < 1000) return 2000;
-  return rawCost * 2;
+  if (unitCost < 50) return 250;
+  if (unitCost < 100) return 400;
+  if (unitCost < 200) return 800;
+  if (unitCost < 300) return 1000;
+  if (unitCost < 600) return 1500;
+  if (unitCost < 1000) return 2000;
+  return unitCost * 2;
 }
 
 /**
@@ -135,11 +135,10 @@ async function calculateGrandTotal(poolOrTransaction, saveData, calculatorType =
       // We'll back out commission later for before-sales-profit calculation
       materialSubtotalOverridden += material.overrideFinalPrice;
     } else {
-      // TIERED PRICING: Use tiered formula instead of branch multipliers
+      // TIERED PRICING: Use tiered formula based on unitCost, then multiply by quantity
       const qty = material.quantity || 0;
       const unitCost = material.unitCost || 0;
-      const rawCost = qty * unitCost;
-      materialSubtotalNormal += calculateTieredMaterialPrice(rawCost);
+      materialSubtotalNormal += calculateTieredMaterialPrice(unitCost) * qty;
     }
   }
   logger.debug(`[Calculation-${correlationId}] Materials calculated - Normal (tiered): ${materialSubtotalNormal.toFixed(2)}, Overridden: ${materialSubtotalOverridden.toFixed(2)}`);

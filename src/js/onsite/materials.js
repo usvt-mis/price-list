@@ -79,10 +79,10 @@ export function renderMaterials() {
 
   materialRowsEl.innerHTML = appState.materialLines.map((ln, i) => {
     const rawCost = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
-    // TIERED PRICING: Use tiered formula instead of branch multipliers for Materials
+    // TIERED PRICING: Use tiered formula based on unitCost, then multiply by quantity
     // Materials skip Overhead, Policy Profit, AND Sales Profit multipliers (per user decision)
     // Only commission is applied to the tiered price
-    const finalPrice = calculateTieredMaterialPriceWithCommission(rawCost, appState.commissionPercent);
+    const finalPrice = calculateTieredMaterialPriceWithCommission(ln.unitCost, ln.qty, appState.commissionPercent);
     // Cost+Ovh+PP is not applicable with tiered pricing (column hidden)
     const salesProfitAmount = 0; // No sales profit on tiered pricing
     const costBeforeSalesProfit = rawCost; // For backward compatibility, but column is hidden
@@ -360,9 +360,8 @@ export function materialSubtotal() {
       return sum + ln.overrideFinalPrice;
     }
     if (!Number.isFinite(ln.unitCost)) return sum;
-    // Use tiered pricing formula for Materials
-    const rawCost = ln.unitCost * ln.qty;
-    const finalPrice = calculateTieredMaterialPriceWithCommission(rawCost, commissionPercent);
+    // Use tiered pricing formula based on unitCost, then multiply by quantity
+    const finalPrice = calculateTieredMaterialPriceWithCommission(ln.unitCost, ln.qty, commissionPercent);
     return sum + finalPrice;
   }, 0);
 }
@@ -385,9 +384,8 @@ export function materialSubtotalBeforeSalesProfit() {
       return sum + (ln.overrideFinalPrice / divisor);
     }
     if (!Number.isFinite(ln.unitCost)) return sum;
-    // TIERED PRICING: Return tiered base price (without commission)
-    const rawCost = ln.unitCost * ln.qty;
-    return sum + calculateTieredMaterialPrice(rawCost);
+    // TIERED PRICING: Return tiered base price (without commission) - based on unitCost per unit
+    return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty;
   }, 0);
 }
 
@@ -407,10 +405,9 @@ export function materialSubtotalWithoutCommission() {
       const divisor = 1 + (commissionPercent / 100);
       return sum + (ln.overrideFinalPrice / divisor);
     }
-    // TIERED PRICING: Return tiered base price without commission
+    // TIERED PRICING: Return tiered base price without commission - based on unitCost per unit
     if (!Number.isFinite(ln.unitCost)) return sum;
-    const rawCost = ln.unitCost * ln.qty;
-    return sum + calculateTieredMaterialPrice(rawCost);
+    return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty;
   }, 0);
 }
 

@@ -33,18 +33,18 @@ This is a Price List Calculator - a web application for calculating service cost
 - **Travel & Onsite Options**: NOT affected by branch multipliers, only by Sales Profit
 
 **Tiered Materials Pricing Formula**:
+The tier is determined by UnitCost alone, then multiplied by Quantity:
 ```
-if (X < 50)      F = 250
-else if (X < 100) F = 400
-else if (X < 200) F = 800
-else if (X < 300) F = 1000
-else if (X < 600) F = 1500
-else if (X < 1000) F = 2000
-else              F = X × 2
+if (UnitCost < 50)       PricePerUnit = 250
+else if (UnitCost < 100) PricePerUnit = 400
+else if (UnitCost < 200) PricePerUnit = 800
+else if (UnitCost < 300) PricePerUnit = 1000
+else if (UnitCost < 600) PricePerUnit = 1500
+else if (UnitCost < 1000) PricePerUnit = 2000
+else                     PricePerUnit = UnitCost × 2
 
-Final Price = F × (1 + commission%)
+Final Price = PricePerUnit × Quantity × (1 + commission%)
 ```
-where X = UnitCost × Quantity
 
 ---
 

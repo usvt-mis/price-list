@@ -89,19 +89,20 @@ Raw_Cost = UnitCost × Quantity
 ```
 
 **Tiered Base Price (F)**:
+The tier is determined by UnitCost alone, then multiplied by Quantity:
 ```
-if (Raw_Cost < 50)      F = 250
-else if (Raw_Cost < 100) F = 400
-else if (Raw_Cost < 200) F = 800
-else if (Raw_Cost < 300) F = 1000
-else if (Raw_Cost < 600) F = 1500
-else if (Raw_Cost < 1000) F = 2000
-else                     F = Raw_Cost × 2
+if (UnitCost < 50)       PricePerUnit = 250
+else if (UnitCost < 100) PricePerUnit = 400
+else if (UnitCost < 200) PricePerUnit = 800
+else if (UnitCost < 300) PricePerUnit = 1000
+else if (UnitCost < 600) PricePerUnit = 1500
+else if (UnitCost < 1000) PricePerUnit = 2000
+else                     PricePerUnit = UnitCost × 2
 ```
 
 **Final Price** (with commission):
 ```
-Final_Price = F × (1 + commissionPercent / 100)
+Final_Price = PricePerUnit × Quantity × (1 + commissionPercent / 100)
 ```
 
 **Manual Override**:
