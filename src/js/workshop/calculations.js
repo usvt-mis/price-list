@@ -108,13 +108,17 @@ export function calcAll() {
   // Sub Grand Total = labor + materials + travel cost (with sales profit applied)
   const subGrandTotal = l + m + travelCost;
 
-  // Suggested Selling Price (SSP) = Suggested Selling Price without commission
-  // SSP uses consistent formula: all components with sales profit, without commission, excludes manual overrides
-  // This allows comparing Actual Selling Price (SGT with overrides) vs Suggested Selling Price (SSP without overrides)
-  const suggestedSellingPrice = l + materialSubtotalSuggestedWithoutCommission() + travelCost;
+  // === Suggested Selling Price (SSP) WITHOUT Sales Profit ===
+  // SSP for display and commission calculation: base costs BEFORE Sales Profit is applied
+  // This ensures SSP only changes when Labor, Materials, or Travel change
+  // = Labor (after branch only) + Materials (tiered base only) + Travel (base)
+  const suggestedSellingPriceBeforeSalesProfit = lAfterBranch + mAfterBranch + travelBase;
 
-  // Store SSP for flat amount calculation
-  appState.suggestedSellingPrice = suggestedSellingPrice;
+  // Store SSP for flat amount calculation (BEFORE Sales Profit)
+  appState.suggestedSellingPrice = suggestedSellingPriceBeforeSalesProfit;
+
+  // For commission ratio calculation, use SGT vs SSP where SSP excludes Sales Profit
+  const suggestedSellingPrice = suggestedSellingPriceBeforeSalesProfit;
 
   // Sync flat amount from percentage (if not already updating)
   if (!appState.isUpdatingSalesProfit) {
@@ -167,7 +171,7 @@ export function calcAll() {
   el('grandRawMaterials').textContent = fmt(mRawAll); // Raw Materials (all materials at base unit cost)
   el('grandOverhead').textContent = fmt(overhead); // Overhead + Policy Profit (branch multipliers only, no sales profit)
   el('grandSuggestedMaterialPrice').textContent = fmt(materialSubtotalSuggested()); // Suggested Material Price (pure tiered pricing)
-  el('grandSubTotalBeforeSalesProfit').textContent = fmt(suggestedSellingPrice); // SSP: Suggested Selling Price (without commission, excludes overrides)
+  el('grandSubTotalBeforeSalesProfit').textContent = fmt(suggestedSellingPriceBeforeSalesProfit); // SSP: Suggested Selling Price (without commission, excludes overrides, BEFORE Sales Profit)
   el('grandCommissionPercent').textContent = appState.commissionPercent + '%';
   el('grandCommission').textContent = fmt(commission);
 

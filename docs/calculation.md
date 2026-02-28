@@ -36,6 +36,12 @@ SalesProfitMultiplier = (1 + SalesProfit%/100)
 - User input
 - Can be negative for discounts
 
+**Sales Profit Flat Amount Sync**:
+- The flat amount (Baht) is calculated as: `SSP × SalesProfit%`
+- SSP is used as the base for this calculation (which excludes Sales Profit itself)
+- This ensures the flat amount is always based on the pre-Sales-Profit total
+- Sync functions: `syncFlatFromPercent()` and `syncPercentFromFlat()` in calculations.js
+
 ### Complete Multiplier
 ```
 CompleteMultiplier = BranchMultiplier × SalesProfitMultiplier
@@ -160,15 +166,16 @@ Suggested Material Price = sum of all tiered base prices (F)
 
 ### Suggested Selling Price (SSP)
 ```
-Suggested Selling Price = Labor (with multipliers) + Materials (tiered with sales profit, no overrides) + Travel (with sales profit) + Onsite Options (with sales profit)
+Suggested Selling Price = Labor (after branch only) + Materials (tiered base only) + Travel (base) + Onsite Options (base)
 ```
-- Labor: With branch multipliers AND sales profit multiplier
-- Materials: **Tiered base price (F) × SalesProfitMultiplier** - excludes manual overrides
-- Travel: With sales profit multiplier only (no branch multipliers)
-- Onsite Options: With sales profit multiplier only (no branch multipliers)
-- Excludes commission, excludes manual overrides
+- Labor: With branch multipliers only (NO sales profit multiplier)
+- Materials: **Tiered base price (F)** only - excludes manual overrides, NO sales profit
+- Travel: Base cost only (NO sales profit multiplier)
+- Onsite Options: Base cost only (NO sales profit multiplier)
+- Excludes commission, excludes manual overrides, **excludes Sales Profit**
 - Used for commission ratio calculation (comparing actual vs suggested)
-- Displayed in Executive mode only
+- Displayed in Executive mode only as "Suggested Selling Price"
+- **Key Behavior**: SSP only changes when Labor, Materials, Travel, or Onsite Options change - NOT when Sales Profit % changes
 
 ### Sub Grand Total (SGT)
 ```
@@ -200,9 +207,11 @@ Grand Total = Labor Final Prices + Materials Final Prices + Travel Final Price +
 ### Overview
 Commission is calculated based on the ratio of Sub Grand Total (SGT) to Suggested Selling Price (SSP).
 
-- **SGT (Sub Grand Total)**: Actual Selling Price (includes manual overrides)
-- **SSP (Suggested Selling Price)**: Suggested Price (excludes manual overrides)
+- **SGT (Sub Grand Total)**: Actual Selling Price (includes manual overrides AND Sales Profit)
+- **SSP (Suggested Selling Price)**: Suggested Price (excludes manual overrides, excludes Sales Profit)
 - **Ratio**: SGT / SSP - Higher ratio means user set prices above suggested = higher commission %
+
+**Important**: The ratio remains stable when Sales Profit % changes because both SGT and SSP are calculated consistently (SGT includes Sales Profit, SSP excludes it). This ensures commission % is based on actual pricing decisions (overrides), not Sales Profit adjustments.
 
 ### Commission Percentage
 
