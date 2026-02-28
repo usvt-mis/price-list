@@ -67,7 +67,7 @@ export function renderMaterials() {
           </div>
         </th>
         ${isExecutiveMode() ? '<th class="text-right py-3 px-3 font-semibold text-slate-500 text-xs">Raw Cost</th>' : ''}
-        ${isExecutiveMode() ? '<th class="text-right py-3 px-3 font-semibold text-slate-500 text-xs">Suggested Selling Price</th>' : ''}
+        ${isExecutiveMode() ? '<th class="text-right py-3 px-3 font-semibold text-slate-500 text-xs">Selling Price (Suggested)</th>' : ''}
         <!-- Cost+Ovh+PP column hidden for Materials - not applicable with tiered pricing -->
         <th class="text-right py-3 px-3 font-semibold text-emerald-700">Final Price</th>
         <th class="text-right py-3 px-3 w-16"></th>
@@ -434,6 +434,29 @@ export function materialSubtotalWithoutCommission() {
     // TIERED PRICING: Return tiered base price with Sales Profit, without commission
     if (!Number.isFinite(ln.unitCost)) return sum;
     return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty * salesProfitMultiplier;
+  }, 0);
+}
+
+/**
+ * Calculate materials subtotal SUGGESTED PRICE (pure tiered pricing, without Sales Profit or Commission)
+ * For overridden items: uses the override price (backs out both commission AND sales profit)
+ * For normal items: returns tiered base price ONLY (no sales profit, no commission)
+ * Used for the "Suggested Material Price" display in Summary COST BREAKDOWN
+ * @returns {number} Material subtotal suggested price (pure tiered pricing)
+ */
+export function materialSubtotalSuggested() {
+  const commissionPercent = appState.commissionPercent || 0;
+  const salesProfitMultiplier = getSalesProfitMultiplier();
+
+  return appState.materialLines.reduce((sum, ln) => {
+    if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
+      // Override is the final price - back out BOTH commission and sales profit
+      const divisor = (1 + (commissionPercent / 100)) * salesProfitMultiplier;
+      return sum + (ln.overrideFinalPrice / divisor);
+    }
+    if (!Number.isFinite(ln.unitCost)) return sum;
+    // TIERED PRICING: Return pure tiered base price (without sales profit, without commission)
+    return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty;
   }, 0);
 }
 

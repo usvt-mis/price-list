@@ -6,7 +6,7 @@
 import { el, fmt, fmtPercent, makeInputsReadOnly, removeReadOnly } from '../core/utils.js';
 import { appState, isExecutiveMode, isSalesMode, isCustomerMode } from './state.js';
 import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
-import { materialSubtotalBase, materialSubtotalRawAll, materialSubtotal, materialSubtotalWithoutCommission, materialSubtotalBeforeSalesProfit } from './materials.js';
+import { materialSubtotalBase, materialSubtotalRawAll, materialSubtotal, materialSubtotalWithoutCommission, materialSubtotalBeforeSalesProfit, materialSubtotalSuggested } from './materials.js';
 import { COMMISSION_TIERS } from '../core/config.js';
 import { calculateTieredMaterialPrice } from '../core/tieredMaterials.js';
 
@@ -171,6 +171,7 @@ export function calcAll() {
   el('grandTotalRawCost').textContent = Number.isFinite(lBase) ? fmt(lBase) : '—'; // Raw Labor (labor base cost only)
   el('grandRawMaterials').textContent = fmt(mRawAll); // Raw Materials (all materials at base unit cost)
   el('grandOverhead').textContent = fmt(overhead); // Overhead + Policy Profit (branch multipliers only, no sales profit)
+  el('grandSuggestedMaterialPrice').textContent = fmt(materialSubtotalSuggested()); // Suggested Material Price (pure tiered pricing)
   el('grandSubTotalBeforeSalesProfit').textContent = fmt(subTotalBeforeSalesProfit);
   el('grandCommissionPercent').textContent = appState.commissionPercent + '%';
   el('grandCommission').textContent = fmt(commission);
