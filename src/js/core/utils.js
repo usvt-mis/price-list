@@ -372,11 +372,11 @@ export async function updateModeButtons() {
     if (totalRawCostSection) totalRawCostSection.classList.add('hidden');
     if (commissionSection) commissionSection.classList.add('hidden');
   } else {
-    // Sales mode: hide cost details but show commission
+    // Sales mode: hide cost details but show commission and Suggested Selling Price
     grandTotalEl.classList.remove('text-5xl', 'mb-6');
     grandTotalEl.classList.add('text-6xl');
     if (overheadSection) overheadSection.classList.add('hidden');
-    if (subTotalCostSection) subTotalCostSection.classList.add('hidden');
+    if (subTotalCostSection) subTotalCostSection.classList.remove('hidden');
     if (totalRawCostSection) totalRawCostSection.classList.add('hidden');
     if (commissionSection) commissionSection.classList.remove('hidden');
   }

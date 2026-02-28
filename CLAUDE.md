@@ -132,7 +132,7 @@ module.exports = router;
 
 ### Mode Determination
 - View mode (Executive/Sales) is automatically determined from user's `effectiveRole` via `/api/auth/me`
-- Executive users see cost details; Sales users see simplified view
+- Executive users see full cost breakdown; Sales users see simplified view with Suggested Selling Price for quoting
 - NoRole users see "awaiting assignment" screen
 
 ---
