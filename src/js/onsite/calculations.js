@@ -74,11 +74,7 @@ export function calcAll() {
   // TIERED PRICING: Materials use tiered pricing instead of branch multipliers
   // Calculate tiered base price (without commission) for materials
   const mAfterBranch = appState.materialLines.reduce((sum, ln) => {
-    if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
-      // For overridden items, back out commission to get base price
-      const divisor = 1 + ((appState.commissionPercent || 0) / 100);
-      return sum + (ln.overrideFinalPrice / divisor);
-    }
+    // Always use tiered pricing, ignore manual overrides for SSP
     if (!Number.isFinite(ln.unitCost)) return sum;
     const rawCost = ln.unitCost * ln.qty;
     return sum + calculateTieredMaterialPrice(rawCost);
