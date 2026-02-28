@@ -439,7 +439,8 @@ export function materialSubtotalWithoutCommission() {
 
 /**
  * Calculate materials subtotal SUGGESTED PRICE (sum of "Selling Price (Suggested)" from Materials section)
- * For all items: returns the full suggested selling price with sales profit AND commission applied
+ * For ALL items: returns the calculated suggested selling price with sales profit AND commission applied
+ * IMPORTANT: This function IGNORES manual overrides - it always returns the calculated tiered price
  * Used for the "Suggested Material Price" display in Summary COST BREAKDOWN
  * @returns {number} Material subtotal suggested price (tiered price with sales profit and commission)
  */
@@ -448,10 +449,8 @@ export function materialSubtotalSuggested() {
   const salesProfitMultiplier = getSalesProfitMultiplier();
 
   return appState.materialLines.reduce((sum, ln) => {
-    if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
-      // For overridden items, use the override price directly (already includes all multipliers)
-      return sum + ln.overrideFinalPrice;
-    }
+    // Always use the calculated tiered price, ignoring manual overrides
+    // This ensures the "Suggested Material Price" stays consistent even when Final Price is overridden
     if (!Number.isFinite(ln.unitCost)) return sum;
     // TIERED PRICING: Return full suggested selling price (with sales profit AND commission)
     // This matches the "Selling Price (Suggested)" column in the Materials table
