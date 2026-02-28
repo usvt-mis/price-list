@@ -108,18 +108,9 @@ export function calcAll() {
   // Sub Grand Total = labor + materials + travel cost (with sales profit applied)
   const subGrandTotal = l + m + travelCost;
 
-  // Sub Total Cost = labor + materials + travel (before sales profit multiplier)
-  // Calculate materials tiered base price WITHOUT sales profit for the "before sales profit" subtotal
-  const mTieredBaseNoSalesProfit = appState.materialLines.reduce((sum, ln) => {
-    if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
-      // Override is the final price - only back out commission, not sales profit
-      const divisor = 1 + ((appState.commissionPercent || 0) / 100);
-      return sum + (ln.overrideFinalPrice / divisor);
-    }
-    if (!Number.isFinite(ln.unitCost)) return sum;
-    return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty;
-  }, 0);
-  const subTotalBeforeSalesProfit = lAfterBranch + mTieredBaseNoSalesProfit + travelBase;
+  // Suggested Selling Price = Subtotal Labor + Suggested Material Price + Travel
+  // (before sales profit multiplier, using suggested material price that backs out both commission and sales profit)
+  const subTotalBeforeSalesProfit = lAfterBranch + materialSubtotalSuggested() + travelBase;
 
   // Store subtotal before sales profit for flat amount calculation
   appState.subTotalBeforeSalesProfit = subTotalBeforeSalesProfit;
