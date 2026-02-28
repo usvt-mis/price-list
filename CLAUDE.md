@@ -122,6 +122,7 @@ module.exports = router;
 - Singleton-initialized in `api/src/db.js`
 - All functions use `getPool()` to get the shared pool
 - Uses parameterized queries to prevent SQL injection
+- **ANSI Options**: Connection pool sets required ANSI SQL options (QUOTED_IDENTIFIER, ANSI_NULLS, etc.) for filtered index compatibility
 
 ### Local Development Bypass
 - When running on localhost, authentication is automatically bypassed
