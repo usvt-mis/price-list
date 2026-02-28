@@ -15,6 +15,7 @@ import { loadLabor, renderLabor } from './labor.js';
 import { initMaterialSearch, renderMaterials } from './materials.js';
 import { calcAll, syncFlatFromPercent, syncPercentFromFlat } from './calculations.js';
 import { initializeOnsiteOptions, updateOnsiteOptionsSubtotal, setupOnsiteOptionsListeners, resetOnsiteOptions } from './onsite-options.js';
+import { initFloatingButtons } from '../core/floating-buttons.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
 
@@ -474,6 +475,10 @@ async function initApp() {
       if (globalExports.markDirty) globalExports.markDirty();
     });
     console.log('[INIT-APP] Step 4: Completed - event listeners initialized');
+
+    console.log('[INIT-APP] Step 4.5: Initializing floating buttons...');
+    initFloatingButtons();
+    console.log('[INIT-APP] Step 4.5: Completed - floating buttons initialized');
 
     // Check for shared record URL parameter
     const urlParams = new URLSearchParams(window.location.search);

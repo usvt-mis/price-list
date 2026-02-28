@@ -73,6 +73,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
 - **Modular JavaScript**: Each calculator has its own isolated state in `src/js/onsite/` and `src/js/workshop/`
 - **Shared utilities**: `src/js/core/` for common functions, `src/js/auth/` for authentication
   - `scrollspy.js` - Floating section navigation with Intersection Observer for active section detection
+  - `floating-buttons.js` - Sticky header for desktop, floating Save/Records buttons for mobile
 - **No build process** - Uses native ES6 modules with import maps
 
 See [docs/frontend.md](docs/frontend.md) for complete frontend documentation.

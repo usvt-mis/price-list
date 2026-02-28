@@ -50,7 +50,7 @@
   </div>
 
   <div class="max-w-6xl mx-auto p-6 space-y-12">
-    <header>
+    <header id="mainHeader" class="sticky-header">
       <div class="flex items-center justify-between gap-4 flex-wrap">
         <div class="flex items-center gap-4">
           <a href="/" class="text-slate-400 hover:text-slate-600 transition-colors">
@@ -887,6 +887,22 @@
   import { initScrollspy } from './js/core/scrollspy.js';
   initScrollspy('workshop');
 </script>
+
+<!-- Floating Action Buttons (shown on mobile when scrolled) -->
+<div id="floatingActionBar" class="floating-action-bar" aria-label="Quick actions">
+  <button id="floatingSaveBtn" class="floating-action-btn hidden px-4 py-3 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+    </svg>
+    <span class="btn-text">Save</span>
+  </button>
+  <button id="floatingMyRecordsBtn" class="floating-action-btn hidden px-4 py-3 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+    </svg>
+    <span class="btn-text">My Records</span>
+  </button>
+</div>
 
 <!-- Toast Notification Container -->
 <div id="toastContainer" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none" aria-live="polite" aria-atomic="true"></div>
