@@ -350,6 +350,18 @@ export function materialSubtotalBase() {
 }
 
 /**
+ * Calculate raw materials cost (unitCost × quantity for ALL materials, including overridden)
+ * Used for "Raw Materials" display in the summary card
+ * @returns {number} Raw materials cost (all materials at base unit cost)
+ */
+export function materialSubtotalRawAll() {
+  return appState.materialLines.reduce((sum, ln) => {
+    if (!Number.isFinite(ln.unitCost)) return sum;
+    return sum + ln.unitCost * ln.qty;
+  }, 0);
+}
+
+/**
  * Calculate material subtotal (with tiered pricing, Sales Profit, and commission)
  * @returns {number} Material subtotal with tiered pricing, Sales Profit, and commission
  */
