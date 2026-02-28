@@ -1,8 +1,9 @@
 /**
  * Tiered Materials Pricing Module
  * Shared module for calculating material prices using tiered pricing formula
- * Per user decision: Materials skip Overhead, Policy Profit, AND Sales Profit multipliers
- * Only commission is applied to the tiered price
+ * Materials skip Overhead and Policy Profit multipliers (use tiered pricing instead)
+ * Sales Profit multiplier IS applied to materials
+ * Commission is applied after Sales Profit
  *
  * Formula:
  *   Tier is determined by UnitCost alone, then multiplied by Quantity
@@ -14,7 +15,7 @@
  *   else if (UnitCost < 1000) PricePerUnit = 2000
  *   else                     PricePerUnit = UnitCost × 2
  *
- *   Final Price = PricePerUnit × Quantity × (1 + commission%)
+ *   Final Price = PricePerUnit × Quantity × (1 + SalesProfit%) × (1 + commission%)
  */
 
 /**
@@ -46,6 +47,21 @@ export function calculateTieredMaterialPriceWithCommission(unitCost, quantity, c
   if (!Number.isFinite(pricePerUnit) || !Number.isFinite(quantity)) return NaN;
   const basePrice = pricePerUnit * quantity;
   return basePrice * (1 + (commissionPercent || 0) / 100);
+}
+
+/**
+ * Calculate final material price with Sales Profit multiplier and commission
+ * @param {number} unitCost - Cost per unit
+ * @param {number} quantity - Quantity of items
+ * @param {number} salesProfitMultiplier - Sales profit multiplier (e.g., 1.10 for 10%)
+ * @param {number} commissionPercent - Commission percentage (e.g., 10 for 10%)
+ * @returns {number} Final price including sales profit and commission
+ */
+export function calculateTieredMaterialPriceWithSalesProfitAndCommission(unitCost, quantity, salesProfitMultiplier, commissionPercent) {
+  const pricePerUnit = calculateTieredMaterialPrice(unitCost);
+  if (!Number.isFinite(pricePerUnit) || !Number.isFinite(quantity)) return NaN;
+  const basePrice = pricePerUnit * quantity;
+  return basePrice * salesProfitMultiplier * (1 + (commissionPercent || 0) / 100);
 }
 
 /**
