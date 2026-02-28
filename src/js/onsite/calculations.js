@@ -229,6 +229,16 @@ export function calcAll() {
     }
   }
 
+  // Hide "Suggested Material Price" row in Sales mode
+  const suggestedMaterialPriceRow = el('suggestedMaterialPriceRow');
+  if (suggestedMaterialPriceRow) {
+    if (isExecutiveMode()) {
+      suggestedMaterialPriceRow.classList.remove('hidden');
+    } else {
+      suggestedMaterialPriceRow.classList.add('hidden');
+    }
+  }
+
   // Update grid layout based on mode (2-column for Sales, 3-column for Executive)
   updateBottomGridLayout();
 

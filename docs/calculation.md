@@ -147,6 +147,17 @@ Travel_Final_Price = Km × 15 × SalesProfitMultiplier × (1 + commissionPercent
 
 ## Grand Total Calculations
 
+### Suggested Material Price
+```
+Suggested Material Price = sum of all tiered base prices (F)
+```
+- Pure tiered pricing calculation (UnitCost → tier, then × Quantity)
+- No branch multipliers (Overhead%, PolicyProfit%)
+- No sales profit multiplier
+- No manual overrides
+- Displayed in Executive mode only (hidden in Sales mode)
+- Element ID: `grandSuggestedMaterialPrice`
+
 ### Suggested Selling Price (SSP)
 ```
 Suggested Selling Price = Labor (with multipliers) + Materials (tiered with sales profit, no overrides) + Travel (with sales profit) + Onsite Options (with sales profit)
