@@ -407,8 +407,6 @@ The `/bs` skill (Brainstorm Coordinator) summons ALL agents for any command:
 ├── orchestrator.md              (Level 1: Coordinator)
 ├── architect.md                 (Level 2: Technical lead)
 ├── planner.md                   (Level 2: Implementation lead)
-├── chinese-foreman.md           (Level 2: Chinese coordinator)
-├── universal-translator.md      (Multi-language translation-only)
 ├── frontend.md                  (Level 3: Specialist - Main calculator)
 ├── backoffice.md                (Level 3: Specialist - Backoffice)
 ├── backend.md                   (Level 3: Specialist - API)
@@ -416,7 +414,5 @@ The `/bs` skill (Brainstorm Coordinator) summons ALL agents for any command:
 ├── logging.md                   (Level 3: Specialist - Logging)
 ├── calculation.md               (Level 3: Specialist - Formulas)
 ├── database.md                  (Level 3: Specialist - Schema)
-├── deployment.md                (Level 3: Specialist - Azure)
-├── internet-researcher.md       (Utility: Web research)
-└── Template.md                  (Universal template)
+└── deployment.md                (Level 3: Specialist - Azure)
 ```
