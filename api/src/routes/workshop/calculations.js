@@ -776,6 +776,10 @@ router.put('/:id', async (req, res, next) => {
  * Requires: Authentication
  */
 router.delete('/:id', async (req, res, next) => {
+  const correlationId = req.headers['x-correlation-id'] || logger.getCorrelationId();
+  const scopedLogger = logger.withCorrelationId(correlationId);
+  const timer = logger.startTimer(correlationId);
+
   try {
     // Validate auth (user attached to req by middleware)
     const user = req.user;
@@ -785,10 +789,18 @@ router.delete('/:id', async (req, res, next) => {
     const isExecutive = effectiveRole === 'Executive';
 
     if (!Number.isInteger(saveId)) {
+      scopedLogger.warn('DELETE', 'InvalidSaveId', 'Invalid save ID provided', {
+        saveId: req.params.id,
+        userEmail
+      });
       return res.status(400).json({ error: 'Invalid save ID' });
     }
 
-    console.log(`User ${userEmail} deleting workshop calculation: ${saveId}`);
+    scopedLogger.info('DELETE', 'DeleteRequested', `User ${userEmail} deleting workshop calculation: ${saveId}`, {
+      userEmail,
+      saveId,
+      isExecutive
+    });
 
     const pool = await getPool();
 
@@ -798,15 +810,29 @@ router.delete('/:id', async (req, res, next) => {
       .query('SELECT CreatorEmail, IsActive FROM WorkshopSavedCalculations WHERE SaveId = @saveId');
 
     if (existing.recordset.length === 0) {
+      scopedLogger.warn('DELETE', 'RecordNotFound', 'Workshop calculation not found', {
+        saveId,
+        userEmail
+      });
       return res.status(404).json({ error: 'Workshop calculation not found' });
     }
 
     // Check ownership or executive role
     if (existing.recordset[0].CreatorEmail !== userEmail && !isExecutive) {
+      scopedLogger.warn('DELETE', 'PermissionDenied', 'User attempted to delete record they do not own', {
+        saveId,
+        userEmail,
+        creatorEmail: existing.recordset[0].CreatorEmail,
+        isExecutive
+      });
       return res.status(403).json({ error: 'You can only delete your own records' });
     }
 
     if (!existing.recordset[0].IsActive) {
+      scopedLogger.warn('DELETE', 'AlreadyDeleted', 'Attempted to delete already deleted record', {
+        saveId,
+        userEmail
+      });
       return res.status(404).json({ error: 'Workshop calculation not found' });
     }
 
@@ -818,18 +844,37 @@ router.delete('/:id', async (req, res, next) => {
 
     // Check if stored procedure returned an error
     const result = deleteResult.recordset[0];
-    if (result && result.Status === 'Error') {
-      console.error(`Stored procedure error: ${result.ErrorMessage}`);
+    if (result && result.Status !== 0) {
+      scopedLogger.error('DELETE', 'StoredProcedureError', 'Stored procedure error during delete', {
+        saveId,
+        status: result.Status,
+        errorMessage: result.ErrorMessage,
+        errorNumber: result.ErrorNumber,
+        errorSeverity: result.ErrorSeverity,
+        userEmail
+      });
       return res.status(500).json({ error: 'Failed to delete workshop calculation', details: result.ErrorMessage });
     }
 
-    console.log(`Deleted workshop calculation: ${saveId}`);
+    scopedLogger.info('DELETE', 'DeleteSuccess', `Successfully deleted workshop calculation: ${saveId}`, {
+      saveId,
+      duration: timer()
+    });
     res.status(204).send('');
 
   } catch (e) {
     if (e.statusCode === 401) {
+      scopedLogger.warn('DELETE', 'AuthenticationRequired', 'Authentication required for delete', {
+        saveId: req.params.id
+      });
       return res.status(401).json({ error: 'Authentication required' });
     }
+    scopedLogger.error('DELETE', 'UnhandledException', 'Unhandled exception in DELETE route', {
+      saveId: req.params.id,
+      error: e.message,
+      stack: e.stack,
+      duration: timer()
+    });
     next(e);
   }
 });

@@ -220,30 +220,38 @@ export async function deleteRecord(saveId, runNumber) {
     }
 
     if (!response.ok) {
-      let errorMessage = 'Failed to delete record';
+      // Map status codes to user-friendly messages
+      const errorMessages = {
+        400: { title: 'Invalid Request', message: 'The request was invalid. Please try again.' },
+        401: { title: 'Authentication Required', message: 'Please log in to delete records.' },
+        403: { title: 'Permission Denied', message: 'You can only delete your own records.' },
+        404: { title: 'Not Found', message: 'This record may have been deleted already.' },
+        500: { title: 'Server Error', message: 'Something went wrong. Please try again or contact support.' },
+        503: { title: 'Service Unavailable', message: 'The service is temporarily unavailable. Please try again later.' }
+      };
 
       // Try to get error details from response body
-      let errorDetails = '';
+      let errorBody = {};
       try {
-        const errorBody = await response.json();
-        errorDetails = errorBody.error || '';
-        console.log(`[deleteRecord] Error body:`, errorBody);
+        errorBody = await response.json();
+        // Log full error details for debugging
+        console.error(`[deleteRecord] Server error details:`, {
+          status: response.status,
+          saveId,
+          errorBody,
+          timestamp: new Date().toISOString()
+        });
       } catch (jsonError) {
-        console.log(`[deleteRecord] Could not parse error body:`, jsonError);
+        console.warn(`[deleteRecord] Could not parse error body as JSON:`, jsonError);
       }
 
-      if (response.status === 403) {
-        errorMessage = 'You can only delete your own records';
-      } else if (response.status === 404) {
-        errorMessage = 'Record not found (may have been deleted)';
-      } else if (response.status === 401) {
-        errorMessage = 'Authentication required';
-      } else if (response.status === 500) {
-        errorMessage = errorDetails || 'Server error - please try again';
-      } else {
-        errorMessage = errorDetails || `HTTP ${response.status}: Failed to delete record`;
-      }
+      // Get user-friendly message or fallback
+      const errorInfo = errorMessages[response.status] || {
+        title: 'Error',
+        message: errorBody.error || `HTTP ${response.status}: Failed to delete record`
+      };
 
+      const errorMessage = `${errorInfo.title}: ${errorInfo.message}`;
       showNotification(errorMessage);
 
       // Rollback: Restore card on error
@@ -253,8 +261,20 @@ export async function deleteRecord(saveId, runNumber) {
       return;
     }
   } catch (e) {
-    console.error('[deleteRecord] Exception:', e);
-    showNotification('Failed to delete record');
+    console.error('[deleteRecord] Unhandled exception:', {
+      error: e,
+      message: e.message,
+      stack: e.stack,
+      saveId,
+      timestamp: new Date().toISOString()
+    });
+
+    // Check for network errors
+    if (e.name === 'TypeError' && e.message === 'Failed to fetch') {
+      showNotification('Network Error: Please check your connection and try again.');
+    } else {
+      showNotification('An unexpected error occurred. Please try again or contact support.');
+    }
 
     // Rollback: Restore card on error
     if (cardClone && card && card.parentNode) {
