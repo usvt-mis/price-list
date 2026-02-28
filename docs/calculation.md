@@ -121,7 +121,7 @@ Materials Subtotal = sum of all Final Prices (or override values if set)
 **Note on Commission Calculation**:
 - Overridden material rows are **excluded** from the commission tier calculation base (`materialSubtotalBase()`)
 - This prevents circular dependencies since override prices already include all calculations
-- Only non-overridden materials contribute to the Sub Total Cost (STC) used for commission ratio
+- Only non-overridden materials contribute to the Suggested Selling Price (SSP) used for commission ratio
 
 **Important Changes**:
 - **Cost+Ovh+PP column is hidden** for Materials (not applicable with tiered pricing)
@@ -147,14 +147,16 @@ Travel_Final_Price = Km × 15 × SalesProfitMultiplier × (1 + commissionPercent
 
 ## Grand Total Calculations
 
-### Sub Total Cost (STC)
+### Suggested Selling Price (SSP)
 ```
-Sub Total Cost = Labor (raw) + Materials (tiered base F) + Travel (raw) + Onsite Options (raw)
+Suggested Selling Price = Labor (with multipliers) + Materials (tiered with sales profit, no overrides) + Travel (with sales profit) + Onsite Options (with sales profit)
 ```
-- Labor: WITHOUT any multipliers (raw manhours × CostPerHour)
-- Materials: Tiered base price (F) WITHOUT commission
-- Travel: Km × 15 (base rate)
-- Onsite Options: Sum of option prices (base)
+- Labor: With branch multipliers AND sales profit multiplier
+- Materials: **Tiered base price (F) × SalesProfitMultiplier** - excludes manual overrides
+- Travel: With sales profit multiplier only (no branch multipliers)
+- Onsite Options: With sales profit multiplier only (no branch multipliers)
+- Excludes commission, excludes manual overrides
+- Used for commission ratio calculation (comparing actual vs suggested)
 - Displayed in Executive mode only
 
 ### Sub Grand Total (SGT)
@@ -162,9 +164,10 @@ Sub Total Cost = Labor (raw) + Materials (tiered base F) + Travel (raw) + Onsite
 Sub Grand Total = Labor (with multipliers) + Materials (with SalesProfitMultiplier) + Travel (with SalesProfitMultiplier) + Onsite Options (with SalesProfitMultiplier)
 ```
 - Labor: With branch multipliers AND sales profit multiplier
-- Materials: **Tiered base price (F) × SalesProfitMultiplier** - no branch multipliers
+- Materials: **Tiered base price (F) × SalesProfitMultiplier** - includes manual overrides
 - Travel: With sales profit multiplier only (no branch multipliers)
 - Onsite Options: With sales profit multiplier only (no branch multipliers)
+- Includes manual overrides (Actual Selling Price)
 - Used for commission calculation
 - Displayed in BOTH Executive and Sales modes
 
@@ -184,11 +187,15 @@ Grand Total = Labor Final Prices + Materials Final Prices + Travel Final Price +
 ## Commission Calculation
 
 ### Overview
-Commission is calculated based on the ratio of Sub Grand Total (SGT) to Sub Total Cost (STC).
+Commission is calculated based on the ratio of Sub Grand Total (SGT) to Suggested Selling Price (SSP).
+
+- **SGT (Sub Grand Total)**: Actual Selling Price (includes manual overrides)
+- **SSP (Suggested Selling Price)**: Suggested Price (excludes manual overrides)
+- **Ratio**: SGT / SSP - Higher ratio means user set prices above suggested = higher commission %
 
 ### Commission Percentage
 
-| SGT vs STC Ratio | Commission% |
+| SGT vs SSP Ratio | Commission% |
 |------------------|-------------|
 | 0 ≤ ratio < 0.8 (80%) | 0% |
 | 0.8 (80%) ≤ ratio < 1.0 (100%) | 1% |
@@ -204,9 +211,9 @@ Commission = Commission% × Sub Grand Total
 ```
 
 ### Implementation
-- Calculation performed in `calcAll()` function (lines ~820-850)
+- Calculation performed in `calcAll()` function (onsite: lines ~130-142, workshop: lines ~123-133)
 - Commission percent stored globally (`commissionPercent`) for use in render functions
-- Updates in real-time whenever any value affecting SGT or STC changes
+- Updates in real-time whenever any value affecting SGT or SSP changes
 - Visually separated with border and emerald color (`text-emerald-400`)
 
 ---
@@ -335,4 +342,4 @@ Where:
 
 - Sales Profit % changes trigger `renderLabor()`, `renderMaterials()`, and `calcAll()` for real-time updates
 - Travel Km changes trigger `calcAll()`
-- Any change affecting SGT or STC triggers commission recalculation
+- Any change affecting SGT or SSP triggers commission recalculation

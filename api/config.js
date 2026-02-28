@@ -6,8 +6,8 @@
 // Travel cost rate (baht per km)
 const TRAVEL_RATE = 15;
 
-// Commission tiers based on Grand Total to STC ratio
-// These must match the frontend configuration in src/js/config.js
+// Commission tiers based on Grand Total to SSP ratio
+// These must match the frontend configuration in src/js/core/config.js
 const COMMISSION_TIERS = [
   { minRatio: 0, maxRatio: 0.8, percent: 0 },        // [0, 0.8) = 0%
   { minRatio: 0.8, maxRatio: 1.0, percent: 1 },     // [0.8, 1.0) = 1%

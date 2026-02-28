@@ -458,6 +458,27 @@ export function materialSubtotalSuggested() {
   }, 0);
 }
 
+/**
+ * Calculate materials subtotal SUGGESTED PRICE WITHOUT commission (for SSP calculation)
+ * For ALL items: returns the calculated suggested selling price with sales profit applied, WITHOUT commission
+ * IMPORTANT: This function IGNORES manual overrides - it always returns the calculated tiered price
+ * Used for SSP (Suggested Selling Price) calculation - excludes manual overrides for consistency
+ * @returns {number} Material subtotal suggested price without commission (tiered price with sales profit only)
+ */
+export function materialSubtotalSuggestedWithoutCommission() {
+  const salesProfitMultiplier = getSalesProfitMultiplier();
+
+  return appState.materialLines.reduce((sum, ln) => {
+    // Always use the calculated tiered price, ignoring manual overrides
+    // This ensures SSP stays consistent even when Final Price is overridden
+    if (!Number.isFinite(ln.unitCost)) return sum;
+    // TIERED PRICING: Return tiered base price with Sales Profit, without commission
+    const rawCost = ln.unitCost * ln.qty;
+    const tieredBase = calculateTieredMaterialPrice(rawCost);
+    return sum + (tieredBase * salesProfitMultiplier);
+  }, 0);
+}
+
 // Import calcAll dynamically to avoid circular dependency
 async function calcAll() {
   const { calcAll } = await import('./calculations.js');

@@ -6,7 +6,7 @@
 import { el, fmt, fmtPercent, makeInputsReadOnly, removeReadOnly } from '../core/utils.js';
 import { appState, isExecutiveMode, isSalesMode, isCustomerMode } from './state.js';
 import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
-import { materialSubtotalBase, materialSubtotalRawAll, materialSubtotal, materialSubtotalWithoutCommission, materialSubtotalBeforeSalesProfit, materialSubtotalSuggested } from './materials.js';
+import { materialSubtotalBase, materialSubtotalRawAll, materialSubtotal, materialSubtotalWithoutCommission, materialSubtotalBeforeSalesProfit, materialSubtotalSuggested, materialSubtotalSuggestedWithoutCommission } from './materials.js';
 import { COMMISSION_TIERS } from '../core/config.js';
 import { calculateTieredMaterialPrice } from '../core/tieredMaterials.js';
 
@@ -108,26 +108,30 @@ export function calcAll() {
   // Sub Grand Total = labor + materials + travel cost (with sales profit applied)
   const subGrandTotal = l + m + travelCost;
 
-  // Suggested Selling Price = Subtotal Labor + Suggested Material Price + Travel
-  // (before sales profit multiplier, using suggested material price that backs out both commission and sales profit)
-  const subTotalBeforeSalesProfit = lAfterBranch + materialSubtotalSuggested() + travelBase;
+  // Suggested Selling Price (SSP) = Suggested Selling Price without commission
+  // SSP uses consistent formula: all components with sales profit, without commission, excludes manual overrides
+  // This allows comparing Actual Selling Price (SGT with overrides) vs Suggested Selling Price (SSP without overrides)
+  const suggestedSellingPrice = l + materialSubtotalSuggestedWithoutCommission() + travelCost;
 
-  // Store subtotal before sales profit for flat amount calculation
-  appState.subTotalBeforeSalesProfit = subTotalBeforeSalesProfit;
+  // Store SSP for flat amount calculation
+  appState.suggestedSellingPrice = suggestedSellingPrice;
 
   // Sync flat amount from percentage (if not already updating)
   if (!appState.isUpdatingSalesProfit) {
     syncFlatFromPercent();
   }
 
-  // Calculate commission percentage based on Sub Grand Total vs STC ratio
-  const gtToStcRatio = Number.isFinite(subGrandTotal) && Number.isFinite(subTotalBeforeSalesProfit) && subTotalBeforeSalesProfit > 0
-    ? subGrandTotal / subTotalBeforeSalesProfit
+  // Calculate commission percentage based on SGT vs SSP ratio
+  // SGT = Actual Selling Price (includes manual overrides)
+  // SSP = Suggested Selling Price (excludes manual overrides)
+  // Higher ratio = user set prices above suggested = higher commission %
+  const gtToSspRatio = Number.isFinite(subGrandTotal) && Number.isFinite(suggestedSellingPrice) && suggestedSellingPrice > 0
+    ? subGrandTotal / suggestedSellingPrice
     : 0;
 
   let cp = 0;
   for (const tier of COMMISSION_TIERS) {
-    if (gtToStcRatio >= tier.minRatio && gtToStcRatio < tier.maxRatio) {
+    if (gtToSspRatio >= tier.minRatio && gtToSspRatio < tier.maxRatio) {
       cp = tier.percent;
       break;
     }
@@ -163,7 +167,7 @@ export function calcAll() {
   el('grandRawMaterials').textContent = fmt(mRawAll); // Raw Materials (all materials at base unit cost)
   el('grandOverhead').textContent = fmt(overhead); // Overhead + Policy Profit (branch multipliers only, no sales profit)
   el('grandSuggestedMaterialPrice').textContent = fmt(materialSubtotalSuggested()); // Suggested Material Price (pure tiered pricing)
-  el('grandSubTotalBeforeSalesProfit').textContent = fmt(subTotalBeforeSalesProfit);
+  el('grandSubTotalBeforeSalesProfit').textContent = fmt(suggestedSellingPrice); // SSP: Suggested Selling Price (without commission, excludes overrides)
   el('grandCommissionPercent').textContent = appState.commissionPercent + '%';
   el('grandCommission').textContent = fmt(commission);
 
@@ -283,7 +287,7 @@ export function syncFlatFromPercent() {
   if (!pctInput || !flatInput) return;
 
   const pct = Number(pctInput.value) || 0;
-  const subTotal = appState.subTotalBeforeSalesProfit || 0;
+  const subTotal = appState.suggestedSellingPrice || 0;
   const flat = subTotal * (pct / 100);
 
   appState.isUpdatingSalesProfit = true;
@@ -303,7 +307,7 @@ export function syncPercentFromFlat() {
   if (!pctInput || !flatInput) return;
 
   const flat = Number(flatInput.value) || 0;
-  const subTotal = appState.subTotalBeforeSalesProfit || 0;
+  const subTotal = appState.suggestedSellingPrice || 0;
   const pct = subTotal > 0 ? (flat / subTotal) * 100 : 0;
 
   appState.isUpdatingSalesProfit = true;

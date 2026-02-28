@@ -53,18 +53,21 @@ Base Travel Cost = Km × 15
 Final Travel Price = Base Travel Cost × SalesProfitMultiplier × (1 + Commission%/100)
 ```
 
-## Commission Tiers (SGT vs STC)
+## Commission Tiers (SGT vs SSP)
 | Condition | Commission% |
 |-----------|-------------|
-| SGT < 80% of STC | 0% |
-| 80% ≤ SGT < 100% of STC | 1% |
-| 100% ≤ SGT ≤ 105% of STC | 2% |
-| 105% < SGT ≤ 120% of STC | 2.5% |
-| SGT > 120% of STC | 5% |
+| SGT < 80% of SSP | 0% |
+| 80% ≤ SGT < 100% of SSP | 1% |
+| 100% ≤ SGT ≤ 105% of SSP | 2% |
+| 105% < SGT ≤ 120% of SSP | 2.5% |
+| SGT > 120% of SSP | 5% |
 
 Where:
-- SGT = Sub Grand Total (labor + materials + travel with all multipliers)
-- STC = Sub Total Cost (labor + materials + travel BEFORE sales profit)
+- SGT = Sub Grand Total (labor + materials + travel with all multipliers, includes manual overrides)
+- SSP = Suggested Selling Price (labor + materials + travel with all multipliers, excludes manual overrides)
+
+**Commission Ratio Formula**: `ratio = SGT / SSP`
+- Higher ratio = user set prices above suggested = higher commission %
 
 ## Helper Functions
 ```javascript

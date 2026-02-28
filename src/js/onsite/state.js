@@ -22,7 +22,7 @@ export const appState = {
   commissionPercent: 0,
 
   // Sales Profit Flat Amount tracking
-  subTotalBeforeSalesProfit: 0, // Track base for flat calculation
+  suggestedSellingPrice: 0,      // SSP: Suggested Selling Price (with sales profit, without commission, excludes manual overrides)
   isUpdatingSalesProfit: false,  // Guard flag to prevent infinite loops
 };
 

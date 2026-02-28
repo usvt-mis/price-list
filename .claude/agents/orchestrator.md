@@ -106,7 +106,7 @@ Orchestrator reports final status to user
 2. **Materials**: Search-and-add materials with quantity inputs
 3. **Sales Profit**: User-editable percentage (can be negative for discounts)
 4. **Travel/Shipping**: Distance × 15 baht/km rate
-5. **Commission**: Tiered commission based on SGT vs STC ratio
+5. **Commission**: Tiered commission based on SGT vs SSP ratio
 
 ### Specialist Agents
 - **Frontend Agent**: UI components, responsive design, interactions

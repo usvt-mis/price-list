@@ -80,15 +80,15 @@ export function calculateSalesProfitMultiplier(salesProfitPercent) {
 }
 
 /**
- * Get commission percent based on Grand Total to STC ratio
+ * Get commission percent based on Grand Total to SSP ratio
  * @param {number} grandTotal - Grand total after sales profit
- * @param {number} subTotalCost - Subtotal before sales profit
+ * @param {number} suggestedSellingPrice - Suggested Selling Price (SSP) without commission
  * @param {Array} commissionTiers - Array of commission tier objects
  * @returns {number} Commission percentage
  */
-export function getCommissionPercent(grandTotal, subTotalCost, commissionTiers) {
-  const ratio = Number.isFinite(subTotalCost) && subTotalCost > 0
-    ? grandTotal / subTotalCost
+export function getCommissionPercent(grandTotal, suggestedSellingPrice, commissionTiers) {
+  const ratio = Number.isFinite(suggestedSellingPrice) && suggestedSellingPrice > 0
+    ? grandTotal / suggestedSellingPrice
     : 0;
 
   for (const tier of commissionTiers) {
