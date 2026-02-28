@@ -175,7 +175,7 @@ export function calcAll() {
   el('grandTotalRawCost').textContent = Number.isFinite(lBase) ? fmt(lBase) : '—'; // Raw Labor (labor base cost only)
   el('grandRawMaterials').textContent = fmt(mRawAll); // Raw Materials (all materials at base unit cost)
   el('grandOverhead').textContent = fmt(overhead); // Overhead + Policy Profit (branch multipliers only, no sales profit)
-  el('grandSuggestedMaterialPrice').textContent = fmt(materialSubtotalSuggested()); // Suggested Material Price (pure tiered pricing)
+  el('grandSuggestedMaterialPrice').textContent = fmt(mAfterBranch); // Suggested Material Price (tiered base without Sales Profit & Commission)
   el('grandSubTotalBeforeSalesProfit').textContent = fmt(suggestedSellingPriceBeforeSalesProfit); // SSP: Suggested Selling Price (without commission, excludes overrides, BEFORE Sales Profit)
   el('grandCommissionPercent').textContent = appState.commissionPercent + '%';
   el('grandCommission').textContent = fmt(commission);
