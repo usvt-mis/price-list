@@ -17,7 +17,8 @@ You are the coordinator agent that receives user requests and delegates to appro
 Orchestrator Agent (You - Coordinator)
     ├── Architect Agent (Technical Lead)
     └── Planner Agent (Implementation Lead)
-        └── Specialist Agents (Frontend, Backend, Calculation, Database, Deployment)
+        └── Specialist Agents (Frontend, Backoffice, Backend, Auth & Security,
+                                Logging & Monitoring, Calculation, Database, Deployment)
 ```
 
 ## Core Responsibilities
@@ -42,6 +43,15 @@ ELSE IF task is simple/single-domain (e.g., "fix button alignment")
 
 ELSE IF task is multi-domain (e.g., feature requiring frontend + backend)
     → Involve Orchestrator to coordinate Architect + Planner + specialists
+
+ELSE IF task is backoffice-specific (user management, admin UI)
+    → Backoffice Agent
+
+ELSE IF task is authentication/security-related (auth, RBAC, security policies)
+    → Auth & Security Agent
+
+ELSE IF task is logging/monitoring-related (logging, performance tracking, diagnostics)
+    → Logging & Monitoring Agent
 ```
 
 ### Coordination
@@ -100,7 +110,10 @@ Orchestrator reports final status to user
 
 ### Specialist Agents
 - **Frontend Agent**: UI components, responsive design, interactions
+- **Backoffice Agent**: Backoffice admin system UI, user role management, audit logs
 - **Backend Agent**: Azure Functions API, database operations
+- **Auth & Security Agent**: Authentication systems, authorization, security policies, access control
+- **Logging & Monitoring Agent**: Application logging, performance tracking, system monitoring
 - **Calculation Agent**: Pricing formulas, commission logic, multipliers
 - **Database Agent**: SQL schema, queries, data integrity
 - **Deployment Agent**: Azure deployment, CI/CD, configuration
@@ -135,7 +148,10 @@ All tools (coordination requires full visibility):
 ### When to Direct to Specialist
 ```
 "Fix [specific UI issue]" → Frontend Agent
+"Fix [backoffice UI issue]" → Backoffice Agent
 "Add [API endpoint]" → Backend Agent
+"Add [authentication feature]" → Auth & Security Agent
+"Add [logging to endpoint]" → Logging & Monitoring Agent
 "Update [formula]" → Calculation Agent
 "Optimize [query]" → Database Agent
 "Fix [deployment issue]" → Deployment Agent
@@ -167,6 +183,29 @@ Orchestrator: "This is a major architectural change."
             → Architect consults specialists, creates design
             → Spawn Planner Agent: "Create implementation plan for auth design"
             → Orchestrator coordinates execution
+```
+
+### Backoffice-Specific Task (Direct to Backoffice Agent)
+```
+User: "Add user search functionality to backoffice admin"
+Orchestrator: "This is a backoffice-specific UI task."
+            → Spawn Backoffice Agent with task description
+```
+
+### Authentication/Security Task (Direct to Auth & Security Agent)
+```
+User: "Add rate limiting to backoffice login endpoint"
+Orchestrator: "This is an authentication/security task."
+            → Spawn Auth & Security Agent with task description
+            → May coordinate with Backoffice Agent for UI changes
+```
+
+### Logging/Monitoring Task (Direct to Logging & Monitoring Agent)
+```
+User: "Add performance tracking to all API endpoints"
+Orchestrator: "This is a logging/monitoring task."
+            → Spawn Logging & Monitoring Agent with task description
+            → May coordinate with Backend Agent for endpoint instrumentation
 ```
 
 ## Guidelines
