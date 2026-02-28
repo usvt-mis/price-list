@@ -438,11 +438,10 @@ export function materialSubtotalWithoutCommission() {
 }
 
 /**
- * Calculate materials subtotal SUGGESTED PRICE (pure tiered pricing, without Sales Profit or Commission)
- * For overridden items: uses the override price (backs out both commission AND sales profit)
- * For normal items: returns tiered base price ONLY (no sales profit, no commission)
+ * Calculate materials subtotal SUGGESTED PRICE (sum of "Selling Price (Suggested)" from Materials section)
+ * For all items: returns the full suggested selling price with sales profit AND commission applied
  * Used for the "Suggested Material Price" display in Summary COST BREAKDOWN
- * @returns {number} Material subtotal suggested price (pure tiered pricing)
+ * @returns {number} Material subtotal suggested price (tiered price with sales profit and commission)
  */
 export function materialSubtotalSuggested() {
   const commissionPercent = appState.commissionPercent || 0;
@@ -450,13 +449,13 @@ export function materialSubtotalSuggested() {
 
   return appState.materialLines.reduce((sum, ln) => {
     if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
-      // Override is the final price - back out BOTH commission and sales profit
-      const divisor = (1 + (commissionPercent / 100)) * salesProfitMultiplier;
-      return sum + (ln.overrideFinalPrice / divisor);
+      // For overridden items, use the override price directly (already includes all multipliers)
+      return sum + ln.overrideFinalPrice;
     }
     if (!Number.isFinite(ln.unitCost)) return sum;
-    // TIERED PRICING: Return pure tiered base price (without sales profit, without commission)
-    return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty;
+    // TIERED PRICING: Return full suggested selling price (with sales profit AND commission)
+    // This matches the "Selling Price (Suggested)" column in the Materials table
+    return sum + calculateTieredMaterialPriceWithSalesProfitAndCommission(ln.unitCost, ln.qty, salesProfitMultiplier, commissionPercent);
   }, 0);
 }
 
