@@ -98,7 +98,8 @@ export function calcAll() {
   const materialsSalesProfit = mWithSalesProfit - mTieredBase;
 
   // Calculate overhead (difference between base and after-branch amounts)
-  const overhead = (lAfterBranch + mAfterBranch) - (lBase + mBase);
+  // Materials use tiered pricing, not branch multipliers, so only Labor overhead is included
+  const overhead = lAfterBranch - lBase;
 
   // Calculate sales profit adjustment (labor + materials + travel)
   const salesProfitAdj = (l - lAfterBranch) + materialsSalesProfit + travelSalesProfit;
@@ -107,8 +108,17 @@ export function calcAll() {
   const subGrandTotal = l + m + travelCost;
 
   // Sub Total Cost = labor + materials + travel (before sales profit multiplier)
-  const mBeforeSalesProfit = materialSubtotalBeforeSalesProfit(); // Includes overridden materials with sales profit backed out
-  const subTotalBeforeSalesProfit = lAfterBranch + mBeforeSalesProfit + travelBase;
+  // Calculate materials tiered base price WITHOUT sales profit for the "before sales profit" subtotal
+  const mTieredBaseNoSalesProfit = appState.materialLines.reduce((sum, ln) => {
+    if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
+      // Back out BOTH commission AND sales profit from override
+      const divisor = 1 + ((appState.commissionPercent || 0) / 100);
+      return sum + (ln.overrideFinalPrice / divisor / getSalesProfitMultiplier());
+    }
+    if (!Number.isFinite(ln.unitCost)) return sum;
+    return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty;
+  }, 0);
+  const subTotalBeforeSalesProfit = lAfterBranch + mTieredBaseNoSalesProfit + travelBase;
 
   // Store subtotal before sales profit for flat amount calculation
   appState.subTotalBeforeSalesProfit = subTotalBeforeSalesProfit;
