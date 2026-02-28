@@ -87,6 +87,14 @@ class PerformanceTimer {
         });
         return durationMs;
     }
+
+    /**
+     * Get duration without logging (for manual error handling)
+     * @returns {number} Duration in milliseconds
+     */
+    getDuration() {
+        return Date.now() - this.startTime;
+    }
 }
 
 /**

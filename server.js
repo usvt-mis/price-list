@@ -12,6 +12,9 @@
 // Load environment variables from .env.local file
 require('dotenv').config({ path: '.env.local' });
 
+// Import logger for global error handlers
+const logger = require('./api/src/utils/logger');
+
 // Initialize Application Insights (if connection string is available)
 if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
     const applicationInsights = require('applicationinsights');
@@ -220,6 +223,26 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({
     error: message,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// ============================================================
+// Global Error Handlers
+// ============================================================
+
+process.on('uncaughtException', (err) => {
+  logger.critical('SYSTEM', 'UncaughtException', 'Uncaught exception in process', {
+    error: err.message,
+    stack: err.stack
+  });
+  // Give time for log to flush before exit
+  setTimeout(() => process.exit(1), 1000);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.critical('SYSTEM', 'UnhandledRejection', 'Unhandled promise rejection', {
+    reason: String(reason),
+    stack: reason?.stack
   });
 });
 
