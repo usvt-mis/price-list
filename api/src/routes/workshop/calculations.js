@@ -856,9 +856,8 @@ router.delete('/:id', async (req, res, next) => {
       return res.status(500).json({ error: 'Failed to delete workshop calculation', details: result.ErrorMessage });
     }
 
-    scopedLogger.info('DELETE', 'DeleteSuccess', `Successfully deleted workshop calculation: ${saveId}`, {
-      saveId,
-      duration: timer()
+    timer.stop('DELETE', 'DeleteSuccess', `Successfully deleted workshop calculation: ${saveId}`, {
+      saveId
     });
     res.status(204).send('');
 
@@ -872,8 +871,7 @@ router.delete('/:id', async (req, res, next) => {
     scopedLogger.error('DELETE', 'UnhandledException', 'Unhandled exception in DELETE route', {
       saveId: req.params.id,
       error: e.message,
-      stack: e.stack,
-      duration: timer()
+      stack: e.stack
     });
     next(e);
   }
