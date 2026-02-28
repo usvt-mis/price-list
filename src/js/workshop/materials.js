@@ -67,6 +67,7 @@ export function renderMaterials() {
           </div>
         </th>
         ${isExecutiveMode() ? '<th class="text-right py-3 px-3 font-semibold text-slate-500 text-xs">Raw Cost</th>' : ''}
+        ${isExecutiveMode() ? '<th class="text-right py-3 px-3 font-semibold text-slate-500 text-xs">Suggested Selling Price</th>' : ''}
         <!-- Cost+Ovh+PP column hidden for Materials - not applicable with tiered pricing -->
         <th class="text-right py-3 px-3 font-semibold text-emerald-700">Final Price</th>
         <th class="text-right py-3 px-3 w-16"></th>
@@ -128,6 +129,14 @@ export function renderMaterials() {
         </div>
         ` : ''}
 
+        <!-- Suggested Material Selling Price (tier-based, ignoring manual overrides) -->
+        ${isExecutiveMode() && ln.code ? `
+        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <span class="text-xs text-slate-500 uppercase tracking-wide">Suggested Material Selling Price</span>
+          <span class="text-lg font-bold text-slate-600">${fmt(finalPrice)}</span>
+        </div>
+        ` : ''}
+
         <!-- Cost+Ovh+PP - Hidden for Materials (not applicable with tiered pricing) -->
 
         <!-- Final Price -->
@@ -177,6 +186,7 @@ export function renderMaterials() {
                  value="${ln.qty}"/>
         </td>
         ${isExecutiveMode() ? `<td class="py-3 px-3 text-right text-sm text-slate-500">${fmt(rawCost)}</td>` : ''}
+        ${isExecutiveMode() ? `<td class="py-3 px-3 text-right text-sm text-slate-500">${fmt(finalPrice)}</td>` : ''}
         <!-- Cost+Ovh+PP column hidden for Materials -->
         <td class="py-3 px-3 text-right">
           <div class="flex items-center justify-end gap-1">
@@ -212,7 +222,7 @@ export function renderMaterials() {
       <p class="text-slate-500 text-sm">Search above to add materials instantly</p>
     </div>
     <tr class="hidden md:table-row">
-      <td class="py-8 text-slate-500 text-center" colspan="${isExecutiveMode() ? 7 : 4}">
+      <td class="py-8 text-slate-500 text-center" colspan="${isExecutiveMode() ? 8 : 4}">
         <div class="flex flex-col items-center gap-3">
           <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100">
             <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
