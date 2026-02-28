@@ -14,6 +14,8 @@ import { loadLabor, renderLabor } from './labor.js';
 import { initMaterialSearch, renderMaterials } from './materials.js';
 import { calcAll, syncFlatFromPercent, syncPercentFromFlat } from './calculations.js';
 import { initFloatingButtons } from '../core/floating-buttons.js';
+import { initializeCollapsibleSections } from '../core/collapsible-sections.js';
+import { COLLAPSIBLE_SECTION_IDS } from './state.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
 
@@ -410,6 +412,10 @@ async function initApp() {
     console.log('[INIT-APP] Step 4.5: Initializing floating buttons...');
     initFloatingButtons();
     console.log('[INIT-APP] Step 4.5: Completed - floating buttons initialized');
+
+    console.log('[INIT-APP] Step 4.6: Initializing collapsible sections...');
+    initializeCollapsibleSections(COLLAPSIBLE_SECTION_IDS);
+    console.log('[INIT-APP] Step 4.6: Completed - collapsible sections initialized');
 
     // Check for shared record URL parameter
     const urlParams = new URLSearchParams(window.location.search);

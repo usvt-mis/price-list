@@ -219,3 +219,69 @@
     transition: none;
   }
 }
+
+/* ========================================
+   Collapsible Section Cards Styles
+   ======================================== */
+
+/* Section header - clickable area */
+.section-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.section-header:hover {
+  background-color: rgba(248, 250, 252, 0.5);
+}
+
+.section-header:focus-visible {
+  outline: 2px solid rgb(37 99 235);
+  outline-offset: -2px;
+  border-radius: 0.5rem;
+}
+
+/* Section content - collapsible area */
+.section-content {
+  max-height: 2000px;
+  opacity: 1;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+
+.section-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Chevron rotation */
+.section-header .chevron {
+  transition: transform 0.3s ease;
+}
+
+.section-header[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+/* Print media query - expand all sections when printing */
+@media print {
+  .section-content {
+    max-height: none !important;
+    opacity: 1 !important;
+  }
+
+  .section-header .chevron {
+    display: none;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .section-header,
+  .section-content,
+  .section-header .chevron {
+    transition: none;
+  }
+}

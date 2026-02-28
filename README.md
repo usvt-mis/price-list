@@ -50,6 +50,15 @@ The Price List Calculator computes total cost based on four components:
   - **Settings Tab**: Displays authentication info
 
 ### UI Features
+- **Collapsible Section Cards**: Labor, Materials, and Travel sections can be collapsed/expanded
+  - Click the section header to toggle (entire header is clickable)
+  - Subtotal visible in header when collapsed
+  - Chevron icon rotates to indicate state (up when collapsed, down when expanded)
+  - Default state: All sections collapsed (Summary section always visible)
+  - Session-only state (resets to collapsed on page refresh)
+  - Keyboard accessible (Tab to focus, Enter/Space to toggle)
+  - Smooth CSS animations for collapse/expand transitions
+  - All sections expand automatically when printing
 - **Scrollspy Navigation**: Floating table of contents in bottom-right corner
   - Highlights current section as you scroll (via Intersection Observer)
   - Quick jumps to any section (Onsite Options, Labor, Materials, Travel/Shipping, Summary)
@@ -458,7 +467,11 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │       ├── core/                # Shared utilities
 │       │   ├── config.js
 │       │   ├── utils.js
-│       │   └── calculations.js
+│       │   ├── calculations.js
+│       │   ├── scrollspy.js
+│       │   ├── floating-buttons.js
+│       │   ├── sales-quote-dropdown.js
+│       │   └── collapsible-sections.js
 │       ├── onsite/              # Onsite-specific modules
 │       │   ├── app.js
 │       │   ├── config.js

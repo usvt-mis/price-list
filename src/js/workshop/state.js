@@ -8,6 +8,9 @@ import { currentMode, setMode } from '../state.js';
 
 // ========== Core Application State ==========
 
+// Section IDs that can be collapsed (excluding summary)
+export const COLLAPSIBLE_SECTION_IDS = ['laborSection', 'materialsSection', 'travelSection'];
+
 // Data state
 export const appState = {
   // Branch and labor data

@@ -142,8 +142,11 @@ export function calcAll() {
 
   // Update display elements
   el('laborSubtotal').textContent = fmt(laborFinalPricesSum);
+  el('laborSubtotalHeader').textContent = fmt(laborFinalPricesSum);
   el('materialSubtotal').textContent = fmt(materialsFinalPricesSum);
+  el('materialSubtotalHeader').textContent = fmt(materialsFinalPricesSum);
   el('travelCost').textContent = fmt(travelFinalPrice);
+  el('travelCostHeader').textContent = fmt(travelFinalPrice);
 
   el('newGrandTotal').textContent = fmt(newGrandTotal);
   el('grandTotal').textContent = fmt(subGrandTotal);
