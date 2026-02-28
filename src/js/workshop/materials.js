@@ -371,7 +371,7 @@ export function materialSubtotal() {
 
 /**
  * Calculate materials subtotal BEFORE commission (tiered base price with Sales Profit applied)
- * For overridden items: backs out commission from override price (then backs out sales profit)
+ * For overridden items: backs out commission from override price only (override already includes sales profit)
  * For normal items: returns tiered base price with Sales Profit (without commission)
  * Used for subTotalBeforeSalesProfit calculation
  * @returns {number} Material subtotal before commission
@@ -382,9 +382,9 @@ export function materialSubtotalBeforeSalesProfit() {
 
   return appState.materialLines.reduce((sum, ln) => {
     if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
-      // Override was set WITH commission and sales profit included, back them out
+      // Override is the final price - only back out commission, not sales profit
       const divisor = 1 + (commissionPercent / 100);
-      return sum + (ln.overrideFinalPrice / divisor / salesProfitMultiplier);
+      return sum + (ln.overrideFinalPrice / divisor);
     }
     if (!Number.isFinite(ln.unitCost)) return sum;
     // TIERED PRICING: Return tiered base price WITH Sales Profit (without commission)
@@ -394,7 +394,7 @@ export function materialSubtotalBeforeSalesProfit() {
 
 /**
  * Calculate materials subtotal WITHOUT commission (with Sales Profit applied)
- * For overridden items: backs out commission from override price (then backs out sales profit)
+ * For overridden items: backs out commission from override price only (override already includes sales profit)
  * For normal items: returns tiered base price with Sales Profit (no commission)
  * Used for the Percentage Breakdown card display
  * @returns {number} Material subtotal without commission
@@ -405,9 +405,9 @@ export function materialSubtotalWithoutCommission() {
 
   return appState.materialLines.reduce((sum, ln) => {
     if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
-      // Override was set WITH commission and sales profit included, back them out
+      // Override is the final price - only back out commission, not sales profit
       const divisor = 1 + (commissionPercent / 100);
-      return sum + (ln.overrideFinalPrice / divisor / salesProfitMultiplier);
+      return sum + (ln.overrideFinalPrice / divisor);
     }
     // TIERED PRICING: Return tiered base price with Sales Profit, without commission
     if (!Number.isFinite(ln.unitCost)) return sum;

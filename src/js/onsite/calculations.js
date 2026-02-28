@@ -119,9 +119,9 @@ export function calcAll() {
   // Calculate materials tiered base price WITHOUT sales profit for the "before sales profit" subtotal
   const mTieredBaseNoSalesProfit = appState.materialLines.reduce((sum, ln) => {
     if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
-      // Back out BOTH commission AND sales profit from override
+      // Override is the final price - only back out commission, not sales profit
       const divisor = 1 + ((appState.commissionPercent || 0) / 100);
-      return sum + (ln.overrideFinalPrice / divisor / getSalesProfitMultiplier());
+      return sum + (ln.overrideFinalPrice / divisor);
     }
     if (!Number.isFinite(ln.unitCost)) return sum;
     return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty;
