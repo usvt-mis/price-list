@@ -47,7 +47,10 @@ export function renderLabor() {
   const branchMultiplier = getBranchMultiplier();
   const adjustedCph = Number.isFinite(cph) ? cph * multiplier : NaN;
 
-  el('costPerHour').textContent = branch ? fmt(adjustedCph) : '—';
+  const costPerHourEl = el('costPerHour');
+  if (costPerHourEl) {
+    costPerHourEl.textContent = branch ? fmt(adjustedCph) : '—';
+  }
 
   // Update table header based on mode
   const laborTableHead = el('laborRows').previousElementSibling;
