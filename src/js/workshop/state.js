@@ -26,6 +26,10 @@ export const appState = {
   // Sales Profit Flat Amount tracking
   suggestedSellingPrice: 0,      // SSP: Standard Selling Price (with sales profit, without commission, excludes manual overrides)
   isUpdatingSalesProfit: false,  // Guard flag to prevent infinite loops
+
+  // NEW: Track which input mode is active
+  salesProfitInputMode: 'percentage', // 'percentage' or 'flat'
+  salesProfitFlatAmount: 0, // Store the actual flat amount when in flat mode
 };
 
 // Mode management (role-based, not user-selectable)
@@ -146,6 +150,9 @@ export function resetCalculatorState() {
   appState.labor = [];
   appState.materialLines = [];
   appState.commissionPercent = 0;
+  // Reset new Sales Profit state
+  appState.salesProfitInputMode = 'percentage';
+  appState.salesProfitFlatAmount = 0;
 }
 
 export function clearRecordsCache() {

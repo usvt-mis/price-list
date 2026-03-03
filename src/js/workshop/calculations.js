@@ -80,13 +80,35 @@ export function calcAll() {
   // Get sales profit multiplier (user-editable)
   const salesProfitMultiplier = getSalesProfitMultiplier();
 
-  // Get amounts after sales profit multiplier
-  const l = lAfterBranch * salesProfitMultiplier;
+  // Calculate Sales Profit based on input mode
+  let l, travelCost;
+  let salesProfitAdj;
+
+  if (appState.salesProfitInputMode === 'flat' && appState.salesProfitFlatAmount > 0) {
+    // FLAT AMOUNT MODE: Add entire amount to Labor
+    const flatAmount = appState.salesProfitFlatAmount;
+
+    // Apply flat amount to Labor (checked jobs only)
+    l = lAfterBranch + flatAmount;
+
+    // Travel: No Sales Profit (keep base amount)
+    travelCost = travelBase;
+
+    salesProfitAdj = flatAmount; // Entire flat amount is the adjustment
+  } else {
+    // PERCENTAGE MODE: Use multiplier (current behavior)
+    // Get amounts after sales profit multiplier
+    l = lAfterBranch * salesProfitMultiplier;
+
+    // Apply sales profit multiplier to travel cost
+    travelCost = travelBase * salesProfitMultiplier;
+
+    salesProfitAdj = (l - lAfterBranch) + (travelCost - travelBase);
+  }
+
   const m = materialSubtotalWithoutCommission(); // Includes overridden materials (with commission backed out, NO Sales Profit)
 
-  // Apply sales profit multiplier to travel cost
-  const travelCost = travelBase * salesProfitMultiplier;
-  // Calculate travel sales profit amount
+  // Calculate travel sales profit amount for display
   const travelSalesProfit = travelCost - travelBase;
 
   // Calculate overhead (difference between base and after-branch amounts)
@@ -291,6 +313,9 @@ export function syncFlatFromPercent() {
   const flatInput = el('salesProfitFlat');
   if (!pctInput || !flatInput) return;
 
+  appState.salesProfitInputMode = 'percentage'; // Set mode to percentage
+  appState.salesProfitFlatAmount = 0; // Reset flat amount when switching to percentage mode
+
   const pct = Number(pctInput.value) || 0;
   const subTotal = appState.suggestedSellingPrice || 0;
   const flat = subTotal * (pct / 100);
@@ -312,6 +337,9 @@ export function syncPercentFromFlat() {
   if (!pctInput || !flatInput) return;
 
   const flat = Number(flatInput.value) || 0;
+  appState.salesProfitFlatAmount = flat; // Store the actual flat amount
+  appState.salesProfitInputMode = 'flat'; // Set mode to flat
+
   const subTotal = appState.suggestedSellingPrice || 0;
   const pct = subTotal > 0 ? (flat / subTotal) * 100 : 0;
 
