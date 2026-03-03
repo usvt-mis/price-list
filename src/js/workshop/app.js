@@ -188,8 +188,8 @@ function setupEventListeners() {
   el('salesProfitPct')?.addEventListener('change', () => {
     syncFlatFromPercent();
     renderLabor();
-    renderMaterials();
     calcAll();
+    renderMaterials();
     if (globalExports.markDirty) globalExports.markDirty();
   });
 
