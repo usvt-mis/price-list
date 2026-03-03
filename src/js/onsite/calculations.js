@@ -83,34 +83,24 @@ export function calcAll() {
   // Get sales profit multiplier (user-editable)
   const salesProfitMultiplier = getSalesProfitMultiplier();
 
-  // Calculate Sales Profit based on input mode
+  // Calculate Sales Profit - ALWAYS applied to Labor ONLY
+  // (Percentage and Flat Amount inputs are linked - both behave identically)
   let l, travelCost, onsiteOptionsCost;
   let salesProfitAdj;
 
   if (appState.salesProfitInputMode === 'flat' && appState.salesProfitFlatAmount > 0) {
-    // FLAT AMOUNT MODE: Add entire amount to Labor
+    // FLAT AMOUNT: Add entire amount to Labor
     const flatAmount = appState.salesProfitFlatAmount;
-
-    // Apply flat amount to Labor (checked jobs only)
     l = lAfterBranch + flatAmount;
-
-    // Travel and Onsite Options: No Sales Profit (keep base amounts)
     travelCost = travelBase;
     onsiteOptionsCost = onsiteOptionsBase;
-
-    salesProfitAdj = flatAmount; // Entire flat amount is the adjustment
+    salesProfitAdj = flatAmount;
   } else {
-    // PERCENTAGE MODE: Use multiplier (current behavior)
-    // Get amounts after sales profit multiplier
+    // PERCENTAGE: Apply multiplier to Labor ONLY
     l = lAfterBranch * salesProfitMultiplier;
-
-    // Apply sales profit multiplier to travel cost
-    travelCost = travelBase * salesProfitMultiplier;
-
-    // Apply sales profit multiplier to onsite options
-    onsiteOptionsCost = onsiteOptionsBase * salesProfitMultiplier;
-
-    salesProfitAdj = (l - lAfterBranch) + (travelCost - travelBase) + (onsiteOptionsCost - onsiteOptionsBase);
+    travelCost = travelBase;  // No sales profit
+    onsiteOptionsCost = onsiteOptionsBase;  // No sales profit
+    salesProfitAdj = l - lAfterBranch;  // Only Labor adjustment
   }
 
   const m = materialSubtotalWithoutCommission(); // Includes overridden materials (with commission backed out, NO Sales Profit)

@@ -23,21 +23,19 @@ This is a Price List Calculator - a web application for calculating service cost
 
 1. **Labor**: Job manhours × branch-specific cost per hour
 2. **Materials**: User-selected materials with quantities using **tiered pricing** (supports manual Final Price override per item)
-3. **Sales Profit**: User-editable percentage OR flat amount applied after branch multipliers
-   - **Percentage Mode**: Multiplier applied to Labor + Travel + Onsite Options
-   - **Flat Amount Mode**: Entire amount added to Labor only (Travel & Onsite Options keep base amounts)
+3. **Sales Profit**: Applied to Labor ONLY (Travel & Onsite Options keep base amounts)
+   - The Sales Profit percentage and flat amount inputs are linked - entering one auto-calculates the other
+   - Both inputs behave identically: Sales Profit is applied to Labor section ONLY
    - Can be negative for discounts
 4. **Travel/Shipping**: Distance in Km × 15 baht/km rate
 5. **Onsite Options** (Onsite only): Optional add-ons with custom prices
 
 **Treatment**:
 - **Labor**: Affected by branch multipliers (Overhead%, PolicyProfit%) and Sales Profit
-  - Percentage Mode: Multiplier applied
+  - Percentage Mode: Multiplier applied to Labor only
   - Flat Amount Mode: Entire flat amount distributed proportionally to each job based on raw cost contribution, then commission applied
 - **Materials**: Uses **tiered pricing** (skips branch multipliers AND Sales Profit, only commission is applied)
-- **Travel & Onsite Options**: NOT affected by branch multipliers
-  - Percentage Mode: Sales Profit multiplier applied
-  - Flat Amount Mode: No Sales Profit (keep base amounts)
+- **Travel & Onsite Options**: NOT affected by branch multipliers OR Sales Profit (keep base amounts only)
 
 **Tiered Materials Pricing Formula**:
 The tier is determined by UnitCost alone, then multiplied by Quantity:
