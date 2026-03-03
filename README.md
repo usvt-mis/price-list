@@ -50,7 +50,7 @@ The Price List Calculator computes total cost based on four components:
   - **Settings Tab**: Displays authentication info
 
 ### UI Features
-- **Collapsible Section Cards**: Labor, Materials, and Travel sections can be collapsed/expanded
+- **Collapsible Section Cards**: Labor, Materials, Travel, and Onsite Options sections can be collapsed/expanded
   - Click the section header to toggle (entire header is clickable)
   - Subtotal visible in header when collapsed
   - Chevron icon rotates to indicate state (up when collapsed, down when expanded)

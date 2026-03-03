@@ -35,7 +35,7 @@ export let recordsViewMode = localStorage.getItem(`${STORAGE_KEYS.STORAGE_PREFIX
 // ========== Onsite-Specific State ==========
 
 // Section IDs that can be collapsed (excluding summary)
-export const COLLAPSIBLE_SECTION_IDS = ['laborSection', 'materialsSection', 'travelSection'];
+export const COLLAPSIBLE_SECTION_IDS = ['laborSection', 'materialsSection', 'travelSection', 'onsiteOptionsSection'];
 
 // Scope for onsite calculations
 export let currentScope = localStorage.getItem(STORAGE_KEYS.SCOPE) || '';

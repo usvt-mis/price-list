@@ -183,6 +183,7 @@ export function updateOnsiteOptionsSubtotal() {
   }
 
   el('onsiteOptionsSubtotal').textContent = subtotal.toFixed(2);
+  if (el('onsiteOptionsSubtotalHeader')) el('onsiteOptionsSubtotalHeader').textContent = subtotal.toFixed(2);
   return subtotal;
 }
 
@@ -373,4 +374,5 @@ export function resetOnsiteOptions() {
   if (el('safetyPrice')) el('safetyPrice').value = '';
 
   if (el('onsiteOptionsSubtotal')) el('onsiteOptionsSubtotal').textContent = '0.00';
+  if (el('onsiteOptionsSubtotalHeader')) el('onsiteOptionsSubtotalHeader').textContent = '0.00';
 }
