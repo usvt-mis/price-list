@@ -159,7 +159,52 @@ export function calcAll() {
 
   // Calculate new Grand Total = sum of all Final Prices + travel Final Price
   // Final Price for each row = Selling Price × (1 + commissionPercent/100)
-  const laborFinalPricesSum = l * (1 + appState.commissionPercent / 100);
+  // Calculate labor subtotal by summing individual job final prices (ensures consistency with row display)
+  const branch = getSelectedBranch();
+  const cph = branch ? Number(branch.CostPerHour) : NaN;
+  let laborFinalPricesSum = 0;
+
+  if (Number.isFinite(cph)) {
+    const branchMultiplier = getBranchMultiplier();
+    const salesProfitMultiplier = getSalesProfitMultiplier();
+    const isFlatMode = appState.salesProfitInputMode === 'flat' && appState.salesProfitFlatAmount > 0;
+
+    if (isFlatMode) {
+      // FLAT MODE: Calculate each job's final price individually with proportional flat amount distribution
+      const totalSelectedRawCost = appState.labor
+        .filter(j => j.checked !== false)
+        .reduce((sum, j) => {
+          const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
+          return sum + mh * cph;
+        }, 0);
+
+      laborFinalPricesSum = appState.labor
+        .filter(j => j.checked !== false)
+        .reduce((sum, job) => {
+          const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
+          const rawCost = mh * cph;
+          const costAfterBranch = rawCost * branchMultiplier;
+          const jobShare = totalSelectedRawCost > 0 ? rawCost / totalSelectedRawCost : 0;
+          const jobFlatAmount = appState.salesProfitFlatAmount * jobShare;
+          const cost = costAfterBranch + jobFlatAmount;
+          const finalPrice = cost * (1 + appState.commissionPercent / 100);
+          return sum + (Number.isFinite(finalPrice) ? finalPrice : 0);
+        }, 0);
+    } else {
+      // PERCENTAGE MODE: Use complete multiplier for consistent calculation
+      const multiplier = getCompleteMultiplier();
+      const adjustedCph = cph * multiplier;
+
+      laborFinalPricesSum = appState.labor
+        .filter(j => j.checked !== false)
+        .reduce((sum, job) => {
+          const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
+          const cost = mh * adjustedCph;
+          const finalPrice = cost * (1 + appState.commissionPercent / 100);
+          return sum + (Number.isFinite(finalPrice) ? finalPrice : 0);
+        }, 0);
+    }
+  }
   const materialsFinalPricesSum = materialSubtotal(); // Already includes commission for overridden items
   const materialsFinalPricesNoCommission = materialSubtotalWithoutCommission(); // WITHOUT commission (for breakdown display)
   const travelFinalPrice = travelCost * (1 + appState.commissionPercent / 100);
