@@ -115,9 +115,6 @@ export function calcAll() {
   // Materials use tiered pricing, not branch multipliers, so only Labor overhead is included
   const overhead = lAfterBranch - lBase;
 
-  // Calculate sales profit adjustment (labor + travel only - materials excluded)
-  const salesProfitAdj = (l - lAfterBranch) + travelSalesProfit;
-
   // Sub Grand Total = labor + materials + travel cost (with sales profit applied)
   const subGrandTotal = l + m + travelCost;
 
