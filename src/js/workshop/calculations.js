@@ -347,12 +347,12 @@ export function syncFlatFromPercent() {
   const flatInput = el('salesProfitFlat');
   if (!pctInput || !flatInput) return;
 
-  appState.salesProfitInputMode = 'percentage'; // Set mode to percentage
-  appState.salesProfitFlatAmount = 0; // Reset flat amount when switching to percentage mode
-
   const pct = Number(pctInput.value) || 0;
   const subTotal = appState.suggestedSellingPrice || 0;
   const flat = subTotal * (pct / 100);
+
+  appState.salesProfitInputMode = 'percentage';
+  appState.salesProfitFlatAmount = flat; // Store the calculated amount
 
   appState.isUpdatingSalesProfit = true;
   flatInput.value = flat.toFixed(2);
