@@ -80,28 +80,19 @@ export function calcAll() {
     return sum + calculateTieredMaterialPrice(rawCost);
   }, 0);
 
-  // Get sales profit multiplier (user-editable)
-  const salesProfitMultiplier = getSalesProfitMultiplier();
-
   // Calculate Sales Profit - ALWAYS applied to Labor ONLY
-  // (Percentage and Flat Amount inputs are linked - both behave identically)
+  // (Percentage and Flat Amount inputs are linked - both use the same calculation method)
+  // Both modes use flat amount distribution proportional to raw cost for consistency
   let l, travelCost, onsiteOptionsCost;
   let salesProfitAdj;
 
-  if (appState.salesProfitInputMode === 'flat' && appState.salesProfitFlatAmount > 0) {
-    // FLAT AMOUNT: Add entire amount to Labor
-    const flatAmount = appState.salesProfitFlatAmount;
-    l = lAfterBranch + flatAmount;
-    travelCost = travelBase;
-    onsiteOptionsCost = onsiteOptionsBase;
-    salesProfitAdj = flatAmount;
-  } else {
-    // PERCENTAGE: Apply multiplier to Labor ONLY
-    l = lAfterBranch * salesProfitMultiplier;
-    travelCost = travelBase;  // No sales profit
-    onsiteOptionsCost = onsiteOptionsBase;  // No sales profit
-    salesProfitAdj = l - lAfterBranch;  // Only Labor adjustment
-  }
+  // ALWAYS use flat amount (calculated from percentage or entered directly)
+  // syncFlatFromPercent() ensures appState.salesProfitFlatAmount is set when percentage changes
+  const flatAmount = appState.salesProfitFlatAmount || 0;
+  l = lAfterBranch + flatAmount;
+  travelCost = travelBase;
+  onsiteOptionsCost = onsiteOptionsBase;
+  salesProfitAdj = flatAmount;
 
   const m = materialSubtotalWithoutCommission(); // Includes overridden materials (with commission backed out, NO Sales Profit)
 
@@ -164,44 +155,27 @@ export function calcAll() {
 
   if (Number.isFinite(cph)) {
     const branchMultiplier = getBranchMultiplier();
-    const salesProfitMultiplier = getSalesProfitMultiplier();
-    const isFlatMode = appState.salesProfitInputMode === 'flat' && appState.salesProfitFlatAmount > 0;
+    // ALWAYS use proportional flat amount distribution for ALL modes (percentage or flat)
+    // This ensures consistent results regardless of which input method is used
+    const totalSelectedRawCost = appState.labor
+      .filter(j => j.checked !== false)
+      .reduce((sum, j) => {
+        const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
+        return sum + mh * cph;
+      }, 0);
 
-    if (isFlatMode) {
-      // FLAT MODE: Calculate each job's final price individually with proportional flat amount distribution
-      const totalSelectedRawCost = appState.labor
-        .filter(j => j.checked !== false)
-        .reduce((sum, j) => {
-          const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
-          return sum + mh * cph;
-        }, 0);
-
-      laborFinalPricesSum = appState.labor
-        .filter(j => j.checked !== false)
-        .reduce((sum, job) => {
-          const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
-          const rawCost = mh * cph;
-          const costAfterBranch = rawCost * branchMultiplier;
-          const jobShare = totalSelectedRawCost > 0 ? rawCost / totalSelectedRawCost : 0;
-          const jobFlatAmount = appState.salesProfitFlatAmount * jobShare;
-          const cost = costAfterBranch + jobFlatAmount;
-          const finalPrice = cost * (1 + appState.commissionPercent / 100);
-          return sum + (Number.isFinite(finalPrice) ? finalPrice : 0);
-        }, 0);
-    } else {
-      // PERCENTAGE MODE: Use complete multiplier for consistent calculation
-      const multiplier = getCompleteMultiplier();
-      const adjustedCph = cph * multiplier;
-
-      laborFinalPricesSum = appState.labor
-        .filter(j => j.checked !== false)
-        .reduce((sum, job) => {
-          const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
-          const cost = mh * adjustedCph;
-          const finalPrice = cost * (1 + appState.commissionPercent / 100);
-          return sum + (Number.isFinite(finalPrice) ? finalPrice : 0);
-        }, 0);
-    }
+    laborFinalPricesSum = appState.labor
+      .filter(j => j.checked !== false)
+      .reduce((sum, job) => {
+        const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
+        const rawCost = mh * cph;
+        const costAfterBranch = rawCost * branchMultiplier;
+        const jobShare = totalSelectedRawCost > 0 ? rawCost / totalSelectedRawCost : 0;
+        const jobFlatAmount = (appState.salesProfitFlatAmount || 0) * jobShare;
+        const cost = costAfterBranch + jobFlatAmount;
+        const finalPrice = cost * (1 + appState.commissionPercent / 100);
+        return sum + (Number.isFinite(finalPrice) ? finalPrice : 0);
+      }, 0);
   }
   const materialsFinalPricesSum = materialSubtotal(); // Already includes commission for overridden items
   const materialsFinalPricesNoCommission = materialSubtotalWithoutCommission(); // WITHOUT commission (for breakdown display)

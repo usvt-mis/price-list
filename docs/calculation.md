@@ -42,13 +42,14 @@ SalesProfitMultiplier = (1 + SalesProfit%/100)
 - SSP is used as the base for this calculation (which excludes Sales Profit itself)
 - This ensures the flat amount is always based on the pre-Sales-Profit total
 - Sync functions: `syncFlatFromPercent()` and `syncPercentFromFlat()` in calculations.js
+- **Both percentage and flat modes use the same calculation method** for consistency
 
-**Flat Amount Distribution**:
-- When using Flat Amount mode (`salesProfitInputMode === 'flat'`), the entire flat amount is distributed proportionally to each checked job based on its raw cost contribution
+**Flat Amount Distribution (applies to BOTH percentage and flat modes)**:
+- The entire flat amount is distributed proportionally to each checked job based on its raw cost contribution
 - Formula for individual job distribution:
   ```
   Job_Raw_Cost = CostPerHour × effectiveManHours
- _Total_Selected_Raw_Cost = sum of all Job_Raw_Cost for checked jobs
+  Total_Selected_Raw_Cost = sum of all Job_Raw_Cost for checked jobs
   Job_Share = Job_Raw_Cost / Total_Selected_Raw_Cost
   Job_Flat_Amount = Flat_Amount × Job_Share
   Job_Cost_After_Branch = Job_Raw_Cost × BranchMultiplier
@@ -56,7 +57,9 @@ SalesProfitMultiplier = (1 + SalesProfit%/100)
   ```
 - Cost+Ovh+PP column displays `Job_Cost_After_Branch` (excludes the flat amount)
 - Final Price includes the distributed flat amount plus commission
-- Percentage mode uses traditional multiplier approach unchanged
+- When using percentage mode, `syncFlatFromPercent()` calculates the flat amount from SSP, then distributes it proportionally
+- When using flat mode, the entered flat amount is distributed proportionally
+- This ensures consistent commission values regardless of which input method is used
 
 ### Complete Multiplier
 ```
@@ -80,22 +83,19 @@ Cost_Before_Sales_Profit = effectiveManHours × CostPerHour × BranchMultiplier
 ```
 
 **Final Price** (with commission):
-- **Percentage Mode**:
-  ```
-  Selling_Price = effectiveManHours × CostPerHour × CompleteMultiplier
-  Final_Price = Selling_Price × (1 + commissionPercent / 100)
-  ```
-
-- **Flat Amount Mode**:
+- **Both Percentage and Flat Amount Modes** use the same calculation method:
   ```
   Job_Share = Raw_Cost / Total_Selected_Raw_Cost
   Job_Cost_After_Branch = Raw_Cost × BranchMultiplier
   Job_Flat_Amount = Flat_Amount × Job_Share
   Final_Price = (Job_Cost_After_Branch + Job_Flat_Amount) × (1 + commissionPercent / 100)
   ```
-  - The flat amount is distributed proportionally to each job based on its raw cost contribution
-  - Cost+Ovh+PP displays `Job_Cost_After_Branch` (excludes flat amount)
-  - Final Price includes the distributed flat amount plus commission
+- When using percentage mode, the flat amount is calculated as `SSP × SalesProfit%` via `syncFlatFromPercent()`
+- When using flat mode, the flat amount is entered directly by the user
+- The flat amount is distributed proportionally to each job based on its raw cost contribution
+- Cost+Ovh+PP displays `Job_Cost_After_Branch` (excludes flat amount)
+- Final Price includes the distributed flat amount plus commission
+- This ensures consistent results regardless of which input method is used
 
 ### Labor Subtotal
 ```
