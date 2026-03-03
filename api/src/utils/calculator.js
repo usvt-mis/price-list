@@ -49,7 +49,7 @@ function calculateTieredMaterialPrice(unitCost) {
  * 4. Onsite Options = Crane + 4People + Safety (if enabled) × SalesProfitMultiplier
  * 5. Branch Multiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)
  * 6. Sales Profit Multiplier = 1 + SalesProfitPct / 100
- * 7. Suggested Selling Price (SSP) = Labor × BranchMultiplier × SalesProfitMultiplier + Materials (tiered base only, NO Sales Profit) + Travel × SalesProfitMultiplier + Onsite Options × SalesProfitMultiplier
+ * 7. Standard Selling Price (SSP) = Labor × BranchMultiplier × SalesProfitMultiplier + Materials (tiered base only, NO Sales Profit) + Travel × SalesProfitMultiplier + Onsite Options × SalesProfitMultiplier
  *    - SSP excludes manual overrides for consistency
  * 8. Sub Grand Total (SGT) = Same as SSP but includes manual overrides (Actual Selling Price)
  * 9. Commission % based on SGT vs SSP ratio (tiered: 0%, 1%, 2%, 2.5%, 5%)
@@ -161,7 +161,7 @@ async function calculateGrandTotal(poolOrTransaction, saveData, calculatorType =
   const materialsNormal = materialSubtotalNormal; // No sales profit applied
   const materialsAfterSalesProfit = materialsNormal + materialSubtotalOverridden;
 
-  // Calculate SSP (Suggested Selling Price) for commission ratio
+  // Calculate SSP (Standard Selling Price) for commission ratio
   // SSP = Labor + Materials (tiered base only, NO Sales Profit) + Travel + Onsite Options
   // Labor, Travel, Onsite Options have sales profit applied, Materials do NOT
   // No commission, and overrides are excluded
@@ -174,7 +174,7 @@ async function calculateGrandTotal(poolOrTransaction, saveData, calculatorType =
 
   // Calculate commission percentage based on SGT vs SSP ratio
   // SGT = Actual Selling Price (includes manual overrides)
-  // SSP = Suggested Selling Price (excludes manual overrides)
+  // SSP = Standard Selling Price (excludes manual overrides)
   // Higher ratio = user set prices above suggested = higher commission %
   const ratio = subGrandTotal / (suggestedSellingPrice || 1);
   let commissionPercent = 0;

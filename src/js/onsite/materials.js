@@ -435,7 +435,7 @@ export function materialSubtotalWithoutCommission() {
  * Calculate materials subtotal SUGGESTED PRICE (sum of "Selling Price (Suggested)" from Materials section)
  * For ALL items: returns the calculated suggested selling price with commission applied (NO Sales Profit)
  * IMPORTANT: This function IGNORES manual overrides - it always returns the calculated tiered price
- * Used for the "Suggested Material Price" display in Summary COST BREAKDOWN
+ * Used for the "Standard Material Price" display in Summary COST BREAKDOWN
  * @returns {number} Material subtotal suggested price (tiered price with commission only)
  */
 export function materialSubtotalSuggested() {
@@ -443,7 +443,7 @@ export function materialSubtotalSuggested() {
 
   return appState.materialLines.reduce((sum, ln) => {
     // Always use the calculated tiered price, ignoring manual overrides
-    // This ensures the "Suggested Material Price" stays consistent even when Final Price is overridden
+    // This ensures the "Standard Material Price" stays consistent even when Final Price is overridden
     if (!Number.isFinite(ln.unitCost)) return sum;
     // TIERED PRICING: Return full suggested selling price (with commission only, NO Sales Profit)
     // This matches the "Selling Price (Suggested)" column in the Materials table
@@ -455,7 +455,7 @@ export function materialSubtotalSuggested() {
  * Calculate materials subtotal SUGGESTED PRICE WITHOUT commission (for SSP calculation)
  * For ALL items: returns the calculated suggested selling price WITHOUT commission (NO Sales Profit)
  * IMPORTANT: This function IGNORES manual overrides - it always returns the calculated tiered price
- * Used for SSP (Suggested Selling Price) calculation - excludes manual overrides for consistency
+ * Used for SSP (Standard Selling Price) calculation - excludes manual overrides for consistency
  * @returns {number} Material subtotal suggested price without commission (tiered base price only)
  */
 export function materialSubtotalSuggestedWithoutCommission() {

@@ -64,7 +64,7 @@ Final Travel Price = Base Travel Cost × SalesProfitMultiplier × (1 + Commissio
 
 Where:
 - SGT = Sub Grand Total (labor + materials + travel with all multipliers, includes manual overrides)
-- SSP = Suggested Selling Price (labor + materials + travel with all multipliers, excludes manual overrides)
+- SSP = Standard Selling Price (labor + materials + travel with all multipliers, excludes manual overrides)
 
 **Commission Ratio Formula**: `ratio = SGT / SSP`
 - Higher ratio = user set prices above suggested = higher commission %

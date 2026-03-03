@@ -107,7 +107,7 @@ export function calcAll() {
   // Sub Grand Total = labor + materials + travel + onsite options (with sales profit applied)
   const subGrandTotal = l + m + travelCost + onsiteOptionsCost;
 
-  // === Suggested Selling Price (SSP) WITHOUT Sales Profit ===
+  // === Standard Selling Price (SSP) WITHOUT Sales Profit ===
   // SSP for display and commission calculation: base costs BEFORE Sales Profit is applied
   // This ensures SSP only changes when Labor, Materials, Travel, or Onsite Options change
   // = Labor (after branch only) + Materials (tiered base only) + Travel (base) + Onsite Options (base)
@@ -126,7 +126,7 @@ export function calcAll() {
 
   // Calculate commission percentage based on SGT vs SSP ratio
   // SGT = Actual Selling Price (includes manual overrides)
-  // SSP = Suggested Selling Price (excludes manual overrides)
+  // SSP = Standard Selling Price (excludes manual overrides)
   // Higher ratio = user set prices above suggested = higher commission %
   const gtToSspRatio = Number.isFinite(subGrandTotal) && Number.isFinite(suggestedSellingPrice) && suggestedSellingPrice > 0
     ? subGrandTotal / suggestedSellingPrice
@@ -170,8 +170,8 @@ export function calcAll() {
   el('grandTotalRawCost').textContent = Number.isFinite(lBase) ? fmt(lBase) : '—'; // Raw Labor (labor base cost only)
   el('grandRawMaterials').textContent = fmt(mRawAll); // Raw Materials (all materials at base unit cost)
   el('grandOverhead').textContent = fmt(overhead); // Overhead + Policy Profit (branch multipliers only, no sales profit)
-  el('grandSuggestedMaterialPrice').textContent = fmt(mAfterBranch); // Suggested Material Price (tiered base without Sales Profit & Commission)
-  el('grandSubTotalBeforeSalesProfit').textContent = fmt(suggestedSellingPriceBeforeSalesProfit); // SSP: Suggested Selling Price (without commission, excludes overrides, BEFORE Sales Profit)
+  el('grandSuggestedMaterialPrice').textContent = fmt(mAfterBranch); // Standard Material Price (tiered base without Sales Profit & Commission)
+  el('grandSubTotalBeforeSalesProfit').textContent = fmt(suggestedSellingPriceBeforeSalesProfit); // SSP: Standard Selling Price (without commission, excludes overrides, BEFORE Sales Profit)
   el('grandCommissionPercent').textContent = appState.commissionPercent + '%';
   el('grandCommission').textContent = fmt(commission);
 
@@ -224,7 +224,7 @@ export function calcAll() {
     }
   }
 
-  // Hide "Suggested Material Price" row in Sales mode
+  // Hide "Standard Material Price" row in Sales mode
   const suggestedMaterialPriceRow = el('suggestedMaterialPriceRow');
   if (suggestedMaterialPriceRow) {
     if (isExecutiveMode()) {

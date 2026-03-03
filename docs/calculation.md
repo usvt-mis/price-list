@@ -128,7 +128,7 @@ Materials Subtotal = sum of all Final Prices (or override values if set)
 **Note on Commission Calculation**:
 - Overridden material rows are **excluded** from the commission tier calculation base (`materialSubtotalBase()`)
 - This prevents circular dependencies since override prices already include all calculations
-- Only non-overridden materials contribute to the Suggested Selling Price (SSP) used for commission ratio
+- Only non-overridden materials contribute to the Standard Selling Price (SSP) used for commission ratio
 
 **Important Changes**:
 - **Cost+Ovh+PP column is hidden** for Materials (not applicable with tiered pricing)
@@ -154,9 +154,9 @@ Travel_Final_Price = Km × 15 × SalesProfitMultiplier × (1 + commissionPercent
 
 ## Grand Total Calculations
 
-### Suggested Material Price
+### Standard Material Price
 ```
-Suggested Material Price = sum of all tiered base prices (F)
+Standard Material Price = sum of all tiered base prices (F)
 ```
 - Pure tiered pricing calculation (UnitCost → tier, then × Quantity)
 - No branch multipliers (Overhead%, PolicyProfit%)
@@ -165,9 +165,9 @@ Suggested Material Price = sum of all tiered base prices (F)
 - Displayed in Executive mode only (hidden in Sales mode)
 - Element ID: `grandSuggestedMaterialPrice`
 
-### Suggested Selling Price (SSP)
+### Standard Selling Price (SSP)
 ```
-Suggested Selling Price = Labor (after branch only) + Materials (tiered base only) + Travel (base) + Onsite Options (base)
+Standard Selling Price = Labor (after branch only) + Materials (tiered base only) + Travel (base) + Onsite Options (base)
 ```
 - Labor: With branch multipliers only (NO sales profit multiplier)
 - Materials: **Tiered base price (F)** only - excludes manual overrides, NO sales profit
@@ -175,7 +175,7 @@ Suggested Selling Price = Labor (after branch only) + Materials (tiered base onl
 - Onsite Options: Base cost only (NO sales profit multiplier)
 - Excludes commission, excludes manual overrides, **excludes Sales Profit**
 - Used for commission ratio calculation (comparing actual vs suggested)
-- Displayed in Executive mode only as "Suggested Selling Price"
+- Displayed in Executive mode only as "Standard Selling Price"
 - **Key Behavior**: SSP only changes when Labor, Materials, Travel, or Onsite Options change - NOT when Sales Profit % changes (Materials never had Sales Profit, so this remains consistent)
 
 ### Sub Grand Total (SGT)
@@ -206,10 +206,10 @@ Grand Total = Labor Final Prices + Materials Final Prices + Travel Final Price +
 ## Commission Calculation
 
 ### Overview
-Commission is calculated based on the ratio of Sub Grand Total (SGT) to Suggested Selling Price (SSP).
+Commission is calculated based on the ratio of Sub Grand Total (SGT) to Standard Selling Price (SSP).
 
 - **SGT (Sub Grand Total)**: Actual Selling Price (includes manual overrides, Labor/Travel/Onsite Options include Sales Profit, Materials do NOT)
-- **SSP (Suggested Selling Price)**: Suggested Price (excludes manual overrides, excludes Sales Profit)
+- **SSP (Standard Selling Price)**: Standard Price (excludes manual overrides, excludes Sales Profit)
 - **Ratio**: SGT / SSP - Higher ratio means user set prices above suggested = higher commission %
 
 **Important**: The ratio remains stable when Sales Profit % changes because SGT includes Sales Profit (for Labor/Travel/Onsite Options) while SSP excludes it. Materials never had Sales Profit, so they don't affect the ratio stability. This ensures commission % is based on actual pricing decisions (overrides), not Sales Profit adjustments.

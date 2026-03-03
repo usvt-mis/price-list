@@ -82,7 +82,7 @@ export function calculateSalesProfitMultiplier(salesProfitPercent) {
 /**
  * Get commission percent based on Grand Total to SSP ratio
  * @param {number} grandTotal - Grand total after sales profit
- * @param {number} suggestedSellingPrice - Suggested Selling Price (SSP) without commission
+ * @param {number} suggestedSellingPrice - Standard Selling Price (SSP) without commission
  * @param {Array} commissionTiers - Array of commission tier objects
  * @returns {number} Commission percentage
  */
