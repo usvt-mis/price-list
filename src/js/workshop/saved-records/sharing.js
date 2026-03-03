@@ -151,7 +151,8 @@ export async function editRecord(saveId) {
   } catch (e) {
     console.error(e);
     if (e.message?.includes('403') || e.message?.includes('403')) {
-      showNotification('You can only edit your own records');
+      const { showAccessDeniedModal } = await import('./ui.js');
+      showAccessDeniedModal();
     } else {
       showNotification('Failed to load record');
     }

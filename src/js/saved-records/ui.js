@@ -464,3 +464,18 @@ export function showDeleteSuccessModal(runNumber) {
 export function hideDeleteSuccessModal() {
   el('deleteSuccessModal')?.classList.add('hidden');
 }
+
+/**
+ * Show access denied modal when user tries to edit someone else's record
+ */
+export function showAccessDeniedModal() {
+  const modal = el('accessDeniedModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+/**
+ * Hide access denied modal
+ */
+export function hideAccessDeniedModal() {
+  el('accessDeniedModal')?.classList.add('hidden');
+}

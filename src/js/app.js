@@ -433,6 +433,13 @@ function setupEventListeners() {
     if (globalExports.hideDeleteSuccessModal) globalExports.hideDeleteSuccessModal();
   });
 
+  // Access Denied Modal close button
+  el('accessDeniedCloseBtn')?.addEventListener('click', () => {
+    import('./saved-records/ui.js').then(module => {
+      module.hideAccessDeniedModal();
+    });
+  });
+
   el('batchDeleteSummaryDoneBtn')?.addEventListener('click', () => {
     el('batchDeleteSummaryModal').classList.add('hidden');
   });

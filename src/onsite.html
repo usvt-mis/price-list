@@ -990,6 +990,26 @@
       </div>
     </div>
 
+    <!-- Access Denied Error Modal (hidden by default) -->
+    <div id="accessDeniedModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">
+        <!-- Error Icon (Lock/Forbidden) -->
+        <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+          </svg>
+        </div>
+
+        <h3 class="text-2xl font-bold text-slate-900 mb-1">Access Denied</h3>
+        <p class="text-slate-500 text-sm mb-6">You can only edit your own records.</p>
+
+        <!-- Action Button -->
+        <button id="accessDeniedCloseBtn" class="w-full px-4 py-3 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors">
+          OK
+        </button>
+      </div>
+    </div>
+
     <!-- Batch Delete Progress Modal (hidden by default) -->
     <div id="batchDeleteProgressModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
       <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 text-center">

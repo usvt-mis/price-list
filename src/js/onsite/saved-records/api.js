@@ -264,7 +264,8 @@ export async function saveCalculation() {
         showNotification('Authentication required');
         return;
       } else if (response.status === 403) {
-        showNotification('You can only edit your own records');
+        const { showAccessDeniedModal } = await import('./ui.js');
+        showAccessDeniedModal();
         return;
       }
 
