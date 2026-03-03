@@ -169,6 +169,10 @@ export async function deleteRecord(saveId, runNumber) {
     return;
   }
 
+  // Optional: Prompt for deletion reason (for audit logging)
+  const deletionReason = prompt('Optional: Reason for deletion (leave blank to skip):', '');
+  const reason = deletionReason && deletionReason.trim() !== '' ? deletionReason.trim() : null;
+
   // Find the card element
   const card = document.querySelector(`[data-save-id="${saveId}"]`);
   const cardClone = card ? card.cloneNode(true) : null;
@@ -192,9 +196,17 @@ export async function deleteRecord(saveId, runNumber) {
   console.log(`[deleteRecord] Attempting to delete SaveId: ${saveId}`);
 
   try {
-    const response = await fetchWithAuth(`/api/onsite/calculations/${saveId}`, {
-      method: 'DELETE'
-    });
+    const requestOptions = {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    };
+
+    // Include deletion reason in request body if provided
+    if (reason !== null) {
+      requestOptions.body = JSON.stringify({ reason });
+    }
+
+    const response = await fetchWithAuth(`/api/onsite/calculations/${saveId}`, requestOptions);
 
     // Log response status
     console.log(`[deleteRecord] Response status: ${response.status}`);

@@ -30,6 +30,17 @@ const getBaseURL = (req) => {
   return `${protocol}://${host}`;
 };
 
+/**
+ * Helper to get client IP address for audit logging
+ * Follows pattern from backoffice routes
+ */
+function getClientIP(req) {
+  return (req.headers['x-forwarded-for'] || '').split(',')[0]?.trim() ||
+         req.headers['x-client-ip'] ||
+         req.socket?.remoteAddress ||
+         'unknown';
+}
+
 // Helper function to generate UUID v4
 function generateUUID() {
   // Simple UUID v4 generator
@@ -836,11 +847,20 @@ router.delete('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Workshop calculation not found' });
     }
 
+    // Capture audit information for deletion logging
+    const clientIP = getClientIP(req);
+    const userAgent = req.headers['user-agent'] || null;
+    const deletionReason = req.body?.reason || null;
+
     // Use stored procedure to delete child records and soft delete parent
-    const deleteResult = await pool.request()
+    const deleteRequest = pool.request()
       .input('SaveId', sql.Int, saveId)
       .input('DeletedBy', sql.NVarChar(255), userEmail)
-      .execute('DeleteWorkshopSavedCalculation');
+      .input('ClientIP', sql.NVarChar(100), clientIP)
+      .input('UserAgent', sql.NVarChar(500), userAgent)
+      .input('DeletionReason', sql.NVarChar(500), deletionReason);
+
+    const deleteResult = await deleteRequest.execute('DeleteWorkshopSavedCalculation');
 
     // Check if stored procedure returned an error
     const result = deleteResult.recordset[0];
@@ -857,7 +877,9 @@ router.delete('/:id', async (req, res, next) => {
     }
 
     timer.stop('DELETE', 'DeleteSuccess', `Successfully deleted workshop calculation: ${saveId}`, {
-      saveId
+      saveId,
+      clientIP,
+      hasReason: deletionReason !== null
     });
     res.status(204).send('');
 

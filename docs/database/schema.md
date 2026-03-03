@@ -106,6 +106,57 @@ Audit trail for all role changes:
 
 ---
 
+## Deletion Audit Tables
+
+### OnsiteCalculationDeletionAudit
+Permanent audit trail for onsite calculation deletions:
+
+| Column | Description |
+|--------|-------------|
+| Id (PK) | Auto-incrementing identifier |
+| SaveId | ID of the deleted record |
+| RunNumber | Run number of the deleted record |
+| CreatorEmail | Email of user who created the record |
+| BranchId | Branch associated with the record |
+| GrandTotal | Final total before deletion |
+| DeletedBy | Email of user who performed the deletion |
+| DeletedAt | UTC timestamp of deletion |
+| ClientIP | IP address of deletion request (for accountability) |
+| UserAgent | Browser/client identifier (optional) |
+| DeletionReason | Optional reason for deletion |
+| Scope | Onsite scope value at deletion time |
+| PriorityLevel | Priority level at deletion time |
+| SiteAccess | Site access value at deletion time |
+| CreatedAt | When the original record was created |
+
+### WorkshopCalculationDeletionAudit
+Permanent audit trail for workshop calculation deletions:
+
+| Column | Description |
+|--------|-------------|
+| Id (PK) | Auto-incrementing identifier |
+| SaveId | ID of the deleted record |
+| RunNumber | Run number of the deleted record |
+| CreatorEmail | Email of user who created the record |
+| BranchId | Branch associated with the record |
+| GrandTotal | Final total before deletion |
+| DeletedBy | Email of user who performed the deletion |
+| DeletedAt | UTC timestamp of deletion |
+| ClientIP | IP address of deletion request (for accountability) |
+| UserAgent | Browser/client identifier (optional) |
+| DeletionReason | Optional reason for deletion |
+| EquipmentUsed | Equipment used at deletion time |
+| PickupDeliveryOption | Pickup/delivery option at deletion time |
+| CreatedAt | When the original record was created |
+
+**Indexes:**
+- `SaveId` - Quick lookup by record ID
+- `DeletedAt (DESC)` - Chronological queries for recent deletions
+- `CreatorEmail` - Track deletions by record creator
+- `DeletedBy` - Track deletions by deleter
+
+---
+
 ## Migration Scripts
 
 ### Phase 1 Backoffice (3-tab support)
@@ -143,6 +194,11 @@ Audit trail for all role changes:
 ### Materials Override Final Price
 - `database/migrations/add_override_final_price.sql` - Adds OverrideFinalPrice column to OnsiteSavedCalculationMaterials and WorkshopSavedCalculationMaterials tables for manual price overrides
 - `database/migrations/run-override-final-price-migration.js` - Node.js runner for the OverrideFinalPrice migration
+
+### Deletion Audit Logging
+- `database/migrations/add_deletion_audit_tables.sql` - Creates OnsiteCalculationDeletionAudit and WorkshopCalculationDeletionAudit tables for permanent deletion history
+- `database/migrations/update_delete_stored_procedures_for_audit.sql` - Updates DeleteOnsiteSavedCalculation and DeleteWorkshopSavedCalculation stored procedures to insert audit entries before soft delete
+- `database/diagnose_deletion_audit.sql` - Diagnostic script to verify audit tables, stored procedures, and sample entries
 
 ### UTC Migration
 - `database/migrations/migrate_to_utc.sql` - Idempotent migration script to convert existing timestamps from local time to UTC

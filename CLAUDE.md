@@ -93,6 +93,7 @@ See [docs/backend.md](docs/backend.md) for complete backend documentation.
 - **Onsite Saved Calculations**: OnsiteSavedCalculations, OnsiteSavedCalculationJobs, OnsiteSavedCalculationMaterials
 - **Workshop Saved Calculations**: WorkshopSavedCalculations, WorkshopSavedCalculationJobs, WorkshopSavedCalculationMaterials
 - **Role management**: UserRoles, RoleAssignmentAudit
+- **Deletion audit**: OnsiteCalculationDeletionAudit, WorkshopCalculationDeletionAudit (permanent deletion trail)
 
 See [docs/database/schema.md](docs/database/schema.md) for complete database reference.
 
