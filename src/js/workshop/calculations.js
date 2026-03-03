@@ -4,7 +4,7 @@
  */
 
 import { el, fmt, fmtPercent, makeInputsReadOnly, removeReadOnly } from '../core/utils.js';
-import { appState, isExecutiveMode, isSalesMode, isCustomerMode } from './state.js';
+import { appState, getSelectedBranch, isExecutiveMode, isSalesMode, isCustomerMode } from './state.js';
 import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
 import { materialSubtotalBase, materialSubtotalRawAll, materialSubtotal, materialSubtotalWithoutCommission, materialSubtotalBeforeSalesProfit, materialSubtotalSuggested, materialSubtotalSuggestedWithoutCommission } from './materials.js';
 import { COMMISSION_TIERS } from '../core/config.js';
