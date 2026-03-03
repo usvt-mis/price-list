@@ -10,7 +10,7 @@ const logger = require('./logger');
 /**
  * Calculate tiered material price per unit based on unit cost
  * Per user decision: Materials skip Overhead, Policy Profit, AND Sales Profit multipliers
- * Only commission is applied to the tiered price
+ * Only commission is applied to the tiered base price
  *
  * Formula:
  *   if (unitCost < 50)      pricePerUnit = 250
@@ -49,7 +49,7 @@ function calculateTieredMaterialPrice(unitCost) {
  * 4. Onsite Options = Crane + 4People + Safety (if enabled) × SalesProfitMultiplier
  * 5. Branch Multiplier = (1 + OverheadPercent/100) × (1 + PolicyProfit/100)
  * 6. Sales Profit Multiplier = 1 + SalesProfitPct / 100
- * 7. Suggested Selling Price (SSP) = Labor × BranchMultiplier × SalesProfitMultiplier + Materials (tiered base × SalesProfitMultiplier) + Travel × SalesProfitMultiplier + Onsite Options × SalesProfitMultiplier
+ * 7. Suggested Selling Price (SSP) = Labor × BranchMultiplier × SalesProfitMultiplier + Materials (tiered base only, NO Sales Profit) + Travel × SalesProfitMultiplier + Onsite Options × SalesProfitMultiplier
  *    - SSP excludes manual overrides for consistency
  * 8. Sub Grand Total (SGT) = Same as SSP but includes manual overrides (Actual Selling Price)
  * 9. Commission % based on SGT vs SSP ratio (tiered: 0%, 1%, 2%, 2.5%, 5%)
@@ -155,16 +155,17 @@ async function calculateGrandTotal(poolOrTransaction, saveData, calculatorType =
   logger.debug(`[Calculation-${correlationId}] Onsite options calculated - Base: ${onsiteOptionsBase.toFixed(2)}, After multiplier: ${onsiteOptionsCost.toFixed(2)}`);
 
   // Apply sales profit multiplier to labor only
-  // TIERED PRICING: Materials use sales profit multiplier (tiered base × salesProfitMultiplier)
+  // TIERED PRICING: Materials do NOT use sales profit multiplier (tiered base only, NO Sales Profit)
   // Overridden materials already have all calculations included
   const laborAfterSalesProfit = laborSubtotal * salesProfitMultiplier;
-  const materialsNormalWithSalesProfit = materialSubtotalNormal * salesProfitMultiplier; // Apply sales profit to tiered base
-  const materialsAfterSalesProfit = materialsNormalWithSalesProfit + materialSubtotalOverridden;
+  const materialsNormal = materialSubtotalNormal; // No sales profit applied
+  const materialsAfterSalesProfit = materialsNormal + materialSubtotalOverridden;
 
   // Calculate SSP (Suggested Selling Price) for commission ratio
-  // SSP = Labor + Materials (tiered only, no overrides) + Travel + Onsite Options
-  // All components have sales profit applied, but no commission, and overrides are excluded
-  const suggestedSellingPrice = laborAfterSalesProfit + materialsNormalWithSalesProfit + travelCost + onsiteOptionsCost;
+  // SSP = Labor + Materials (tiered base only, NO Sales Profit) + Travel + Onsite Options
+  // Labor, Travel, Onsite Options have sales profit applied, Materials do NOT
+  // No commission, and overrides are excluded
+  const suggestedSellingPrice = laborAfterSalesProfit + materialsNormal + travelCost + onsiteOptionsCost;
 
   // Sub Grand Total (SGT) = Same as SSP but includes manual overrides (Actual Selling Price)
   const subGrandTotal = laborAfterSalesProfit + materialsAfterSalesProfit + travelCost + onsiteOptionsCost;
@@ -185,13 +186,13 @@ async function calculateGrandTotal(poolOrTransaction, saveData, calculatorType =
   }
 
   // Calculate commission amount
-  // TIERED PRICING: Commission applies to Labor + Travel + Onsite Options + Materials (tiered base with sales profit)
+  // TIERED PRICING: Commission applies to Labor + Travel + Onsite Options + Materials (tiered base only, NO Sales Profit)
   // Overridden materials already include commission, so we calculate commission separately
-  const baseForCommission = laborAfterSalesProfit + travelCost + onsiteOptionsCost + materialsNormalWithSalesProfit;
+  const baseForCommission = laborAfterSalesProfit + travelCost + onsiteOptionsCost + materialsNormal;
   const commission = baseForCommission * (commissionPercent / 100);
 
   // Add commission to tiered materials (overridden materials already have commission included)
-  const materialsWithCommission = materialsNormalWithSalesProfit * (1 + commissionPercent / 100) + materialSubtotalOverridden;
+  const materialsWithCommission = materialsNormal * (1 + commissionPercent / 100) + materialSubtotalOverridden;
 
   logger.debug(`[Calculation-${correlationId}] Commission calculated - SGT/SSP Ratio: ${ratio.toFixed(4)}, Percent: ${commissionPercent}%, Amount: ${commission.toFixed(2)}`);
 

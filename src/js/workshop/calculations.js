@@ -82,24 +82,19 @@ export function calcAll() {
 
   // Get amounts after sales profit multiplier
   const l = lAfterBranch * salesProfitMultiplier;
-  const m = materialSubtotalWithoutCommission(); // Includes overridden materials (with commission and sales profit backed out)
+  const m = materialSubtotalWithoutCommission(); // Includes overridden materials (with commission backed out, NO Sales Profit)
 
   // Apply sales profit multiplier to travel cost
   const travelCost = travelBase * salesProfitMultiplier;
   // Calculate travel sales profit amount
   const travelSalesProfit = travelCost - travelBase;
 
-  // Calculate materials sales profit amount
-  const mTieredBase = mAfterBranch; // Tiered base price (without sales profit)
-  const mWithSalesProfit = mTieredBase * salesProfitMultiplier;
-  const materialsSalesProfit = mWithSalesProfit - mTieredBase;
-
   // Calculate overhead (difference between base and after-branch amounts)
   // Materials use tiered pricing, not branch multipliers, so only Labor overhead is included
   const overhead = lAfterBranch - lBase;
 
-  // Calculate sales profit adjustment (labor + materials + travel)
-  const salesProfitAdj = (l - lAfterBranch) + materialsSalesProfit + travelSalesProfit;
+  // Calculate sales profit adjustment (labor + travel only - materials excluded)
+  const salesProfitAdj = (l - lAfterBranch) + travelSalesProfit;
 
   // Sub Grand Total = labor + materials + travel cost (with sales profit applied)
   const subGrandTotal = l + m + travelCost;

@@ -9,13 +9,14 @@ See [CLAUDE.md](../CLAUDE.md) for project overview and navigation.
 
 The calculator computes total cost based on four components:
 1. **Labor**: Job manhours × branch-specific cost per hour (with branch multipliers and sales profit)
-2. **Materials**: User-selected materials with quantities (**using tiered pricing** with sales profit applied)
-3. **Sales Profit**: User-editable percentage applied after branch multipliers for Labor and Materials (can be negative for discounts)
+2. **Materials**: User-selected materials with quantities (**using tiered pricing** without sales profit, only commission)
+3. **Sales Profit**: User-editable percentage applied after branch multipliers for Labor only (can be negative for discounts)
 4. **Travel/Shipping**: Distance in Km multiplied by 15 baht/km rate (with sales profit only)
 
 **Important Notes**:
 - Branch defaults (OverheadPercent and PolicyProfit) are applied silently to Labor only
 - Materials use **tiered pricing** instead of branch multipliers (see Material Calculations section)
+- Materials do NOT have Sales Profit applied (only commission)
 - Travel and Onsite Options have sales profit multiplier but NO branch multipliers
 
 ---
@@ -87,7 +88,7 @@ Labor Subtotal = sum of all Final Prices (for checked jobs only)
 
 ### Per-Line Calculations
 
-**IMPORTANT**: Materials use **tiered pricing** instead of branch multipliers. Materials skip Overhead and Policy Profit multipliers (use tiered pricing instead), but **Sales Profit multiplier IS applied**.
+**IMPORTANT**: Materials use **tiered pricing** instead of branch multipliers. Materials skip Overhead, Policy Profit, AND Sales Profit multipliers (use tiered pricing instead). Only commission is applied to the tiered price.
 
 **Raw Cost** (Executive mode only):
 ```
@@ -106,9 +107,9 @@ else if (UnitCost < 1000) PricePerUnit = 2000
 else                     PricePerUnit = UnitCost × 2
 ```
 
-**Final Price** (with Sales Profit and commission):
+**Final Price** (with commission only, NO Sales Profit):
 ```
-Final_Price = PricePerUnit × Quantity × (1 + SalesProfit%) × (1 + commissionPercent / 100)
+Final_Price = PricePerUnit × Quantity × (1 + commissionPercent / 100)
 ```
 
 **Manual Override**:
@@ -132,8 +133,8 @@ Materials Subtotal = sum of all Final Prices (or override values if set)
 **Important Changes**:
 - **Cost+Ovh+PP column is hidden** for Materials (not applicable with tiered pricing)
 - Branch multipliers (Overhead%, PolicyProfit%) are **NOT** applied to Materials
-- **Sales Profit multiplier IS applied** to Materials (before commission)
-- Commission is applied after Sales Profit
+- **Sales Profit multiplier is NOT applied** to Materials (only commission)
+- Commission is applied to the tiered base price
 
 ---
 
@@ -175,14 +176,14 @@ Suggested Selling Price = Labor (after branch only) + Materials (tiered base onl
 - Excludes commission, excludes manual overrides, **excludes Sales Profit**
 - Used for commission ratio calculation (comparing actual vs suggested)
 - Displayed in Executive mode only as "Suggested Selling Price"
-- **Key Behavior**: SSP only changes when Labor, Materials, Travel, or Onsite Options change - NOT when Sales Profit % changes
+- **Key Behavior**: SSP only changes when Labor, Materials, Travel, or Onsite Options change - NOT when Sales Profit % changes (Materials never had Sales Profit, so this remains consistent)
 
 ### Sub Grand Total (SGT)
 ```
-Sub Grand Total = Labor (with multipliers) + Materials (with SalesProfitMultiplier) + Travel (with SalesProfitMultiplier) + Onsite Options (with SalesProfitMultiplier)
+Sub Grand Total = Labor (with multipliers) + Materials (tiered base only, NO Sales Profit) + Travel (with SalesProfitMultiplier) + Onsite Options (with SalesProfitMultiplier)
 ```
 - Labor: With branch multipliers AND sales profit multiplier
-- Materials: **Tiered base price (F) × SalesProfitMultiplier** - includes manual overrides
+- Materials: **Tiered base price (F) only** - includes manual overrides (NO Sales Profit)
 - Travel: With sales profit multiplier only (no branch multipliers)
 - Onsite Options: With sales profit multiplier only (no branch multipliers)
 - Includes manual overrides (Actual Selling Price)
@@ -194,7 +195,7 @@ Sub Grand Total = Labor (with multipliers) + Materials (with SalesProfitMultipli
 Grand Total = Labor Final Prices + Materials Final Prices + Travel Final Price + Onsite Options Final Price
 ```
 - Labor: With all multipliers AND commission
-- Materials: **Tiered base price × SalesProfitMultiplier × (1 + commission%)** - no branch multipliers
+- Materials: **Tiered base price × (1 + commission%)** - no branch multipliers, NO Sales Profit
 - Travel: Base × sales profit multiplier × (1 + commission%)
 - Onsite Options: Base × sales profit multiplier × (1 + commission%)
 - Includes commission
@@ -207,11 +208,11 @@ Grand Total = Labor Final Prices + Materials Final Prices + Travel Final Price +
 ### Overview
 Commission is calculated based on the ratio of Sub Grand Total (SGT) to Suggested Selling Price (SSP).
 
-- **SGT (Sub Grand Total)**: Actual Selling Price (includes manual overrides AND Sales Profit)
+- **SGT (Sub Grand Total)**: Actual Selling Price (includes manual overrides, Labor/Travel/Onsite Options include Sales Profit, Materials do NOT)
 - **SSP (Suggested Selling Price)**: Suggested Price (excludes manual overrides, excludes Sales Profit)
 - **Ratio**: SGT / SSP - Higher ratio means user set prices above suggested = higher commission %
 
-**Important**: The ratio remains stable when Sales Profit % changes because both SGT and SSP are calculated consistently (SGT includes Sales Profit, SSP excludes it). This ensures commission % is based on actual pricing decisions (overrides), not Sales Profit adjustments.
+**Important**: The ratio remains stable when Sales Profit % changes because SGT includes Sales Profit (for Labor/Travel/Onsite Options) while SSP excludes it. Materials never had Sales Profit, so they don't affect the ratio stability. This ensures commission % is based on actual pricing decisions (overrides), not Sales Profit adjustments.
 
 ### Commission Percentage
 
@@ -277,13 +278,13 @@ Commission = Commission% × Sub Grand Total
 
 #### Final Price Column
 - **Editable input field** - Users can manually override the calculated Final Price
-- Default formula: `Final_Price = F × SalesProfitMultiplier × (1 + commissionPercent / 100)` where F is the tiered base price
+- Default formula: `Final_Price = F × (1 + commissionPercent / 100)` where F is the tiered base price (NO Sales Profit)
 - When manual override is set:
   - Amber styling (`border-amber-300`, `bg-amber-50`) indicates override is active
   - Reset button (↺) appears to clear override
-  - Override bypasses ALL calculations (tiered pricing, sales profit, commission)
+  - Override bypasses ALL calculations (tiered pricing, commission)
 - Displayed in both desktop table column and mobile card
-- Updates in real-time when commission percentage or sales profit percentage changes
+- Updates in real-time when commission percentage changes
 - Quantity changes clear the override and recalculate
 
 ---
@@ -322,7 +323,7 @@ Gross Profit % = (Gross Profit / Grand Total) × 100
 ```
 
 Where:
-- **Gross Profit** = Sub Grand Total - Total Raw Cost = Total markup from branch multipliers + sales profit + tiered materials pricing
+- **Gross Profit** = Sub Grand Total - Total Raw Cost = Total markup from branch multipliers + sales profit (Labor/Travel/Onsite Options only) + tiered materials pricing
 - Should always be positive when branch multipliers and/or tiered pricing are applied
 
 ### Edge Cases

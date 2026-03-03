@@ -6,7 +6,7 @@
 import { el, fmt, fetchJson } from '../core/utils.js';
 import { appState, materialSearchTimeouts, materialSearchState, isExecutiveMode } from './state.js';
 import { getCompleteMultiplier, getBranchMultiplier, getSalesProfitMultiplier } from './labor.js';
-import { calculateTieredMaterialPrice, calculateTieredMaterialPriceWithCommission, calculateTieredMaterialPriceWithSalesProfitAndCommission, getMaterialTierLabel } from '../core/tieredMaterials.js';
+import { calculateTieredMaterialPrice, calculateTieredMaterialPriceWithCommission, getMaterialTierLabel } from '../core/tieredMaterials.js';
 
 /**
  * Add a new material row
@@ -81,14 +81,11 @@ export function renderMaterials() {
   materialRowsEl.innerHTML = appState.materialLines.map((ln, i) => {
     const rawCost = Number.isFinite(ln.unitCost) ? ln.unitCost * ln.qty : NaN;
     // TIERED PRICING: Use tiered formula based on unitCost, then multiply by quantity
-    // Materials skip Overhead and Policy Profit multipliers (use tiered pricing instead)
-    // Sales Profit multiplier IS applied to materials
-    // Commission is applied after Sales Profit
-    const finalPrice = calculateTieredMaterialPriceWithSalesProfitAndCommission(ln.unitCost, ln.qty, salesProfitMultiplier, appState.commissionPercent);
-    // Calculate sales profit amount for this row
+    // Materials skip Overhead, Policy Profit, AND Sales Profit multipliers
+    // Only commission is applied to the tiered price
+    const finalPrice = calculateTieredMaterialPriceWithCommission(ln.unitCost, ln.qty, appState.commissionPercent);
+    // Calculate tiered base price for this row
     const tieredBasePrice = calculateTieredMaterialPrice(ln.unitCost) * ln.qty;
-    const salesProfitAmount = tieredBasePrice * (salesProfitMultiplier - 1);
-    const costBeforeSalesProfit = tieredBasePrice;
     const displayFinalPrice = (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) ? ln.overrideFinalPrice : finalPrice;
     const isOverridden = (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0);
     const finalPriceInputClass = isOverridden
@@ -372,12 +369,11 @@ export function materialSubtotalRawAll() {
 }
 
 /**
- * Calculate material subtotal (with tiered pricing, Sales Profit, and commission)
- * @returns {number} Material subtotal with tiered pricing, Sales Profit, and commission
+ * Calculate material subtotal (with tiered pricing and commission, NO Sales Profit)
+ * @returns {number} Material subtotal with tiered pricing and commission only
  */
 export function materialSubtotal() {
   const commissionPercent = appState.commissionPercent || 0;
-  const salesProfitMultiplier = getSalesProfitMultiplier();
 
   return appState.materialLines.reduce((sum, ln) => {
     // If override is set, use it directly (bypass all calculations, already includes commission)
@@ -385,97 +381,92 @@ export function materialSubtotal() {
       return sum + ln.overrideFinalPrice;
     }
     if (!Number.isFinite(ln.unitCost)) return sum;
-    // Use tiered pricing formula with Sales Profit and commission
-    const finalPrice = calculateTieredMaterialPriceWithSalesProfitAndCommission(ln.unitCost, ln.qty, salesProfitMultiplier, commissionPercent);
+    // Use tiered pricing formula with commission only (NO Sales Profit)
+    const finalPrice = calculateTieredMaterialPriceWithCommission(ln.unitCost, ln.qty, commissionPercent);
     return sum + finalPrice;
   }, 0);
 }
 
 /**
- * Calculate materials subtotal BEFORE commission (tiered base price with Sales Profit applied)
- * For overridden items: backs out commission from override price only (override already includes sales profit)
- * For normal items: returns tiered base price with Sales Profit (without commission)
+ * Calculate materials subtotal BEFORE commission (tiered base price only, NO Sales Profit)
+ * For overridden items: backs out commission from override price only
+ * For normal items: returns tiered base price (without commission, NO Sales Profit)
  * Used for subTotalBeforeSalesProfit calculation
  * @returns {number} Material subtotal before commission
  */
 export function materialSubtotalBeforeSalesProfit() {
   const commissionPercent = appState.commissionPercent || 0;
-  const salesProfitMultiplier = getSalesProfitMultiplier();
 
   return appState.materialLines.reduce((sum, ln) => {
     if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
-      // Override is the final price - only back out commission, not sales profit
+      // Override is the final price - only back out commission
       const divisor = 1 + (commissionPercent / 100);
       return sum + (ln.overrideFinalPrice / divisor);
     }
     if (!Number.isFinite(ln.unitCost)) return sum;
-    // TIERED PRICING: Return tiered base price WITH Sales Profit (without commission)
-    return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty * salesProfitMultiplier;
+    // TIERED PRICING: Return tiered base price only (without commission, NO Sales Profit)
+    return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty;
   }, 0);
 }
 
 /**
- * Calculate materials subtotal WITHOUT commission (with Sales Profit applied)
- * For overridden items: backs out commission from override price only (override already includes sales profit)
- * For normal items: returns tiered base price with Sales Profit (no commission)
+ * Calculate materials subtotal WITHOUT commission (tiered base price only, NO Sales Profit)
+ * For overridden items: backs out commission from override price only
+ * For normal items: returns tiered base price (no commission, NO Sales Profit)
  * Used for the Percentage Breakdown card display
  * @returns {number} Material subtotal without commission
  */
 export function materialSubtotalWithoutCommission() {
   const commissionPercent = appState.commissionPercent || 0;
-  const salesProfitMultiplier = getSalesProfitMultiplier();
 
   return appState.materialLines.reduce((sum, ln) => {
     if (ln.overrideFinalPrice != null && ln.overrideFinalPrice >= 0) {
-      // Override is the final price - only back out commission, not sales profit
+      // Override is the final price - only back out commission
       const divisor = 1 + (commissionPercent / 100);
       return sum + (ln.overrideFinalPrice / divisor);
     }
-    // TIERED PRICING: Return tiered base price with Sales Profit, without commission
+    // TIERED PRICING: Return tiered base price only (no commission, NO Sales Profit)
     if (!Number.isFinite(ln.unitCost)) return sum;
-    return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty * salesProfitMultiplier;
+    return sum + calculateTieredMaterialPrice(ln.unitCost) * ln.qty;
   }, 0);
 }
 
 /**
  * Calculate materials subtotal SUGGESTED PRICE (sum of "Selling Price (Suggested)" from Materials section)
- * For ALL items: returns the calculated suggested selling price with sales profit AND commission applied
+ * For ALL items: returns the calculated suggested selling price with commission applied (NO Sales Profit)
  * IMPORTANT: This function IGNORES manual overrides - it always returns the calculated tiered price
  * Used for the "Suggested Material Price" display in Summary COST BREAKDOWN
- * @returns {number} Material subtotal suggested price (tiered price with sales profit and commission)
+ * @returns {number} Material subtotal suggested price (tiered price with commission only)
  */
 export function materialSubtotalSuggested() {
   const commissionPercent = appState.commissionPercent || 0;
-  const salesProfitMultiplier = getSalesProfitMultiplier();
 
   return appState.materialLines.reduce((sum, ln) => {
     // Always use the calculated tiered price, ignoring manual overrides
     // This ensures the "Suggested Material Price" stays consistent even when Final Price is overridden
     if (!Number.isFinite(ln.unitCost)) return sum;
-    // TIERED PRICING: Return full suggested selling price (with sales profit AND commission)
+    // TIERED PRICING: Return full suggested selling price (with commission only, NO Sales Profit)
     // This matches the "Selling Price (Suggested)" column in the Materials table
-    return sum + calculateTieredMaterialPriceWithSalesProfitAndCommission(ln.unitCost, ln.qty, salesProfitMultiplier, commissionPercent);
+    return sum + calculateTieredMaterialPriceWithCommission(ln.unitCost, ln.qty, commissionPercent);
   }, 0);
 }
 
 /**
  * Calculate materials subtotal SUGGESTED PRICE WITHOUT commission (for SSP calculation)
- * For ALL items: returns the calculated suggested selling price with sales profit applied, WITHOUT commission
+ * For ALL items: returns the calculated suggested selling price WITHOUT commission (NO Sales Profit)
  * IMPORTANT: This function IGNORES manual overrides - it always returns the calculated tiered price
  * Used for SSP (Suggested Selling Price) calculation - excludes manual overrides for consistency
- * @returns {number} Material subtotal suggested price without commission (tiered price with sales profit only)
+ * @returns {number} Material subtotal suggested price without commission (tiered base price only)
  */
 export function materialSubtotalSuggestedWithoutCommission() {
-  const salesProfitMultiplier = getSalesProfitMultiplier();
-
   return appState.materialLines.reduce((sum, ln) => {
     // Always use the calculated tiered price, ignoring manual overrides
     // This ensures SSP stays consistent even when Final Price is overridden
     if (!Number.isFinite(ln.unitCost)) return sum;
-    // TIERED PRICING: Return tiered base price with Sales Profit, without commission
+    // TIERED PRICING: Return tiered base price only (without commission, NO Sales Profit)
     const rawCost = ln.unitCost * ln.qty;
     const tieredBase = calculateTieredMaterialPrice(rawCost);
-    return sum + (tieredBase * salesProfitMultiplier);
+    return sum + tieredBase;
   }, 0);
 }
 

@@ -1,9 +1,8 @@
 /**
  * Tiered Materials Pricing Module
  * Shared module for calculating material prices using tiered pricing formula
- * Materials skip Overhead and Policy Profit multipliers (use tiered pricing instead)
- * Sales Profit multiplier IS applied to materials
- * Commission is applied after Sales Profit
+ * Materials skip Overhead, Policy Profit, AND Sales Profit multipliers
+ * Only commission is applied to the tiered price
  *
  * Formula:
  *   Tier is determined by UnitCost alone, then multiplied by Quantity
@@ -15,7 +14,7 @@
  *   else if (UnitCost < 1000) PricePerUnit = 2000
  *   else                     PricePerUnit = UnitCost × 2
  *
- *   Final Price = PricePerUnit × Quantity × (1 + SalesProfit%) × (1 + commission%)
+ *   Final Price = PricePerUnit × Quantity × (1 + commission%)
  */
 
 /**
