@@ -345,6 +345,174 @@ router.get('/audit-log', async (req, res, next) => {
 });
 
 /**
+ * GET /api/backoffice/deletion-log
+ * Get deletion audit log from both Onsite and Workshop tables (paginated)
+ * Query params: page (default 1), pageSize (default 50), type (Onsite/Workshop/All), email (optional filter), startDate, endDate
+ * Requires: Backoffice session token
+ */
+router.get('/deletion-log', async (req, res, next) => {
+  try {
+    const session = req.session;
+    console.log(`Backoffice admin ${session.email} accessed deletion audit log`);
+
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 50;
+    const typeFilter = req.query.type || 'All';
+    const emailFilter = req.query.email || '';
+    const startDate = req.query.startDate || '';
+    const endDate = req.query.endDate || '';
+    const offset = (page - 1) * pageSize;
+
+    const pool = await getPool();
+
+    // Build WHERE clauses for both tables
+    let onsiteWhere = [];
+    let workshopWhere = [];
+    let onsiteParams = {};
+    let workshopParams = {};
+
+    if (typeFilter === 'Onsite') {
+      workshopWhere.push('1 = 0'); // Exclude Workshop
+    } else if (typeFilter === 'Workshop') {
+      onsiteWhere.push('1 = 0'); // Exclude Onsite
+    }
+
+    if (emailFilter) {
+      onsiteWhere.push('(CreatorEmail LIKE @email OR DeletedBy LIKE @email)');
+      workshopWhere.push('(CreatorEmail LIKE @email OR DeletedBy LIKE @email)');
+      onsiteParams.email = `%${emailFilter}%`;
+      workshopParams.email = `%${emailFilter}%`;
+    }
+
+    if (startDate) {
+      onsiteWhere.push('DeletedAt >= @startDate');
+      workshopWhere.push('DeletedAt >= @startDate');
+      onsiteParams.startDate = startDate;
+      workshopParams.startDate = startDate;
+    }
+
+    if (endDate) {
+      onsiteWhere.push('DeletedAt <= @endDate');
+      workshopWhere.push('DeletedAt <= @endDate');
+      onsiteParams.endDate = endDate;
+      workshopParams.endDate = endDate;
+    }
+
+    const onsiteWhereClause = onsiteWhere.length > 0 ? ' WHERE ' + onsiteWhere.join(' AND ') : '';
+    const workshopWhereClause = workshopWhere.length > 0 ? ' WHERE ' + workshopWhere.join(' AND ') : '';
+
+    // Count Onsite records
+    let onsiteCountQuery = 'SELECT COUNT(*) as total FROM OnsiteCalculationDeletionAudit' + onsiteWhereClause;
+    const onsiteCountResult = await pool.request()
+      .input('email', sql.NVarChar, onsiteParams.email || '')
+      .input('startDate', sql.DateTime2, onsiteParams.startDate || null)
+      .input('endDate', sql.DateTime2, onsiteParams.endDate || null)
+      .query(onsiteCountQuery);
+    const onsiteTotal = onsiteCountResult.recordset[0].total;
+
+    // Count Workshop records
+    let workshopCountQuery = 'SELECT COUNT(*) as total FROM WorkshopCalculationDeletionAudit' + workshopWhereClause;
+    const workshopCountResult = await pool.request()
+      .input('email', sql.NVarChar, workshopParams.email || '')
+      .input('startDate', sql.DateTime2, workshopParams.startDate || null)
+      .input('endDate', sql.DateTime2, workshopParams.endDate || null)
+      .query(workshopCountQuery);
+    const workshopTotal = workshopCountResult.recordset[0].total;
+
+    const total = onsiteTotal + workshopTotal;
+
+    // Query Onsite records
+    let onsiteDataQuery = `
+      SELECT
+        'Onsite' as CalculatorType,
+        SaveId,
+        RunNumber,
+        CreatorEmail,
+        BranchId,
+        GrandTotal,
+        DeletedBy,
+        DeletedAt,
+        ClientIP,
+        DeletionReason,
+        Created
+      FROM OnsiteCalculationDeletionAudit
+      ${onsiteWhereClause}
+    `;
+
+    // Query Workshop records
+    let workshopDataQuery = `
+      SELECT
+        'Workshop' as CalculatorType,
+        SaveId,
+        RunNumber,
+        CreatorEmail,
+        BranchId,
+        GrandTotal,
+        DeletedBy,
+        DeletedAt,
+        ClientIP,
+        DeletionReason,
+        Created
+      FROM WorkshopCalculationDeletionAudit
+      ${workshopWhereClause}
+    `;
+
+    // Execute both queries
+    const onsiteResult = await pool.request()
+      .input('email', sql.NVarChar, onsiteParams.email || '')
+      .input('startDate', sql.DateTime2, onsiteParams.startDate || null)
+      .input('endDate', sql.DateTime2, onsiteParams.endDate || null)
+      .query(onsiteDataQuery);
+
+    const workshopResult = await pool.request()
+      .input('email', sql.NVarChar, workshopParams.email || '')
+      .input('startDate', sql.DateTime2, workshopParams.startDate || null)
+      .input('endDate', sql.DateTime2, workshopParams.endDate || null)
+      .query(workshopDataQuery);
+
+    // Combine and sort by DeletedAt DESC
+    const combinedResults = [
+      ...onsiteResult.recordset,
+      ...workshopResult.recordset
+    ].sort((a, b) => new Date(b.DeletedAt) - new Date(a.DeletedAt));
+
+    // Apply pagination
+    const paginatedResults = combinedResults.slice(offset, offset + pageSize);
+
+    res.status(200).json({
+      entries: paginatedResults.map(e => ({
+        calculatorType: e.CalculatorType,
+        saveId: e.SaveId,
+        runNumber: e.RunNumber,
+        creatorEmail: e.CreatorEmail,
+        branchId: e.BranchId,
+        grandTotal: e.GrandTotal,
+        deletedBy: e.DeletedBy,
+        deletedAt: e.DeletedAt,
+        clientIP: e.ClientIP,
+        deletionReason: e.DeletionReason,
+        created: e.Created
+      })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize)
+      }
+    });
+  } catch (e) {
+    if (e.statusCode === 403) {
+      return res.status(403).json({ error: 'Access denied. Executive role required.' });
+    }
+    if (e.statusCode === 401) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    console.error(e);
+    res.status(500).json({ error: 'Failed to load deletion audit log' });
+  }
+});
+
+/**
  * GET /api/backoffice/timezone-check
  * Diagnostic endpoint to check timezone configuration
  * Returns database and JavaScript timezone information

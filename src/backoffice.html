@@ -86,6 +86,9 @@
           <button onclick="showBackofficeTab('audit')" id="backofficeTabAudit" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
             Audit Log
           </button>
+          <button onclick="showBackofficeTab('deletion')" id="backofficeTabDeletion" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
+            Deletion Log
+          </button>
           <button onclick="showBackofficeTab('settings')" id="backofficeTabSettings" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
             Settings
           </button>
@@ -309,6 +312,50 @@
               <tbody id="backofficeAuditList" class="divide-y divide-slate-100">
                 <tr>
                   <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading audit log...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Deletion Log Tab -->
+        <div id="backofficeDeletionTab" class="hidden">
+          <!-- Search/Filter Controls -->
+          <div class="flex flex-col sm:flex-row gap-4 mb-6">
+            <div class="flex-1">
+              <input id="deletionEmailSearch" type="text" placeholder="Search by creator or deleter email..."
+                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            </div>
+            <select id="deletionTypeFilter" class="px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+              <option value="All">All Calculators</option>
+              <option value="Onsite">Onsite Only</option>
+              <option value="Workshop">Workshop Only</option>
+            </select>
+            <input id="deletionStartDate" type="date" class="px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            <input id="deletionEndDate" type="date" class="px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            <button id="deletionSearchBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 transition-colors">
+              Search
+            </button>
+          </div>
+
+          <!-- Deletion Log Table -->
+          <div class="border border-slate-200 rounded-lg overflow-hidden">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="text-left px-4 py-3 font-medium">Calculator</th>
+                  <th class="text-left px-4 py-3 font-medium">Run Number</th>
+                  <th class="text-left px-4 py-3 font-medium">Creator</th>
+                  <th class="text-left px-4 py-3 font-medium">Branch</th>
+                  <th class="text-left px-4 py-3 font-medium">Total</th>
+                  <th class="text-left px-4 py-3 font-medium">Deleted By</th>
+                  <th class="text-left px-4 py-3 font-medium">Deleted At</th>
+                  <th class="text-left px-4 py-3 font-medium">Reason</th>
+                </tr>
+              </thead>
+              <tbody id="backofficeDeletionList" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="8" class="px-4 py-8 text-center text-slate-500">Loading deletion log...</td>
                 </tr>
               </tbody>
             </table>
@@ -564,7 +611,7 @@
     backofficeState.currentTab = tab;
 
     // Reset all tab button styles
-    const tabButtons = ['backofficeTabExecutives', 'backofficeTabSales', 'backofficeTabCustomers', 'backofficeTabAudit', 'backofficeTabSettings'];
+    const tabButtons = ['backofficeTabExecutives', 'backofficeTabSales', 'backofficeTabCustomers', 'backofficeTabAudit', 'backofficeTabDeletion', 'backofficeTabSettings'];
     tabButtons.forEach(btnId => {
       if (el(btnId)) {
         el(btnId).classList.remove('bg-white', 'shadow-sm', 'text-purple-600', 'text-blue-600', 'text-gray-600');
@@ -573,7 +620,7 @@
     });
 
     // Hide all tab contents
-    const tabContents = ['backofficeExecutivesTab', 'backofficeSalesTab', 'backofficeCustomersTab', 'backofficeAuditTab', 'backofficeSettingsTab'];
+    const tabContents = ['backofficeExecutivesTab', 'backofficeSalesTab', 'backofficeCustomersTab', 'backofficeAuditTab', 'backofficeDeletionTab', 'backofficeSettingsTab'];
     tabContents.forEach(contentId => {
       if (el(contentId)) {
         el(contentId).classList.add('hidden');
@@ -617,6 +664,15 @@
         el('backofficeAuditTab').classList.remove('hidden');
       }
       loadBackofficeAuditLog();
+    } else if (tab === 'deletion') {
+      if (el('backofficeTabDeletion')) {
+        el('backofficeTabDeletion').classList.add('bg-white', 'shadow-sm', 'text-purple-600');
+        el('backofficeTabDeletion').classList.remove('text-slate-600', 'hover:text-slate-900');
+      }
+      if (el('backofficeDeletionTab')) {
+        el('backofficeDeletionTab').classList.remove('hidden');
+      }
+      loadDeletionAuditLog();
     } else if (tab === 'settings') {
       if (el('backofficeTabSettings')) {
         el('backofficeTabSettings').classList.add('bg-white', 'shadow-sm', 'text-purple-600');
@@ -839,6 +895,31 @@
     });
   }
 
+  // Deletion log event listeners
+  const deletionSearchBtn = el('deletionSearchBtn');
+  const deletionEmailSearch = el('deletionEmailSearch');
+  const deletionTypeFilter = el('deletionTypeFilter');
+  const deletionStartDate = el('deletionStartDate');
+  const deletionEndDate = el('deletionEndDate');
+
+  if (deletionSearchBtn) {
+    deletionSearchBtn.addEventListener('click', () => loadDeletionAuditLog(true));
+  }
+  if (deletionEmailSearch) {
+    deletionEmailSearch.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') loadDeletionAuditLog(true);
+    });
+  }
+  if (deletionTypeFilter) {
+    deletionTypeFilter.addEventListener('change', () => loadDeletionAuditLog(true));
+  }
+  if (deletionStartDate) {
+    deletionStartDate.addEventListener('change', () => loadDeletionAuditLog(true));
+  }
+  if (deletionEndDate) {
+    deletionEndDate.addEventListener('change', () => loadDeletionAuditLog(true));
+  }
+
   function validateEmailInput(input, tabSuffix) {
     const email = input.value.trim();
     const validationEl = el(`${tabSuffix}Validation`);
@@ -1004,6 +1085,104 @@
         <td class="px-4 py-3 text-slate-600">${new Date(entry.changedAt).toLocaleString()}</td>
       </tr>
     `).join('');
+  }
+
+  async function loadDeletionAuditLog(useSearch = false) {
+    try {
+      let url = new URL('/api/backoffice/deletion-log', window.location.origin);
+
+      if (useSearch) {
+        const email = el('deletionEmailSearch')?.value || '';
+        const type = el('deletionTypeFilter')?.value || 'All';
+        const startDate = el('deletionStartDate')?.value || '';
+        const endDate = el('deletionEndDate')?.value || '';
+
+        if (email) {
+          url.searchParams.set('email', email);
+        }
+        if (type && type !== 'All') {
+          url.searchParams.set('type', type);
+        }
+        if (startDate) {
+          url.searchParams.set('startDate', startDate);
+        }
+        if (endDate) {
+          url.searchParams.set('endDate', endDate);
+        }
+      }
+
+      const response = await fetchWithAuth(url.toString());
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          showNotification('Access denied. Please log in again.', 'error');
+          setTimeout(() => initializePage(), 2000);
+          return;
+        }
+        throw new Error('Failed to load deletion log');
+      }
+
+      const data = await response.json();
+      renderDeletionAuditLog(data.entries);
+    } catch (error) {
+      console.error('Failed to load deletion log:', error);
+      el('backofficeDeletionList').innerHTML = `
+        <tr>
+          <td colspan="8" class="px-4 py-8 text-center text-red-500">
+            Failed to load deletion log. ${error.message}
+          </td>
+        </tr>
+      `;
+    }
+  }
+
+  function renderDeletionAuditLog(entries) {
+    const container = el('backofficeDeletionList');
+
+    if (entries.length === 0) {
+      container.innerHTML = `
+        <tr>
+          <td colspan="8" class="px-4 py-8 text-center text-slate-500">
+            No deletion entries found.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    container.innerHTML = entries.map(entry => {
+      // Type badge styling
+      const typeBadgeClass = entry.calculatorType === 'Onsite'
+        ? 'bg-orange-100 text-orange-700'
+        : 'bg-blue-100 text-blue-700';
+
+      // Format currency
+      const formattedTotal = entry.grandTotal
+        ? `฿${parseFloat(entry.grandTotal).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : '-';
+
+      // Format dates
+      const deletedAt = entry.deletedAt
+        ? new Date(entry.deletedAt).toLocaleString()
+        : '-';
+
+      return `
+        <tr class="hover:bg-slate-50" title="Client IP: ${entry.clientIP || 'unknown'}">
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 text-xs font-semibold rounded ${typeBadgeClass}">
+              ${entry.calculatorType}
+            </span>
+          </td>
+          <td class="px-4 py-3 font-mono text-xs">${entry.runNumber || '-'}</td>
+          <td class="px-4 py-3">${entry.creatorEmail || '-'}</td>
+          <td class="px-4 py-3">${entry.branchId || '-'}</td>
+          <td class="px-4 py-3 font-medium">${formattedTotal}</td>
+          <td class="px-4 py-3 text-slate-600">${entry.deletedBy || '-'}</td>
+          <td class="px-4 py-3 text-slate-600">${deletedAt}</td>
+          <td class="px-4 py-3 text-slate-600 text-xs">${entry.deletionReason || '-'}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
   // ========== ROLE CHANGE MODAL ==========

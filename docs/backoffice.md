@@ -20,7 +20,8 @@ The Backoffice Admin is a standalone interface (`backoffice.html`) for managing 
 - **Inline add forms** with real-time email validation
 - **Status indicators**: Active (logged in) vs Pending (awaiting login) based on FirstLoginAt/LastLoginAt
 - **Count badges** on each tab showing user count
-- **Audit Log tab** with search functionality
+- **Audit Log tab** with search functionality for role changes
+- **Deletion Log tab** with filtering for deleted calculation records
 - **Settings tab** displays authentication info (no password change)
 
 ---
@@ -101,6 +102,46 @@ View role change audit history with optional email filter
 ]
 ```
 
+### GET /api/backoffice/deletion-log
+View deleted calculation audit history from both Onsite and Workshop calculators
+
+**Query Parameters**:
+- `type` - Filter by calculator type (Onsite|Workshop|All, default: All)
+- `email` - Search by creator or deleter email
+- `startDate` - Filter by deletion start date (ISO date format)
+- `endDate` - Filter by deletion end date (ISO date format)
+- `page` - Page number (default: 1)
+- `pageSize` - Results per page (default: 50)
+
+**Authentication**: Azure AD (backoffice only)
+
+**Response**:
+```json
+{
+  "entries": [
+    {
+      "calculatorType": "Onsite",
+      "saveId": 123,
+      "runNumber": "ONS-2024-001",
+      "creatorEmail": "user@example.com",
+      "branchId": "BKK",
+      "grandTotal": 15000.00,
+      "deletedBy": "admin@example.com",
+      "deletedAt": "2024-01-15T10:30:00Z",
+      "clientIP": "203.0.113.1",
+      "deletionReason": "Duplicate entry",
+      "created": "2024-01-10T08:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 50,
+    "total": 10,
+    "totalPages": 1
+  }
+}
+```
+
 ### GET /api/backoffice/repair
 Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit tables)
 
@@ -140,6 +181,24 @@ Audit trail for all role changes:
 | NewRole | VARCHAR | New role value |
 | ChangedBy | VARCHAR | Email of admin who made the change |
 | ChangedAt | DATETIME | Timestamp of change |
+
+### OnsiteCalculationDeletionAudit & WorkshopCalculationDeletionAudit Tables
+
+Audit trail for deleted calculation records (permanent deletion trail):
+
+| Column | Type | Description |
+|--------|------|-------------|
+| Id | PK | Auto-increment ID |
+| SaveId | INT | ID of the deleted saved calculation |
+| RunNumber | VARCHAR | Run number of the deleted calculation |
+| CreatorEmail | VARCHAR | Email of user who created the calculation |
+| BranchId | VARCHAR | Branch ID |
+| GrandTotal | DECIMAL | Total amount of the deleted calculation |
+| DeletedBy | VARCHAR | Email of user who deleted the calculation |
+| DeletedAt | DATETIME | Timestamp of deletion |
+| ClientIP | VARCHAR | IP address of the deleter |
+| DeletionReason | VARCHAR | Optional reason for deletion |
+| Created | DATETIME | When the original calculation was created |
 
 ---
 

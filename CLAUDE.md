@@ -157,10 +157,11 @@ See [docs/authentication.md](docs/authentication.md) for complete authentication
 
 Standalone interface (`backoffice.html`) for managing user roles:
 - **Azure AD authentication only** - Restricted to `it@uservices-thailand.com`
-- **3-Tab Layout**: Executives, Sales, Customers tabs
+- **5-Tab Layout**: Executives, Sales, Customers, Audit Log, Deletion Log tabs
 - **Inline add forms** with real-time email validation
 - **Status indicators**: Active (logged in) vs Pending (awaiting login)
-- **Audit Log tab** with search functionality
+- **Audit Log tab** with search functionality for role changes
+- **Deletion Log tab** with filtering for deleted calculation records (Onsite & Workshop)
 
 See [docs/backoffice.md](docs/backoffice.md) for complete backoffice documentation.
 
