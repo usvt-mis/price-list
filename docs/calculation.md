@@ -43,6 +43,21 @@ SalesProfitMultiplier = (1 + SalesProfit%/100)
 - This ensures the flat amount is always based on the pre-Sales-Profit total
 - Sync functions: `syncFlatFromPercent()` and `syncPercentFromFlat()` in calculations.js
 
+**Flat Amount Distribution**:
+- When using Flat Amount mode (`salesProfitInputMode === 'flat'`), the entire flat amount is distributed proportionally to each checked job based on its raw cost contribution
+- Formula for individual job distribution:
+  ```
+  Job_Raw_Cost = CostPerHour × effectiveManHours
+ _Total_Selected_Raw_Cost = sum of all Job_Raw_Cost for checked jobs
+  Job_Share = Job_Raw_Cost / Total_Selected_Raw_Cost
+  Job_Flat_Amount = Flat_Amount × Job_Share
+  Job_Cost_After_Branch = Job_Raw_Cost × BranchMultiplier
+  Job_Final_Price = (Job_Cost_After_Branch + Job_Flat_Amount) × (1 + commissionPercent / 100)
+  ```
+- Cost+Ovh+PP column displays `Job_Cost_After_Branch` (excludes the flat amount)
+- Final Price includes the distributed flat amount plus commission
+- Percentage mode uses traditional multiplier approach unchanged
+
 ### Complete Multiplier
 ```
 CompleteMultiplier = BranchMultiplier × SalesProfitMultiplier
@@ -65,11 +80,22 @@ Cost_Before_Sales_Profit = effectiveManHours × CostPerHour × BranchMultiplier
 ```
 
 **Final Price** (with commission):
-```
-Final_Price = Selling_Price × (1 + commissionPercent / 100)
-```
+- **Percentage Mode**:
+  ```
+  Selling_Price = effectiveManHours × CostPerHour × CompleteMultiplier
+  Final_Price = Selling_Price × (1 + commissionPercent / 100)
+  ```
 
-Where `Selling_Price` = `effectiveManHours × CostPerHour × CompleteMultiplier`
+- **Flat Amount Mode**:
+  ```
+  Job_Share = Raw_Cost / Total_Selected_Raw_Cost
+  Job_Cost_After_Branch = Raw_Cost × BranchMultiplier
+  Job_Flat_Amount = Flat_Amount × Job_Share
+  Final_Price = (Job_Cost_After_Branch + Job_Flat_Amount) × (1 + commissionPercent / 100)
+  ```
+  - The flat amount is distributed proportionally to each job based on its raw cost contribution
+  - Cost+Ovh+PP displays `Job_Cost_After_Branch` (excludes flat amount)
+  - Final Price includes the distributed flat amount plus commission
 
 ### Labor Subtotal
 ```

@@ -33,7 +33,7 @@ This is a Price List Calculator - a web application for calculating service cost
 **Treatment**:
 - **Labor**: Affected by branch multipliers (Overhead%, PolicyProfit%) and Sales Profit
   - Percentage Mode: Multiplier applied
-  - Flat Amount Mode: Entire flat amount added
+  - Flat Amount Mode: Entire flat amount distributed proportionally to each job based on raw cost contribution, then commission applied
 - **Materials**: Uses **tiered pricing** (skips branch multipliers AND Sales Profit, only commission is applied)
 - **Travel & Onsite Options**: NOT affected by branch multipliers
   - Percentage Mode: Sales Profit multiplier applied

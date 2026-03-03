@@ -89,15 +89,37 @@ export function renderLabor() {
     const isDisabled = !isChecked || isCustomer;
     const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
     const rawCost = Number.isFinite(cph) ? mh * cph : NaN;
-    const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
-    // Calculate cost before sales profit (after branch multiplier, before sales profit)
-    const salesProfitMultiplier = getSalesProfitMultiplier();
-    const costBeforeSalesProfit = (salesProfitMultiplier !== 0 && Number.isFinite(adjustedCph))
-      ? mh * adjustedCph / salesProfitMultiplier
-      : NaN;
 
-    // Calculate Final Price = Selling Price × (1 + commissionPercent / 100)
-    const finalPrice = Number.isFinite(cost) ? cost * (1 + appState.commissionPercent / 100) : NaN;
+    // Determine calculation mode based on Sales Profit Input Mode
+    const isFlatMode = appState.salesProfitInputMode === 'flat' && appState.salesProfitFlatAmount > 0;
+
+    let costBeforeSalesProfit;
+    let finalPrice;
+
+    if (isFlatMode) {
+      // FLAT MODE: Distribute flat amount proportionally to jobs
+      const totalSelectedRawCost = appState.labor
+        .filter(jb => jb.checked !== false)
+        .reduce((sum, jb) => {
+          const jobMh = jb.effectiveManHours !== undefined ? jb.effectiveManHours : Number(jb.ManHours);
+          return sum + jobMh * cph;
+        }, 0);
+      const jobShare = totalSelectedRawCost > 0 ? rawCost / totalSelectedRawCost : 0;
+
+      const costAfterBranch = rawCost * branchMultiplier;
+      const jobFlatAmount = appState.salesProfitFlatAmount * jobShare;
+      const cost = costAfterBranch + jobFlatAmount;
+      finalPrice = Number.isFinite(cost) ? cost * (1 + appState.commissionPercent / 100) : NaN;
+      costBeforeSalesProfit = costAfterBranch;
+    } else {
+      // PERCENTAGE MODE: Use traditional multiplier approach
+      const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
+      const salesProfitMultiplier = getSalesProfitMultiplier();
+      costBeforeSalesProfit = (salesProfitMultiplier !== 0 && Number.isFinite(adjustedCph))
+        ? mh * adjustedCph / salesProfitMultiplier
+        : NaN;
+      finalPrice = Number.isFinite(cost) ? cost * (1 + appState.commissionPercent / 100) : NaN;
+    }
 
     // Apply disabled styling when unchecked
     const rowClass = isChecked ? 'border-b' : 'border-b bg-slate-50';
@@ -201,19 +223,50 @@ function updateRowCosts(row, idx) {
   if (!job) return;
 
   const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
-  const multiplier = getCompleteMultiplier();
-  const adjustedCph = Number.isFinite(cph) ? cph * multiplier : NaN;
   const rawCost = Number.isFinite(cph) ? mh * cph : NaN;
 
-  // Calculate cost before sales profit (after branch multiplier, before sales profit)
-  const salesProfitMultiplier = getSalesProfitMultiplier();
-  const costBeforeSalesProfit = (salesProfitMultiplier !== 0 && Number.isFinite(adjustedCph))
-    ? mh * adjustedCph / salesProfitMultiplier
-    : NaN;
+  // Determine calculation mode based on Sales Profit Input Mode
+  const isFlatMode = appState.salesProfitInputMode === 'flat' && appState.salesProfitFlatAmount > 0;
+  const branchMultiplier = getBranchMultiplier();
 
-  // Calculate Final Price = Selling Price × (1 + commissionPercent / 100)
-  const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
-  const finalPrice = Number.isFinite(cost) ? cost * (1 + appState.commissionPercent / 100) : NaN;
+  let costBeforeSalesProfit;
+  let finalPrice;
+
+  if (isFlatMode) {
+    // FLAT MODE: Distribute flat amount proportionally to jobs
+    // Calculate this job's share of selected labor
+    const jobRawCost = rawCost;
+    const totalSelectedRawCost = appState.labor
+      .filter(j => j.checked !== false)
+      .reduce((sum, j) => {
+        const jobMh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
+        return sum + jobMh * cph;
+      }, 0);
+    const jobShare = totalSelectedRawCost > 0 ? jobRawCost / totalSelectedRawCost : 0;
+
+    // Job cost = (Base × Branch Multiplier) + (Flat Amount × Job Share)
+    const costAfterBranch = jobRawCost * branchMultiplier;
+    const jobFlatAmount = appState.salesProfitFlatAmount * jobShare;
+    const cost = costAfterBranch + jobFlatAmount;
+    finalPrice = Number.isFinite(cost) ? cost * (1 + appState.commissionPercent / 100) : NaN;
+
+    // Cost Before Sales Profit = after Branch Multiplier only (not including flat amount)
+    costBeforeSalesProfit = costAfterBranch;
+  } else {
+    // PERCENTAGE MODE: Use traditional multiplier approach
+    const multiplier = getCompleteMultiplier();
+    const adjustedCph = Number.isFinite(cph) ? cph * multiplier : NaN;
+
+    // Calculate cost before sales profit (after branch multiplier, before sales profit)
+    const salesProfitMultiplier = getSalesProfitMultiplier();
+    costBeforeSalesProfit = (salesProfitMultiplier !== 0 && Number.isFinite(adjustedCph))
+      ? mh * adjustedCph / salesProfitMultiplier
+      : NaN;
+
+    // Calculate Final Price = Selling Price × (1 + commissionPercent / 100)
+    const cost = Number.isFinite(adjustedCph) ? mh * adjustedCph : NaN;
+    finalPrice = Number.isFinite(cost) ? cost * (1 + appState.commissionPercent / 100) : NaN;
+  }
 
   // Update the cost cells in the row (cells: checkbox, job, input, rawCost?, costBeforeSalesProfit?, finalPrice)
   const cells = row.querySelectorAll('td');
