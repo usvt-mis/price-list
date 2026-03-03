@@ -434,7 +434,7 @@ router.get('/deletion-log', async (req, res, next) => {
         DeletedAt,
         ClientIP,
         DeletionReason,
-        Created
+        CreatedAt
       FROM OnsiteCalculationDeletionAudit
       ${onsiteWhereClause}
     `;
@@ -452,7 +452,7 @@ router.get('/deletion-log', async (req, res, next) => {
         DeletedAt,
         ClientIP,
         DeletionReason,
-        Created
+        CreatedAt
       FROM WorkshopCalculationDeletionAudit
       ${workshopWhereClause}
     `;
@@ -491,7 +491,7 @@ router.get('/deletion-log', async (req, res, next) => {
         deletedAt: e.DeletedAt,
         clientIP: e.ClientIP,
         deletionReason: e.DeletionReason,
-        created: e.Created
+        created: e.CreatedAt
       })),
       pagination: {
         page,
