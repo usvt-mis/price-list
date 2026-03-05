@@ -41,9 +41,6 @@ export function renderRecordsGrid(records) {
         <button onclick="event.stopPropagation(); window.viewRecord && window.viewRecord(${record.SaveId})" class="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
           View
         </button>
-        <button onclick="event.stopPropagation(); window.editRecord && window.editRecord(${record.SaveId})" class="flex-1 px-3 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors">
-          Edit
-        </button>
         <button onclick="event.stopPropagation(); window.shareRecord && window.shareRecord(${record.SaveId}, '${record.ShareToken || ''}')" class="px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
@@ -180,11 +177,6 @@ export function renderRecordsListView(records) {
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                    </svg>
-                  </button>
-                  <button onclick="event.stopPropagation(); window.editRecord && window.editRecord(${record.SaveId})" class="p-1.5 text-sm rounded bg-slate-900 text-white hover:bg-slate-800 transition-colors" title="Edit">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
                   </button>
                   <button onclick="event.stopPropagation(); window.shareRecord && window.shareRecord(${record.SaveId}, '${record.ShareToken || ''}')" class="p-1.5 text-sm rounded border border-slate-200 hover:bg-slate-50 transition-colors" title="Share">
