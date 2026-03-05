@@ -95,7 +95,10 @@ The Price List Calculator computes total cost based on four components:
     - Keyboard shortcut: Ctrl+F focuses search bar
   - Date range filter: All Time, Today, This Week, This Month, This Year
   - List view: compact table with columns for checkbox, run number, date, creator, branch, motor, jobs, materials, amount, actions
+    - **Clickable rows**: Click anywhere on a row (except checkbox and action buttons) to open in edit mode
+    - Visual feedback: cursor pointer on hover
   - Grid view: card-based layout with same information in visual format
+    - **Clickable RunNumber**: Click the RunNumber (blue with underline on hover) to open in edit mode
   - Record cards/rows display creator name, branch, motor type, job/material counts, and amount (GrandTotal)
   - Batch operations: select multiple records for deletion with bulk actions bar
   - Share records via generated links (public access, no authentication required, Customer View mode):

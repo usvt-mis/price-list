@@ -25,10 +25,10 @@ export function renderRecordsGrid(records) {
     <div data-save-id="${record.SaveId}" data-run-number="${record.RunNumber}" class="record-card border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow relative ${selectedRecords.has(record.SaveId) ? 'ring-2 ring-blue-500' : ''}">
       <!-- Checkbox for batch selection -->
       <div class="absolute top-4 left-4 z-10">
-        <input type="checkbox" ${selectedRecords.has(record.SaveId) ? 'checked' : ''} onchange="window.toggleRecordSelection && window.toggleRecordSelection(${record.SaveId})" class="record-checkbox w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" aria-label="Select ${record.RunNumber}">
+        <input type="checkbox" ${selectedRecords.has(record.SaveId) ? 'checked' : ''} onchange="event.stopPropagation(); window.toggleRecordSelection && window.toggleRecordSelection(${record.SaveId})" onclick="event.stopPropagation()" class="record-checkbox w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" aria-label="Select ${record.RunNumber}">
       </div>
       <div class="flex items-center justify-between mb-3 pl-8">
-        <span class="text-lg font-bold">${record.RunNumber}</span>
+        <span class="text-lg font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer" onclick="window.editRecord && window.editRecord(${record.SaveId})">${record.RunNumber}</span>
         <span class="text-xs text-slate-500">${formatDate(record.CreatedAt)}</span>
       </div>
       <div class="space-y-1 text-sm text-slate-600 mb-4">
@@ -37,18 +37,18 @@ export function renderRecordsGrid(records) {
         <div><strong>Jobs:</strong> ${record.JobCount || 0} · <strong>Materials:</strong> ${record.MaterialCount || 0}</div>
       </div>
       <div class="flex gap-2">
-        <button onclick="window.viewRecord && window.viewRecord(${record.SaveId})" class="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+        <button onclick="event.stopPropagation(); window.viewRecord && window.viewRecord(${record.SaveId})" class="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
           View
         </button>
-        <button onclick="window.editRecord && window.editRecord(${record.SaveId})" class="flex-1 px-3 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors">
+        <button onclick="event.stopPropagation(); window.editRecord && window.editRecord(${record.SaveId})" class="flex-1 px-3 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors">
           Edit
         </button>
-        <button onclick="window.shareRecord && window.shareRecord(${record.SaveId}, '${record.ShareToken || ''}')" class="px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+        <button onclick="event.stopPropagation(); window.shareRecord && window.shareRecord(${record.SaveId}, '${record.ShareToken || ''}')" class="px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
           </svg>
         </button>
-        <button onclick="window.deleteRecord && window.deleteRecord(${record.SaveId}, '${record.RunNumber}')" class="px-3 py-2 text-sm rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+        <button onclick="event.stopPropagation(); window.deleteRecord && window.deleteRecord(${record.SaveId}, '${record.RunNumber}')" class="px-3 py-2 text-sm rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
           </svg>
@@ -158,9 +158,11 @@ export function renderRecordsListView(records) {
         </thead>
         <tbody>
           ${records.map(record => `
-            <tr data-save-id="${record.SaveId}" data-run-number="${record.RunNumber}" class="record-card border-b border-slate-100 hover:bg-slate-50 transition-colors ${selectedRecords.has(record.SaveId) ? 'bg-blue-50 ring-1 ring-blue-500' : ''}">
+            <tr data-save-id="${record.SaveId}" data-run-number="${record.RunNumber}"
+                class="record-card border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer ${selectedRecords.has(record.SaveId) ? 'bg-blue-50 ring-1 ring-blue-500' : ''}"
+                onclick="window.editRecord && window.editRecord(${record.SaveId})">
               <td class="p-3">
-                <input type="checkbox" ${selectedRecords.has(record.SaveId) ? 'checked' : ''} onchange="window.toggleRecordSelection && window.toggleRecordSelection(${record.SaveId})" class="record-checkbox w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" aria-label="Select ${record.RunNumber}">
+                <input type="checkbox" ${selectedRecords.has(record.SaveId) ? 'checked' : ''} onchange="event.stopPropagation(); window.toggleRecordSelection && window.toggleRecordSelection(${record.SaveId})" onclick="event.stopPropagation()" class="record-checkbox w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" aria-label="Select ${record.RunNumber}">
               </td>
               <td class="p-3 font-medium">${record.RunNumber}</td>
               <td class="p-3 text-sm text-slate-600">${formatDate(record.CreatedAt)}</td>
@@ -171,23 +173,23 @@ export function renderRecordsListView(records) {
               <td class="p-3 text-sm font-medium text-right">${fmt(record.GrandTotal || 0)}</td>
               <td class="p-3">
                 <div class="flex items-center justify-end gap-1">
-                  <button onclick="window.viewRecord && window.viewRecord(${record.SaveId})" class="p-1.5 text-sm rounded border border-slate-200 hover:bg-slate-50 transition-colors" title="View">
+                  <button onclick="event.stopPropagation(); window.viewRecord && window.viewRecord(${record.SaveId})" class="p-1.5 text-sm rounded border border-slate-200 hover:bg-slate-50 transition-colors" title="View">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                     </svg>
                   </button>
-                  <button onclick="window.editRecord && window.editRecord(${record.SaveId})" class="p-1.5 text-sm rounded bg-slate-900 text-white hover:bg-slate-800 transition-colors" title="Edit">
+                  <button onclick="event.stopPropagation(); window.editRecord && window.editRecord(${record.SaveId})" class="p-1.5 text-sm rounded bg-slate-900 text-white hover:bg-slate-800 transition-colors" title="Edit">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
                   </button>
-                  <button onclick="window.shareRecord && window.shareRecord(${record.SaveId}, '${record.ShareToken || ''}')" class="p-1.5 text-sm rounded border border-slate-200 hover:bg-slate-50 transition-colors" title="Share">
+                  <button onclick="event.stopPropagation(); window.shareRecord && window.shareRecord(${record.SaveId}, '${record.ShareToken || ''}')" class="p-1.5 text-sm rounded border border-slate-200 hover:bg-slate-50 transition-colors" title="Share">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
                     </svg>
                   </button>
-                  <button onclick="window.deleteRecord && window.deleteRecord(${record.SaveId}, '${record.RunNumber}')" class="p-1.5 text-sm rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors" title="Delete">
+                  <button onclick="event.stopPropagation(); window.deleteRecord && window.deleteRecord(${record.SaveId}, '${record.RunNumber}')" class="p-1.5 text-sm rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors" title="Delete">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>

@@ -80,6 +80,10 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
   - `scrollspy.js` - Floating section navigation with Intersection Observer for active section detection
   - `floating-buttons.js` - Sticky header for desktop, floating Save/Records buttons for mobile
   - `collapsible-sections.js` - Collapse/expand functionality for Labor, Materials, Travel, and Onsite Options section cards
+- **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode
+  - List view: Entire table row is clickable (except checkbox and action buttons)
+  - Grid view: RunNumber text is clickable with blue color and underline on hover
+  - Event propagation handled with `event.stopPropagation()` to isolate checkbox and button clicks
 - **No build process** - Uses native ES6 modules with import maps
 
 See [docs/frontend.md](docs/frontend.md) for complete frontend documentation.
