@@ -383,7 +383,7 @@
         <h3 class="text-xl font-bold text-slate-900 mb-4">Change Role</h3>
         <p class="text-sm text-slate-600 mb-4">Select new role for <strong id="roleChangeEmail"></strong>:</p>
 
-        <div class="space-y-3 mb-6">
+        <div id="roleOptionsContainer" class="space-y-3 mb-6">
           <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
             <input type="radio" name="roleChange" value="NoRole" class="text-purple-600">
             <div>
@@ -1232,17 +1232,22 @@
 
   async function loadBranchesForModal(currentBranchId) {
     try {
+      console.log('Loading branches for modal, currentBranchId:', currentBranchId);
       const response = await fetchWithAuth('/api/backoffice/branches');
       if (!response.ok) throw new Error('Failed to load branches');
 
       const branches = await response.json();
+      console.log('Branches loaded:', branches.length, 'branches');
 
       // Create or update branch selector
       let branchSelector = document.getElementById('branchChangeSelector');
       if (!branchSelector) {
         // Find the role options container and insert branch selector after it
-        const roleOptionsContainer = el('roleChangeModal').querySelector('.space-y-3');
-        if (roleOptionsContainer) {
+        const roleOptionsContainer = el('roleOptionsContainer');
+        if (!roleOptionsContainer) {
+          console.error('Role options container not found!');
+          return;
+        }
           const selectorHTML = `
             <div id="branchChangeSelector" class="mt-4">
               <label class="block text-sm font-medium text-slate-700 mb-2">Assign Branch</label>
