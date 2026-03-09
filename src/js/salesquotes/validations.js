@@ -197,17 +197,13 @@ export function validateQuote(quote) {
   const headerErrors = validateQuoteHeader(quote);
   Object.assign(errors, headerErrors);
 
-  // Validate lines
-  if (!quote.lines || quote.lines.length === 0) {
-    errors.lines = ERROR_MESSAGES.AT_LEAST_ONE_LINE;
-  } else {
-    quote.lines.forEach((line, index) => {
-      const lineErrors = validateQuoteLine(line);
-      if (Object.keys(lineErrors).length > 0) {
-        errors[`line_${index}`] = lineErrors;
-      }
-    });
-  }
+  // Validate lines (no minimum requirement - backend accepts empty line items)
+  quote.lines.forEach((line, index) => {
+    const lineErrors = validateQuoteLine(line);
+    if (Object.keys(lineErrors).length > 0) {
+      errors[`line_${index}`] = lineErrors;
+    }
+  });
 
   return errors;
 }
