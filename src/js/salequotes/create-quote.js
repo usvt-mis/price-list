@@ -7,7 +7,7 @@ import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines,
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, sanitizeQuoteData } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts } from './ui.js';
-import { el, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk } from './ui.js';
+import { el, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk, initDateFields } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 
 // ============================================================
@@ -482,9 +482,14 @@ export function setupEventListeners() {
     }
   });
 
+  // DATE PICKER INITIALIZATION
+  // ===========================
+  // Initialize Flatpickr date fields BEFORE asterisk handlers
+  initDateFields();
+
   // REQUIRED FIELD ASTERISK HANDLING
   // =================================
-  // Main form required fields
+  // Main form required fields (must be initialized AFTER Flatpickr)
   const mainRequiredFields = ['customerNoSearch', 'quoteDate', 'validityDate'];
   setupRequiredAsteriskHandlers(mainRequiredFields);
 

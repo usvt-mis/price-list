@@ -9,6 +9,10 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- Flatpickr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/light.css">
+
   <!-- Tailwind Configuration -->
   <script>
     tailwind.config = {
@@ -304,6 +308,53 @@
     /* Required field hidden state */
     .required-asterisk.hidden {
       display: none;
+    }
+
+    /* Flatpickr customization to match Tailwind theme */
+    .flatpickr-calendar {
+      border-radius: 0.5rem; /* rounded-lg */
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0; /* border-slate-200 */
+      font-family: inherit;
+    }
+
+    .flatpickr-day.selected {
+      background: #3b82f6; /* blue-500 */
+      border-color: #3b82f6;
+    }
+
+    .flatpickr-day.selected:hover {
+      background: #2563eb; /* blue-600 */
+    }
+
+    .flatpickr-day:hover {
+      background: #eff6ff; /* blue-50 */
+    }
+
+    .flatpickr-day.today {
+      border-color: #3b82f6;
+      font-weight: 600;
+    }
+
+    .flatpickr-months .flatpickr-month,
+    .flatpickr-current-month .flatpickr-monthDropdown-months,
+    .flatpickr-current-month input.cur-year {
+      color: #1e293b; /* slate-800 */
+      font-weight: 600;
+    }
+
+    .flatpickr-weekday {
+      color: #64748b; /* slate-500 */
+      font-weight: 500;
+    }
+
+    .flatpickr-day.prevMonthDay,
+    .flatpickr-day.nextMonthDay {
+      color: #cbd5e1; /* slate-300 */
+    }
+
+    .flatpickr-day.disabled {
+      color: #e2e8f0; /* slate-200 */
     }
 
     /* Modern tab navigation */
@@ -916,6 +967,9 @@
       }
     }
   </script>
+
+  <!-- Flatpickr JS -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
   <!-- Main Application -->
   <script type="module" src="./js/salequotes/app.js"></script>

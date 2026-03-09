@@ -506,6 +506,37 @@ export function updateLineTotalPreview() {
 }
 
 // ============================================================
+// Date Picker (Flatpickr)
+// ============================================================
+
+/**
+ * Initialize Flatpickr for date input fields
+ * @param {string} inputId - The ID of the input field
+ * @param {Object} options - Flatpickr configuration options
+ */
+export function initFlatpickr(inputId, options = {}) {
+  const input = el(inputId);
+  if (!input) return;
+
+  // Default options
+  const defaultOptions = {
+    dateFormat: 'Y-m-d', // Format: YYYY-MM-DD (compatible with HTML5 date)
+    disableMobile: false, // Allow native picker on mobile if preferred
+    animate: true,
+    ariaDateFormat: 'F j, Y', // Screen reader format
+    ...options
+  };
+
+  // Initialize Flatpickr
+  flatpickr(input, defaultOptions);
+
+  // Trigger asterisk update on value change
+  input.addEventListener('change', () => {
+    updateRequiredAsterisk(inputId);
+  });
+}
+
+// ============================================================
 // Form Helpers
 // ============================================================
 
@@ -529,8 +560,6 @@ export function getQuoteFormData() {
  * Populate form with quote data
  */
 export function populateQuoteForm(quote) {
-  if (el('quoteDate')) el('quoteDate').value = quote.date || '';
-  if (el('validityDate')) el('validityDate').value = quote.validityDate || '';
   if (el('currency')) el('currency').value = quote.currency || 'THB';
   if (el('paymentTerms')) el('paymentTerms').value = quote.paymentTerms || 'NET 30 DAYS';
   if (el('quoteNotes')) el('quoteNotes').value = quote.notes || '';
@@ -538,6 +567,16 @@ export function populateQuoteForm(quote) {
   if (quote.customer) {
     displaySelectedCustomer(quote.customer);
   }
+
+  // Initialize date fields with Flatpickr
+  initFlatpickr('quoteDate', {
+    defaultDate: quote.date || 'today',
+  });
+
+  initFlatpickr('validityDate', {
+    defaultDate: quote.validityDate || '',
+    minDate: 'today',
+  });
 
   // Update asterisks for populated fields
   setTimeout(() => {
@@ -555,8 +594,6 @@ export function populateQuoteForm(quote) {
  */
 export function clearQuoteForm() {
   if (el('customerSearch')) el('customerSearch').value = '';
-  if (el('quoteDate')) el('quoteDate').value = new Date().toISOString().split('T')[0];
-  if (el('validityDate')) el('validityDate').value = getValidityDate();
   if (el('currency')) el('currency').value = 'THB';
   if (el('paymentTerms')) el('paymentTerms').value = 'NET 30 DAYS';
   if (el('quoteNotes')) el('quoteNotes').value = '';
@@ -564,15 +601,24 @@ export function clearQuoteForm() {
 
   clearCustomerSelection();
   hideCustomerDropdown();
+
+  // Initialize Flatpickr for date fields
+  initDateFields();
 }
 
 /**
- * Get validity date (30 days from now)
+ * Initialize Flatpickr date fields
  */
-function getValidityDate() {
-  const date = new Date();
-  date.setDate(date.getDate() + 30);
-  return date.toISOString().split('T')[0];
+export function initDateFields() {
+  // Initialize Document Date with today's date as default
+  initFlatpickr('quoteDate', {
+    defaultDate: 'today', // Set today as default
+  });
+
+  // Initialize Validity Date without default (only minDate restriction)
+  initFlatpickr('validityDate', {
+    minDate: 'today', // Prevent past dates
+  });
 }
 
 // ============================================================
