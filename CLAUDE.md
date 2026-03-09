@@ -18,7 +18,7 @@ This is a Price List Calculator - a web application for calculating service cost
 |------------|---------|--------------|-------------------|
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
-| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, customer/item search, quote lines with calculations, insert lines at specific positions | N/A (BC Quote Number) |
+| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, local database customer search (min 2 chars), customer/item search, quote lines with calculations, insert lines at specific positions | N/A (BC Quote Number) |
 |  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs |  |
 
 ### Cost Components
@@ -109,7 +109,10 @@ See [docs/frontend.md](docs/frontend.md) for complete frontend documentation.
   - `admin/logs.js` - Application logging endpoints
   - `backoffice/index.js` - Backoffice user management
   - `backoffice/login.js` - Backoffice authentication
-  - `business-central/token.js` - Business Central OAuth token endpoint
+  - `business-central/` - Business Central integration routes
+    - `token.js` - OAuth token endpoint
+    - `customers.js` - Local database customer search (BCCustomers table)
+    - `index.js` - BC routes aggregator
 - **Azure Functions (Legacy)**: HTTP handlers in `api/src/functions/`
 - **Shared**: Connection pool (`api/src/db.js`), middleware (`api/src/middleware/`), utilities (`api/src/utils/`)
 
@@ -120,6 +123,7 @@ See [docs/backend.md](docs/backend.md) for complete backend documentation.
 - **Core tables**: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - **Onsite Saved Calculations**: OnsiteSavedCalculations, OnsiteSavedCalculationJobs, OnsiteSavedCalculationMaterials
 - **Workshop Saved Calculations**: WorkshopSavedCalculations, WorkshopSavedCalculationJobs, WorkshopSavedCalculationMaterials
+- **Business Central**: BCCustomers (local customer cache for fast lookups, synced from BC)
 - **Role management**: UserRoles, RoleAssignmentAudit
 - **Deletion audit**: OnsiteCalculationDeletionAudit, WorkshopCalculationDeletionAudit (permanent deletion trail)
 

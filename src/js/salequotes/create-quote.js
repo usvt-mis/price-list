@@ -48,7 +48,7 @@ export async function loadInitialData() {
 // ============================================================
 
 /**
- * Handle customer search input
+ * Handle customer search input (BC API - Legacy)
  */
 export function handleCustomerSearch(query) {
   state.formData.customerSearchQuery = query;
@@ -63,7 +63,7 @@ export function handleCustomerSearch(query) {
 }
 
 /**
- * Handle customer selection
+ * Handle customer selection (BC API - Legacy)
  */
 export function handleCustomerSelection(customerId) {
   const customer = state.cache.customers.find(c => c.id === customerId);
@@ -81,6 +81,107 @@ export function handleCustomerSelection(customerId) {
   }
 
   showSuccess(`Selected: ${customer.name}`);
+}
+
+/**
+ * Handle Customer No. search (Local Database - New)
+ */
+export async function handleCustomerNoSearch(query) {
+  const dropdown = el('customerNoDropdown');
+
+  if (!query || query.length < 2) {
+    dropdown?.classList.add('hidden');
+    return;
+  }
+
+  // Show loading state
+  dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">Searching...</div>';
+  dropdown?.classList.remove('hidden');
+
+  try {
+    // Call local database API
+    const response = await fetch(`/api/business-central/customers/search?q=${encodeURIComponent(query)}`);
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    const customers = await response.json();
+
+    if (customers.length === 0) {
+      dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">No customers found</div>';
+      return;
+    }
+
+    dropdown.innerHTML = customers.map(customer => `
+      <div class="customer-dropdown-item p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0"
+           data-customer-no="${customer.CustomerNo}">
+        <div class="font-medium text-gray-900">${customer.CustomerName}</div>
+        <div class="text-sm text-gray-600">${customer.CustomerNo}</div>
+      </div>
+    `).join('');
+
+    // Add click handlers
+    dropdown.querySelectorAll('.customer-dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const customerNo = item.dataset.customerNo;
+        const customer = customers.find(c => c.CustomerNo === customerNo);
+        selectCustomerFromLocal(customer);
+      });
+    });
+
+  } catch (err) {
+    console.error('Customer search error:', err);
+    dropdown.innerHTML = '<div class="p-3 text-sm text-red-500">Error searching customers</div>';
+  }
+}
+
+/**
+ * Select customer from local database search results
+ */
+export function selectCustomerFromLocal(customer) {
+  // Update state using the updated setQuoteCustomer function
+  setQuoteCustomer(customer);
+
+  // Update UI fields
+  if (el('customerNoSearch')) {
+    el('customerNoSearch').value = customer.CustomerNo;
+  }
+  if (el('customerName')) {
+    el('customerName').value = customer.CustomerName;
+  }
+  if (el('sellToAddress')) {
+    el('sellToAddress').value = customer.Address || '';
+  }
+  if (el('sellToAddress2')) {
+    el('sellToAddress2').value = customer.Address2 || '';
+  }
+  if (el('sellToCity')) {
+    el('sellToCity').value = customer.City || '';
+  }
+  if (el('sellToPostCode')) {
+    el('sellToPostCode').value = customer.PostCode || '';
+  }
+  if (el('sellToVatRegNo')) {
+    el('sellToVatRegNo').value = customer.VATRegistrationNo || '';
+  }
+  if (el('sellToTaxBranchNo')) {
+    el('sellToTaxBranchNo').value = customer.TaxBranchNo || '';
+  }
+
+  // Show Sell-to section
+  const sellToSection = el('sellToSection');
+  if (sellToSection) {
+    sellToSection.classList.remove('hidden');
+  }
+
+  // Hide dropdown
+  const dropdown = el('customerNoDropdown');
+  if (dropdown) {
+    dropdown.classList.add('hidden');
+  }
+
+  showSuccess(`Selected: ${customer.CustomerName}`);
 }
 
 // ============================================================
@@ -297,7 +398,7 @@ export async function handleSendQuote() {
  * Setup event listeners
  */
 export function setupEventListeners() {
-  // Customer search
+  // Customer search (BC API - Legacy)
   const customerSearch = el('customerSearch');
   customerSearch?.addEventListener('input', (e) => {
     handleCustomerSearch(e.target.value);
@@ -306,6 +407,20 @@ export function setupEventListeners() {
   customerSearch?.addEventListener('blur', () => {
     // Delay hiding dropdown to allow click events
     setTimeout(() => hideCustomerDropdown(), 200);
+  });
+
+  // Customer No. search (Local Database - New)
+  const customerNoSearch = el('customerNoSearch');
+  customerNoSearch?.addEventListener('input', (e) => {
+    handleCustomerNoSearch(e.target.value);
+  });
+
+  customerNoSearch?.addEventListener('blur', () => {
+    // Delay hiding dropdown to allow click events
+    setTimeout(() => {
+      const dropdown = el('customerNoDropdown');
+      if (dropdown) dropdown.classList.add('hidden');
+    }, 200);
   });
 
   // Item search (in modal)
@@ -329,9 +444,16 @@ export function setupEventListeners() {
 
   // Close dropdowns when clicking outside
   document.addEventListener('click', (e) => {
+    // Hide BC API customer dropdown
     if (!e.target.closest('#customerSearch') && !e.target.closest('#customerDropdown')) {
       hideCustomerDropdown();
     }
+    // Hide local database customer dropdown
+    if (!e.target.closest('#customerNoSearch') && !e.target.closest('#customerNoDropdown')) {
+      const dropdown = el('customerNoDropdown');
+      if (dropdown) dropdown.classList.add('hidden');
+    }
+    // Hide item dropdown
     if (!e.target.closest('#lineItemSearch') && !e.target.closest('#itemDropdown')) {
       hideItemDropdown();
     }
@@ -352,8 +474,11 @@ export function setupEventListeners() {
 // ============================================================
 
 if (typeof window !== 'undefined') {
-  // Customer selection
+  // Customer selection (BC API - Legacy)
   window.selectCustomer = handleCustomerSelection;
+
+  // Customer selection (Local Database - New)
+  window.selectCustomerFromLocal = selectCustomerFromLocal;
 
   // Item selection
   window.selectItem = handleItemSelection;

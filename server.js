@@ -58,7 +58,7 @@ const workshopCalculationsRouter = require('./api/src/routes/workshop/calculatio
 const workshopSharedRouter = require('./api/src/routes/workshop/shared');
 const workshopLaborRouter = require('./api/src/routes/workshop/labor');
 // NEW: Business Central integration routes
-const businessCentralRouter = require('./api/src/routes/business-central/token');
+const businessCentralRouter = require('./api/src/routes/business-central');
 
 // Import authentication middleware
 const { requireAuth } = require('./api/src/middleware/authExpress');

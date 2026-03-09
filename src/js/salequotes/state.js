@@ -20,6 +20,16 @@ export const state = {
     number: null,
     customerId: null,
     customer: null,
+    customerNo: null,
+    customerName: null,
+    sellTo: {
+      address: null,
+      address2: null,
+      city: null,
+      postCode: null,
+      vatRegNo: null,
+      taxBranchNo: null
+    },
     date: new Date().toISOString().split('T')[0],
     validityDate: null,
     currency: 'THB',
@@ -178,6 +188,16 @@ export function initNewQuote() {
     number: null,
     customerId: null,
     customer: null,
+    customerNo: null,
+    customerName: null,
+    sellTo: {
+      address: null,
+      address2: null,
+      city: null,
+      postCode: null,
+      vatRegNo: null,
+      taxBranchNo: null
+    },
     date: new Date().toISOString().split('T')[0],
     validityDate: getValidityDate(),
     currency: 'THB',
@@ -199,11 +219,19 @@ function getValidityDate() {
 }
 
 /**
- * Set quote customer
+ * Set quote customer from local database search
  */
 export function setQuoteCustomer(customer) {
-  state.quote.customerId = customer.id;
-  state.quote.customer = customer;
+  state.quote.customerNo = customer.CustomerNo;
+  state.quote.customerName = customer.CustomerName;
+  state.quote.sellTo = {
+    address: customer.Address || null,
+    address2: customer.Address2 || null,
+    city: customer.City || null,
+    postCode: customer.PostCode || null,
+    vatRegNo: customer.VATRegistrationNo || null,
+    taxBranchNo: customer.TaxBranchNo || null
+  };
   state.formData.selectedCustomer = customer;
   saveState();
 }

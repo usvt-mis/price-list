@@ -209,6 +209,22 @@
       border-bottom: none;
     }
 
+    /* Customer dropdown specific styles */
+    .customer-dropdown-item {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+      transition: background-color 0.2s;
+    }
+
+    .customer-dropdown-item:hover {
+      background-color: #eff6ff;
+    }
+
+    .customer-dropdown-item:last-child {
+      border-bottom: none;
+    }
+
     /* Loading spinner (modernized) */
     .spinner {
       border: 3px solid #e2e8f0;
@@ -388,17 +404,29 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Customer Selection -->
+          <!-- Customer No. (Editable, min 2 chars) -->
           <div class="relative">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Customer No. *</label>
             <input
               type="text"
-              id="customerSearch"
+              id="customerNoSearch"
               class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
-              placeholder="Search by customer name or number..."
+              placeholder="Type 2+ characters to search..."
               autocomplete="off"
             />
-            <div id="customerDropdown" class="search-dropdown hidden"></div>
+            <div id="customerNoDropdown" class="search-dropdown hidden"></div>
+          </div>
+
+          <!-- Customer Name (Read-only, auto-filled) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+            <input
+              type="text"
+              id="customerName"
+              readonly
+              class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+              placeholder="Auto-filled from Customer No."
+            />
           </div>
 
           <!-- Quote Date -->
@@ -443,6 +471,86 @@
           </div>
         </div>
 
+        <!-- Sell-to Subsection (Read-only, auto-filled) -->
+        <div id="sellToSection" class="mt-6 hidden">
+          <div class="border-t border-slate-200 pt-4">
+            <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              Sell-to Address
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Address -->
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <input
+                  type="text"
+                  id="sellToAddress"
+                  readonly
+                  class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                />
+              </div>
+
+              <!-- Address 2 -->
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Address 2</label>
+                <input
+                  type="text"
+                  id="sellToAddress2"
+                  readonly
+                  class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                />
+              </div>
+
+              <!-- City -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <input
+                  type="text"
+                  id="sellToCity"
+                  readonly
+                  class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                />
+              </div>
+
+              <!-- Post Code -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Post Code</label>
+                <input
+                  type="text"
+                  id="sellToPostCode"
+                  readonly
+                  class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                />
+              </div>
+
+              <!-- VAT Registration No -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">VAT Registration No</label>
+                <input
+                  type="text"
+                  id="sellToVatRegNo"
+                  readonly
+                  class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                />
+              </div>
+
+              <!-- Tax Branch No -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tax Branch No</label>
+                <input
+                  type="text"
+                  id="sellToTaxBranchNo"
+                  readonly
+                  class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Notes -->
         <div class="mt-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
@@ -452,19 +560,6 @@
             rows="3"
             placeholder="Additional notes or terms..."
           ></textarea>
-        </div>
-
-        <!-- Selected Customer Display -->
-        <div id="selectedCustomerDisplay" class="mt-4 hidden">
-          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
-            <div class="flex items-center gap-2 mb-2">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-              </svg>
-              <h4 class="font-semibold text-blue-900">Selected Customer</h4>
-            </div>
-            <div id="customerDetails"></div>
-          </div>
         </div>
       </div>
 
