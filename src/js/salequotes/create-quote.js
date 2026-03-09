@@ -314,7 +314,7 @@ export function handleClearQuote() {
 
     // Reset asterisks to visible state
     setTimeout(() => {
-      ['customerNoSearch', 'quoteDate', 'validityDate'].forEach(id => {
+      ['customerNoSearch'].forEach(id => {
         if (el(id)) el(id).dispatchEvent(new Event('input'));
       });
     }, 50);
@@ -372,9 +372,6 @@ export async function handleSendQuote() {
     // Create quote in BC
     const bcQuote = await bcClient.createQuote({
       customerNumber: sanitizedData.customer.number,
-      postingDate: sanitizedData.date,
-      documentDate: sanitizedData.date,
-      dueDate: sanitizedData.validityDate,
       // Note: BC API structure may vary - adjust based on actual API
       // Note: orderDate and requestedDeliveryDate are UI-only for now
       lines: sanitizedData.lines.map(line => ({
@@ -489,7 +486,7 @@ export function setupEventListeners() {
   // REQUIRED FIELD ASTERISK HANDLING
   // =================================
   // Main form required fields (must be initialized AFTER Flatpickr)
-  const mainRequiredFields = ['customerNoSearch', 'quoteDate', 'validityDate', 'orderDate', 'requestedDeliveryDate'];
+  const mainRequiredFields = ['customerNoSearch', 'orderDate', 'requestedDeliveryDate'];
   setupRequiredAsteriskHandlers(mainRequiredFields);
 
   console.log('Event listeners setup complete');

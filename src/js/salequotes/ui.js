@@ -547,8 +547,6 @@ export function getQuoteFormData() {
   return {
     customerId: state.quote.customerId,
     customer: state.quote.customer,
-    date: el('quoteDate')?.value || new Date().toISOString().split('T')[0],
-    validityDate: el('validityDate')?.value || '',
     orderDate: el('orderDate')?.value || '',
     requestedDeliveryDate: el('requestedDeliveryDate')?.value || '',
     notes: el('quoteNotes')?.value || '',
@@ -567,15 +565,6 @@ export function populateQuoteForm(quote) {
   }
 
   // Initialize date fields with Flatpickr
-  initFlatpickr('quoteDate', {
-    defaultDate: quote.date || 'today',
-  });
-
-  initFlatpickr('validityDate', {
-    defaultDate: quote.validityDate || '',
-    minDate: 'today',
-  });
-
   initFlatpickr('orderDate', {
     defaultDate: quote.orderDate || 'today',
   });
@@ -587,7 +576,7 @@ export function populateQuoteForm(quote) {
 
   // Update asterisks for populated fields
   setTimeout(() => {
-    ['customerNoSearch', 'quoteDate', 'validityDate', 'orderDate', 'requestedDeliveryDate'].forEach(id => {
+    ['customerNoSearch', 'orderDate', 'requestedDeliveryDate'].forEach(id => {
       const field = el(id);
       if (field && field.value) {
         field.dispatchEvent(new Event('input'));
@@ -615,16 +604,6 @@ export function clearQuoteForm() {
  * Initialize Flatpickr date fields
  */
 export function initDateFields() {
-  // Initialize Document Date with today's date as default
-  initFlatpickr('quoteDate', {
-    defaultDate: 'today', // Set today as default
-  });
-
-  // Initialize Validity Date without default (only minDate restriction)
-  initFlatpickr('validityDate', {
-    minDate: 'today', // Prevent past dates
-  });
-
   // Initialize Order Date with today's date as default
   initFlatpickr('orderDate', {
     defaultDate: 'today', // Set today as default

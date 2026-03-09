@@ -30,8 +30,6 @@ export const state = {
       vatRegNo: null,
       taxBranchNo: null
     },
-    date: new Date().toISOString().split('T')[0],
-    validityDate: null,
     notes: '',
     lines: []
   },
@@ -196,22 +194,11 @@ export function initNewQuote() {
       vatRegNo: null,
       taxBranchNo: null
     },
-    date: new Date().toISOString().split('T')[0],
-    validityDate: getValidityDate(),
     notes: '',
     lines: []
   };
   state.formData.selectedCustomer = null;
   console.log('New quote initialized');
-}
-
-/**
- * Get validity date (30 days from now)
- */
-function getValidityDate() {
-  const date = new Date();
-  date.setDate(date.getDate() + 30);
-  return date.toISOString().split('T')[0];
 }
 
 /**

@@ -20,8 +20,7 @@ const ERROR_MESSAGES = {
   INVALID_DISCOUNT: 'Discount cannot be greater than line total',
   INVALID_POSTAL_CODE: 'Postal code must be 5 digits',
   AT_LEAST_ONE_LINE: 'Please add at least one line item',
-  CUSTOMER_REQUIRED: 'Please select a customer',
-  INVALID_DATE_RANGE: 'Validity date must be after quote date'
+  CUSTOMER_REQUIRED: 'Please select a customer'
 };
 
 // ============================================================
@@ -96,35 +95,6 @@ function isValidPostalCode(postalCode) {
 export function validateCustomer(value) {
   if (!isRequired(value)) {
     return ERROR_MESSAGES.CUSTOMER_REQUIRED;
-  }
-  return null;
-}
-
-/**
- * Validate quote date
- */
-export function validateQuoteDate(value) {
-  if (!isRequired(value)) {
-    return ERROR_MESSAGES.REQUIRED;
-  }
-  if (!isValidDate(value)) {
-    return ERROR_MESSAGES.INVALID_DATE;
-  }
-  return null;
-}
-
-/**
- * Validate validity date
- */
-export function validateValidityDate(value, quoteDate) {
-  if (!isRequired(value)) {
-    return ERROR_MESSAGES.REQUIRED;
-  }
-  if (!isValidDate(value)) {
-    return ERROR_MESSAGES.INVALID_DATE;
-  }
-  if (quoteDate && !isValidDateRange(quoteDate, value)) {
-    return ERROR_MESSAGES.INVALID_DATE_RANGE;
   }
   return null;
 }
@@ -213,14 +183,6 @@ export function validateQuoteHeader(formData) {
   // Customer validation
   const customerError = validateCustomer(formData.customerId);
   if (customerError) errors.customerId = customerError;
-
-  // Date validation
-  const dateError = validateQuoteDate(formData.date);
-  if (dateError) errors.date = dateError;
-
-  // Validity date validation
-  const validityError = validateValidityDate(formData.validityDate, formData.date);
-  if (validityError) errors.validityDate = validityError;
 
   return errors;
 }
@@ -366,8 +328,6 @@ export function sanitizeText(value) {
 export function sanitizeQuoteData(quote) {
   return {
     ...quote,
-    date: sanitizeText(quote.date),
-    validityDate: sanitizeText(quote.validityDate),
     orderDate: sanitizeText(quote.orderDate),
     requestedDeliveryDate: sanitizeText(quote.requestedDeliveryDate),
     notes: sanitizeText(quote.notes),
