@@ -223,6 +223,7 @@ export function initNewQuote() {
  * Set quote customer from local database search
  */
 export function setQuoteCustomer(customer) {
+  state.quote.customerId = customer.CustomerNo;
   state.quote.customerNo = customer.CustomerNo;
   state.quote.customerName = customer.CustomerName;
   state.quote.sellTo = {

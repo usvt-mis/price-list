@@ -764,6 +764,61 @@ export function clearValidationErrors() {
 }
 
 // ============================================================
+// Quote Created Success Modal
+// ============================================================
+
+/**
+ * Show Quote Created Success modal with Quote Number
+ * @param {string} quoteNumber - The Quote Number from Business Central
+ */
+export function showQuoteCreatedSuccess(quoteNumber) {
+  const modal = el('quoteCreatedModal');
+  const modalContent = el('quoteCreatedModalContent');
+  const quoteNumberDisplay = el('quoteCreatedNumber');
+
+  if (!modal) {
+    console.error('Quote Created modal not found in DOM');
+    showSuccess('Quote sent to Business Central successfully!');
+    return;
+  }
+
+  // Set the Quote Number
+  if (quoteNumberDisplay) {
+    quoteNumberDisplay.textContent = quoteNumber || 'N/A';
+  }
+
+  // Show modal
+  modal.classList.remove('hidden');
+
+  // Trigger animation
+  setTimeout(() => {
+    if (modalContent) {
+      modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
+      modalContent.classList.add('opacity-100', 'translate-y-0');
+    }
+  }, 10);
+}
+
+/**
+ * Close Quote Created Success modal
+ */
+export function closeQuoteCreatedModal() {
+  const modal = el('quoteCreatedModal');
+  const modalContent = el('quoteCreatedModalContent');
+
+  if (modal && modalContent) {
+    // Start closing animation
+    modalContent.classList.remove('opacity-100', 'translate-y-0');
+    modalContent.classList.add('opacity-0', 'translate-y-[-10px]');
+
+    // Hide modal after animation completes
+    setTimeout(() => {
+      modal.classList.add('hidden');
+    }, 300);
+  }
+}
+
+// ============================================================
 // Export functions to window for onclick handlers
 // ============================================================
 
@@ -772,4 +827,12 @@ if (typeof window !== 'undefined') {
   window.openAddLineModal = openAddLineModal;
   window.openInsertLineModal = openInsertLineModal;
   window.closeAddLineModal = closeAddLineModal;
+  window.closeQuoteCreatedModal = closeQuoteCreatedModal;
+  window.createAnotherQuote = () => {
+    closeQuoteCreatedModal();
+    // Import handleClearQuote dynamically to avoid circular dependency
+    import('./create-quote.js').then(({ handleClearQuote }) => {
+      handleClearQuote();
+    });
+  };
 }

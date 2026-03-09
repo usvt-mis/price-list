@@ -100,6 +100,14 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Prevents past date selection for Requested Delivery Date field
     - Custom styling to match Tailwind blue-500 theme
     - Smooth animations and mobile-responsive design
+  - **Quote Created Success Modal** (Sales Quotes): Custom modal that displays after successful quote creation in Business Central
+    - Shows success icon with emerald/teal gradient theme
+    - Prominently displays the Quote Number returned from Business Central (e.g., "SO-12345")
+    - "Create Another Quote" button clears form and modal for rapid quote creation
+    - "Close" button dismisses modal to view current state
+    - Smooth fade-in/slide-up animation matching existing modal patterns
+    - Fallback to generic success message if Quote Number is missing from response
+    - Implemented in `src/js/salesquotes/ui.js` with `showQuoteCreatedSuccess()` and `closeQuoteCreatedModal()` functions
 - **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode
   - **Primary interaction**: Click the row/card (list view) or RunNumber (grid view) to open in edit mode
   - List view: Entire table row is clickable (except checkbox and action buttons)
@@ -245,10 +253,19 @@ module.exports = router;
     lineItems: array              // Quote line items (empty for initial testing)
   }
   ```
+- **Response Structure**:
+  ```javascript
+  {
+    number: string,               // Quote Number created in Business Central (e.g., "SO-12345")
+    // ... other fields
+  }
+  ```
 - **Implementation**: Located in `src/js/salesquotes/create-quote.js`
   - `sendQuoteToAzureFunction()` - Handles API call with proper headers and error handling
   - `handleSendQuote()` - Orchestrates validation, sanitization, and API submission
+  - Extracts Quote Number from response and displays in custom success modal
 - **Error Handling**: Comprehensive error catching with user-friendly toast notifications
+- **Success Feedback**: Custom modal displays the created Quote Number prominently with options to create another quote or close
 - **Logging**: Console logging for request payload and API response (for debugging)
 
 ---

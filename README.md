@@ -153,6 +153,11 @@ The Price List Calculator computes total cost based on four components:
   - **Modal Context**: Modal title changes to "Insert Quote Line" with position indicator (e.g., "Inserting at position 3")
   - **Add Line (Append)**: Original "Add Line" button still appends to the end
   - Actions column expanded to accommodate both Insert and Remove buttons
+- **Sales Quotes Success Feedback**:
+  - Custom success modal displays Quote Number from Business Central after quote creation
+  - Large, prominent Quote Number display with emerald/teal gradient theme
+  - "Create Another Quote" button for rapid quote creation workflow
+  - "Close" button to dismiss modal and view current state
 
 ### Backend
 - **Express.js** (Node.js) for Azure App Service deployment

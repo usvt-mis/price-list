@@ -6,7 +6,7 @@
 import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState } from './state.js';
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData } from './validations.js';
-import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts } from './ui.js';
+import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess } from './ui.js';
 import { el, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk, initDateFields } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
@@ -551,15 +551,23 @@ export async function handleSendQuote() {
 
     hideSaving();
 
-    // Show success message
-    showSuccess('Quote sent to Business Central successfully!');
+    // Extract Quote Number from response
+    const quoteNumber = response?.number || null;
 
-    // Optionally: Clear form or redirect
-    setTimeout(() => {
-      if (confirm('Quote created successfully! Do you want to create another quote?')) {
-        handleClearQuote();
-      }
-    }, 2000);
+    // Show custom success modal with Quote Number
+    if (quoteNumber) {
+      showQuoteCreatedSuccess(quoteNumber);
+    } else {
+      // Fallback to generic success if no Quote Number returned
+      console.warn('No Quote Number in response:', response);
+      showSuccess('Quote sent to Business Central successfully!');
+      // Still prompt for creating another quote
+      setTimeout(() => {
+        if (confirm('Quote created successfully! Do you want to create another quote?')) {
+          handleClearQuote();
+        }
+      }, 2000);
+    }
 
   } catch (error) {
     hideSaving();
