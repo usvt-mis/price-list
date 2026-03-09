@@ -1288,7 +1288,8 @@
 
   el('roleChangeConfirm')?.addEventListener('click', async () => {
     const selectedRole = document.querySelector('input[name="roleChange"]:checked')?.value;
-    const newBranchId = document.getElementById('branchChangeSelect')?.value || null;
+    const branchValue = document.getElementById('branchChangeSelect')?.value;
+    const newBranchId = branchValue ? parseInt(branchValue, 10) : null;
     if (!selectedRole || !backofficeState.currentEmail) return;
 
     try {
