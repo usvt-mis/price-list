@@ -171,6 +171,7 @@ The application expects these SQL Server tables:
 | `Jobs` | Job definitions with JobCode, JobName, SortOrder |
 | `Jobs2MotorType` | Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours) |
 | `Materials` | Material catalog with MaterialCode, MaterialName, UnitCost, IsActive |
+| `BCCustomers` | Local cache of Business Central customer data for fast lookups (CustomerNo, CustomerName, Address, Address2, City, PostCode, VATRegistrationNo, TaxBranchNo, CreatedAt, UpdatedAt) |
 | `OnsiteSavedCalculations` | Onsite saved calculation records with run numbers (e.g., ONS-2024-001), GrandTotal, Scope, PriorityLevel, SiteAccess, Onsite Options (Crane, 4 People, Safety) |
 | `OnsiteSavedCalculationJobs` | Jobs associated with each onsite saved calculation |
 | `OnsiteSavedCalculationMaterials` | Materials associated with each onsite saved calculation |
@@ -188,7 +189,7 @@ The application expects these SQL Server tables:
 | `PerformanceMetrics` | API performance metrics (response times, database latency) |
 | `AppLogs_Archive` | Historical application logs (archived after 30 days) |
 
-**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting. Run `database/migrations/calculator_types.sql` to add CalculatorType and type-specific columns. Run `database/migrations/add_scope_column.sql` to add Scope dropdown for Onsite calculator. Run `database/migrations/priority_site_access.sql` to add SiteAccess column for Onsite calculator (PriorityLevel column already exists and is shared with Workshop). Run `database/migrations/add_onsite_cost_per_hour.sql` to add OnsiteCostPerHour column for calculator-specific branch rates.
+**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting. Run `database/migrations/calculator_types.sql` to add CalculatorType and type-specific columns. Run `database/migrations/add_scope_column.sql` to add Scope dropdown for Onsite calculator. Run `database/migrations/priority_site_access.sql` to add SiteAccess column for Onsite calculator (PriorityLevel column already exists and is shared with Workshop). Run `database/migrations/add_onsite_cost_per_hour.sql` to add OnsiteCostPerHour column for calculator-specific branch rates. Run `api/src/database/schemas/create-bccustomers-table.sql` to create the BCCustomers table for local customer cache.
 
 **Method 3: Run Migration Scripts**
 ```bash
@@ -199,6 +200,15 @@ This will:
 - Add FirstLoginAt and LastLoginAt columns to UserRoles table for login tracking
 - Create performance index IX_UserRoles_Role_Email for tab queries
 - Verify schema changes
+
+**Azure SQL Connection (for database migrations):**
+```bash
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30
+```
+
+**Database Schema Scripts** (`api/src/database/schemas/`):
+- `create-bccustomers-table.sql` - Create BCCustomers table for local customer cache
+- `insert-test-customers.sql` - Insert test customer data for development
 
 For quick fixes:
 - `database/fix_backoffice_issues.sql` - Unlock accounts, enable disabled accounts, clear expired sessions

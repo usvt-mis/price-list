@@ -124,6 +124,8 @@ See [docs/backend.md](docs/backend.md) for complete backend documentation.
 - **Onsite Saved Calculations**: OnsiteSavedCalculations, OnsiteSavedCalculationJobs, OnsiteSavedCalculationMaterials
 - **Workshop Saved Calculations**: WorkshopSavedCalculations, WorkshopSavedCalculationJobs, WorkshopSavedCalculationMaterials
 - **Business Central**: BCCustomers (local customer cache for fast lookups, synced from BC)
+  - CustomerNo (UNIQUE), CustomerName, Address, Address2, City, PostCode, VATRegistrationNo, TaxBranchNo
+  - Indexes: IX_BCCustomers_CustomerNo, IX_BCCustomers_Search (filtered), IX_BCCustomers_UpdatedAt
 - **Role management**: UserRoles, RoleAssignmentAudit
 - **Deletion audit**: OnsiteCalculationDeletionAudit, WorkshopCalculationDeletionAudit (permanent deletion trail)
 
@@ -157,6 +159,32 @@ module.exports = router;
 - All functions use `getPool()` to get the shared pool
 - Uses parameterized queries to prevent SQL injection
 - **ANSI Options**: Connection pool sets required ANSI SQL options (QUOTED_IDENTIFIER, ANSI_NULLS, etc.) for filtered index compatibility
+
+### Database Migrations
+- **Schema scripts**: Located in `api/src/database/schemas/`
+- **sqlcmd connection** (Azure SQL):
+  ```bash
+  sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30
+  ```
+- **Execute migration script**:
+  ```bash
+  sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30 -i api/src/database/schemas/[script-name].sql
+  ```
+- **Run query directly**:
+  ```bash
+  sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30 -Q "SELECT * FROM BCCustomers"
+  ```
+- **Important**: All migration scripts must set ANSI options before creating filtered indexes:
+  ```sql
+  SET ANSI_NULLS ON;
+  SET ANSI_PADDING ON;
+  SET ANSI_WARNINGS ON;
+  SET ARITHABORT ON;
+  SET CONCAT_NULL_YIELDS_NULL ON;
+  SET QUOTED_IDENTIFIER ON;
+  SET NUMERIC_ROUNDABORT OFF;
+  GO
+  ```
 
 ### Local Development Bypass
 - When running on localhost, authentication is automatically bypassed
