@@ -51,13 +51,14 @@ router.get('/me', async (req, res) => {
     logger.debug('AUTH', 'EffectiveRoleFallback', `Using Azure AD fallback role: ${effectiveRole}`);
   }
 
-  // Return user info with effective role
+  // Return user info with effective role and branch
   res.json({
     clientPrincipal: {
       userId: user.userId,
       userDetails: user.userDetails,
       userRoles: user.userRoles || [],
-      claims: user.claims || []
+      claims: user.claims || [],
+      branchId: user.branchId || null
     },
     effectiveRole: effectiveRole
   });

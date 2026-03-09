@@ -319,6 +319,7 @@ DATABASE_CONNECTION_STRING="Server=tcp:<server>.database.windows.net,1433;Initia
 # Local Development Authentication
 MOCK_USER_EMAIL="Dev User"
 MOCK_USER_ROLE="PriceListSales"
+MOCK_USER_BRANCH_ID=1
 
 # Business Central REST API Configuration
 BC_API_BASE_URL=https://api.businesscentral.dynamics.com/v2.0/
@@ -402,7 +403,11 @@ The application uses **Azure Entra ID (Azure AD)** authentication via App Servic
 
 **Local Development:**
 - **Automatic bypass**: When running on `localhost` or `127.0.0.1`, authentication is automatically bypassed
-- Mock user defaults to Sales role in local development (override with `MOCK_USER_ROLE` env var)
+- Mock user defaults to:
+  - Email: `it@uservices-thailand.com` (override with `MOCK_USER_EMAIL` env var)
+  - Role: `PriceListSales` (override with `MOCK_USER_ROLE` env var)
+  - BranchId: 1 (URY) (override with `MOCK_USER_BRANCH_ID` env var)
+- Branch ID mapping: URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - "DEV MODE" badge appears in the header to indicate local development
 - Simply run `npm start` (Express) or `func start` (Functions) and open `src/index.html` in a browser - no auth configuration needed
 - **Backoffice local dev**: Automatically uses mock email from `BACKOFFICE_MOCK_EMAIL` env var (defaults to `it@uservices-thailand.com`). Navigate to `http://localhost:8080/backoffice.html` for local backoffice development without Azure AD.

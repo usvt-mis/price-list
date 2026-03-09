@@ -43,12 +43,14 @@ function isLocalRequest(req) {
 function createMockUser() {
   const mockEmail = process.env.MOCK_USER_EMAIL || 'it@uservices-thailand.com';
   const mockRole = process.env.MOCK_USER_ROLE || 'PriceListSales';
+  const mockBranchId = process.env.MOCK_USER_BRANCH_ID ? parseInt(process.env.MOCK_USER_BRANCH_ID) : 1; // Default to URY (BranchId=1)
   const dbLookupEnabled = process.env.LOCAL_DEV_DB_LOOKUP === 'true';
   return {
     userId: 'dev-user',
     userDetails: mockEmail,
     userRoles: [mockRole, 'authenticated'],
     claims: [],
+    branchId: mockBranchId,
     // Flag to enable DB lookup in getUserEffectiveRole
     _localDevDbLookup: dbLookupEnabled
   };

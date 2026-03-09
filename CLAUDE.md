@@ -205,8 +205,12 @@ module.exports = router;
 
 ### Local Development Bypass
 - When running on localhost, authentication is automatically bypassed
-- Mock user defaults to `dev-user@localhost` with Executive role
-- Override via `MOCK_USER_EMAIL` and `MOCK_USER_ROLE` environment variables
+- Mock user defaults to:
+  - Email: `it@uservices-thailand.com` (override via `MOCK_USER_EMAIL`)
+  - Role: `PriceListSales` (override via `MOCK_USER_ROLE`)
+  - BranchId: 1 (URY) (override via `MOCK_USER_BRANCH_ID`)
+- Branch ID mapping: URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
+- Mock user's `branchId` is included in `/api/auth/me` response for frontend access
 
 ### Mode Determination
 - View mode (Executive/Sales) is automatically determined from user's `effectiveRole` via `/api/auth/me`
