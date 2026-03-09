@@ -239,16 +239,21 @@ router.post('/users/:email/branch', async (req, res, next) => {
 
     const pool = await getPool();
 
-    // Get current branch for audit
+    // Get current branch and role for audit
     const currentResult = await pool.request()
       .input('email', sql.NVarChar, email)
-      .query('SELECT BranchId FROM UserRoles WHERE Email = @email');
+      .query('SELECT BranchId, Role FROM UserRoles WHERE Email = @email');
 
     if (currentResult.recordset.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     const oldBranchId = currentResult.recordset[0].BranchId;
+
+    // Get current role (convert NULL to 'NoRole' for audit log)
+    const currentRole = currentResult.recordset[0].Role === null
+      ? 'NoRole'
+      : currentResult.recordset[0].Role;
 
     // Update branch
     await pool.request()
@@ -261,11 +266,12 @@ router.post('/users/:email/branch', async (req, res, next) => {
       `);
 
     // Create audit entry (branch changes tracked in RoleAssignmentAudit)
+    // When only branch changes, set both OldRole and NewRole to the current role
     const clientIP = getClientIP(req);
     await pool.request()
       .input('targetEmail', sql.NVarChar, email)
-      .input('oldRole', sql.NVarChar, null)
-      .input('newRole', sql.NVarChar, null)
+      .input('oldRole', sql.NVarChar, currentRole)
+      .input('newRole', sql.NVarChar, currentRole)
       .input('oldBranchId', sql.Int, oldBranchId)
       .input('newBranchId', sql.Int, branchId)
       .input('changedBy', sql.NVarChar, session.email)
