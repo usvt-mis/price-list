@@ -9,6 +9,7 @@ import { validateQuote, sanitizeQuoteData } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts } from './ui.js';
 import { el, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk, initDateFields } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
+import { getUserInfo } from '../auth/ui.js';
 
 // ============================================================
 // Data Loading
@@ -35,6 +36,9 @@ export async function loadInitialData() {
     console.log(`Loaded ${itemsResponse.value.length} items`);
 
     hideLoading();
+
+    // Initialize branch fields after loading
+    await initializeBranchFields();
 
   } catch (error) {
     hideLoading();
@@ -521,6 +525,64 @@ export async function handleSendQuote() {
 }
 
 // ============================================================
+// Branch Fields Initialization
+// ============================================================
+
+/**
+ * Initialize branch fields based on logged-in user's branch
+ * Auto-populates BRANCH and Location Code fields
+ */
+export async function initializeBranchFields() {
+  try {
+    // Get user info from auth
+    const userInfo = await getUserInfo();
+
+    if (!userInfo || !userInfo.clientPrincipal) {
+      console.warn('No user info available for branch initialization');
+      return;
+    }
+
+    const clientPrincipal = userInfo.clientPrincipal;
+    const branchId = clientPrincipal.branchId;
+
+    if (!branchId) {
+      console.warn('No branchId found in user info');
+      return;
+    }
+
+    // Import utility functions
+    const { getBranchCode, generateLocationCode } = await import('./ui.js');
+
+    // Generate branch code and location code
+    const branchCode = getBranchCode(branchId);
+    const locationCode = generateLocationCode(branchCode);
+
+    // Set field values
+    if (el('branch')) {
+      el('branch').value = branchCode;
+    }
+
+    if (el('locationCode')) {
+      el('locationCode').value = locationCode;
+    }
+
+    // Store in state
+    state.quote.branch = branchCode;
+    state.quote.locationCode = locationCode;
+
+    // Update asterisk for BRANCH field (hide since it's now populated)
+    const branchAsterisk = el('branch-asterisk');
+    if (branchAsterisk && branchCode) {
+      branchAsterisk.classList.add('hidden');
+    }
+
+    console.log(`Branch fields initialized: ${branchCode} -> ${locationCode}`);
+  } catch (error) {
+    console.error('Failed to initialize branch fields:', error);
+  }
+}
+
+// ============================================================
 // Event Handlers Setup
 // ============================================================
 
@@ -638,7 +700,7 @@ export function setupEventListeners() {
   // REQUIRED FIELD ASTERISK HANDLING
   // =================================
   // Main form required fields (must be initialized AFTER Flatpickr)
-  const mainRequiredFields = ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType'];
+  const mainRequiredFields = ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType', 'branch'];
   setupRequiredAsteriskHandlers(mainRequiredFields);
 
   console.log('Event listeners setup complete');

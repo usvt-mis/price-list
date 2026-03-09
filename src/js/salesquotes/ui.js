@@ -541,6 +541,33 @@ export function initFlatpickr(inputId, options = {}) {
 // ============================================================
 
 /**
+ * Get branch code from branch ID
+ * Maps branch ID (1-6) to branch code
+ */
+export function getBranchCode(branchId) {
+  const branchMapping = {
+    1: 'URY',
+    2: 'USB',
+    3: 'USR',
+    4: 'UKK',
+    5: 'UPB',
+    6: 'UCB'
+  };
+  return branchMapping[branchId] || '';
+}
+
+/**
+ * Generate location code from branch code
+ * Takes last 2 characters of branch code and appends "01"
+ */
+export function generateLocationCode(branchCode) {
+  if (!branchCode || branchCode.length < 2) {
+    return '';
+  }
+  return branchCode.slice(-2) + '01';
+}
+
+/**
  * Get quote form data
  */
 export function getQuoteFormData() {
@@ -556,6 +583,8 @@ export function getQuoteFormData() {
     salespersonName: state.quote.salespersonName || '',
     assignedUserId: state.quote.assignedUserId || '',
     serviceOrderType: el('serviceOrderType')?.value || '',
+    branch: el('branch')?.value || '',
+    locationCode: el('locationCode')?.value || '',
     lines: [...state.quote.lines]
   };
 }
@@ -573,6 +602,10 @@ export function populateQuoteForm(quote) {
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = quote.assignedUserId || '';
   if (el('serviceOrderType')) el('serviceOrderType').value = quote.serviceOrderType || '';
 
+  // Branch fields
+  if (el('branch')) el('branch').value = quote.branch || '';
+  if (el('locationCode')) el('locationCode').value = quote.locationCode || '';
+
   if (quote.customer) {
     displaySelectedCustomer(quote.customer);
   }
@@ -589,7 +622,7 @@ export function populateQuoteForm(quote) {
 
   // Update asterisks for populated fields
   setTimeout(() => {
-    ['customerNoSearch', 'orderDate', 'requestedDeliveryDate'].forEach(id => {
+    ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'branch'].forEach(id => {
       const field = el(id);
       if (field && field.value) {
         field.dispatchEvent(new Event('input'));
@@ -612,6 +645,10 @@ export function clearQuoteForm() {
   if (el('salespersonName')) el('salespersonName').value = '';
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = '';
   if (el('serviceOrderType')) el('serviceOrderType').value = '';
+
+  // Clear branch fields
+  if (el('branch')) el('branch').value = '';
+  if (el('locationCode')) el('locationCode').value = '';
 
   clearCustomerSelection();
   hideCustomerDropdown();

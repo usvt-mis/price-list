@@ -389,10 +389,14 @@ async function getUserEffectiveRole(user) {
       const pool = await getPool();
       const result = await pool.request()
         .input('email', sql.NVarChar, user.userDetails)
-        .query('SELECT Role FROM UserRoles WHERE Email = @email');
+        .query('SELECT Role, BranchId FROM UserRoles WHERE Email = @email');
 
       if (result.recordset.length > 0) {
         const role = result.recordset[0].Role;
+        const branchId = result.recordset[0].BranchId;
+
+        // Store BranchId in user object for later use
+        user.branchId = branchId;
 
         if (role === null) {
           logger.debug('AUTH', 'LocalDevDbLookup', 'User has NoRole in database');
@@ -436,11 +440,15 @@ async function getUserEffectiveRole(user) {
     const pool = await getPool();
     const result = await pool.request()
       .input('email', sql.NVarChar, user.userDetails)
-      .query('SELECT Role, FirstLoginAt FROM UserRoles WHERE Email = @email');
+      .query('SELECT Role, FirstLoginAt, BranchId FROM UserRoles WHERE Email = @email');
 
     if (result.recordset.length > 0) {
       const role = result.recordset[0].Role;
       const firstLoginAt = result.recordset[0].FirstLoginAt;
+      const branchId = result.recordset[0].BranchId;
+
+      // Store BranchId in user object for later use
+      user.branchId = branchId;
 
       // Update login timestamps
       if (firstLoginAt) {

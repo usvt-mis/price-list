@@ -18,9 +18,12 @@ export async function getUserInfo() {
   if (isLocalDev) {
     console.log('[AUTH-USERINFO-2] Local dev detected, returning mock user');
     return {
-      userDetails: 'Dev User',
-      userId: 'dev-user',
-      userRoles: ['PriceListExecutive', 'authenticated'],
+      clientPrincipal: {
+        userDetails: 'Dev User',
+        userId: 'dev-user',
+        userRoles: ['PriceListExecutive', 'authenticated'],
+        branchId: 1 // Default to URY (1) for local dev
+      },
       effectiveRole: 'Executive'
     };
   }
@@ -69,7 +72,8 @@ export async function renderAuthSection() {
       email: clientPrincipal.userDetails,
       initials: extractInitials(clientPrincipal.userDetails),
       roles: clientPrincipal.userRoles || [],
-      effectiveRole: userInfo.effectiveRole // Use effectiveRole from backend
+      effectiveRole: userInfo.effectiveRole, // Use effectiveRole from backend
+      branchId: clientPrincipal.branchId || null // Store branch ID from user
     };
     console.log('[AUTH-RENDER-7] authState.user set:', authState.user);
 

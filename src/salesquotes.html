@@ -194,6 +194,30 @@
               <option value="TRADE">TRADE</option>
             </select>
           </div>
+
+          <!-- BRANCH (Locked, auto-populated from user) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">BRANCH <span class="required-asterisk" id="branch-asterisk">*</span></label>
+            <input
+              type="text"
+              id="branch"
+              readonly
+              class="w-full rounded-lg border-slate-200 bg-gray-100 text-gray-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+              placeholder="Auto-populated from user"
+            />
+          </div>
+
+          <!-- Location Code (Locked, auto-calculated from BRANCH) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Location Code</label>
+            <input
+              type="text"
+              id="locationCode"
+              readonly
+              class="w-full rounded-lg border-slate-200 bg-gray-100 text-gray-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+              placeholder="Auto-calculated from BRANCH"
+            />
+          </div>
         </div>
 
         <!-- Work Description -->
