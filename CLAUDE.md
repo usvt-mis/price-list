@@ -18,7 +18,7 @@ This is a Price List Calculator - a web application for calculating service cost
 |------------|---------|--------------|-------------------|
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
-| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, local database customer search (min 2 chars), customer/item search, quote lines with calculations, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH) | N/A (BC Quote Number) |
+| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, local database customer search (min 2 chars), customer/item search, quote lines with calculations, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH), Responsibility Center (auto-populated from BRANCH) | N/A (BC Quote Number) |
 |  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, dynamic required field indicators (asterisks hide when fields have values), modern date picker with Flatpickr (Order Date defaults to today) |  |
 
 ### Cost Components
@@ -87,10 +87,11 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Applies to 7 required fields: Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, BRANCH
     - Works with all input types: text inputs, search dropdowns, and select dropdowns
     - Automatically resets when form is cleared
-  - **Auto-Populated Branch Fields** (Sales Quotes): BRANCH and Location Code fields that automatically populate based on user's branch assignment
+  - **Auto-Populated Branch Fields** (Sales Quotes): BRANCH, Location Code, and Responsibility Center fields that automatically populate based on user's branch assignment
     - BRANCH field displays branch code (URY, USB, USR, UKK, UPB, UCB) from user's branchId
     - Location Code is auto-calculated from BRANCH (last 2 characters + "01", e.g., URY → RY01)
-    - Both fields are readonly with gray background to prevent manual override
+    - Responsibility Center mirrors the BRANCH value (e.g., URY → URY)
+    - All three fields are readonly with gray background to prevent manual override
     - BRANCH field has required asterisk that hides when auto-populated
     - Branch ID mapping: 1=URY, 2=USB, 3=USR, 4=UKK, 5=UPB, 6=UCB
   - **Modern Date Picker** (Sales Quotes): Flatpickr library integration for Order Date and Requested Delivery Date fields

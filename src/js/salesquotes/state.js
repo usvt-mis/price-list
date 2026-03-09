@@ -39,6 +39,7 @@ export const state = {
     serviceOrderType: '',
     branch: '',
     locationCode: '',
+    responsibilityCenter: '',
     lines: []
   },
 
@@ -211,6 +212,7 @@ export function initNewQuote() {
     serviceOrderType: '',
     branch: '',
     locationCode: '',
+    responsibilityCenter: '',
     lines: []
   };
   state.formData.selectedCustomer = null;

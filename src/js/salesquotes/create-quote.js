@@ -566,9 +566,15 @@ export async function initializeBranchFields() {
       el('locationCode').value = locationCode;
     }
 
+    // Set Responsibility Center (equals BRANCH)
+    if (el('responsibilityCenter')) {
+      el('responsibilityCenter').value = branchCode;
+    }
+
     // Store in state
     state.quote.branch = branchCode;
     state.quote.locationCode = locationCode;
+    state.quote.responsibilityCenter = branchCode;
 
     // Update asterisk for BRANCH field (hide since it's now populated)
     const branchAsterisk = el('branch-asterisk');

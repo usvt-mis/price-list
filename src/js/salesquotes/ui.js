@@ -585,6 +585,7 @@ export function getQuoteFormData() {
     serviceOrderType: el('serviceOrderType')?.value || '',
     branch: el('branch')?.value || '',
     locationCode: el('locationCode')?.value || '',
+    responsibilityCenter: el('responsibilityCenter')?.value || '',
     lines: [...state.quote.lines]
   };
 }
@@ -605,6 +606,7 @@ export function populateQuoteForm(quote) {
   // Branch fields
   if (el('branch')) el('branch').value = quote.branch || '';
   if (el('locationCode')) el('locationCode').value = quote.locationCode || '';
+  if (el('responsibilityCenter')) el('responsibilityCenter').value = quote.responsibilityCenter || '';
 
   if (quote.customer) {
     displaySelectedCustomer(quote.customer);
@@ -649,6 +651,7 @@ export function clearQuoteForm() {
   // Clear branch fields
   if (el('branch')) el('branch').value = '';
   if (el('locationCode')) el('locationCode').value = '';
+  if (el('responsibilityCenter')) el('responsibilityCenter').value = '';
 
   clearCustomerSelection();
   hideCustomerDropdown();
