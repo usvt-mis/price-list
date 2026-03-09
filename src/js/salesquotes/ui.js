@@ -555,7 +555,6 @@ export function getQuoteFormData() {
     salespersonCode: state.quote.salespersonCode || '',
     salespersonName: state.quote.salespersonName || '',
     assignedUserId: state.quote.assignedUserId || '',
-    assignedUserName: state.quote.assignedUserName || '',
     serviceOrderType: el('serviceOrderType')?.value || '',
     lines: [...state.quote.lines]
   };
@@ -572,7 +571,6 @@ export function populateQuoteForm(quote) {
   if (el('salespersonCodeSearch')) el('salespersonCodeSearch').value = quote.salespersonCode || '';
   if (el('salespersonName')) el('salespersonName').value = quote.salespersonName || '';
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = quote.assignedUserId || '';
-  if (el('assignedUserName')) el('assignedUserName').value = quote.assignedUserName || '';
   if (el('serviceOrderType')) el('serviceOrderType').value = quote.serviceOrderType || '';
 
   if (quote.customer) {
@@ -613,7 +611,6 @@ export function clearQuoteForm() {
   if (el('salespersonCodeSearch')) el('salespersonCodeSearch').value = '';
   if (el('salespersonName')) el('salespersonName').value = '';
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = '';
-  if (el('assignedUserName')) el('assignedUserName').value = '';
   if (el('serviceOrderType')) el('serviceOrderType').value = '';
 
   clearCustomerSelection();

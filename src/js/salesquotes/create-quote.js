@@ -293,10 +293,8 @@ export async function handleAssignedUserIdSearch(query) {
 
 export function selectAssignedUser(user) {
   state.quote.assignedUserId = user.UserId;
-  state.quote.assignedUserName = user.UserName;
 
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = user.UserId;
-  if (el('assignedUserName')) el('assignedUserName').value = user.UserName;
 
   // Update asterisk after user selection
   el('assignedUserIdSearch')?.dispatchEvent(new Event('input'));

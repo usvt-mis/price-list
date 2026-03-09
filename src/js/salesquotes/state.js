@@ -36,7 +36,6 @@ export const state = {
     salespersonCode: '',
     salespersonName: '',
     assignedUserId: '',
-    assignedUserName: '',
     serviceOrderType: '',
     lines: []
   },
@@ -207,7 +206,6 @@ export function initNewQuote() {
     salespersonCode: '',
     salespersonName: '',
     assignedUserId: '',
-    assignedUserName: '',
     serviceOrderType: '',
     lines: []
   };
