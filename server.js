@@ -192,6 +192,18 @@ app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
 // Auth info endpoint (public - auth validation happens inside route)
 app.use('/api/auth', authRouter);
 
+// Business Central public config endpoint (no auth required - safe values only)
+app.get('/api/business-central/config', (req, res) => {
+  res.json({
+    apiBaseUrl: process.env.BC_API_BASE_URL || 'https://api.businesscentral.dynamics.com/v2.0/',
+    apiVersion: process.env.BC_API_VERSION || 'v2.20',
+    environment: process.env.BC_ENVIRONMENT || 'Production',
+    companyId: process.env.BC_COMPANY_ID,
+    hasCredentials: !!(process.env.BC_CLIENT_ID && process.env.BC_CLIENT_SECRET),
+    mockEnabled: process.env.BC_MOCK_ENABLED === 'true'
+  });
+});
+
 // Business Central integration (requires authentication)
 app.use('/api/business-central', requireAuth, businessCentralRouter);
 

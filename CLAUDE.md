@@ -112,9 +112,9 @@ See [docs/frontend.md](docs/frontend.md) for complete frontend documentation.
   - `backoffice/index.js` - Backoffice user management
   - `backoffice/login.js` - Backoffice authentication
   - `business-central/` - Business Central integration routes
+    - `index.js` - BC routes aggregator (includes public `/config` endpoint)
     - `token.js` - OAuth token endpoint
     - `customers.js` - Local database customer search (BCCustomers table)
-    - `index.js` - BC routes aggregator
 - **Azure Functions (Legacy)**: HTTP handlers in `api/src/functions/`
 - **Shared**: Connection pool (`api/src/db.js`), middleware (`api/src/middleware/`), utilities (`api/src/utils/`)
 

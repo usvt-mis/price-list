@@ -141,21 +141,6 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * GET /api/business-central/config
- * Returns BC configuration (safe values only)
- */
-router.get('/config', (req, res) => {
-  res.json({
-    apiBaseUrl: BC_CONFIG.apiBaseUrl,
-    apiVersion: BC_CONFIG.apiVersion,
-    environment: BC_CONFIG.environment,
-    companyId: BC_CONFIG.companyId,
-    hasCredentials: !!(BC_CONFIG.clientId && BC_CONFIG.clientSecret),
-    mockEnabled: process.env.BC_MOCK_ENABLED === 'true'
-  });
-});
-
-/**
  * DELETE /api/business-central/token
  * Clears cached token (useful for testing)
  */

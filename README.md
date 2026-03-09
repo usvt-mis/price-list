@@ -288,7 +288,7 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/backoffice/timezone-check` | GET | Diagnostic endpoint for timezone configuration (returns database and JavaScript timezone info) | Backoffice session |
 | `/api/business-central/token` | POST | Acquire OAuth token for Business Central API | Yes |
 | `/api/business-central/token` | DELETE | Clear cached BC token | Yes |
-| `/api/business-central/config` | GET | Get Business Central configuration | Yes |
+| `/api/business-central/config` | GET | Get Business Central configuration (public, safe values only) | No |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/api/version` | GET | Application version info | No |
 | `/.auth/me` | GET | Get current user info from App Service Easy Auth | No |
