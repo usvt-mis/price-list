@@ -420,6 +420,9 @@ export function openAddLineModal(insertIndex = null) {
     if (el('lineDiscount')) el('lineDiscount').value = '0';
     if (el('lineTotalPreview')) el('lineTotalPreview').textContent = '0.00';
 
+    // Setup modal field asterisk handlers
+    setupModalAsteriskHandlers();
+
     // Focus on item search
     setTimeout(() => el('lineItemSearch')?.focus(), 100);
 
@@ -457,6 +460,34 @@ export function closeAddLineModal() {
     // Reset insert mode
     state.ui.insertIndex = null;
   }
+}
+
+/**
+ * Setup asterisk handlers for modal fields
+ */
+function setupModalAsteriskHandlers() {
+  const modalFields = ['lineDescription', 'lineQuantity', 'lineUnitPrice'];
+
+  modalFields.forEach(fieldId => {
+    const field = el(fieldId);
+    if (!field) return;
+
+    // Check initial state (Quantity defaults to '1', Price defaults to '0')
+    updateRequiredAsterisk(fieldId);
+
+    // Remove old listeners to prevent duplicates
+    field.removeEventListener('input', handleModalFieldInput);
+
+    // Add fresh listener
+    field.addEventListener('input', handleModalFieldInput);
+  });
+}
+
+/**
+ * Handler for modal field input events
+ */
+function handleModalFieldInput(e) {
+  updateRequiredAsterisk(e.target.id);
 }
 
 /**
@@ -507,6 +538,16 @@ export function populateQuoteForm(quote) {
   if (quote.customer) {
     displaySelectedCustomer(quote.customer);
   }
+
+  // Update asterisks for populated fields
+  setTimeout(() => {
+    ['customerNoSearch', 'quoteDate', 'validityDate'].forEach(id => {
+      const field = el(id);
+      if (field && field.value) {
+        field.dispatchEvent(new Event('input'));
+      }
+    });
+  }, 50);
 }
 
 /**
@@ -537,6 +578,53 @@ function getValidityDate() {
 // ============================================================
 // Validation UI
 // ============================================================
+
+/**
+ * Update required field asterisk visibility based on field value
+ * @param {string} fieldId - The ID of the input field
+ */
+export function updateRequiredAsterisk(fieldId) {
+  const field = el(fieldId);
+  if (!field) return;
+
+  // Find the label containing this field
+  const container = field.closest('.relative') || field.closest('div');
+  if (!container) return;
+
+  const label = container.querySelector('label');
+  if (!label) return;
+
+  const asterisk = label.querySelector('.required-asterisk');
+  if (!asterisk) return;
+
+  // Check if field has value
+  const hasValue = field.value.trim() !== '';
+
+  // Toggle asterisk visibility
+  if (hasValue) {
+    asterisk.classList.add('hidden');
+  } else {
+    asterisk.classList.remove('hidden');
+  }
+}
+
+/**
+ * Initialize required field asterisk handlers for a list of field IDs
+ * @param {string[]} fieldIds - Array of field IDs to monitor
+ */
+export function setupRequiredAsteriskHandlers(fieldIds) {
+  fieldIds.forEach(fieldId => {
+    const field = el(fieldId);
+    if (!field) return;
+
+    // Check initial state
+    updateRequiredAsterisk(fieldId);
+
+    // Add event listeners for real-time updates
+    field.addEventListener('input', () => updateRequiredAsterisk(fieldId));
+    field.addEventListener('change', () => updateRequiredAsterisk(fieldId));
+  });
+}
 
 /**
  * Display validation errors

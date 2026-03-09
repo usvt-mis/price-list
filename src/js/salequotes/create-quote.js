@@ -7,7 +7,7 @@ import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines,
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, sanitizeQuoteData } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts } from './ui.js';
-import { el, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm } from './ui.js';
+import { el, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 
 // ============================================================
@@ -146,6 +146,8 @@ export function selectCustomerFromLocal(customer) {
   // Update UI fields
   if (el('customerNoSearch')) {
     el('customerNoSearch').value = customer.CustomerNo;
+    // Update asterisk after customer selection
+    el('customerNoSearch').dispatchEvent(new Event('input'));
   }
   if (el('customerName')) {
     el('customerName').value = customer.CustomerName;
@@ -214,8 +216,14 @@ export function handleItemSelection(itemId) {
   }
 
   // Populate line form with item data
-  if (el('lineDescription')) el('lineDescription').value = item.description;
-  if (el('lineUnitPrice')) el('lineUnitPrice').value = item.unitPrice;
+  if (el('lineDescription')) {
+    el('lineDescription').value = item.description;
+    el('lineDescription').dispatchEvent(new Event('input')); // Update asterisk
+  }
+  if (el('lineUnitPrice')) {
+    el('lineUnitPrice').value = item.unitPrice;
+    el('lineUnitPrice').dispatchEvent(new Event('input')); // Update asterisk
+  }
 
   hideItemDropdown();
   updateLineTotalPreview();
@@ -303,6 +311,14 @@ export function handleClearQuote() {
     clearQuoteLines();
     renderQuoteLines();
     renderTotals();
+
+    // Reset asterisks to visible state
+    setTimeout(() => {
+      ['customerNoSearch', 'quoteDate', 'validityDate'].forEach(id => {
+        if (el(id)) el(id).dispatchEvent(new Event('input'));
+      });
+    }, 50);
+
     showSuccess('Quote cleared');
   }
 }
@@ -465,6 +481,12 @@ export function setupEventListeners() {
       closeAddLineModal();
     }
   });
+
+  // REQUIRED FIELD ASTERISK HANDLING
+  // =================================
+  // Main form required fields
+  const mainRequiredFields = ['customerNoSearch', 'quoteDate', 'validityDate'];
+  setupRequiredAsteriskHandlers(mainRequiredFields);
 
   console.log('Event listeners setup complete');
 }

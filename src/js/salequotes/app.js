@@ -47,7 +47,17 @@ async function initApp() {
     setupEventListeners();
     console.log('Event listeners setup');
 
-    // 7. Set initial view
+    // 7. Initialize asterisk state for any default values
+    setTimeout(() => {
+      ['customerNoSearch', 'quoteDate', 'validityDate'].forEach(id => {
+        const field = el(id);
+        if (field && field.value) {
+          field.dispatchEvent(new Event('input'));
+        }
+      });
+    }, 100);
+
+    // 8. Set initial view
     setCurrentView('create');
     console.log('Initial view set');
 
