@@ -14,7 +14,7 @@ The Price List Calculator computes total cost based on four components:
 ## Architecture
 
 ### Frontend
-- **Landing Page** (`src/index.html`): Calculator selection page with links to Onsite and Workshop calculators
+- **Landing Page** (`src/index.html`): Calculator selection page with links to Onsite, Workshop, and Sales Quotes calculators
 - **Onsite Calculator** (`src/onsite.html`): Standalone onsite calculator application
   - **ES6 Modules**: JavaScript in `src/js/onsite/` directory
   - **No build process**: Uses native ES6 modules with import maps
@@ -26,6 +26,13 @@ The Price List Calculator computes total cost based on four components:
   - **No build process**: Uses native ES6 modules with import maps
   - Tailwind CSS (compiled locally via `npm run build:css`)
   - Azure AD authentication
+- **Sales Quotes** (`src/salequotes.html`): Business Central integration module
+  - **ES6 Modules**: JavaScript in `src/js/salequotes/` directory
+  - **No build process**: Uses native ES6 modules with import maps
+  - Microsoft Blue theme (#0078d4) matching BC UI
+  - Azure AD authentication
+  - **Features**: Customer search, item search, quote line management, automatic calculations
+  - **Business Central Integration**: OAuth 2.0 client credentials flow, token caching, mock mode for local development
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
   - Separate HTML file with complete UI independence
   - **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`
@@ -261,6 +268,9 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/backoffice/audit-log` | GET | View role change audit history (?email=search for filtering) | Backoffice session |
 | `/api/backoffice/repair` | GET | Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit/BackofficeAdmins tables) | Backoffice session |
 | `/api/backoffice/timezone-check` | GET | Diagnostic endpoint for timezone configuration (returns database and JavaScript timezone info) | Backoffice session |
+| `/api/business-central/token` | POST | Acquire OAuth token for Business Central API | Yes |
+| `/api/business-central/token` | DELETE | Clear cached BC token | Yes |
+| `/api/business-central/config` | GET | Get Business Central configuration | Yes |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/api/version` | GET | Application version info | No |
 | `/.auth/me` | GET | Get current user info from App Service Easy Auth | No |
@@ -280,19 +290,31 @@ npm install
 npm run build:css     # Build Tailwind CSS (one-time setup)
 ```
 
-Configure the database connection. You can use environment variables or `api/local.settings.json`:
+Configure the database connection and Business Central integration. You can use environment variables or `.env.local`:
 
-```json
-{
-  "Values": {
-    "DATABASE_CONNECTION_STRING": "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
-    "MOCK_USER_EMAIL": "Dev User",
-    "MOCK_USER_ROLE": "PriceListSales"
-  }
-}
+```bash
+# Database Connection
+DATABASE_CONNECTION_STRING="Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<db>;User ID=<user>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+
+# Local Development Authentication
+MOCK_USER_EMAIL="Dev User"
+MOCK_USER_ROLE="PriceListSales"
+
+# Business Central REST API Configuration
+BC_API_BASE_URL=https://api.businesscentral.dynamics.com/v2.0/
+BC_API_VERSION=v2.20
+BC_TENANT_ID=your-tenant-id-here
+BC_ENVIRONMENT=Production
+BC_COMPANY_ID=your-company-guid-here
+BC_CLIENT_ID=your-azure-ad-app-client-id
+BC_CLIENT_SECRET=your-client-secret-here
+BC_OAUTH_SCOPE=https://api.businesscentral.dynamics.com/.default
+BC_MOCK_ENABLED=true
 ```
 
 **Optional**: Set `MOCK_USER_EMAIL` to match existing database records' CreatorEmail values for delete operations in local development. Defaults to `'Dev User'`. Set `MOCK_USER_ROLE` to `PriceListExecutive` to test Executive features in local development. Defaults to `PriceListSales`.
+
+**Business Central Integration**: Configure BC credentials to enable real API integration. If `BC_MOCK_ENABLED=true`, the app uses mock data for local development without requiring BC credentials.
 
 ### Running Locally
 
@@ -403,9 +425,11 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │   │   ├── diagnostics.js
 │   │   │   │   ├── logs.js
 │   │   │   │   └── health.js
-│   │   │   └── backoffice/
-│   │   │       ├── index.js
-│   │   │       └── login.js
+│   │   │   ├── backoffice/
+│   │   │   │   ├── index.js
+│   │   │   │   └── login.js
+│   │   │   └── business-central/
+│   │   │       └── token.js
 │   │   ├── middleware/
 │   │   │   ├── authExpress.js          # Express-compatible auth
 │   │   │   ├── twoFactorAuthExpress.js # Express-compatible backoffice auth
@@ -467,6 +491,7 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── index.html                # Landing page (calculator selection)
 │   ├── onsite.html               # Onsite calculator
 │   ├── workshop.html              # Workshop calculator
+│   ├── salequotes.html           # Sales Quotes with Business Central integration
 │   ├── backoffice.html           # Backoffice admin interface
 │   └── js/                      # ES6 JavaScript modules
 │       ├── core/                # Shared utilities
@@ -504,6 +529,14 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │       │       ├── sharing.js
 │       │       ├── filters.js
 │       │       └── index.js
+│       ├── salequotes/          # Sales Quotes modules (Business Central integration)
+│       │   ├── app.js           # Main entry point
+│       │   ├── config.js        # BC configuration
+│       │   ├── bc-api-client.js # BC REST API wrapper
+│       │   ├── create-quote.js  # Quote creation logic
+│       │   ├── ui.js            # UI components
+│       │   ├── state.js         # State management
+│       │   └── validations.js   # Form validations
 │       ├── auth/                # Authentication module
 │       │   ├── index.js
 │       │   ├── token-handling.js
@@ -549,8 +582,17 @@ The application is deployed to Azure App Service via manual deployment:
 **Environment Variables** (configured in App Service):
 - `DATABASE_CONNECTION_STRING` - SQL Server connection string
 - `NODE_ENV` - Set to "production"
+- `BC_API_BASE_URL` - Business Central API base URL
+- `BC_API_VERSION` - BC API version (e.g., v2.20)
+- `BC_TENANT_ID` - Azure AD tenant ID
+- `BC_ENVIRONMENT` - BC environment name (Production/Sandbox)
+- `BC_COMPANY_ID` - BC company GUID
+- `BC_CLIENT_ID` - Azure AD app client ID
+- `BC_CLIENT_SECRET` - Azure AD app client secret
+- `BC_OAUTH_SCOPE` - OAuth scope (default: https://api.businesscentral.dynamics.com/.default)
+- `BC_MOCK_ENABLED` - Set to "false" in production to use real BC API
 
-**Note**: Share link generation automatically uses the App Service hostname. No additional environment variables needed.
+**Note**: Share link generation automatically uses the App Service hostname. No additional environment variables needed. Business Central credentials must be configured for Sales Quotes functionality in production.
 
 ## License
 

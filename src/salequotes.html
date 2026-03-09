@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales Quotes - Price List Calculator</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bc: {
+              primary: '#0078d4',
+              primaryHover: '#106ebe',
+              primaryLight: '#c7e0f4',
+              secondary: '#6c757d',
+              success: '#107c10',
+              warning: '#ffb900',
+              danger: '#d13438',
+              background: '#f3f2f1',
+              border: '#d1d1d1'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- BC-Specific Styles -->
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f3f2f1;
+    }
+
+    /* BC-style inputs */
+    .bc-input {
+      border: 1px solid #d1d1d1;
+      border-radius: 2px;
+      padding: 8px 12px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .bc-input:focus {
+      outline: none;
+      border-color: #0078d4;
+      box-shadow: 0 0 0 1px #0078d4;
+    }
+
+    /* BC-style buttons */
+    .bc-btn {
+      border: 1px solid transparent;
+      border-radius: 2px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 400;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .bc-btn-primary {
+      background-color: #0078d4;
+      color: white;
+    }
+
+    .bc-btn-primary:hover {
+      background-color: #106ebe;
+    }
+
+    .bc-btn-secondary {
+      background-color: #fff;
+      border-color: #d1d1d1;
+      color: #323130;
+    }
+
+    .bc-btn-secondary:hover {
+      background-color: #f3f2f1;
+    }
+
+    /* BC-style cards */
+    .bc-card {
+      background: white;
+      border: 1px solid #d1d1d1;
+      border-radius: 2px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    /* BC-style tables */
+    .bc-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .bc-table th {
+      background-color: #f3f2f1;
+      border-bottom: 2px solid #d1d1d1;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .bc-table td {
+      border-bottom: 1px solid #d1d1d1;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+
+    .bc-table tr:hover {
+      background-color: #f8f8f8;
+    }
+
+    /* Search dropdown */
+    .search-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #d1d1d1;
+      border-radius: 2px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    .search-dropdown-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #f3f2f1;
+    }
+
+    .search-dropdown-item:hover {
+      background-color: #f3f2f1;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      border: 3px solid #f3f2f1;
+      border-top: 3px solid #0078d4;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Toast notifications */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 12px 16px;
+      border-radius: 2px;
+      color: white;
+      font-size: 14px;
+      z-index: 9999;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .toast-success {
+      background-color: #107c10;
+    }
+
+    .toast-error {
+      background-color: #d13438;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Tab navigation */
+    .tab-button {
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      color: #605e5c;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab-button:hover {
+      background-color: #f3f2f1;
+    }
+
+    .tab-button.active {
+      color: #0078d4;
+      border-bottom-color: #0078d4;
+      font-weight: 600;
+    }
+
+    /* Responsive utilities */
+    @media (max-width: 768px) {
+      .bc-mobile-stack {
+        flex-direction: column;
+      }
+
+      .bc-mobile-full {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-4">
+        <div class="flex items-center space-x-4">
+          <a href="/" class="text-gray-600 hover:text-gray-900">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+          </a>
+          <div>
+            <h1 class="text-xl font-semibold text-gray-900">Sales Quotes</h1>
+            <p class="text-sm text-gray-600">Business Central Integration</p>
+          </div>
+        </div>
+        <div id="authSection"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Tab Navigation -->
+    <div class="border-b border-gray-200 mb-6">
+      <nav class="flex space-x-8">
+        <button id="tabCreate" class="tab-button active" onclick="window.switchTab('create')">
+          Create New Quote
+        </button>
+        <button id="tabSearch" class="tab-button" onclick="window.switchTab('search')">
+          Search Quotes
+        </button>
+      </nav>
+    </div>
+
+    <!-- Create Quote View -->
+    <div id="createView" class="view">
+      <!-- Quote Header Card -->
+      <div class="bc-card p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Quote Information</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Customer Selection -->
+          <div class="relative">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
+            <input
+              type="text"
+              id="customerSearch"
+              class="bc-input w-full"
+              placeholder="Search by customer name or number..."
+              autocomplete="off"
+            />
+            <div id="customerDropdown" class="search-dropdown hidden"></div>
+          </div>
+
+          <!-- Quote Date -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Quote Date *</label>
+            <input
+              type="date"
+              id="quoteDate"
+              class="bc-input w-full"
+            />
+          </div>
+
+          <!-- Validity Date -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Valid Until *</label>
+            <input
+              type="date"
+              id="validityDate"
+              class="bc-input w-full"
+            />
+          </div>
+
+          <!-- Currency -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <select id="currency" class="bc-input w-full">
+              <option value="THB">THB - Thai Baht</option>
+              <option value="USD">USD - US Dollar</option>
+              <option value="EUR">EUR - Euro</option>
+            </select>
+          </div>
+
+          <!-- Payment Terms -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Payment Terms</label>
+            <select id="paymentTerms" class="bc-input w-full">
+              <option value="NET 30 DAYS">Net 30 Days</option>
+              <option value="NET 60 DAYS">Net 60 Days</option>
+              <option value="COD">COD</option>
+              <option value="ADVANCE">Advance Payment</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <textarea
+            id="quoteNotes"
+            class="bc-input w-full"
+            rows="3"
+            placeholder="Additional notes or terms..."
+          ></textarea>
+        </div>
+
+        <!-- Selected Customer Display -->
+        <div id="selectedCustomerDisplay" class="mt-4 hidden">
+          <div class="bg-blue-50 border border-blue-200 rounded p-4">
+            <h4 class="font-medium text-blue-900 mb-2">Selected Customer</h4>
+            <div id="customerDetails"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quote Lines Card -->
+      <div class="bc-card p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">Quote Lines</h2>
+          <button
+            id="addLineBtn"
+            class="bc-btn bc-btn-primary"
+            onclick="window.openAddLineModal()"
+          >
+            + Add Line
+          </button>
+        </div>
+
+        <!-- Lines Table -->
+        <div class="overflow-x-auto">
+          <table class="bc-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>Item</th>
+                <th>Description</th>
+                <th style="width: 100px;">Quantity</th>
+                <th style="width: 120px;">Unit Price</th>
+                <th style="width: 120px;">Discount</th>
+                <th style="width: 120px;">Total</th>
+                <th style="width: 80px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="linesTableBody">
+              <!-- Lines will be rendered here -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="noLinesMessage" class="text-center py-8 text-gray-500">
+          No line items added. Click "Add Line" to add items.
+        </div>
+      </div>
+
+      <!-- Totals Card -->
+      <div class="bc-card p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Totals</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Discount</label>
+              <input
+                type="number"
+                id="invoiceDiscount"
+                class="bc-input w-full"
+                value="0"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">VAT Rate (%)</label>
+              <input
+                type="number"
+                id="vatRate"
+                class="bc-input w-full"
+                value="7"
+                min="0"
+                max="100"
+                step="0.1"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Subtotal:</span>
+              <span id="subtotal" class="font-medium">0.00</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Discount:</span>
+              <span id="discountAmount" class="font-medium">0.00</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">After Discount:</span>
+              <span id="afterDiscount" class="font-medium">0.00</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">VAT (<span id="vatRateDisplay">7</span>%):</span>
+              <span id="vatAmount" class="font-medium">0.00</span>
+            </div>
+            <div class="flex justify-between text-lg font-semibold border-t pt-2">
+              <span>Total:</span>
+              <span id="totalAmount">0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex justify-end space-x-4">
+        <button
+          id="clearBtn"
+          class="bc-btn bc-btn-secondary"
+          onclick="window.clearQuote()"
+        >
+          Clear
+        </button>
+        <button
+          id="saveDraftBtn"
+          class="bc-btn bc-btn-secondary"
+          onclick="window.saveDraft()"
+        >
+          Save Draft
+        </button>
+        <button
+          id="sendQuoteBtn"
+          class="bc-btn bc-btn-primary"
+          onclick="window.sendQuote()"
+        >
+          Send to Business Central
+        </button>
+      </div>
+    </div>
+
+    <!-- Search Quotes View -->
+    <div id="searchView" class="view hidden">
+      <div class="bc-card p-6">
+        <h2 class="text-lg font-semibold mb-4">Search Sales Quotes</h2>
+        <p class="text-gray-600">Search functionality coming soon...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Line Modal -->
+  <div id="addLineModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+        <div class="p-6 border-b">
+          <h3 class="text-lg font-semibold">Add Quote Line</h3>
+        </div>
+
+        <div class="p-6">
+          <!-- Item Search -->
+          <div class="mb-4 relative">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Item</label>
+            <input
+              type="text"
+              id="lineItemSearch"
+              class="bc-input w-full"
+              placeholder="Search items..."
+              autocomplete="off"
+            />
+            <div id="itemDropdown" class="search-dropdown hidden"></div>
+          </div>
+
+          <!-- Description -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+            <textarea
+              id="lineDescription"
+              class="bc-input w-full"
+              rows="2"
+              placeholder="Line description..."
+            ></textarea>
+          </div>
+
+          <!-- Quantity and Price -->
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
+              <input
+                type="number"
+                id="lineQuantity"
+                class="bc-input w-full"
+                value="1"
+                min="1"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Unit Price *</label>
+              <input
+                type="number"
+                id="lineUnitPrice"
+                class="bc-input w-full"
+                value="0"
+                min="0"
+                step="0.01"
+              />
+            </div>
+          </div>
+
+          <!-- Discount -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Discount</label>
+            <input
+              type="number"
+              id="lineDiscount"
+              class="bc-input w-full"
+              value="0"
+              min="0"
+              step="0.01"
+            />
+          </div>
+
+          <!-- Line Total Preview -->
+          <div class="bg-gray-50 p-4 rounded">
+            <div class="flex justify-between font-medium">
+              <span>Line Total:</span>
+              <span id="lineTotalPreview">0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 border-t bg-gray-50 flex justify-end space-x-4">
+          <button
+            class="bc-btn bc-btn-secondary"
+            onclick="window.closeAddLineModal()"
+          >
+            Cancel
+          </button>
+          <button
+            class="bc-btn bc-btn-primary"
+            onclick="window.addQuoteLine()"
+          >
+            Add Line
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer"></div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-8 flex items-center space-x-4">
+      <div class="spinner"></div>
+      <span class="text-lg font-medium" id="loadingMessage">Loading...</span>
+    </div>
+  </div>
+
+  <!-- Import Map for ES6 Modules -->
+  <script type="importmap">
+    {
+      "imports": {
+        "../core/": "./js/core/",
+        "../auth/": "./js/auth/",
+        "./salequotes/": "./js/salequotes/"
+      }
+    }
+  </script>
+
+  <!-- Main Application -->
+  <script type="module" src="./js/salequotes/app.js"></script>
+</body>
+</html>

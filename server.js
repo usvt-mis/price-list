@@ -57,6 +57,8 @@ const onsiteBranchesRouter = require('./api/src/routes/onsite/branches');
 const workshopCalculationsRouter = require('./api/src/routes/workshop/calculations');
 const workshopSharedRouter = require('./api/src/routes/workshop/shared');
 const workshopLaborRouter = require('./api/src/routes/workshop/labor');
+// NEW: Business Central integration routes
+const businessCentralRouter = require('./api/src/routes/business-central/token');
 
 // Import authentication middleware
 const { requireAuth } = require('./api/src/middleware/authExpress');
@@ -125,6 +127,10 @@ app.get('/workshop.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'workshop.html'));
 });
 
+app.get('/salequotes.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'salequotes.html'));
+});
+
 // ============================================================
 // API Routes
 // ============================================================
@@ -185,6 +191,9 @@ app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
 
 // Auth info endpoint (public - auth validation happens inside route)
 app.use('/api/auth', authRouter);
+
+// Business Central integration (requires authentication)
+app.use('/api/business-central', requireAuth, businessCentralRouter);
 
 // ============================================================
 // Health Check

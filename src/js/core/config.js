@@ -66,7 +66,8 @@ export const AUTH_ENDPOINTS = {
 // Storage key prefixes (namespaced by calculator type)
 export const STORAGE_KEY_PREFIXES = {
   ONSITE: 'onsite-calculator-',
-  WORKSHOP: 'workshop-calculator-'
+  WORKSHOP: 'workshop-calculator-',
+  SALEQUOTES: 'salequotes-'
 };
 
 // Get headers for API requests (includes local dev bypass)

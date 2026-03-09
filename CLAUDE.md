@@ -18,6 +18,7 @@ This is a Price List Calculator - a web application for calculating service cost
 |------------|---------|--------------|-------------------|
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
+| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, customer/item search, quote lines with calculations | N/A (BC Quote Number) |
 
 ### Cost Components
 
@@ -74,8 +75,8 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
 
 ### Frontend Structure
 
-- **Three separate calculator applications**: `index.html` (landing), `onsite.html` (onsite calculator), `workshop.html` (workshop calculator)
-- **Modular JavaScript**: Each calculator has its own isolated state in `src/js/onsite/` and `src/js/workshop/`
+- **Four separate calculator applications**: `index.html` (landing), `onsite.html` (onsite calculator), `workshop.html` (workshop calculator), `salequotes.html` (Sales Quotes with Business Central integration)
+- **Modular JavaScript**: Each calculator has its own isolated state in `src/js/onsite/`, `src/js/workshop/`, and `src/js/salequotes/`
 - **Shared utilities**: `src/js/core/` for common functions, `src/js/auth/` for authentication
   - `scrollspy.js` - Floating section navigation with Intersection Observer for active section detection
   - `floating-buttons.js` - Sticky header for desktop, floating Save/Records buttons for mobile
@@ -92,9 +93,24 @@ See [docs/frontend.md](docs/frontend.md) for complete frontend documentation.
 
 ### Backend Structure
 
-- **Express.js (Primary)**: `server.js` with route modules in `src/routes/`
-- **Azure Functions (Legacy)**: HTTP handlers in `src/functions/`
-- **Shared**: Connection pool (`src/db.js`), middleware (`src/middleware/`), utilities (`src/utils/`)
+- **Express.js (Primary)**: `server.js` with route modules in `api/src/routes/`
+  - `motorTypes.js` - Motor type endpoints
+  - `branches.js` - Branch endpoints
+  - `labor.js` - Labor calculation endpoints
+  - `materials.js` - Material catalog endpoints
+  - `savedCalculations.js` - Legacy saved calculation endpoints
+  - `onsite/calculations.js` - Onsite-specific CRUD operations
+  - `onsite/shared.js` - Onsite share routes
+  - `workshop/calculations.js` - Workshop-specific CRUD operations
+  - `workshop/shared.js` - Workshop share routes
+  - `admin/roles.js` - Role management endpoints
+  - `admin/diagnostics.js` - Admin diagnostic endpoints
+  - `admin/logs.js` - Application logging endpoints
+  - `backoffice/index.js` - Backoffice user management
+  - `backoffice/login.js` - Backoffice authentication
+  - `business-central/token.js` - Business Central OAuth token endpoint
+- **Azure Functions (Legacy)**: HTTP handlers in `api/src/functions/`
+- **Shared**: Connection pool (`api/src/db.js`), middleware (`api/src/middleware/`), utilities (`api/src/utils/`)
 
 See [docs/backend.md](docs/backend.md) for complete backend documentation.
 
