@@ -84,6 +84,9 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
   - `collapsible-sections.js` - Collapse/expand functionality for Labor, Materials, Travel, and Onsite Options section cards
 - **UI Patterns**:
   - **Dynamic Required Field Indicators** (Sales Quotes): Red asterisk (*) markers that hide when fields have values and show when empty, providing real-time visual feedback for form completion status
+    - Applies to 6 required fields: Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type
+    - Works with all input types: text inputs, search dropdowns, and select dropdowns
+    - Automatically resets when form is cleared
   - **Modern Date Picker** (Sales Quotes): Flatpickr library integration for Order Date and Requested Delivery Date fields
     - Order Date defaults to today's date (asterisk hidden when populated)
     - Requested Delivery Date has no default value (asterisk visible until date selected)

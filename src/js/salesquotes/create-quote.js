@@ -238,6 +238,9 @@ export function selectSalesperson(salesperson) {
   if (el('salespersonCodeSearch')) el('salespersonCodeSearch').value = salesperson.SalespersonCode;
   if (el('salespersonName')) el('salespersonName').value = salesperson.SalespersonName;
 
+  // Update asterisk after salesperson selection
+  el('salespersonCodeSearch')?.dispatchEvent(new Event('input'));
+
   el('salespersonCodeDropdown')?.classList.add('hidden');
   showSuccess(`Selected: ${salesperson.SalespersonName}`);
   saveState();
@@ -294,6 +297,9 @@ export function selectAssignedUser(user) {
 
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = user.UserId;
   if (el('assignedUserName')) el('assignedUserName').value = user.UserName;
+
+  // Update asterisk after user selection
+  el('assignedUserIdSearch')?.dispatchEvent(new Event('input'));
 
   el('assignedUserIdDropdown')?.classList.add('hidden');
   showSuccess(`Selected: ${user.UserName}`);
@@ -428,7 +434,7 @@ export function handleClearQuote() {
 
     // Reset asterisks to visible state
     setTimeout(() => {
-      ['customerNoSearch'].forEach(id => {
+      ['customerNoSearch', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType'].forEach(id => {
         if (el(id)) el(id).dispatchEvent(new Event('input'));
       });
     }, 50);
@@ -634,7 +640,7 @@ export function setupEventListeners() {
   // REQUIRED FIELD ASTERISK HANDLING
   // =================================
   // Main form required fields (must be initialized AFTER Flatpickr)
-  const mainRequiredFields = ['customerNoSearch', 'orderDate', 'requestedDeliveryDate'];
+  const mainRequiredFields = ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType'];
   setupRequiredAsteriskHandlers(mainRequiredFields);
 
   console.log('Event listeners setup complete');
