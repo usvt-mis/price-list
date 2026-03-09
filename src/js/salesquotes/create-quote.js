@@ -274,8 +274,8 @@ export async function handleAssignedUserIdSearch(query) {
     dropdown.innerHTML = users.map(u => `
       <div class="search-dropdown-item p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0"
            data-user-id="${u.UserId}">
-        <div class="font-medium text-gray-900">${u.UserName}</div>
-        <div class="text-sm text-gray-600">${u.UserId} - ${u.Department || ''}</div>
+        <div class="font-medium text-gray-900">${u.UserId}</div>
+        <div class="text-sm text-gray-600">${u.Branch || ''}</div>
       </div>
     `).join('');
 
@@ -300,7 +300,7 @@ export function selectAssignedUser(user) {
   el('assignedUserIdSearch')?.dispatchEvent(new Event('input'));
 
   el('assignedUserIdDropdown')?.classList.add('hidden');
-  showSuccess(`Selected: ${user.UserName}`);
+  showSuccess(`Selected: ${user.UserId}`);
   saveState();
 }
 

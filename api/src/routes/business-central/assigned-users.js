@@ -13,7 +13,7 @@ const logger = require('../../utils/logger');
 
 /**
  * GET /api/business-central/assigned-users/search?q={query}
- * Search users by UserId or UserName (min 2 chars)
+ * Search users by UserId (min 2 chars)
  *
  * Query params:
  * - q: Search query (minimum 2 characters)
@@ -61,21 +61,18 @@ router.get('/search', async (req, res, next) => {
       .query(`
         SELECT
           UserId,
-          UserName,
           Email,
-          Department,
+          Branch,
           Active,
           CreatedAt,
           UpdatedAt
         FROM BCAssignedUsers
-        WHERE (UserId LIKE @query
-           OR UserName LIKE @query)
+        WHERE UserId LIKE @query
            AND Active = 1
         ORDER BY
           CASE
             WHEN UserId LIKE @query + '%' THEN 1
-            WHEN UserName LIKE @query + '%' THEN 2
-            ELSE 3
+            ELSE 2
           END,
           UserId
         OFFSET 0 ROWS

@@ -18,7 +18,7 @@ This is a Price List Calculator - a web application for calculating service cost
 |------------|---------|--------------|-------------------|
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
-| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, local database customer search (min 2 chars), customer/item search, quote lines with calculations, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID/Name (search), Service Order Type | N/A (BC Quote Number) |
+| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, local database customer search (min 2 chars), customer/item search, quote lines with calculations, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type | N/A (BC Quote Number) |
 |  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, dynamic required field indicators (asterisks hide when fields have values), modern date picker with Flatpickr (Order Date defaults to today) |  |
 
 ### Cost Components
@@ -141,7 +141,7 @@ See [docs/backend.md](docs/backend.md) for complete backend documentation.
     - Indexes: IX_BCCustomers_CustomerNo, IX_BCCustomers_Search (filtered), IX_BCCustomers_UpdatedAt
   - BCSalespeople: SalespersonCode (UNIQUE), SalespersonName, Email, Active
     - Indexes: IX_BCSalespeople_SalespersonCode, IX_BCSalespeople_Search (filtered)
-  - BCAssignedUsers: UserId (UNIQUE), UserName, Email, Department, Active
+  - BCAssignedUsers: UserId (UNIQUE), Email, Branch, Active
     - Indexes: IX_BCAssignedUsers_UserId, IX_BCAssignedUsers_Search (filtered)
 - **Role management**: UserRoles, RoleAssignmentAudit
 - **Deletion audit**: OnsiteCalculationDeletionAudit, WorkshopCalculationDeletionAudit (permanent deletion trail)

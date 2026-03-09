@@ -30,9 +30,8 @@ GO
 CREATE TABLE BCAssignedUsers (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     UserId NVARCHAR(50) NOT NULL UNIQUE,
-    UserName NVARCHAR(200) NOT NULL,
     Email NVARCHAR(200),
-    Department NVARCHAR(100),
+    Branch NVARCHAR(100),
     Active BIT DEFAULT 1,
     CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME2 DEFAULT GETUTCDATE(),
@@ -41,6 +40,6 @@ CREATE TABLE BCAssignedUsers (
 GO
 
 CREATE INDEX IX_BCAssignedUsers_Search
-ON BCAssignedUsers(UserId, UserName)
+ON BCAssignedUsers(UserId)
 WHERE UserId IS NOT NULL AND Active = 1;
 GO
