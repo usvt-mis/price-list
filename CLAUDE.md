@@ -18,7 +18,7 @@ This is a Price List Calculator - a web application for calculating service cost
 |------------|---------|--------------|-------------------|
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
-| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, local database customer search (min 2 chars), customer/item search, quote lines with calculations, insert lines at specific positions | N/A (BC Quote Number) |
+| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, local database customer search (min 2 chars), customer/item search, quote lines with calculations, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID/Name (search), Service Order Type | N/A (BC Quote Number) |
 |  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, dynamic required field indicators (asterisks hide when fields have values), modern date picker with Flatpickr (Order Date defaults to today) |  |
 
 ### Cost Components
@@ -76,8 +76,8 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
 
 ### Frontend Structure
 
-- **Four separate calculator applications**: `index.html` (landing), `onsite.html` (onsite calculator), `workshop.html` (workshop calculator), `salequotes.html` (Sales Quotes with Business Central integration)
-- **Modular JavaScript**: Each calculator has its own isolated state in `src/js/onsite/`, `src/js/workshop/`, and `src/js/salequotes/`
+- **Four separate calculator applications**: `index.html` (landing), `onsite.html` (onsite calculator), `workshop.html` (workshop calculator), `salesquotes.html` (Sales Quotes with Business Central integration)
+- **Modular JavaScript**: Each calculator has its own isolated state in `src/js/onsite/`, `src/js/workshop/`, and `src/js/salesquotes/`
 - **Shared utilities**: `src/js/core/` for common functions, `src/js/auth/` for authentication
   - `scrollspy.js` - Floating section navigation with Intersection Observer for active section detection
   - `floating-buttons.js` - Sticky header for desktop, floating Save/Records buttons for mobile
@@ -121,6 +121,8 @@ See [docs/frontend.md](docs/frontend.md) for complete frontend documentation.
     - `index.js` - BC routes aggregator (includes public `/config` endpoint)
     - `token.js` - OAuth token endpoint
     - `customers.js` - Local database customer search (BCCustomers table)
+    - `salespeople.js` - Local database salesperson search (BCSalespeople table)
+    - `assigned-users.js` - Local database assigned user search (BCAssignedUsers table)
 - **Azure Functions (Legacy)**: HTTP handlers in `api/src/functions/`
 - **Shared**: Connection pool (`api/src/db.js`), middleware (`api/src/middleware/`), utilities (`api/src/utils/`)
 
@@ -131,9 +133,13 @@ See [docs/backend.md](docs/backend.md) for complete backend documentation.
 - **Core tables**: MotorTypes, Branches, Jobs, Jobs2MotorType, Materials
 - **Onsite Saved Calculations**: OnsiteSavedCalculations, OnsiteSavedCalculationJobs, OnsiteSavedCalculationMaterials
 - **Workshop Saved Calculations**: WorkshopSavedCalculations, WorkshopSavedCalculationJobs, WorkshopSavedCalculationMaterials
-- **Business Central**: BCCustomers (local customer cache for fast lookups, synced from BC)
-  - CustomerNo (UNIQUE), CustomerName, Address, Address2, City, PostCode, VATRegistrationNo, TaxBranchNo
-  - Indexes: IX_BCCustomers_CustomerNo, IX_BCCustomers_Search (filtered), IX_BCCustomers_UpdatedAt
+- **Business Central**: Local database caches for fast lookups, synced from BC
+  - BCCustomers: CustomerNo (UNIQUE), CustomerName, Address, Address2, City, PostCode, VATRegistrationNo, TaxBranchNo
+    - Indexes: IX_BCCustomers_CustomerNo, IX_BCCustomers_Search (filtered), IX_BCCustomers_UpdatedAt
+  - BCSalespeople: SalespersonCode (UNIQUE), SalespersonName, Email, Active
+    - Indexes: IX_BCSalespeople_SalespersonCode, IX_BCSalespeople_Search (filtered)
+  - BCAssignedUsers: UserId (UNIQUE), UserName, Email, Department, Active
+    - Indexes: IX_BCAssignedUsers_UserId, IX_BCAssignedUsers_Search (filtered)
 - **Role management**: UserRoles, RoleAssignmentAudit
 - **Deletion audit**: OnsiteCalculationDeletionAudit, WorkshopCalculationDeletionAudit (permanent deletion trail)
 

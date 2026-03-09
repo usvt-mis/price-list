@@ -3,7 +3,7 @@
  * Handles quote creation, line management, and BC API integration
  */
 
-import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer } from './state.js';
+import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState } from './state.js';
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, sanitizeQuoteData } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts } from './ui.js';
@@ -187,6 +187,120 @@ export function selectCustomerFromLocal(customer) {
 }
 
 // ============================================================
+// Salesperson Search & Selection
+// ============================================================
+
+export async function handleSalespersonCodeSearch(query) {
+  const dropdown = el('salespersonCodeDropdown');
+  if (!query || query.length < 2) {
+    dropdown?.classList.add('hidden');
+    return;
+  }
+
+  dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">Searching...</div>';
+  dropdown?.classList.remove('hidden');
+
+  try {
+    const response = await fetch(`/api/business-central/salespeople/search?q=${encodeURIComponent(query)}`);
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+    const salespeople = await response.json();
+
+    if (salespeople.length === 0) {
+      dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">No salespeople found</div>';
+      return;
+    }
+
+    dropdown.innerHTML = salespeople.map(sp => `
+      <div class="search-dropdown-item p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0"
+           data-salesperson-code="${sp.SalespersonCode}">
+        <div class="font-medium text-gray-900">${sp.SalespersonName}</div>
+        <div class="text-sm text-gray-600">${sp.SalespersonCode}</div>
+      </div>
+    `).join('');
+
+    dropdown.querySelectorAll('.search-dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const salesperson = salespeople.find(s => s.SalespersonCode === item.dataset.salespersonCode);
+        selectSalesperson(salesperson);
+      });
+    });
+  } catch (err) {
+    console.error('Salesperson search error:', err);
+    dropdown.innerHTML = '<div class="p-3 text-sm text-red-500">Error searching salespeople</div>';
+  }
+}
+
+export function selectSalesperson(salesperson) {
+  state.quote.salespersonCode = salesperson.SalespersonCode;
+  state.quote.salespersonName = salesperson.SalespersonName;
+
+  if (el('salespersonCodeSearch')) el('salespersonCodeSearch').value = salesperson.SalespersonCode;
+  if (el('salespersonName')) el('salespersonName').value = salesperson.SalespersonName;
+
+  el('salespersonCodeDropdown')?.classList.add('hidden');
+  showSuccess(`Selected: ${salesperson.SalespersonName}`);
+  saveState();
+}
+
+// ============================================================
+// Assigned User Search & Selection
+// ============================================================
+
+export async function handleAssignedUserIdSearch(query) {
+  const dropdown = el('assignedUserIdDropdown');
+  if (!query || query.length < 2) {
+    dropdown?.classList.add('hidden');
+    return;
+  }
+
+  dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">Searching...</div>';
+  dropdown?.classList.remove('hidden');
+
+  try {
+    const response = await fetch(`/api/business-central/assigned-users/search?q=${encodeURIComponent(query)}`);
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+    const users = await response.json();
+
+    if (users.length === 0) {
+      dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">No users found</div>';
+      return;
+    }
+
+    dropdown.innerHTML = users.map(u => `
+      <div class="search-dropdown-item p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0"
+           data-user-id="${u.UserId}">
+        <div class="font-medium text-gray-900">${u.UserName}</div>
+        <div class="text-sm text-gray-600">${u.UserId} - ${u.Department || ''}</div>
+      </div>
+    `).join('');
+
+    dropdown.querySelectorAll('.search-dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const user = users.find(u => u.UserId === item.dataset.userId);
+        selectAssignedUser(user);
+      });
+    });
+  } catch (err) {
+    console.error('Assigned user search error:', err);
+    dropdown.innerHTML = '<div class="p-3 text-sm text-red-500">Error searching users</div>';
+  }
+}
+
+export function selectAssignedUser(user) {
+  state.quote.assignedUserId = user.UserId;
+  state.quote.assignedUserName = user.UserName;
+
+  if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = user.UserId;
+  if (el('assignedUserName')) el('assignedUserName').value = user.UserName;
+
+  el('assignedUserIdDropdown')?.classList.add('hidden');
+  showSuccess(`Selected: ${user.UserName}`);
+  saveState();
+}
+
+// ============================================================
 // Item Search & Selection
 // ============================================================
 
@@ -339,7 +453,7 @@ export function handleSaveDraft() {
 
   // Save to session storage
   try {
-    sessionStorage.setItem('salequotes-draft', JSON.stringify(formData));
+    sessionStorage.setItem('salesquotes-draft', JSON.stringify(formData));
     showSuccess('Draft saved successfully');
   } catch (error) {
     console.error('Failed to save draft:', error);
@@ -435,6 +549,30 @@ export function setupEventListeners() {
     }, 200);
   });
 
+  // Salesperson Code search
+  const salespersonCodeSearch = el('salespersonCodeSearch');
+  salespersonCodeSearch?.addEventListener('input', (e) => {
+    handleSalespersonCodeSearch(e.target.value);
+  });
+  salespersonCodeSearch?.addEventListener('blur', () => {
+    setTimeout(() => {
+      const dropdown = el('salespersonCodeDropdown');
+      if (dropdown) dropdown.classList.add('hidden');
+    }, 200);
+  });
+
+  // Assigned User ID search
+  const assignedUserIdSearch = el('assignedUserIdSearch');
+  assignedUserIdSearch?.addEventListener('input', (e) => {
+    handleAssignedUserIdSearch(e.target.value);
+  });
+  assignedUserIdSearch?.addEventListener('blur', () => {
+    setTimeout(() => {
+      const dropdown = el('assignedUserIdDropdown');
+      if (dropdown) dropdown.classList.add('hidden');
+    }, 200);
+  });
+
   // Item search (in modal)
   const itemSearch = el('lineItemSearch');
   itemSearch?.addEventListener('input', (e) => {
@@ -463,6 +601,16 @@ export function setupEventListeners() {
     // Hide local database customer dropdown
     if (!e.target.closest('#customerNoSearch') && !e.target.closest('#customerNoDropdown')) {
       const dropdown = el('customerNoDropdown');
+      if (dropdown) dropdown.classList.add('hidden');
+    }
+    // Hide salesperson dropdown
+    if (!e.target.closest('#salespersonCodeSearch') && !e.target.closest('#salespersonCodeDropdown')) {
+      const dropdown = el('salespersonCodeDropdown');
+      if (dropdown) dropdown.classList.add('hidden');
+    }
+    // Hide assigned user dropdown
+    if (!e.target.closest('#assignedUserIdSearch') && !e.target.closest('#assignedUserIdDropdown')) {
+      const dropdown = el('assignedUserIdDropdown');
       if (dropdown) dropdown.classList.add('hidden');
     }
     // Hide item dropdown
@@ -502,6 +650,12 @@ if (typeof window !== 'undefined') {
 
   // Customer selection (Local Database - New)
   window.selectCustomerFromLocal = selectCustomerFromLocal;
+
+  // Salesperson selection
+  window.selectSalesperson = selectSalesperson;
+
+  // Assigned User selection
+  window.selectAssignedUser = selectAssignedUser;
 
   // Item selection
   window.selectItem = handleItemSelection;

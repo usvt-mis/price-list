@@ -31,6 +31,13 @@ export const state = {
       taxBranchNo: null
     },
     workDescription: '',
+    // New fields
+    contact: '',
+    salespersonCode: '',
+    salespersonName: '',
+    assignedUserId: '',
+    assignedUserName: '',
+    serviceOrderType: '',
     lines: []
   },
 
@@ -80,8 +87,8 @@ export const state = {
 // ============================================================
 
 const STORAGE_KEYS = {
-  STATE: STORAGE_KEY_PREFIXES.SALEQUOTES + 'state',
-  DRAFT_QUOTE: STORAGE_KEY_PREFIXES.SALEQUOTES + 'draft',
+  STATE: STORAGE_KEY_PREFIXES.SALESQUOTES + 'state',
+  DRAFT_QUOTE: STORAGE_KEY_PREFIXES.SALESQUOTES + 'draft',
   BC_CONFIG: 'bc_config'
 };
 
@@ -195,6 +202,13 @@ export function initNewQuote() {
       taxBranchNo: null
     },
     workDescription: '',
+    // New fields
+    contact: '',
+    salespersonCode: '',
+    salespersonName: '',
+    assignedUserId: '',
+    assignedUserName: '',
+    serviceOrderType: '',
     lines: []
   };
   state.formData.selectedCustomer = null;

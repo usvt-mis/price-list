@@ -510,6 +510,84 @@
               class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
             />
           </div>
+
+          <!-- Contact (Free text) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Contact</label>
+            <input
+              type="text"
+              id="contact"
+              class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
+              placeholder="Contact person..."
+            />
+          </div>
+
+          <!-- Salesperson Code (Search dropdown) -->
+          <div class="relative">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Salesperson Code</label>
+            <input
+              type="text"
+              id="salespersonCodeSearch"
+              class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
+              placeholder="Type 2+ characters to search..."
+              autocomplete="off"
+            />
+            <div id="salespersonCodeDropdown" class="search-dropdown hidden"></div>
+          </div>
+
+          <!-- Salesperson Name (Read-only, auto-filled) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Salesperson Name</label>
+            <input
+              type="text"
+              id="salespersonName"
+              readonly
+              class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+              placeholder="Auto-filled from Salesperson Code"
+            />
+          </div>
+
+          <!-- Assigned User ID (Search dropdown) -->
+          <div class="relative">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Assigned User ID</label>
+            <input
+              type="text"
+              id="assignedUserIdSearch"
+              class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
+              placeholder="Type 2+ characters to search..."
+              autocomplete="off"
+            />
+            <div id="assignedUserIdDropdown" class="search-dropdown hidden"></div>
+          </div>
+
+          <!-- Assigned User Name (Read-only, auto-filled) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Assigned User Name</label>
+            <input
+              type="text"
+              id="assignedUserName"
+              readonly
+              class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+              placeholder="Auto-filled from Assigned User ID"
+            />
+          </div>
+
+          <!-- Service Order Type (Fixed dropdown) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Service Order Type</label>
+            <select
+              id="serviceOrderType"
+              class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
+            >
+              <option value="">Select type...</option>
+              <option value="ADD">ADD</option>
+              <option value="CLAIM">CLAIM</option>
+              <option value="SHOP">SHOP</option>
+              <option value="SITE">SITE</option>
+              <option value="SITE2SHOP">SITE2SHOP</option>
+              <option value="TRADE">TRADE</option>
+            </select>
+          </div>
         </div>
 
         <!-- Sell-to Subsection (Read-only, auto-filled) -->
@@ -942,7 +1020,7 @@
       "imports": {
         "../core/": "./js/core/",
         "../auth/": "./js/auth/",
-        "./salequotes/": "./js/salequotes/"
+        "./salesquotes/": "./js/salesquotes/"
       }
     }
   </script>
@@ -951,6 +1029,6 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
   <!-- Main Application -->
-  <script type="module" src="./js/salequotes/app.js"></script>
+  <script type="module" src="./js/salesquotes/app.js"></script>
 </body>
 </html>

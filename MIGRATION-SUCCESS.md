@@ -79,7 +79,7 @@ Three test customers have been added:
 
 ### ✅ Frontend Verification
 
-- **Sales Quotes Page**: ✅ Accessible at `http://localhost:8080/salequotes.html`
+- **Sales Quotes Page**: ✅ Accessible at `http://localhost:8080/salesquotes.html`
 - **Customer Search UI**: ✅ Implemented with auto-complete dropdown
 - **Sell-to Address Fields**: ✅ Implemented (Address, Address2, City, PostCode, VAT Registration No., Tax Branch No.)
 
@@ -135,7 +135,7 @@ SET NUMERIC_ROUNDABORT OFF;
 ### For Development
 
 1. **Test the Frontend**:
-   - Open `salequotes.html` in a browser
+   - Open `salesquotes.html` in a browser
    - Type "C00" in the Customer No. field
    - Verify the dropdown appears with test customers
    - Click a customer and verify auto-fill works
@@ -188,7 +188,7 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-
 1. **Created**: `api/src/database/schemas/create-bccustomers-table.sql` (updated with ANSI options and GO statements)
 2. **Created**: `api/src/database/schemas/insert-test-customers.sql` (test data script)
 3. **Verified**: `api/src/routes/business-central/customers.js` (API endpoint)
-4. **Verified**: `salequotes.html` (frontend integration)
+4. **Verified**: `salesquotes.html` (frontend integration)
 
 ---
 

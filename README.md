@@ -26,8 +26,8 @@ The Price List Calculator computes total cost based on four components:
   - **No build process**: Uses native ES6 modules with import maps
   - Tailwind CSS (compiled locally via `npm run build:css`)
   - Azure AD authentication
-- **Sales Quotes** (`src/salequotes.html`): Business Central integration module
-  - **ES6 Modules**: JavaScript in `src/js/salequotes/` directory
+- **Sales Quotes** (`src/salesquotes.html`): Business Central integration module
+  - **ES6 Modules**: JavaScript in `src/js/salesquotes/` directory
   - **No build process**: Uses native ES6 modules with import maps
   - **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, modern date picker with Flatpickr
   - Azure AD authentication
@@ -510,7 +510,7 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   ├── index.html                # Landing page (calculator selection)
 │   ├── onsite.html               # Onsite calculator
 │   ├── workshop.html              # Workshop calculator
-│   ├── salequotes.html           # Sales Quotes with Business Central integration
+│   ├── salesquotes.html           # Sales Quotes with Business Central integration
 │   ├── backoffice.html           # Backoffice admin interface
 │   └── js/                      # ES6 JavaScript modules
 │       ├── core/                # Shared utilities
@@ -548,7 +548,7 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │       │       ├── sharing.js
 │       │       ├── filters.js
 │       │       └── index.js
-│       ├── salequotes/          # Sales Quotes modules (Business Central integration)
+│       ├── salesquotes/          # Sales Quotes modules (Business Central integration)
 │       │   ├── app.js           # Main entry point
 │       │   ├── config.js        # BC configuration
 │       │   ├── bc-api-client.js # BC REST API wrapper

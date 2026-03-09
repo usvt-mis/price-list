@@ -67,7 +67,7 @@ export const AUTH_ENDPOINTS = {
 export const STORAGE_KEY_PREFIXES = {
   ONSITE: 'onsite-calculator-',
   WORKSHOP: 'workshop-calculator-',
-  SALEQUOTES: 'salequotes-'
+  SALESQUOTES: 'salesquotes-'
 };
 
 // Get headers for API requests (includes local dev bypass)

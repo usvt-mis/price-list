@@ -127,8 +127,8 @@ app.get('/workshop.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'workshop.html'));
 });
 
-app.get('/salequotes.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'salequotes.html'));
+app.get('/salesquotes.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'salesquotes.html'));
 });
 
 // ============================================================

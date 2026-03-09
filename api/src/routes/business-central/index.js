@@ -35,4 +35,10 @@ router.use('/token', require('./token'));
 // Customer search and lookup endpoints (local database)
 router.use('/customers', require('./customers'));
 
+// Salesperson search endpoints (local database)
+router.use('/salespeople', require('./salespeople'));
+
+// Assigned user search endpoints (local database)
+router.use('/assigned-users', require('./assigned-users'));
+
 module.exports = router;
