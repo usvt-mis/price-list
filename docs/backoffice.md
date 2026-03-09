@@ -52,6 +52,8 @@ List users with optional role filtering (paginated, searchable)
     {
       "email": "user@example.com",
       "role": "Executive",
+      "branchId": 1,
+      "branchName": "UCB",
       "assignedBy": "admin@example.com",
       "assignedAt": "2024-01-01T00:00:00Z",
       "firstLoginAt": "2024-01-01T00:00:00Z",
@@ -81,6 +83,44 @@ Remove user role (sets to NoRole)
 
 **Authentication**: Azure AD (backoffice only)
 
+### GET /api/backoffice/branches
+Get all branches for dropdown (with cost info)
+
+**Authentication**: Azure AD (backoffice only)
+
+**Response**:
+```json
+[
+  {
+    "BranchId": 1,
+    "BranchName": "URY",
+    "CostPerHour": 500,
+    "OnsiteCostPerHour": 600
+  }
+]
+```
+
+### POST /api/backoffice/users/{email}/branch
+Assign or update a user's branch
+
+**Request Body**:
+```json
+{
+  "branchId": 1
+}
+```
+
+Or to unassign:
+```json
+{
+  "branchId": null
+}
+```
+
+**Authentication**: Azure AD (backoffice only)
+
+**Branch IDs**: 1 (URY), 2 (USB), 3 (USR), 4 (UKK), 5 (UPB), 6 (UCB)
+
 ### GET /api/backoffice/audit-log
 View role change audit history with optional email filter
 
@@ -96,6 +136,10 @@ View role change audit history with optional email filter
     "email": "user@example.com",
     "oldRole": "NoRole",
     "newRole": "Executive",
+    "oldBranchId": null,
+    "oldBranchName": null,
+    "newBranchId": 1,
+    "newBranchName": "URY",
     "changedBy": "it@uservices-thailand.com",
     "changedAt": "2024-01-01T00:00:00Z"
   }
@@ -158,12 +202,13 @@ Diagnostic endpoint to check timezone configuration (returns database and JavaSc
 
 ### UserRoles Table
 
-Stores role assignments for Azure AD users:
+Stores role assignments and branch assignments for Azure AD users:
 
 | Column | Type | Description |
 |--------|------|-------------|
 | Email | PK | User's email address |
 | Role | VARCHAR | Executive, Sales, Customer, or NULL (NoRole) |
+| BranchId | INT FK | Foreign key to Branches table (1=URY, 2=USB, 3=USR, 4=UKK, 5=UPB, 6=UCB), nullable |
 | AssignedBy | VARCHAR | Email of admin who assigned the role |
 | AssignedAt | DATETIME | Timestamp of role assignment |
 | FirstLoginAt | DATETIME | Tracks when user first logged in |
@@ -171,16 +216,20 @@ Stores role assignments for Azure AD users:
 
 ### RoleAssignmentAudit Table
 
-Audit trail for all role changes:
+Audit trail for all role and branch changes:
 
 | Column | Type | Description |
 |--------|------|-------------|
 | Id | PK | Auto-increment ID |
-| Email | VARCHAR | User's email address |
+| TargetEmail | VARCHAR | User's email address |
 | OldRole | VARCHAR | Previous role value |
 | NewRole | VARCHAR | New role value |
+| OldBranchId | INT | Previous branch ID (nullable) |
+| NewBranchId | INT | New branch ID (nullable) |
 | ChangedBy | VARCHAR | Email of admin who made the change |
 | ChangedAt | DATETIME | Timestamp of change |
+| ClientIP | VARCHAR | IP address of the changer |
+| Justification | VARCHAR | Optional justification for role change |
 
 ### OnsiteCalculationDeletionAudit & WorkshopCalculationDeletionAudit Tables
 

@@ -1,0 +1,19 @@
+-- Add branch tracking to RoleAssignmentAudit table
+SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET QUOTED_IDENTIFIER ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
+
+ALTER TABLE dbo.RoleAssignmentAudit
+ADD OldBranchId INT NULL,
+    NewBranchId INT NULL;
+GO
+
+CREATE INDEX IX_RoleAssignmentAudit_BranchId
+ON dbo.RoleAssignmentAudit(NewBranchId)
+WHERE NewBranchId IS NOT NULL;
+GO

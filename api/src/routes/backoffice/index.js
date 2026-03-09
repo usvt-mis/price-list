@@ -19,6 +19,25 @@ function getClientIP(req) {
 }
 
 /**
+ * GET /api/backoffice/branches
+ * Get all branches for dropdown (with cost info)
+ * Requires: Backoffice session token
+ */
+router.get('/branches', async (req, res, next) => {
+  try {
+    const pool = await getPool();
+    const result = await pool.request().query(`
+      SELECT BranchId, BranchName, CostPerHour, OnsiteCostPerHour
+      FROM Branches
+      ORDER BY BranchName
+    `);
+    res.status(200).json(result.recordset);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
  * GET /api/backoffice/users
  * List all users with their roles (paginated)
  * Query params: page (default 1), pageSize (default 50), search (optional), role (optional)
@@ -69,12 +88,13 @@ router.get('/users', async (req, res, next) => {
       .query(`SELECT COUNT(*) as total FROM UserRoles${whereClause}`);
     const total = countResult.recordset[0].total;
 
-    // Get paginated users with login timestamps
+    // Get paginated users with login timestamps and branch names
     let dataQuery = `
-      SELECT Email, Role, AssignedBy, AssignedAt, FirstLoginAt, LastLoginAt
-      FROM UserRoles
+      SELECT u.Email, u.Role, u.BranchId, b.BranchName, u.AssignedBy, u.AssignedAt, u.FirstLoginAt, u.LastLoginAt
+      FROM UserRoles u
+      LEFT JOIN Branches b ON u.BranchId = b.BranchId
       ${whereClause}
-      ORDER BY AssignedAt DESC OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
+      ORDER BY u.AssignedAt DESC OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
     `;
 
     const dataResult = await pool.request()
@@ -88,6 +108,8 @@ router.get('/users', async (req, res, next) => {
       users: dataResult.recordset.map(u => ({
         email: u.Email,
         role: u.Role === null ? 'NoRole' : u.Role,
+        branchId: u.BranchId,
+        branchName: u.BranchName,
         assignedBy: u.AssignedBy,
         assignedAt: u.AssignedAt,
         firstLoginAt: u.FirstLoginAt,
@@ -190,6 +212,85 @@ router.post('/users/:email/role', async (req, res, next) => {
     }
     console.error(e);
     res.status(500).json({ error: 'Failed to assign role' });
+  }
+});
+
+/**
+ * POST /api/backoffice/users/:email/branch
+ * Assign or update a user's branch
+ * Body: { branchId: 'URY' | 'UCB' | 'USB' | 'UPB' | 'UKK' | 'USR' | null }
+ * Requires: Backoffice session token
+ */
+router.post('/users/:email/branch', async (req, res, next) => {
+  try {
+    const session = req.session;
+    const email = req.params.email;
+    const { branchId } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    if (branchId !== null && (typeof branchId !== 'number' || branchId < 1)) {
+      return res.status(400).json({ error: 'Invalid branch ID' });
+    }
+
+    console.log(`Backoffice admin ${session.email} assigned branch ${branchId || 'unassigned'} to ${email}`);
+
+    const pool = await getPool();
+
+    // Get current branch for audit
+    const currentResult = await pool.request()
+      .input('email', sql.NVarChar, email)
+      .query('SELECT BranchId FROM UserRoles WHERE Email = @email');
+
+    if (currentResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const oldBranchId = currentResult.recordset[0].BranchId;
+
+    // Update branch
+    await pool.request()
+      .input('email', sql.NVarChar, email)
+      .input('branchId', sql.Int, branchId)
+      .query(`
+        UPDATE UserRoles
+        SET BranchId = @branchId
+        WHERE Email = @email
+      `);
+
+    // Create audit entry (branch changes tracked in RoleAssignmentAudit)
+    const clientIP = getClientIP(req);
+    await pool.request()
+      .input('targetEmail', sql.NVarChar, email)
+      .input('oldRole', sql.NVarChar, null)
+      .input('newRole', sql.NVarChar, null)
+      .input('oldBranchId', sql.Int, oldBranchId)
+      .input('newBranchId', sql.Int, branchId)
+      .input('changedBy', sql.NVarChar, session.email)
+      .input('clientIP', sql.NVarChar, clientIP)
+      .query(`
+        INSERT INTO RoleAssignmentAudit
+          (TargetEmail, OldRole, NewRole, OldBranchId, NewBranchId, ChangedBy, ClientIP)
+        VALUES (@targetEmail, @oldRole, @newRole, @oldBranchId, @newBranchId, @changedBy, @clientIP)
+      `);
+
+    res.status(200).json({
+      message: `Branch ${branchId || 'unassigned'} assigned to ${email}`,
+      email,
+      oldBranchId,
+      newBranchId: branchId
+    });
+  } catch (e) {
+    if (e.statusCode === 403) {
+      return res.status(403).json({ error: 'Access denied. Executive role required.' });
+    }
+    if (e.statusCode === 401) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    console.error(e);
+    res.status(500).json({ error: 'Failed to assign branch' });
   }
 });
 
@@ -297,10 +398,23 @@ router.get('/audit-log', async (req, res, next) => {
       .query(countQuery);
     const total = countResult.recordset[0].total;
 
-    // Get paginated audit entries
+    // Get paginated audit entries with branch names
     let dataQuery = `
-      SELECT TargetEmail, OldRole, NewRole, ChangedBy, ChangedAt, ClientIP, Justification
-      FROM RoleAssignmentAudit
+      SELECT
+        a.TargetEmail,
+        a.OldRole,
+        a.NewRole,
+        a.OldBranchId,
+        oldB.BranchName AS OldBranchName,
+        a.NewBranchId,
+        newB.BranchName AS NewBranchName,
+        a.ChangedBy,
+        a.ChangedAt,
+        a.ClientIP,
+        a.Justification
+      FROM RoleAssignmentAudit a
+      LEFT JOIN Branches oldB ON a.OldBranchId = oldB.BranchId
+      LEFT JOIN Branches newB ON a.NewBranchId = newB.BranchId
     `;
 
     if (emailFilter) {
@@ -320,6 +434,10 @@ router.get('/audit-log', async (req, res, next) => {
         targetEmail: e.TargetEmail,
         oldRole: e.OldRole === null ? 'NoRole' : e.OldRole,
         newRole: e.NewRole,
+        oldBranchId: e.OldBranchId,
+        oldBranchName: e.OldBranchName,
+        newBranchId: e.NewBranchId,
+        newBranchName: e.NewBranchName,
         changedBy: e.ChangedBy,
         changedAt: e.ChangedAt,
         clientIP: e.ClientIP,

@@ -143,7 +143,7 @@ See [docs/backend.md](docs/backend.md) for complete backend documentation.
     - Indexes: IX_BCSalespeople_SalespersonCode, IX_BCSalespeople_Search (filtered)
   - BCAssignedUsers: UserId (UNIQUE), Email, Branch, Active
     - Indexes: IX_BCAssignedUsers_UserId, IX_BCAssignedUsers_Search (filtered)
-- **Role management**: UserRoles, RoleAssignmentAudit
+- **Role management**: UserRoles (with BranchId assignment), RoleAssignmentAudit (tracks role and branch changes)
 - **Deletion audit**: OnsiteCalculationDeletionAudit, WorkshopCalculationDeletionAudit (permanent deletion trail)
 
 See [docs/database/schema.md](docs/database/schema.md) for complete database reference.
@@ -232,12 +232,13 @@ See [docs/authentication.md](docs/authentication.md) for complete authentication
 
 ## Backoffice Admin
 
-Standalone interface (`backoffice.html`) for managing user roles:
+Standalone interface (`backoffice.html`) for managing user roles and branch assignments:
 - **Azure AD authentication only** - Restricted to `it@uservices-thailand.com`
 - **5-Tab Layout**: Executives, Sales, Customers, Audit Log, Deletion Log tabs
 - **Inline add forms** with real-time email validation
 - **Status indicators**: Active (logged in) vs Pending (awaiting login)
-- **Audit Log tab** with search functionality for role changes
+- **Branch assignment**: Assign users to branches (URY, UCB, USB, UPB, UKK, USR) via role change modal
+- **Audit Log tab** with search functionality for role and branch changes
 - **Deletion Log tab** with filtering for deleted calculation records (Onsite & Workshop)
 
 See [docs/backoffice.md](docs/backoffice.md) for complete backoffice documentation.
