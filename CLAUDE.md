@@ -19,7 +19,7 @@ This is a Price List Calculator - a web application for calculating service cost
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
 | **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, local database customer search (min 2 chars), customer/item search, quote lines with calculations, insert lines at specific positions | N/A (BC Quote Number) |
-|  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, dynamic required field indicators (asterisks hide when fields have values), modern date picker with Flatpickr (Document Date defaults to today) |  |
+|  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, dynamic required field indicators (asterisks hide when fields have values), modern date picker with Flatpickr (Document Date and Order Date default to today) |  |
 
 ### Cost Components
 
@@ -84,10 +84,12 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
   - `collapsible-sections.js` - Collapse/expand functionality for Labor, Materials, Travel, and Onsite Options section cards
 - **UI Patterns**:
   - **Dynamic Required Field Indicators** (Sales Quotes): Red asterisk (*) markers that hide when fields have values and show when empty, providing real-time visual feedback for form completion status
-  - **Modern Date Picker** (Sales Quotes): Flatpickr library integration for Document Date and Valid Until fields
+  - **Modern Date Picker** (Sales Quotes): Flatpickr library integration for Document Date, Valid Until, Order Date, and Requested Delivery Date fields
     - Document Date defaults to today's date (asterisk hidden when populated)
+    - Order Date defaults to today's date (asterisk hidden when populated)
     - Valid Until has no default value (asterisk visible until date selected)
-    - Prevents past date selection for Valid Until field
+    - Requested Delivery Date has no default value (asterisk visible until date selected)
+    - Prevents past date selection for Valid Until and Requested Delivery Date fields
     - Custom styling to match Tailwind blue-500 theme
     - Smooth animations and mobile-responsive design
 - **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode

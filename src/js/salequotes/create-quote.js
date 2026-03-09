@@ -375,9 +375,8 @@ export async function handleSendQuote() {
       postingDate: sanitizedData.date,
       documentDate: sanitizedData.date,
       dueDate: sanitizedData.validityDate,
-      currencyCode: sanitizedData.currency,
-      paymentTermsCode: sanitizedData.paymentTerms,
       // Note: BC API structure may vary - adjust based on actual API
+      // Note: orderDate and requestedDeliveryDate are UI-only for now
       lines: sanitizedData.lines.map(line => ({
         description: line.description,
         quantity: line.quantity,
@@ -490,7 +489,7 @@ export function setupEventListeners() {
   // REQUIRED FIELD ASTERISK HANDLING
   // =================================
   // Main form required fields (must be initialized AFTER Flatpickr)
-  const mainRequiredFields = ['customerNoSearch', 'quoteDate', 'validityDate'];
+  const mainRequiredFields = ['customerNoSearch', 'quoteDate', 'validityDate', 'orderDate', 'requestedDeliveryDate'];
   setupRequiredAsteriskHandlers(mainRequiredFields);
 
   console.log('Event listeners setup complete');

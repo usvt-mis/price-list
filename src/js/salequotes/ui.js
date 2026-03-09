@@ -549,8 +549,8 @@ export function getQuoteFormData() {
     customer: state.quote.customer,
     date: el('quoteDate')?.value || new Date().toISOString().split('T')[0],
     validityDate: el('validityDate')?.value || '',
-    currency: el('currency')?.value || 'THB',
-    paymentTerms: el('paymentTerms')?.value || 'NET 30 DAYS',
+    orderDate: el('orderDate')?.value || '',
+    requestedDeliveryDate: el('requestedDeliveryDate')?.value || '',
     notes: el('quoteNotes')?.value || '',
     lines: [...state.quote.lines]
   };
@@ -560,8 +560,6 @@ export function getQuoteFormData() {
  * Populate form with quote data
  */
 export function populateQuoteForm(quote) {
-  if (el('currency')) el('currency').value = quote.currency || 'THB';
-  if (el('paymentTerms')) el('paymentTerms').value = quote.paymentTerms || 'NET 30 DAYS';
   if (el('quoteNotes')) el('quoteNotes').value = quote.notes || '';
 
   if (quote.customer) {
@@ -578,9 +576,18 @@ export function populateQuoteForm(quote) {
     minDate: 'today',
   });
 
+  initFlatpickr('orderDate', {
+    defaultDate: quote.orderDate || 'today',
+  });
+
+  initFlatpickr('requestedDeliveryDate', {
+    defaultDate: quote.requestedDeliveryDate || '',
+    minDate: 'today',
+  });
+
   // Update asterisks for populated fields
   setTimeout(() => {
-    ['customerNoSearch', 'quoteDate', 'validityDate'].forEach(id => {
+    ['customerNoSearch', 'quoteDate', 'validityDate', 'orderDate', 'requestedDeliveryDate'].forEach(id => {
       const field = el(id);
       if (field && field.value) {
         field.dispatchEvent(new Event('input'));
@@ -594,8 +601,6 @@ export function populateQuoteForm(quote) {
  */
 export function clearQuoteForm() {
   if (el('customerSearch')) el('customerSearch').value = '';
-  if (el('currency')) el('currency').value = 'THB';
-  if (el('paymentTerms')) el('paymentTerms').value = 'NET 30 DAYS';
   if (el('quoteNotes')) el('quoteNotes').value = '';
   if (el('invoiceDiscount')) el('invoiceDiscount').value = '0';
 
@@ -617,6 +622,16 @@ export function initDateFields() {
 
   // Initialize Validity Date without default (only minDate restriction)
   initFlatpickr('validityDate', {
+    minDate: 'today', // Prevent past dates
+  });
+
+  // Initialize Order Date with today's date as default
+  initFlatpickr('orderDate', {
+    defaultDate: 'today', // Set today as default
+  });
+
+  // Initialize Requested Delivery Date without default (only minDate restriction)
+  initFlatpickr('requestedDeliveryDate', {
     minDate: 'today', // Prevent past dates
   });
 }

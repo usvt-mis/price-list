@@ -112,7 +112,6 @@ export const MOCK_DATA = {
       customerName: 'Acme Corporation',
       date: '2026-03-09',
       validity: '2026-04-08',
-      currency: 'THB',
       lines: [
         { sequence: 1, itemId: 'item-001', description: 'Service Item - Labor', quantity: 10, unitPrice: 1500, discount: 0 },
         { sequence: 2, itemId: 'item-002', description: 'Service Item - Materials', quantity: 5, unitPrice: 500, discount: 0 }

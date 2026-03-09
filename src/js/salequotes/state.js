@@ -32,8 +32,6 @@ export const state = {
     },
     date: new Date().toISOString().split('T')[0],
     validityDate: null,
-    currency: 'THB',
-    paymentTerms: 'NET 30 DAYS',
     notes: '',
     lines: []
   },
@@ -200,8 +198,6 @@ export function initNewQuote() {
     },
     date: new Date().toISOString().split('T')[0],
     validityDate: getValidityDate(),
-    currency: 'THB',
-    paymentTerms: 'NET 30 DAYS',
     notes: '',
     lines: []
   };

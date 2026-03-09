@@ -368,8 +368,8 @@ export function sanitizeQuoteData(quote) {
     ...quote,
     date: sanitizeText(quote.date),
     validityDate: sanitizeText(quote.validityDate),
-    currency: sanitizeText(quote.currency),
-    paymentTerms: sanitizeText(quote.paymentTerms),
+    orderDate: sanitizeText(quote.orderDate),
+    requestedDeliveryDate: sanitizeText(quote.requestedDeliveryDate),
     notes: sanitizeText(quote.notes),
     lines: quote.lines.map(line => ({
       ...line,
