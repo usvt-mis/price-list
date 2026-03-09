@@ -29,7 +29,7 @@ The Price List Calculator computes total cost based on four components:
 - **Sales Quotes** (`src/salequotes.html`): Business Central integration module
   - **ES6 Modules**: JavaScript in `src/js/salequotes/` directory
   - **No build process**: Uses native ES6 modules with import maps
-  - Microsoft Blue theme (#0078d4) matching BC UI
+  - **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs
   - Azure AD authentication
   - **Features**: Customer search, item search, quote line management, automatic calculations
   - **Business Central Integration**: OAuth 2.0 client credentials flow, token caching, mock mode for local development

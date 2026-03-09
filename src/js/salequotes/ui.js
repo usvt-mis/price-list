@@ -65,7 +65,10 @@ export function toggle(id, visible) {
 export function showLoading(message = 'Loading...') {
   const overlay = el('loadingOverlay');
   const messageEl = el('loadingMessage');
-  if (overlay) overlay.classList.remove('hidden');
+  if (overlay) {
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+  }
   if (messageEl) messageEl.textContent = message;
   state.ui.loading = true;
 }
@@ -83,7 +86,16 @@ export function hideLoading() {
  * Show saving state
  */
 export function showSaving() {
-  showLoading('Saving to Business Central...');
+  const overlay = el('loadingOverlay');
+  const messageEl = el('loadingMessage');
+  const titleEl = el('loadingTitle');
+  if (overlay) {
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+  }
+  if (messageEl) messageEl.textContent = 'Sending quote to Business Central...';
+  if (titleEl) titleEl.textContent = 'Sending Quote';
+  state.ui.loading = true;
   state.ui.saving = true;
 }
 
@@ -108,7 +120,13 @@ export function showToast(message, type = 'success') {
 
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.textContent = message;
+
+  // Add icon based on type
+  const icon = type === 'success'
+    ? '<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+    : '<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+
+  toast.innerHTML = `${icon}<span>${message}</span>`;
 
   container.appendChild(toast);
 
@@ -365,7 +383,8 @@ export function renderTotals() {
  */
 export function openAddLineModal() {
   const modal = el('addLineModal');
-  if (modal) {
+  const modalContent = el('addLineModalContent');
+  if (modal && modalContent) {
     modal.classList.remove('hidden');
 
     // Clear form
@@ -378,6 +397,12 @@ export function openAddLineModal() {
 
     // Focus on item search
     setTimeout(() => el('lineItemSearch')?.focus(), 100);
+
+    // Trigger animation
+    setTimeout(() => {
+      modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
+      modalContent.classList.add('opacity-100', 'translate-y-0');
+    }, 10);
   }
 }
 
@@ -386,8 +411,16 @@ export function openAddLineModal() {
  */
 export function closeAddLineModal() {
   const modal = el('addLineModal');
-  if (modal) {
-    modal.classList.add('hidden');
+  const modalContent = el('addLineModalContent');
+  if (modal && modalContent) {
+    // Start closing animation
+    modalContent.classList.remove('opacity-100', 'translate-y-0');
+    modalContent.classList.add('opacity-0', 'translate-y-[-10px]');
+
+    // Hide modal after animation completes
+    setTimeout(() => {
+      modal.classList.add('hidden');
+    }, 300);
   }
 }
 
