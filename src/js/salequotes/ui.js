@@ -549,7 +549,7 @@ export function getQuoteFormData() {
     customer: state.quote.customer,
     orderDate: el('orderDate')?.value || '',
     requestedDeliveryDate: el('requestedDeliveryDate')?.value || '',
-    notes: el('quoteNotes')?.value || '',
+    workDescription: el('quoteWorkDescription')?.value || '',
     lines: [...state.quote.lines]
   };
 }
@@ -558,7 +558,7 @@ export function getQuoteFormData() {
  * Populate form with quote data
  */
 export function populateQuoteForm(quote) {
-  if (el('quoteNotes')) el('quoteNotes').value = quote.notes || '';
+  if (el('quoteWorkDescription')) el('quoteWorkDescription').value = quote.workDescription || '';
 
   if (quote.customer) {
     displaySelectedCustomer(quote.customer);
@@ -590,7 +590,7 @@ export function populateQuoteForm(quote) {
  */
 export function clearQuoteForm() {
   if (el('customerSearch')) el('customerSearch').value = '';
-  if (el('quoteNotes')) el('quoteNotes').value = '';
+  if (el('quoteWorkDescription')) el('quoteWorkDescription').value = '';
   if (el('invoiceDiscount')) el('invoiceDiscount').value = '0';
 
   clearCustomerSelection();

@@ -330,7 +330,7 @@ export function sanitizeQuoteData(quote) {
     ...quote,
     orderDate: sanitizeText(quote.orderDate),
     requestedDeliveryDate: sanitizeText(quote.requestedDeliveryDate),
-    notes: sanitizeText(quote.notes),
+    workDescription: sanitizeText(quote.workDescription),
     lines: quote.lines.map(line => ({
       ...line,
       description: sanitizeText(line.description),

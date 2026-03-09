@@ -30,7 +30,7 @@ export const state = {
       vatRegNo: null,
       taxBranchNo: null
     },
-    notes: '',
+    workDescription: '',
     lines: []
   },
 
@@ -194,7 +194,7 @@ export function initNewQuote() {
       vatRegNo: null,
       taxBranchNo: null
     },
-    notes: '',
+    workDescription: '',
     lines: []
   };
   state.formData.selectedCustomer = null;
