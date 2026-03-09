@@ -5,7 +5,7 @@
 
 import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState } from './state.js';
 import { bcClient } from './bc-api-client.js';
-import { validateQuote, sanitizeQuoteData } from './validations.js';
+import { validateQuote, validateAndUpdate, sanitizeQuoteData } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts } from './ui.js';
 import { el, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk, initDateFields } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
@@ -452,7 +452,7 @@ export function handleSaveDraft() {
   const formData = getQuoteFormData();
 
   // Validate
-  const validation = validateQuote(formData);
+  const validation = validateAndUpdate(formData);
   if (!validation.isValid) {
     displayValidationErrors(validation.errors);
     showError('Please fix validation errors before saving');
@@ -533,7 +533,7 @@ export async function handleSendQuote() {
 
   // Validate
   clearValidationErrors();
-  const validation = validateQuote(formData);
+  const validation = validateAndUpdate(formData);
   if (!validation.isValid) {
     displayValidationErrors(validation.errors);
     showError('Please fix validation errors before sending');
