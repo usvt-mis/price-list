@@ -18,7 +18,7 @@ This is a Price List Calculator - a web application for calculating service cost
 |------------|---------|--------------|-------------------|
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
-| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, local database customer search (min 2 chars), customer/item search, quote lines with calculations, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH), Responsibility Center (auto-populated from BRANCH) | N/A (BC Quote Number) |
+| **Sales Quotes** | Business Central integration via Azure Function API | Create and manage sales quotes with Azure Function API (endpoint: `CreateSalesQuoteWithoutNumber`), local database customer search (min 2 chars), customer/item search, quote lines with calculations, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH), Responsibility Center (auto-populated from BRANCH) | N/A (BC Quote Number) |
 |  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, dynamic required field indicators (asterisks hide when fields have values), modern date picker with Flatpickr (Order Date defaults to today) |  |
 
 ### Cost Components
@@ -223,6 +223,33 @@ module.exports = router;
 - View mode (Executive/Sales) is automatically determined from user's `effectiveRole` via `/api/auth/me`
 - Executive users see full cost breakdown; Sales users see simplified view with Standard Selling Price for quoting
 - NoRole users see "awaiting assignment" screen
+
+### Azure Function API Integration (Sales Quotes)
+- **Endpoint**: `https://func-api-gateway-prod-uat-f7ffhjejehcmbued.southeastasia-01.azurewebsites.net/api/CreateSalesQuoteWithoutNumber`
+- **Purpose**: Create sales quotes in Business Central via Azure Function API
+- **Required Headers**:
+  - `Content-Type: application/json`
+  - `x-functions-key: <API_KEY>` (stored in `create-quote.js`)
+- **Request Body Structure**:
+  ```javascript
+  {
+    customerNo: string,           // From state.quote.customerNo
+    workDescription: string,      // From quote work description field
+    responsibilityCenter: string, // From BRANCH field (auto-populated)
+    assignedUserId: string,       // From assigned user search selection
+    serviceOrderType: string,     // From service order type dropdown
+    salespersonCode: string,      // From salesperson search selection
+    contactName: string,          // From contact field
+    division: 'MS1029',           // Hardcoded constant
+    discountAmount: number,       // From invoice discount field
+    lineItems: array              // Quote line items (empty for initial testing)
+  }
+  ```
+- **Implementation**: Located in `src/js/salesquotes/create-quote.js`
+  - `sendQuoteToAzureFunction()` - Handles API call with proper headers and error handling
+  - `handleSendQuote()` - Orchestrates validation, sanitization, and API submission
+- **Error Handling**: Comprehensive error catching with user-friendly toast notifications
+- **Logging**: Console logging for request payload and API response (for debugging)
 
 ---
 

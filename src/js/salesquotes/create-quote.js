@@ -470,6 +470,61 @@ export function handleSaveDraft() {
 }
 
 /**
+ * Send quote to Azure Function API
+ * @param {Object} quoteData - Sanitized quote form data
+ * @returns {Promise<Object>} API response
+ */
+async function sendQuoteToAzureFunction(quoteData) {
+  const API_URL = 'https://func-api-gateway-prod-uat-f7ffhjejehcmbued.southeastasia-01.azurewebsites.net/api/CreateSalesQuoteWithoutNumber';
+  const API_KEY = '***REDACTED_AZURE_FUNCTION_KEY_1***';
+
+  // Get invoice discount from DOM
+  const invoiceDiscountElement = document.getElementById('invoiceDiscount');
+  const discountAmount = parseFloat(invoiceDiscountElement?.value) || 0;
+
+  // Prepare request body
+  const requestBody = {
+    customerNo: state.quote.customerNo || '',
+    workDescription: quoteData.workDescription || '',
+    responsibilityCenter: quoteData.responsibilityCenter || '',
+    assignedUserId: quoteData.assignedUserId || '',
+    serviceOrderType: quoteData.serviceOrderType || '',
+    salespersonCode: quoteData.salespersonCode || '',
+    contactName: quoteData.contact || '',
+    division: 'MS1029',
+    discountAmount: discountAmount,
+    lineItems: [] // Empty for testing phase
+  };
+
+  console.log('Sending quote to Azure Function:', requestBody);
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-functions-key': API_KEY
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error ${response.status}: ${errorText}`);
+    }
+
+    const responseData = await response.json();
+    console.log('Azure Function API response:', responseData);
+
+    return responseData;
+
+  } catch (error) {
+    console.error('Azure Function API call failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Send quote to Business Central
  */
 export async function handleSendQuote() {
@@ -491,24 +546,13 @@ export async function handleSendQuote() {
   try {
     showSaving();
 
-    // Create quote in BC
-    const bcQuote = await bcClient.createQuote({
-      customerNumber: sanitizedData.customer.number,
-      // Note: BC API structure may vary - adjust based on actual API
-      // Note: orderDate and requestedDeliveryDate are UI-only for now
-      lines: sanitizedData.lines.map(line => ({
-        description: line.description,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice
-        // Adjust based on BC API requirements
-      }))
-    });
+    // Call Azure Function API
+    const response = await sendQuoteToAzureFunction(sanitizedData);
 
     hideSaving();
 
     // Show success message
-    const quoteNumber = bcQuote.number || bcQuote.id;
-    showSuccess(`Quote ${quoteNumber} created successfully in Business Central!`);
+    showSuccess('Quote sent to Business Central successfully!');
 
     // Optionally: Clear form or redirect
     setTimeout(() => {
