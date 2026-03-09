@@ -18,7 +18,7 @@ This is a Price List Calculator - a web application for calculating service cost
 |------------|---------|--------------|-------------------|
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
-| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, customer/item search, quote lines with calculations | N/A (BC Quote Number) |
+| **Sales Quotes** | Business Central integration | Create and manage sales quotes with BC API, customer/item search, quote lines with calculations, insert lines at specific positions | N/A (BC Quote Number) |
 |  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs |  |
 
 ### Cost Components

@@ -326,10 +326,18 @@ export function renderQuoteLines() {
       <td>${parseFloat(line.unitPrice).toFixed(2)}</td>
       <td>${parseFloat(line.discount).toFixed(2)}</td>
       <td>${calculateLineTotal(line).toFixed(2)}</td>
-      <td>
+      <td class="flex gap-2">
+        <button
+          class="text-emerald-600 hover:text-emerald-800 text-sm font-medium"
+          onclick="window.openInsertLineModal(${index})"
+          title="Insert line at this position"
+        >
+          Insert
+        </button>
         <button
           class="text-red-600 hover:text-red-800 text-sm"
           onclick="window.removeQuoteLine(${index})"
+          title="Remove this line"
         >
           Remove
         </button>
@@ -381,11 +389,28 @@ export function renderTotals() {
 /**
  * Open add line modal
  */
-export function openAddLineModal() {
+export function openAddLineModal(insertIndex = null) {
   const modal = el('addLineModal');
   const modalContent = el('addLineModalContent');
   if (modal && modalContent) {
     modal.classList.remove('hidden');
+
+    // Store insert index in state
+    state.ui.insertIndex = insertIndex;
+
+    // Update modal title/subtitle based on mode
+    const titleEl = el('addLineModalTitle');
+    const subtitleEl = el('addLineModalSubtitle');
+
+    if (insertIndex !== null) {
+      // Insert mode
+      if (titleEl) titleEl.textContent = 'Insert Quote Line';
+      if (subtitleEl) subtitleEl.textContent = `Inserting at position ${insertIndex + 1}`;
+    } else {
+      // Append mode
+      if (titleEl) titleEl.textContent = 'Add Quote Line';
+      if (subtitleEl) subtitleEl.textContent = 'Search items and add to quote';
+    }
 
     // Clear form
     if (el('lineItemSearch')) el('lineItemSearch').value = '';
@@ -407,6 +432,13 @@ export function openAddLineModal() {
 }
 
 /**
+ * Open insert line modal (wrapper function)
+ */
+export function openInsertLineModal(index) {
+  openAddLineModal(index);
+}
+
+/**
  * Close add line modal
  */
 export function closeAddLineModal() {
@@ -421,6 +453,9 @@ export function closeAddLineModal() {
     setTimeout(() => {
       modal.classList.add('hidden');
     }, 300);
+
+    // Reset insert mode
+    state.ui.insertIndex = null;
   }
 }
 
@@ -547,5 +582,6 @@ export function clearValidationErrors() {
 if (typeof window !== 'undefined') {
   window.switchTab = switchTab;
   window.openAddLineModal = openAddLineModal;
+  window.openInsertLineModal = openInsertLineModal;
   window.closeAddLineModal = closeAddLineModal;
 }

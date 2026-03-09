@@ -51,7 +51,8 @@ export const state = {
     success: null,
     showCustomerDropdown: false,
     showItemDropdown: false,
-    selectedLineIndex: null
+    selectedLineIndex: null,
+    insertIndex: null  // null = append mode, number = insert at this index
   },
 
   // Data cache
@@ -217,6 +218,28 @@ export function addQuoteLine(lineData) {
     ...lineData
   };
   state.quote.lines.push(line);
+  saveState();
+  return line;
+}
+
+/**
+ * Insert line at specific position
+ */
+export function insertQuoteLine(lineData, index) {
+  const line = {
+    sequence: index + 1,
+    id: `line-${Date.now()}`,
+    ...lineData
+  };
+
+  // Insert at position
+  state.quote.lines.splice(index, 0, line);
+
+  // Re-sequence all lines
+  state.quote.lines.forEach((line, i) => {
+    line.sequence = i + 1;
+  });
+
   saveState();
   return line;
 }

@@ -493,6 +493,20 @@
           </button>
         </div>
 
+        <!-- Quick Actions -->
+        <div class="flex gap-2 mb-3">
+          <button
+            class="flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-800 font-medium px-3 py-2 rounded-lg hover:bg-emerald-50 transition-all duration-200"
+            onclick="window.openInsertLineModal(0)"
+            title="Insert at the beginning"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Insert at Start
+          </button>
+        </div>
+
         <!-- Lines Table -->
         <div class="overflow-x-auto rounded-xl border border-slate-200">
           <table class="bc-table">
@@ -505,7 +519,7 @@
                 <th style="width: 120px;">Unit Price</th>
                 <th style="width: 120px;">Discount</th>
                 <th style="width: 120px;">Total</th>
-                <th style="width: 80px;">Actions</th>
+                <th style="width: 140px;">Actions</th>
               </tr>
             </thead>
             <tbody id="linesTableBody" class="divide-y divide-slate-100">
@@ -669,8 +683,8 @@
               </svg>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-gray-900">Add Quote Line</h3>
-              <p class="text-sm text-gray-500">Search items and add to quote</p>
+              <h3 id="addLineModalTitle" class="text-lg font-semibold text-gray-900">Add Quote Line</h3>
+              <p id="addLineModalSubtitle" class="text-sm text-gray-500">Search items and add to quote</p>
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@
  * Handles quote creation, line management, and BC API integration
  */
 
-import { state, addQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer } from './state.js';
+import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer } from './state.js';
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, sanitizeQuoteData } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts } from './ui.js';
@@ -150,7 +150,7 @@ export function handleAddQuoteLine() {
     return;
   }
 
-  // Add line
+  // Create line object
   const line = {
     itemId: state.formData.selectedItem?.id || null,
     description,
@@ -159,14 +159,22 @@ export function handleAddQuoteLine() {
     discount
   };
 
-  addQuoteLine(line);
+  // Add or insert line based on mode
+  const insertIndex = state.ui.insertIndex;
+  if (insertIndex !== null) {
+    // Insert mode
+    insertQuoteLine(line, insertIndex);
+    showSuccess(`Line inserted at position ${insertIndex + 1}`);
+  } else {
+    // Append mode
+    addQuoteLine(line);
+    showSuccess('Line added successfully');
+  }
 
   // Update UI
   renderQuoteLines();
   renderTotals();
   closeAddLineModal();
-
-  showSuccess('Line added successfully');
 }
 
 /**
@@ -360,6 +368,9 @@ if (typeof window !== 'undefined') {
   window.clearQuote = handleClearQuote;
   window.saveDraft = handleSaveDraft;
   window.sendQuote = handleSendQuote;
+
+  // Modal functions (from ui.js)
+  window.openInsertLineModal = window.openInsertLineModal;
 
   // Tab switching (from ui.js)
   window.switchTab = window.switchTab;

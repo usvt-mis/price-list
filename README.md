@@ -31,7 +31,7 @@ The Price List Calculator computes total cost based on four components:
   - **No build process**: Uses native ES6 modules with import maps
   - **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs
   - Azure AD authentication
-  - **Features**: Customer search, item search, quote line management, automatic calculations
+  - **Features**: Customer search, item search, quote line management (add/insert/remove), automatic calculations
   - **Business Central Integration**: OAuth 2.0 client credentials flow, token caching, mock mode for local development
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
   - Separate HTML file with complete UI independence
@@ -143,6 +143,13 @@ The Price List Calculator computes total cost based on four components:
   - Integer-only quantities (decimals are truncated)
   - Prominent line total display
 - **Desktop materials**: Traditional table layout with wider quantity inputs (w-32)
+- **Sales Quotes Line Management**:
+  - **Insert at Position**: Click "Insert" button on any quote line to add a new line at that position
+  - **Insert at Start**: Quick action button above table to insert at the beginning
+  - **Automatic Re-sequencing**: All line sequence numbers automatically update after insert (1, 2, 3, 4, ...)
+  - **Modal Context**: Modal title changes to "Insert Quote Line" with position indicator (e.g., "Inserting at position 3")
+  - **Add Line (Append)**: Original "Add Line" button still appends to the end
+  - Actions column expanded to accommodate both Insert and Remove buttons
 
 ### Backend
 - **Express.js** (Node.js) for Azure App Service deployment
