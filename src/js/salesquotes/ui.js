@@ -696,6 +696,7 @@ export function getQuoteFormData() {
     salespersonName: state.quote.salespersonName || '',
     assignedUserId: state.quote.assignedUserId || '',
     serviceOrderType: el('serviceOrderType')?.value || '',
+    division: el('division')?.value || 'MS1029',
     branch: el('branch')?.value || '',
     locationCode: el('locationCode')?.value || '',
     responsibilityCenter: el('responsibilityCenter')?.value || '',
@@ -715,6 +716,7 @@ export function populateQuoteForm(quote) {
   if (el('salespersonName')) el('salespersonName').value = quote.salespersonName || '';
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = quote.assignedUserId || '';
   if (el('serviceOrderType')) el('serviceOrderType').value = quote.serviceOrderType || '';
+  if (el('division')) el('division').value = quote.division || 'MS1029';
 
   // Branch fields
   if (el('branch')) el('branch').value = quote.branch || '';
@@ -761,6 +763,7 @@ export function clearQuoteForm() {
   if (el('salespersonName')) el('salespersonName').value = '';
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = '';
   if (el('serviceOrderType')) el('serviceOrderType').value = '';
+  if (el('division')) el('division').value = 'MS1029';
 
   // Clear branch fields
   if (el('branch')) el('branch').value = '';

@@ -697,7 +697,7 @@ async function sendQuoteToAzureFunction(quoteData) {
     serviceOrderType: quoteData.serviceOrderType || '',
     salespersonCode: quoteData.salespersonCode || '',
     contactName: quoteData.contact || '',
-    division: 'MS1029',
+    division: quoteData.division || 'MS1029',
     discountAmount: discountAmount,
     lineItems: lineItems
   };
@@ -1017,7 +1017,7 @@ export function setupEventListeners() {
   // REQUIRED FIELD ASTERISK HANDLING
   // =================================
   // Main form required fields (must be initialized AFTER Flatpickr)
-  const mainRequiredFields = ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType', 'branch'];
+  const mainRequiredFields = ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType', 'division', 'branch'];
   setupRequiredAsteriskHandlers(mainRequiredFields);
 
   console.log('Event listeners setup complete');
