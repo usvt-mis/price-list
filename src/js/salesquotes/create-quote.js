@@ -515,20 +515,74 @@ export function handleAddQuoteLine() {
 }
 
 /**
- * Handle quote line removal
+ * Handle quote line removal - shows confirmation modal
  */
 export function handleRemoveQuoteLine(index) {
-  // Cancel any active edit before removing
+  // Cancel any active edit before showing modal
   if (state.ui.editingLineId) {
     exitLineEditMode(false, state.ui.editingLineId);
   }
 
-  if (confirm('Are you sure you want to remove this line?')) {
+  // Store the index and show confirmation modal
+  state.ui.pendingRemoveLineIndex = index;
+  showConfirmRemoveModal();
+}
+
+/**
+ * Show the remove confirmation modal
+ */
+function showConfirmRemoveModal() {
+  const modal = el('confirmRemoveModal');
+  const modalContent = el('confirmRemoveModalContent');
+
+  if (modal && modalContent) {
+    modal.classList.remove('hidden');
+    // Trigger animation
+    setTimeout(() => {
+      modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
+    }, 10);
+  }
+}
+
+/**
+ * Hide the remove confirmation modal
+ */
+function hideConfirmRemoveModal() {
+  const modal = el('confirmRemoveModal');
+  const modalContent = el('confirmRemoveModalContent');
+
+  if (modal && modalContent) {
+    modalContent.classList.add('opacity-0', 'translate-y-[-10px]');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+    }, 300);
+  }
+
+  // Clear the pending index
+  state.ui.pendingRemoveLineIndex = null;
+}
+
+/**
+ * Confirm and execute line removal
+ */
+function confirmRemoveLine() {
+  const index = state.ui.pendingRemoveLineIndex;
+
+  if (index !== null) {
     removeQuoteLine(index);
     renderQuoteLines();
     renderTotals();
     showSuccess('Line removed');
   }
+
+  hideConfirmRemoveModal();
+}
+
+/**
+ * Cancel line removal
+ */
+function cancelRemoveLine() {
+  hideConfirmRemoveModal();
 }
 
 // ============================================================
@@ -1037,13 +1091,28 @@ export function setupLineModalHandlers() {
 // ============================================================
 
 /**
+ * Debounce utility - delays function execution
+ * @param {Function} func - Function to debounce
+ * @param {number} delay - Delay in milliseconds
+ * @returns {Function} Debounced function
+ */
+function debounce(func, delay) {
+  let timeoutId;
+  return function (...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(this, args), delay);
+  };
+}
+
+/**
  * Setup event listeners
  */
 export function setupEventListeners() {
-  // Customer search (BC API - Legacy)
+  // Customer search (BC API - Legacy) - Debounced 400ms
   const customerSearch = el('customerSearch');
+  const debouncedCustomerSearch = debounce((value) => handleCustomerSearch(value), 400);
   customerSearch?.addEventListener('input', (e) => {
-    handleCustomerSearch(e.target.value);
+    debouncedCustomerSearch(e.target.value);
   });
 
   customerSearch?.addEventListener('blur', () => {
@@ -1051,10 +1120,11 @@ export function setupEventListeners() {
     setTimeout(() => hideCustomerDropdown(), 200);
   });
 
-  // Customer No. search (Local Database - New)
+  // Customer No. search (Local Database - New) - Debounced 400ms
   const customerNoSearch = el('customerNoSearch');
+  const debouncedCustomerNoSearch = debounce((value) => handleCustomerNoSearch(value), 400);
   customerNoSearch?.addEventListener('input', (e) => {
-    handleCustomerNoSearch(e.target.value);
+    debouncedCustomerNoSearch(e.target.value);
   });
 
   customerNoSearch?.addEventListener('blur', () => {
@@ -1065,10 +1135,11 @@ export function setupEventListeners() {
     }, 200);
   });
 
-  // Salesperson Code search
+  // Salesperson Code search - Debounced 400ms
   const salespersonCodeSearch = el('salespersonCodeSearch');
+  const debouncedSalespersonSearch = debounce((value) => handleSalespersonCodeSearch(value), 400);
   salespersonCodeSearch?.addEventListener('input', (e) => {
-    handleSalespersonCodeSearch(e.target.value);
+    debouncedSalespersonSearch(e.target.value);
   });
   salespersonCodeSearch?.addEventListener('blur', () => {
     setTimeout(() => {
@@ -1077,10 +1148,11 @@ export function setupEventListeners() {
     }, 200);
   });
 
-  // Assigned User ID search
+  // Assigned User ID search - Debounced 400ms
   const assignedUserIdSearch = el('assignedUserIdSearch');
+  const debouncedAssignedUserSearch = debounce((value) => handleAssignedUserIdSearch(value), 400);
   assignedUserIdSearch?.addEventListener('input', (e) => {
-    handleAssignedUserIdSearch(e.target.value);
+    debouncedAssignedUserSearch(e.target.value);
   });
   assignedUserIdSearch?.addEventListener('blur', () => {
     setTimeout(() => {
@@ -1089,9 +1161,10 @@ export function setupEventListeners() {
     }, 200);
   });
 
-  // Material search in modal (No. field)
+  // Material search in modal (No. field) - Debounced 400ms
   const materialSearch = el('lineObjectNumberSearch');
-  materialSearch?.addEventListener('input', (e) => handleMaterialSearch(e.target.value));
+  const debouncedMaterialSearch = debounce((value) => handleMaterialSearch(value), 400);
+  materialSearch?.addEventListener('input', (e) => debouncedMaterialSearch(e.target.value));
   materialSearch?.addEventListener('blur', () => {
     setTimeout(() => el('lineMaterialDropdown')?.classList.add('hidden'), 200);
   });
@@ -1303,7 +1376,7 @@ if (typeof window !== 'undefined') {
 
   // Quote line actions
   window.addQuoteLine = handleAddQuoteLine;
-  window.removeQuoteLine = handleRemoveQuoteIndex => {
+  window.removeQuoteLine = removeQuoteLineIndex => {
     handleRemoveQuoteLine(removeQuoteLineIndex);
   };
 
@@ -1316,6 +1389,10 @@ if (typeof window !== 'undefined') {
   window.clearQuote = handleClearQuote;
   window.saveDraft = handleSaveDraft;
   window.sendQuote = handleSendQuote;
+
+  // Remove confirmation modal
+  window.confirmRemoveLine = confirmRemoveLine;
+  window.cancelRemoveLine = cancelRemoveLine;
 
   // Modal functions
   window.setupLineModalHandlers = setupLineModalHandlers;

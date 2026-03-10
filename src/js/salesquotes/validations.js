@@ -114,13 +114,16 @@ export function validateQuantity(value) {
 
 /**
  * Validate line item unit price
+ * Note: Unit price can be 0 or greater (removed > 0 restriction)
  */
 export function validateUnitPrice(value) {
   if (!isRequired(value)) {
     return ERROR_MESSAGES.REQUIRED;
   }
-  if (!isPositiveNumber(value)) {
-    return ERROR_MESSAGES.INVALID_PRICE;
+  // Check if it's a valid number (>= 0 instead of > 0)
+  const num = parseFloat(value);
+  if (isNaN(num) || num < 0) {
+    return ERROR_MESSAGES.INVALID_NUMBER;
   }
   return null;
 }

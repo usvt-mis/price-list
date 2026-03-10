@@ -160,6 +160,24 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **Animation**: 300ms fade-in/slide-up matching existing modal patterns
     - **Responsive design**: Works on desktop and mobile with proper overflow handling
     - **Implementation**: `openFullscreenTable()`, `closeFullscreenTable()`, `syncFullscreenTable()` in `src/js/salesquotes/ui.js`
+  - **Custom Remove Confirmation Modal** (Sales Quotes): Beautiful centered modal for confirming quote line removal
+    - **Replaces browser alert**: Custom HTML modal instead of native `confirm()` dialog
+    - **Visual design**: Red gradient theme with warning icon, centered on screen, backdrop blur effect
+    - **Smooth animations**: 300ms fade-in/slide-up transitions for professional appearance
+    - **Action buttons**: Cancel (white/gray) and Remove (custom red gradient `#dc2626` → `#b91c1c`)
+    - **State management**: Uses `pendingRemoveLineIndex` in `state.ui` to track line being removed
+    - **Implementation**: `showConfirmRemoveModal()`, `hideConfirmRemoveModal()`, `confirmRemoveLine()`, `cancelRemoveLine()` in `src/js/salesquotes/create-quote.js`
+  - **Debounced Search Inputs** (Sales Quotes): All search dropdowns use 400ms debounce delay to prevent excessive queries
+    - **Debounce utility**: Reusable `debounce(func, delay)` function that resets timer on each keystroke
+    - **Applied to all searches**: Customer No., Salesperson Code, Assigned User ID, Material search (modal), Customer search (legacy BC API)
+    - **User experience**: Wait 400ms after user stops typing before sending search request
+    - **Reduces server load**: Prevents API calls on every keystroke when typing quickly
+    - **Implementation**: Debounced handlers in `setupEventListeners()` function in `src/js/salesquotes/create-quote.js`
+  - **Clear State on Page Load** (Sales Quotes): Application starts with fresh state on each page load
+    - **Fixed persistence bug**: Old quote lines no longer reappear after page refresh
+    - **SessionStorage cleared**: Both `STATE` and `DRAFT_QUOTE` are removed during app initialization
+    - **Clean slate**: Lines table is empty when page loads, user starts fresh each time
+    - **Implementation**: `sessionStorage.removeItem()` calls in `initApp()` function in `src/js/salesquotes/app.js`
 - **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode
   - **Primary interaction**: Click the row/card (list view) or RunNumber (grid view) to open in edit mode
   - List view: Entire table row is clickable (except checkbox and action buttons)

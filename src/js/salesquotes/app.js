@@ -5,7 +5,7 @@
  */
 
 import { initAuth, renderAuthSection } from '../auth/index.js';
-import { state, initState, loadDraftQuote, setCurrentView } from './state.js';
+import { state, initState, setCurrentView, STORAGE_KEYS } from './state.js';
 import { el, show, hide, showToast } from './ui.js';
 import { loadInitialData, setupEventListeners } from './create-quote.js';
 
@@ -28,16 +28,14 @@ async function initApp() {
     renderAuthSection();
     console.log('Auth section rendered');
 
-    // 3. Initialize state
+    // 3. Clear any old state and draft to start fresh
+    sessionStorage.removeItem(STORAGE_KEYS.STATE);
+    sessionStorage.removeItem(STORAGE_KEYS.DRAFT_QUOTE);
+    console.log('Old state and draft cleared');
+
+    // 4. Initialize state
     initState();
     console.log('State initialized');
-
-    // 4. Load draft quote if exists
-    const hasDraft = loadDraftQuote();
-    if (hasDraft) {
-      console.log('Draft quote loaded');
-      showToast('Draft quote loaded from previous session', 'success');
-    }
 
     // 5. Load initial data from BC (customers, items)
     await loadInitialData();

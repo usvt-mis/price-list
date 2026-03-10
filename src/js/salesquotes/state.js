@@ -82,7 +82,8 @@ export const state = {
     insertIndex: null,  // null = append mode, number = insert at this index
     // NEW: Track editing state for inline editing
     editingLineId: null,        // ID of line currently being edited
-    originalLineData: null      // Copy of line data before editing (for cancel)
+    originalLineData: null,     // Copy of line data before editing (for cancel)
+    pendingRemoveLineIndex: null // Index of line pending removal (for confirmation modal)
   },
 
   // Data cache
@@ -103,7 +104,7 @@ export const state = {
 // Storage Keys
 // ============================================================
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   STATE: STORAGE_KEY_PREFIXES.SALESQUOTES + 'state',
   DRAFT_QUOTE: STORAGE_KEY_PREFIXES.SALESQUOTES + 'draft',
   BC_CONFIG: 'bc_config'
