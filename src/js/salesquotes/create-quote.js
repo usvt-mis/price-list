@@ -1041,26 +1041,44 @@ function handleModalDiscountSync(changedField, value) {
     const amtInput = el('lineDiscountAmount');
 
     // Save cursor position before updating
-    const cursorPos = percentInput.selectionStart;
+    let cursorPos = 0;
+    try {
+      cursorPos = percentInput.selectionStart;
+    } catch (e) {
+      // Input type doesn't support selectionStart (e.g., type="number")
+    }
 
     percentInput.value = percent.toFixed(1);
     amtInput.value = ((lineSubtotal * percent) / 100).toFixed(2);
 
     // Restore cursor position
-    percentInput.setSelectionRange(cursorPos, cursorPos);
+    try {
+      percentInput.setSelectionRange(cursorPos, cursorPos);
+    } catch (e) {
+      // Input type doesn't support selectionRange (e.g., type="number")
+    }
   } else if (changedField === 'discountAmount') {
     const amount = parseFloat(value) || 0;
     const amtInput = el('lineDiscountAmount');
     const percentInput = el('lineDiscountPercent');
 
     // Save cursor position before updating
-    const cursorPos = amtInput.selectionStart;
+    let cursorPos = 0;
+    try {
+      cursorPos = amtInput.selectionStart;
+    } catch (e) {
+      // Input type doesn't support selectionStart (e.g., type="number")
+    }
 
     amtInput.value = amount.toFixed(2);
     percentInput.value = (lineSubtotal > 0 ? (amount / lineSubtotal) * 100 : 0).toFixed(1);
 
     // Restore cursor position
-    amtInput.setSelectionRange(cursorPos, cursorPos);
+    try {
+      amtInput.setSelectionRange(cursorPos, cursorPos);
+    } catch (e) {
+      // Input type doesn't support selectionRange (e.g., type="number")
+    }
   }
   updateLineTotalPreview();
 }
