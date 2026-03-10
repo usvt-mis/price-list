@@ -1046,10 +1046,8 @@ function handleModalDiscountSync(changedField, value) {
     percentInput.value = percent.toFixed(1);
     amtInput.value = ((lineSubtotal * percent) / 100).toFixed(2);
 
-    // Restore cursor position (only if not the changed field)
-    if (document.activeElement !== percentInput) {
-      percentInput.setSelectionRange(cursorPos, cursorPos);
-    }
+    // Restore cursor position
+    percentInput.setSelectionRange(cursorPos, cursorPos);
   } else if (changedField === 'discountAmount') {
     const amount = parseFloat(value) || 0;
     const amtInput = el('lineDiscountAmount');
@@ -1061,10 +1059,8 @@ function handleModalDiscountSync(changedField, value) {
     amtInput.value = amount.toFixed(2);
     percentInput.value = (lineSubtotal > 0 ? (amount / lineSubtotal) * 100 : 0).toFixed(1);
 
-    // Restore cursor position (only if not the changed field)
-    if (document.activeElement !== amtInput) {
-      amtInput.setSelectionRange(cursorPos, cursorPos);
-    }
+    // Restore cursor position
+    amtInput.setSelectionRange(cursorPos, cursorPos);
   }
   updateLineTotalPreview();
 }
