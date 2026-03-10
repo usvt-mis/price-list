@@ -128,6 +128,22 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Auto-cancel: Edits are automatically cancelled when clicking Insert/Remove/Add/Clear on other lines
     - Save/Cancel buttons with icons: Checkmark (green) for Save, X (gray) for Cancel
     - Implemented in `src/js/salesquotes/state.js` and `src/js/salesquotes/create-quote.js`
+  - **Add Line Modal with 5-Column Grid** (Sales Quotes): Consistent 3-size width system for better visual organization
+    - **5-column grid system** where: Short fields = 1 column, Medium fields = 2 columns, Long fields = full width (5 columns)
+    - **Field categories**:
+      - **สั้น (Short)**: Create SV, Type, Group No., Qty, Addition (1 column each)
+      - **กลาง (Medium)**: Service Item No, Unit Price, Ref Sales Quote No, Discount Amt. (2 columns each)
+      - **ยาว (Long)**: Service Item Description, Description (full width)
+    - **Optimized row layout**: 6 rows with minimal empty space (only 1 empty column in Row 2)
+      - Row 1: 5 short fields (Create SV, Type, Group No., Qty, Addition)
+      - Row 2: 2 medium fields (Service Item No., Unit Price) + 1 empty column
+      - Row 3: Full width (Service Item Description)
+      - Row 4: Full width (No./Materials Search)
+      - Row 5: Full width textarea (Description)
+      - Row 6: Medium + Short + Medium (Ref Sales Quote No., Discount %, Discount Amt.)
+    - **Responsive design**: Grid collapses to single column on mobile devices
+    - **All element IDs preserved**: No JavaScript changes needed for this refactor
+    - Located in `src/salesquotes.html` (Add Line modal, lines ~625-708)
 - **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode
   - **Primary interaction**: Click the row/card (list view) or RunNumber (grid view) to open in edit mode
   - List view: Entire table row is clickable (except checkbox and action buttons)
