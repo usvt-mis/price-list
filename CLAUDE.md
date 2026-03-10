@@ -144,6 +144,17 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **All element IDs preserved**: No JavaScript changes needed for grid refactor
     - **Responsive design**: Grid collapses to single column on mobile devices
     - Located in `src/salesquotes.html` (Add Line modal, lines ~625-720)
+  - **Fullscreen Quote Lines Table** (Sales Quotes): Expandable modal for viewing all table columns at maximum width
+    - **Expand button**: Purple gradient button next to "Add Line" with fullscreen icon
+    - **Modal layout**: Fullscreen modal at 90% viewport height with maximum width table
+    - **Automatic synchronization**: Changes in normal view instantly appear in fullscreen table
+    - **Full functionality preserved**: Inline editing, Insert/Remove actions work identically in fullscreen
+    - **Keyboard shortcuts**: ESC key closes modal (only when not editing a line)
+    - **Quick actions footer**: "Insert at Start" button and keyboard shortcut hint
+    - **Visual design**: Gradient header (indigo-to-purple), scrollable table area, rounded corners
+    - **Animation**: 300ms fade-in/slide-up matching existing modal patterns
+    - **Responsive design**: Works on desktop and mobile with proper overflow handling
+    - **Implementation**: `openFullscreenTable()`, `closeFullscreenTable()`, `syncFullscreenTable()` in `src/js/salesquotes/ui.js`
 - **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode
   - **Primary interaction**: Click the row/card (list view) or RunNumber (grid view) to open in edit mode
   - List view: Entire table row is clickable (except checkbox and action buttons)

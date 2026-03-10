@@ -333,6 +333,9 @@ export function renderQuoteLines() {
   if (state.ui.editingLineId) {
     wireInlineEditEvents();
   }
+
+  // Update fullscreen table if open
+  updateFullscreenTable();
 }
 
 /**
@@ -930,6 +933,137 @@ export function closeQuoteCreatedModal() {
 }
 
 // ============================================================
+// Fullscreen Table Modal
+// ============================================================
+
+/**
+ * Open fullscreen table modal
+ */
+export function openFullscreenTable() {
+  const modal = el('fullscreenTableModal');
+  const modalContent = el('fullscreenTableContent');
+  if (!modal || !modalContent) return;
+
+  // Cancel any active edit before opening fullscreen
+  if (state.ui.editingLineId) {
+    exitLineEditMode(false, state.ui.editingLineId);
+  }
+
+  // Sync table content
+  syncFullscreenTable();
+
+  // Show modal
+  modal.classList.remove('hidden');
+
+  // Trigger animation
+  setTimeout(() => {
+    modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
+    modalContent.classList.add('opacity-100', 'translate-y-0');
+  }, 10);
+
+  // Add ESC key listener
+  document.addEventListener('keydown', handleFullscreenEsc);
+}
+
+/**
+ * Close fullscreen table modal
+ */
+export function closeFullscreenTable() {
+  const modal = el('fullscreenTableModal');
+  const modalContent = el('fullscreenTableContent');
+  if (!modal || !modalContent) return;
+
+  // Start closing animation
+  modalContent.classList.remove('opacity-100', 'translate-y-0');
+  modalContent.classList.add('opacity-0', 'translate-y-[-10px]');
+
+  // Hide modal after animation
+  setTimeout(() => {
+    modal.classList.add('hidden');
+  }, 300);
+
+  // Remove ESC key listener
+  document.removeEventListener('keydown', handleFullscreenEsc);
+}
+
+/**
+ * Handle ESC key in fullscreen mode
+ */
+function handleFullscreenEsc(event) {
+  if (event.key === 'Escape' && !el('fullscreenTableModal')?.classList.contains('hidden')) {
+    // Don't close if editing a line
+    if (state.ui.editingLineId) return;
+    closeFullscreenTable();
+  }
+}
+
+/**
+ * Sync fullscreen table with main table
+ */
+function syncFullscreenTable() {
+  const fullscreenTbody = el('fullscreenLinesTableBody');
+  const mainTbody = el('linesTableBody');
+  const fullscreenNoLines = el('fullscreenNoLinesMessage');
+
+  if (!fullscreenTbody || !mainTbody) return;
+
+  // Clone the table content
+  fullscreenTbody.innerHTML = mainTbody.innerHTML;
+
+  // Show/hide no lines message
+  if (fullscreenNoLines) {
+    if (state.quote.lines.length === 0) {
+      fullscreenNoLines.classList.remove('hidden');
+    } else {
+      fullscreenNoLines.classList.add('hidden');
+    }
+  }
+
+  // Re-wire inline edit events for fullscreen table
+  if (state.ui.editingLineId) {
+    wireFullscreenInlineEditEvents();
+  }
+}
+
+/**
+ * Wire inline edit events for fullscreen table
+ */
+function wireFullscreenInlineEditEvents() {
+  // Edit buttons in fullscreen table
+  const editButtons = document.querySelectorAll('#fullscreenLinesTableBody .edit-line-btn, #fullscreenLinesTableBody button[onclick*="editQuoteLine"]');
+  editButtons.forEach(btn => {
+    // Clone button to remove old event listeners
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, newBtn);
+
+    newBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const lineId = newBtn.getAttribute('onclick')?.match(/editQuoteLine\('([^']+)'\)/)?.[1];
+      if (lineId && window.editQuoteLine) {
+        window.editQuoteLine(lineId);
+      }
+    });
+  });
+
+  // Insert/Remove buttons
+  const actionButtons = document.querySelectorAll('#fullscreenLinesTableBody button[onclick*="openInsertLineModal"], #fullscreenLinesTableBody button[onclick*="removeQuoteLine"]');
+  actionButtons.forEach(btn => {
+    // Clone to remove old event listeners
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, newBtn);
+  });
+}
+
+/**
+ * Update fullscreen table when lines change
+ */
+export function updateFullscreenTable() {
+  if (!el('fullscreenTableModal')?.classList.contains('hidden')) {
+    syncFullscreenTable();
+  }
+}
+
+// ============================================================
 // Export functions to window for onclick handlers
 // ============================================================
 
@@ -939,4 +1073,6 @@ if (typeof window !== 'undefined') {
   window.openInsertLineModal = openInsertLineModal;
   window.closeAddLineModal = closeAddLineModal;
   window.closeQuoteCreatedModal = closeQuoteCreatedModal;
+  window.openFullscreenTable = openFullscreenTable;
+  window.closeFullscreenTable = closeFullscreenTable;
 }
