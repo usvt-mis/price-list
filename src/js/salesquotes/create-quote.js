@@ -552,7 +552,7 @@ export async function handleSendQuote() {
     hideSaving();
 
     // Extract Quote Number from response
-    const quoteNumber = response?.number || null;
+    const quoteNumber = response?.result?.number || null;
 
     // Show custom success modal with Quote Number
     if (quoteNumber) {

@@ -263,7 +263,7 @@ Calculate SGT/SSP Ratio
 
 ```
 Calculate SGT (Sub Grand Total):
-  SGT = Labor (with Sales Profit) + Materials (tiered base) + Travel (with Sales Profit) + Onsite Options (with Sales Profit)
+  SGT = Labor (with Sales Profit) + Materials (tiered base) + Travel  + Onsite Options
   ↓
 Calculate SSP (Standard Selling Price):
   SSP = Labor (after branch only) + Materials (tiered base only) + Travel (base) + Onsite Options (base)
