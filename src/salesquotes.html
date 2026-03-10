@@ -689,11 +689,11 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
-              <input type="number" id="lineDiscountPercent" class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5" value="0" min="0" step="0.1">
+              <input type="text" id="lineDiscountPercent" inputmode="decimal" pattern="[0-9]*\.?[0-9]{0,1}" class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5" value="0" placeholder="0.0">
             </div>
             <div class="col-span-2">
               <label class="block text-sm font-medium text-gray-700 mb-1">Discount Amt.</label>
-              <input type="number" id="lineDiscountAmount" class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5" value="0" min="0" step="0.01">
+              <input type="text" id="lineDiscountAmount" inputmode="decimal" pattern="[0-9]*\.?[0-9]{0,2}" class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5" value="0" placeholder="0.00">
             </div>
           </div>
 

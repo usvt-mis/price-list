@@ -139,6 +139,8 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **Footer actions**: Add Line button (primary gradient) + Cancel button (secondary white)
     - **UI improvements**: Checkboxes centered with `flex items-center justify-center`, Description changed to single-line text input
     - **Input field enhancements**: Number input spinners hidden for cleaner UI, discount field focus preservation (cursor stays stable during bi-directional sync)
+      - **Technical implementation**: Discount fields use `type="text"` with `inputmode="decimal"` for mobile numeric keypad, `pattern` attribute for validation, and `validateDiscountInput()` function for sanitization
+      - This approach enables reliable cursor position preservation (`selectionStart`/`setSelectionRange`) which doesn't work with `type="number"`
     - **All element IDs preserved**: No JavaScript changes needed for grid refactor
     - **Responsive design**: Grid collapses to single column on mobile devices
     - Located in `src/salesquotes.html` (Add Line modal, lines ~625-720)

@@ -1036,51 +1036,53 @@ function handleModalDiscountSync(changedField, value) {
   const lineSubtotal = quantity * unitPrice;
 
   if (changedField === 'discountPercent') {
-    const percent = parseFloat(value) || 0;
+    const percent = validateDiscountInput(value, 1); // 1 decimal place
     const percentInput = el('lineDiscountPercent');
     const amtInput = el('lineDiscountAmount');
 
-    // Save cursor position before updating
-    let cursorPos = 0;
-    try {
-      cursorPos = percentInput.selectionStart;
-    } catch (e) {
-      // Input type doesn't support selectionStart (e.g., type="number")
-    }
+    // Save cursor position BEFORE updating value
+    const cursorPos = percentInput.selectionStart;
 
     percentInput.value = percent.toFixed(1);
     amtInput.value = ((lineSubtotal * percent) / 100).toFixed(2);
 
-    // Restore cursor position
-    try {
-      percentInput.setSelectionRange(cursorPos, cursorPos);
-    } catch (e) {
-      // Input type doesn't support selectionRange (e.g., type="number")
-    }
+    // Restore cursor position (will work with type="text")
+    percentInput.setSelectionRange(cursorPos, cursorPos);
   } else if (changedField === 'discountAmount') {
-    const amount = parseFloat(value) || 0;
+    const amount = validateDiscountInput(value, 2); // 2 decimal places
     const amtInput = el('lineDiscountAmount');
     const percentInput = el('lineDiscountPercent');
 
-    // Save cursor position before updating
-    let cursorPos = 0;
-    try {
-      cursorPos = amtInput.selectionStart;
-    } catch (e) {
-      // Input type doesn't support selectionStart (e.g., type="number")
-    }
+    // Save cursor position BEFORE updating value
+    const cursorPos = amtInput.selectionStart;
 
     amtInput.value = amount.toFixed(2);
     percentInput.value = (lineSubtotal > 0 ? (amount / lineSubtotal) * 100 : 0).toFixed(1);
 
-    // Restore cursor position
-    try {
-      amtInput.setSelectionRange(cursorPos, cursorPos);
-    } catch (e) {
-      // Input type doesn't support selectionRange (e.g., type="number")
-    }
+    // Restore cursor position (will work with type="text")
+    amtInput.setSelectionRange(cursorPos, cursorPos);
   }
   updateLineTotalPreview();
+}
+
+/**
+ * Validate and sanitize discount input value
+ * @param {string} value - Raw input value
+ * @param {number} decimals - Maximum decimal places (1 for %, 2 for amount)
+ * @returns {number} - Parsed and validated number
+ */
+function validateDiscountInput(value, decimals) {
+  // Remove non-numeric characters except decimal point
+  const cleaned = value.replace(/[^\d.]/g, '');
+
+  // Parse as float
+  const parsed = parseFloat(cleaned);
+
+  // Return 0 for invalid input
+  if (isNaN(parsed)) return 0;
+
+  // Round to specified decimal places
+  return Number(parsed.toFixed(decimals));
 }
 
 /**
