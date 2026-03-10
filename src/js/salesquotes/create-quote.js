@@ -3,7 +3,7 @@
  * Handles quote creation, line management, and BC API integration
  */
 
-import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState } from './state.js';
+import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState, enterLineEditMode, exitLineEditMode } from './state.js';
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess } from './ui.js';
@@ -412,12 +412,115 @@ export function handleAddQuoteLine() {
  * Handle quote line removal
  */
 export function handleRemoveQuoteLine(index) {
+  // Cancel any active edit before removing
+  if (state.ui.editingLineId) {
+    exitLineEditMode(false, state.ui.editingLineId);
+  }
+
   if (confirm('Are you sure you want to remove this line?')) {
     removeQuoteLine(index);
     renderQuoteLines();
     renderTotals();
     showSuccess('Line removed');
   }
+}
+
+// ============================================================
+// Inline Edit Handlers
+// ============================================================
+
+/**
+ * Handle edit button click - enter edit mode
+ * @param {string} lineId - The ID of the line to edit
+ */
+export function handleEditQuoteLine(lineId) {
+  // Cancel any active edit first
+  if (state.ui.editingLineId && state.ui.editingLineId !== lineId) {
+    exitLineEditMode(false, state.ui.editingLineId);
+  }
+
+  // Enter edit mode
+  const success = enterLineEditMode(lineId);
+  if (success) {
+    renderQuoteLines();
+  }
+}
+
+/**
+ * Handle save button click or Enter key - save changes
+ * @param {string} lineId - The ID of the line being edited
+ */
+export function handleSaveLineEdit(lineId) {
+  // Get current input values
+  const quantityInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`);
+  const priceInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`);
+  const discountInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="discount"]`);
+
+  if (!quantityInput || !priceInput || !discountInput) {
+    showError('Could not save line - input fields not found');
+    return;
+  }
+
+  const quantity = parseFloat(quantityInput.value);
+  const unitPrice = parseFloat(priceInput.value);
+  const discount = parseFloat(discountInput.value);
+
+  // Validate
+  const validation = validateLineData({ quantity, unitPrice, discount });
+  if (!validation.isValid) {
+    showError(validation.error);
+    return;
+  }
+
+  // Prepare new data
+  const newData = { quantity, unitPrice, discount };
+
+  // Exit edit mode with save
+  exitLineEditMode(true, lineId, newData);
+
+  // Re-render
+  renderQuoteLines();
+  renderTotals();
+  showSuccess('Line updated');
+}
+
+/**
+ * Handle cancel button click or Escape key - discard changes
+ * @param {string} lineId - The ID of the line being edited
+ */
+export function handleCancelLineEdit(lineId) {
+  // Exit edit mode without saving
+  exitLineEditMode(false, lineId);
+
+  // Re-render
+  renderQuoteLines();
+  renderTotals();
+}
+
+/**
+ * Validate line data (private helper)
+ * @param {Object} lineData - The line data to validate
+ * @returns {Object} Validation result {isValid, error}
+ */
+function validateLineData(lineData) {
+  const { quantity, unitPrice, discount } = lineData;
+
+  // Validate quantity
+  if (!quantity || quantity <= 0) {
+    return { isValid: false, error: 'Quantity must be greater than 0' };
+  }
+
+  // Validate unit price
+  if (unitPrice < 0) {
+    return { isValid: false, error: 'Unit price cannot be negative' };
+  }
+
+  // Validate discount
+  if (discount < 0) {
+    return { isValid: false, error: 'Discount cannot be negative' };
+  }
+
+  return { isValid: true };
 }
 
 // ============================================================
@@ -429,6 +532,11 @@ export function handleRemoveQuoteLine(index) {
  */
 export function handleClearQuote() {
   if (confirm('Are you sure you want to clear the quote? All unsaved changes will be lost.')) {
+    // Cancel any active edit
+    if (state.ui.editingLineId) {
+      exitLineEditMode(false, state.ui.editingLineId);
+    }
+
     clearQuoteForm();
     clearQuoteLines();
     renderQuoteLines();
@@ -800,6 +908,11 @@ if (typeof window !== 'undefined') {
   window.removeQuoteLine = handleRemoveQuoteIndex => {
     handleRemoveQuoteLine(removeQuoteLineIndex);
   };
+
+  // Inline edit actions
+  window.editQuoteLine = handleEditQuoteLine;
+  window.saveLineEdit = handleSaveLineEdit;
+  window.cancelLineEdit = handleCancelLineEdit;
 
   // Quote actions
   window.clearQuote = handleClearQuote;

@@ -3,7 +3,7 @@
  * BC-style UI components and helpers for Sales Quotes module
  */
 
-import { state } from './state.js';
+import { state, exitLineEditMode } from './state.js';
 import { BC_UI_CONFIG } from './config.js';
 
 // ============================================================
@@ -301,7 +301,7 @@ export function hideItemDropdown() {
 // ============================================================
 
 /**
- * Render quote lines table
+ * Render quote lines table with inline editing support
  */
 export function renderQuoteLines() {
   const tbody = el('linesTableBody');
@@ -317,33 +317,133 @@ export function renderQuoteLines() {
 
   if (noLinesMessage) noLinesMessage.classList.add('hidden');
 
-  tbody.innerHTML = state.quote.lines.map((line, index) => `
-    <tr>
-      <td>${line.sequence}</td>
-      <td>${line.itemId || '-'}</td>
-      <td>${line.description}</td>
-      <td>${line.quantity}</td>
-      <td>${parseFloat(line.unitPrice).toFixed(2)}</td>
-      <td>${parseFloat(line.discount).toFixed(2)}</td>
-      <td>${calculateLineTotal(line).toFixed(2)}</td>
-      <td class="flex gap-2">
-        <button
-          class="text-emerald-600 hover:text-emerald-800 text-sm font-medium"
-          onclick="window.openInsertLineModal(${index})"
-          title="Insert line at this position"
-        >
-          Insert
-        </button>
-        <button
-          class="text-red-600 hover:text-red-800 text-sm"
-          onclick="window.removeQuoteLine(${index})"
-          title="Remove this line"
-        >
-          Remove
-        </button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = state.quote.lines.map((line, index) => {
+    const isEditing = state.ui.editingLineId === line.id;
+    const rowClass = isEditing
+      ? 'bg-blue-50 ring-2 ring-blue-500'
+      : (index % 2 === 0 ? 'bg-white' : 'bg-slate-50');
+
+    if (isEditing) {
+      // Edit mode - render input fields
+      return `
+        <tr class="${rowClass}" data-line-id="${line.id}">
+          <td class="font-medium">${line.sequence}</td>
+          <td class="text-gray-400">${line.itemId || '-'}</td>
+          <td class="text-gray-600">${line.description}</td>
+          <td>
+            <input
+              type="number"
+              class="bc-input w-20 px-2 py-1 text-sm"
+              data-line-id="${line.id}"
+              data-field="quantity"
+              value="${line.quantity}"
+              min="1"
+              step="1"
+              onkeydown="window.handleLineEditKeyboard(event, '${line.id}')"
+              oninput="window.updateLineEditTotal('${line.id}')"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="bc-input w-24 px-2 py-1 text-sm"
+              data-line-id="${line.id}"
+              data-field="unitPrice"
+              value="${parseFloat(line.unitPrice).toFixed(2)}"
+              min="0"
+              step="0.01"
+              onkeydown="window.handleLineEditKeyboard(event, '${line.id}')"
+              oninput="window.updateLineEditTotal('${line.id}')"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="bc-input w-20 px-2 py-1 text-sm"
+              data-line-id="${line.id}"
+              data-field="discount"
+              value="${parseFloat(line.discount).toFixed(2)}"
+              min="0"
+              step="0.01"
+              onkeydown="window.handleLineEditKeyboard(event, '${line.id}')"
+              oninput="window.updateLineEditTotal('${line.id}')"
+            />
+          </td>
+          <td>
+            <span
+              id="line-total-${line.id}"
+              class="font-medium text-gray-900"
+            >
+              ${calculateLineTotal(line).toFixed(2)}
+            </span>
+          </td>
+          <td class="flex gap-2">
+            <button
+              class="text-emerald-600 hover:text-emerald-800 text-sm font-medium flex items-center gap-1"
+              onclick="window.saveLineEdit('${line.id}')"
+              title="Save changes (Enter)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              Save
+            </button>
+            <button
+              class="text-gray-600 hover:text-gray-800 text-sm flex items-center gap-1"
+              onclick="window.cancelLineEdit('${line.id}')"
+              title="Cancel (Escape)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              Cancel
+            </button>
+          </td>
+        </tr>
+      `;
+    } else {
+      // View mode - render static fields
+      return `
+        <tr class="${rowClass}">
+          <td class="font-medium">${line.sequence}</td>
+          <td class="text-gray-400">${line.itemId || '-'}</td>
+          <td>${line.description}</td>
+          <td>${line.quantity}</td>
+          <td>${parseFloat(line.unitPrice).toFixed(2)}</td>
+          <td>${parseFloat(line.discount).toFixed(2)}</td>
+          <td class="font-medium text-gray-900">${calculateLineTotal(line).toFixed(2)}</td>
+          <td class="flex gap-2">
+            <button
+              class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              onclick="window.editQuoteLine('${line.id}')"
+              title="Edit this line"
+            >
+              Edit
+            </button>
+            <button
+              class="text-emerald-600 hover:text-emerald-800 text-sm font-medium"
+              onclick="window.openInsertLineModal(${index})"
+              title="Insert line at this position"
+            >
+              Insert
+            </button>
+            <button
+              class="text-red-600 hover:text-red-800 text-sm"
+              onclick="window.removeQuoteLine(${index})"
+              title="Remove this line"
+            >
+              Remove
+            </button>
+          </td>
+        </tr>
+      `;
+    }
+  }).join('');
+
+  // Wire up event listeners for inline inputs
+  if (state.ui.editingLineId) {
+    wireInlineEditEvents();
+  }
 }
 
 /**
@@ -355,6 +455,59 @@ function calculateLineTotal(line) {
   const discount = parseFloat(line.discount) || 0;
   return quantity * unitPrice - discount;
 }
+
+// ============================================================
+// Inline Edit Helpers
+// ============================================================
+
+/**
+ * Wire up event listeners for inline edit inputs
+ */
+function wireInlineEditEvents() {
+  // Event listeners are already attached via oninput/onkeydown attributes
+  // This function is a placeholder for any additional wiring needed
+  console.log('Inline edit events wired');
+}
+
+/**
+ * Handle keyboard shortcuts for line editing
+ * @param {KeyboardEvent} e - The keyboard event
+ * @param {string} lineId - The ID of the line being edited
+ */
+window.handleLineEditKeyboard = function(e, lineId) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    window.saveLineEdit(lineId);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    window.cancelLineEdit(lineId);
+  }
+};
+
+/**
+ * Update line total display during editing
+ * @param {string} lineId - The ID of the line being edited
+ */
+window.updateLineEditTotal = function(lineId) {
+  const quantityInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`);
+  const priceInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`);
+  const discountInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="discount"]`);
+  const totalSpan = document.getElementById(`line-total-${lineId}`);
+
+  if (!quantityInput || !priceInput || !discountInput || !totalSpan) {
+    return;
+  }
+
+  const quantity = parseFloat(quantityInput.value) || 0;
+  const unitPrice = parseFloat(priceInput.value) || 0;
+  const discount = parseFloat(discountInput.value) || 0;
+  const total = quantity * unitPrice - discount;
+
+  totalSpan.textContent = total.toFixed(2);
+
+  // Also update quote totals
+  renderTotals();
+};
 
 // ============================================================
 // Totals Display
@@ -390,6 +543,11 @@ export function renderTotals() {
  * Open add line modal
  */
 export function openAddLineModal(insertIndex = null) {
+  // Cancel any active edit before opening modal
+  if (state.ui.editingLineId) {
+    exitLineEditMode(false, state.ui.editingLineId);
+  }
+
   const modal = el('addLineModal');
   const modalContent = el('addLineModalContent');
   if (modal && modalContent) {

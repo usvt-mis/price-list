@@ -18,7 +18,7 @@ This is a Price List Calculator - a web application for calculating service cost
 |------------|---------|--------------|-------------------|
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
-| **Sales Quotes** | Business Central integration via Azure Function API | Create and manage sales quotes with Azure Function API (endpoint: `CreateSalesQuoteWithoutNumber`), local database customer search (min 2 chars), customer/item search, quote lines with calculations, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH), Responsibility Center (auto-populated from BRANCH) | N/A (BC Quote Number) |
+| **Sales Quotes** | Business Central integration via Azure Function API | Create and manage sales quotes with Azure Function API (endpoint: `CreateSalesQuoteWithoutNumber`), local database customer search (min 2 chars), customer/item search, quote lines with calculations, inline editing (Quantity, Unit Price, Discount), insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH), Responsibility Center (auto-populated from BRANCH) | N/A (BC Quote Number) |
 |  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, dynamic required field indicators (asterisks hide when fields have values), modern date picker with Flatpickr (Order Date defaults to today) |  |
 
 ### Cost Components
@@ -115,6 +115,16 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Readonly/locked fields have no placeholder text (cleaner appearance)
     - Search field placeholders shortened to action-oriented text: "Search customers/salespeople/users..." (vs. verbose "Type 2+ characters to search...")
     - Other placeholders simplified for clarity: "Contact name..." (vs. "Contact person..."), "Work description..." (vs. "Describe the work to be performed...")
+  - **Inline Quote Line Editing** (Sales Quotes): Edit quote lines directly in the table without opening a modal
+    - Editable fields: Quantity (min=1, step=1), Unit Price (min=0, step=0.01), Discount (min=0, step=0.01)
+    - Read-only fields: Item (locked once set), Description, Total (calculated field)
+    - Visual feedback: Blue background (`bg-blue-50 ring-2 ring-blue-500`) highlights the row being edited
+    - Keyboard support: Enter to save, Escape to cancel
+    - Single-line edit: Only one line can be edited at a time (auto-cancels previous edit when clicking Edit on another line)
+    - Real-time validation: Quantity > 0, Price >= 0, Discount >= 0
+    - Auto-cancel: Edits are automatically cancelled when clicking Insert/Remove/Add/Clear on other lines
+    - Save/Cancel buttons with icons: Checkmark (green) for Save, X (gray) for Cancel
+    - Implemented in `src/js/salesquotes/state.js` and `src/js/salesquotes/create-quote.js`
 - **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode
   - **Primary interaction**: Click the row/card (list view) or RunNumber (grid view) to open in edit mode
   - List view: Entire table row is clickable (except checkbox and action buttons)
