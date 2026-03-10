@@ -68,6 +68,7 @@ export function showLoading(message = 'Loading...') {
   if (overlay) {
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
+    overlay.style.zIndex = '150'; // Highest z-index for loading
   }
   if (messageEl) messageEl.textContent = message;
   state.ui.loading = true;
@@ -516,6 +517,9 @@ export function openAddLineModal(insertIndex = null) {
   if (modal && modalContent) {
     modal.classList.remove('hidden');
 
+    // Ensure modal is on top (higher z-index than fullscreen table)
+    modal.style.zIndex = '100';
+
     // Store insert index in state
     state.ui.insertIndex = insertIndex;
 
@@ -926,6 +930,7 @@ export function showQuoteCreatedSuccess(quoteNumber) {
 
   // Show modal
   modal.classList.remove('hidden');
+  modal.style.zIndex = '120'; // Higher than add line modal
 
   // Trigger animation
   setTimeout(() => {
