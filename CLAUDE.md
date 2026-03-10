@@ -128,18 +128,19 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Auto-cancel: Edits are automatically cancelled when clicking Insert/Remove/Add/Clear on other lines
     - Save/Cancel buttons with icons: Checkmark (green) for Save, X (gray) for Cancel
     - Implemented in `src/js/salesquotes/state.js` and `src/js/salesquotes/create-quote.js`
-  - **Add Line Modal with 6-Column Grid** (Sales Quotes): Improved field organization matching Business Central workflow
+  - **Add Line Modal with 6-Column Grid** (Sales Quotes): Improved field organization with consolidated pricing and footer action button
     - **6-column grid system** for better field alignment and data entry flow
     - **Field organization by row**:
       - Row 1: Type (3) | Create SV (1) | Group No. (2) - Primary Type field takes 50% width
       - Row 2: Service Item No (3) | Service Item Description (3) - Equal width split
-      - Row 3: No (2) + Description (4) - Materials search and description combined
+      - Row 3: No (2) + Description (4) - Materials search and description (single-line input)
       - Row 4: Qty (1) | Unit Price (2) | Discount % (1) | Discount Amt. (2) - Price/discount fields on same row
-      - Row 5: Addition (1) | Ref. Sales Quote No. (5) - Checkbox and reference field
-      - Row 6: Line Total Preview (4) | Add Line Button (2) - Integrated into modal content
+      - Row 5: Addition (1) | Ref. Sales Quote No. (2) | Line Total (3) - Consolidated pricing info
+    - **Footer actions**: Add Line button (primary gradient) + Cancel button (secondary white)
+    - **UI improvements**: Checkboxes centered (no mt-2), Description changed to single-line text input
     - **All element IDs preserved**: No JavaScript changes needed for this refactor
     - **Responsive design**: Grid collapses to single column on mobile devices
-    - Located in `src/salesquotes.html` (Add Line modal, lines ~625-722)
+    - Located in `src/salesquotes.html` (Add Line modal, lines ~625-720)
 - **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode
   - **Primary interaction**: Click the row/card (list view) or RunNumber (grid view) to open in edit mode
   - List view: Entire table row is clickable (except checkbox and action buttons)
