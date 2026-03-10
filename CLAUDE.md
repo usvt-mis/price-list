@@ -121,18 +121,19 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Search field placeholders shortened to action-oriented text: "Search customers/salespeople/users..." (vs. verbose "Type 2+ characters to search...")
     - Other placeholders simplified for clarity: "Contact name..." (vs. "Contact person..."), "Work description..." (vs. "Describe the work to be performed...")
   - **Inline Quote Line Editing** (Sales Quotes): Edit quote lines directly in the table without opening a modal
-    - **16-column table layout**: Create SV (toggle switch), Type (dropdown), Service Item No., Service Item Description, Group No., No. (materials search), Description (250px width), Qty., Unit Price, Addition (toggle switch), Ref. SQ No., Discount %, Discount Amt., Line Total, Actions
-    - **Column width optimization**: Description column widened to 250px for better text display; Ref. Sales Quote No. shortened to "Ref. SQ No." for compact display
+    - **16-column table layout**: Create SV (toggle switch), Type (dropdown), Serv. Item No., Serv. Item Desc., Group No., No. (materials search), Desc. (250px width), Qty., Unit Price, Addition (toggle switch), Ref. SQ No., Disc. %, Discount Amt., Line Total, Actions
+    - **Column header shortening**: Service Item No. → Serv. Item No., Service Item Description → Serv. Item Desc., Description → Desc., Discount % → Disc. % for compact display
+    - **Column width optimization**: Desc. column widened to 250px for better text display; Ref. Sales Quote No. shortened to "Ref. SQ No."
     - **Toggle Switches**: Create SV and Addition fields use modern toggle switches instead of checkboxes
       - Gradient purple-indigo color when ON (checked), slate gray when OFF
       - Smooth slide animation with 0.3s transition
       - Scaled to 0.85 for compact table display
       - Focus ring for keyboard accessibility
       - Better visual feedback and touch-friendly for mobile
-    - **Inline editable fields** (all 13 text/number fields): Type (dropdown), Service Item No., Service Item Description, Group No., Description, Qty., Unit Price, Ref. SQ No., Discount %, Discount Amt.
+    - **Inline editable fields** (all 13 text/number fields): Type (dropdown), Serv. Item No., Serv. Item Desc., Group No., Desc., Qty., Unit Price, Ref. SQ No., Disc. %, Discount Amt.
     - **Toggle-enabled fields**: Create SV and Addition (toggle switches work in both view and edit modes)
-    - **Bi-directional discount sync**: Discount % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Discount% / 100` with cursor position preservation for smooth typing
-    - **Materials search**: "No." field searches `dbo.materials` table by MaterialCode OR MaterialName (min 2 chars), Description auto-fills from MaterialName (editable), Unit Price remains manual entry
+    - **Bi-directional discount sync**: Disc. % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Disc% / 100` with cursor position preservation for smooth typing
+    - **Materials search**: "No." field searches `dbo.materials` table by MaterialCode OR MaterialName (min 2 chars), Desc. auto-fills from MaterialName (editable), Unit Price remains manual entry
     - Visual feedback: Blue background (`bg-blue-50 ring-2 ring-blue-500`) highlights the row being edited
     - Keyboard support: Enter to save, Escape to cancel
     - Single-line edit: Only one line can be edited at a time (auto-cancels previous edit when clicking Edit on another line)
@@ -177,6 +178,13 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **Action buttons**: Cancel (white/gray) and Remove (custom red gradient `#dc2626` → `#b91c1c`)
     - **State management**: Uses `pendingRemoveLineIndex` in `state.ui` to track line being removed
     - **Implementation**: `showConfirmRemoveModal()`, `hideConfirmRemoveModal()`, `confirmRemoveLine()`, `cancelRemoveLine()` in `src/js/salesquotes/create-quote.js`
+  - **Clear Quote Confirmation Modal** (Sales Quotes): Beautiful centered modal for confirming quote clearing
+    - **Replaces browser alert**: Custom HTML modal instead of native `confirm()` dialog
+    - **Visual design**: Amber gradient theme with warning icon, centered on screen, backdrop blur effect
+    - **Smooth animations**: 300ms fade-in/slide-up transitions for professional appearance
+    - **Action buttons**: Cancel (white/gray) and Clear Quote (amber gradient `from-amber-500 to-amber-600`)
+    - **State management**: Cancels active line edit before showing modal
+    - **Implementation**: `showConfirmClearQuoteModal()`, `hideConfirmClearQuoteModal()`, `confirmClearQuote()`, `cancelClearQuote()` in `src/js/salesquotes/ui.js` and `src/js/salesquotes/create-quote.js`
   - **Responsive Search Dropdowns** (Sales Quotes): All search dropdowns use direct input handling for immediate response
     - **No debounce delay**: Dropdowns appear instantly on keystroke for better UX
     - **Applied to all searches**: Customer No., Salesperson Code, Assigned User ID, Material search (modal), Customer search (legacy BC API)
@@ -184,9 +192,12 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **Implementation**: Direct handlers in `setupEventListeners()` function in `src/js/salesquotes/create-quote.js`
   - **Clear State on Page Load** (Sales Quotes): Application starts with fresh state on each page load
     - **Fixed persistence bug**: Old quote lines no longer reappear after page refresh
-    - **SessionStorage cleared**: Both `STATE` and `DRAFT_QUOTE` are removed during app initialization
+    - **Root cause**: Auto-initialization in `state.js` was loading old state before `initApp()` could clear sessionStorage
+    - **SessionStorage cleared**: Both `STATE` and `DRAFT_QUOTE` are removed during app initialization in `initApp()`
+    - **initState() modified**: No longer calls `loadState()` automatically; state initialization is controlled by `initApp()`
+    - **Auto-initialization removed**: Removed automatic `initState()` call from `state.js` to prevent premature state loading
     - **Clean slate**: Lines table is empty when page loads, user starts fresh each time
-    - **Implementation**: `sessionStorage.removeItem()` calls in `initApp()` function in `src/js/salesquotes/app.js`
+    - **Implementation**: `sessionStorage.removeItem()` in `initApp()` (before `initState()`), modified `initState()` in `src/js/salesquotes/state.js`
 - **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode
   - **Primary interaction**: Click the row/card (list view) or RunNumber (grid view) to open in edit mode
   - List view: Entire table row is clickable (except checkbox and action buttons)

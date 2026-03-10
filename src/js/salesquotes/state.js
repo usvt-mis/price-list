@@ -619,14 +619,17 @@ export function getCurrentView() {
 
 /**
  * Initialize state
+ * NOTE: Does NOT call loadState() automatically to prevent loading old data
+ * The app.js initApp() clears sessionStorage before calling initState()
  */
 export function initState() {
-  loadState();
+  // Do NOT call loadState() here - let initApp() control when to load state
+  // This ensures fresh state on each page load
   if (!state.quote.customerId) {
     initNewQuote();
   }
   console.log('State initialized');
 }
 
-// Auto-initialize on load
-initState();
+// NOTE: Auto-initialization removed to prevent loading old state before sessionStorage is cleared
+// State is now initialized explicitly by app.js initApp() function

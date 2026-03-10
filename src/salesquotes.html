@@ -566,16 +566,16 @@
                 <th style="width: 40px;">#</th>
                 <th style="width: 50px;">Create SV</th>
                 <th style="width: 80px;">Type</th>
-                <th style="width: 120px;">Service Item No.</th>
-                <th style="width: 150px;">Service Item Description</th>
+                <th style="width: 120px;">Serv. Item No.</th>
+                <th style="width: 150px;">Serv. Item Desc.</th>
                 <th style="width: 80px;">Group No.</th>
                 <th style="width: 150px;">No.</th>
-                <th style="width: 250px;">Description</th>
+                <th style="width: 250px;">Desc.</th>
                 <th style="width: 70px;">Qty.</th>
                 <th style="width: 100px;">Unit Price</th>
                 <th style="width: 60px;">Add</th>
                 <th style="width: 130px;">Ref. SQ No.</th>
-                <th style="width: 80px;">Discount %</th>
+                <th style="width: 80px;">Disc. %</th>
                 <th style="width: 90px;">Discount Amt.</th>
                 <th style="width: 100px;">Line Total</th>
                 <th style="width: 100px;">Actions</th>
@@ -750,7 +750,7 @@
         </div>
 
         <div class="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-          <!-- ROW 1: Type (1), Create SV (1), Group No (1), Service Item No (1), Service Item Description (2) -->
+          <!-- ROW 1: Type (1), Create SV (1), Group No (1), Serv. Item No (1), Serv. Item Desc (2) -->
           <div class="grid grid-cols-6 gap-4 mb-4">
             <div class="col-span-1">
               <label class="block text-sm font-medium text-gray-700 mb-1">Type <span class="required-asterisk">*</span></label>
@@ -773,16 +773,16 @@
               <input type="number" id="lineUsvtGroupNo" class="w-full rounded-lg border-slate-200 shadow-sm px-2 py-2.5 text-sm" value="1" placeholder="0">
             </div>
             <div class="col-span-1">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Service Item No</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Serv. Item No</label>
               <input type="text" id="lineUsvtServiceItemNo" class="w-full rounded-lg border-slate-200 shadow-sm px-2 py-2.5 text-sm">
             </div>
             <div class="col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Service Item Desc</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Serv. Item Desc</label>
               <input type="text" id="lineUsvtServiceItemDescription" class="w-full rounded-lg border-slate-200 shadow-sm px-2 py-2.5 text-sm">
             </div>
           </div>
 
-          <!-- ROW 2: No (2), Description (4) -->
+          <!-- ROW 2: No (2), Desc (4) -->
           <div class="grid grid-cols-6 gap-4 mb-4">
             <div class="col-span-2 relative">
               <label class="block text-sm font-medium text-gray-700 mb-1">No. <span class="required-asterisk">*</span></label>
@@ -790,12 +790,12 @@
               <div id="lineMaterialDropdown" class="search-dropdown hidden"></div>
             </div>
             <div class="col-span-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="required-asterisk">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Desc. <span class="required-asterisk">*</span></label>
               <input type="text" id="lineDescription" class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5" placeholder="Line description...">
             </div>
           </div>
 
-          <!-- ROW 3: Qty (1), Unit Price (2), Discount % (1), Discount Amt. (2) -->
+          <!-- ROW 3: Qty (1), Unit Price (2), Disc. % (1), Discount Amt. (2) -->
           <div class="grid grid-cols-6 gap-4 mb-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Qty. <span class="required-asterisk">*</span></label>
@@ -806,7 +806,7 @@
               <input type="number" id="lineUnitPrice" class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5" value="0" min="0" step="0.01">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Disc. %</label>
               <input type="text" id="lineDiscountPercent" inputmode="decimal" pattern="[0-9]*\.?[0-9]{0,1}" class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5" value="0" placeholder="0.0">
             </div>
             <div class="col-span-2">
@@ -939,16 +939,16 @@
                   <th style="width: 40px;">#</th>
                   <th style="width: 50px;">Create SV</th>
                   <th style="width: 80px;">Type</th>
-                  <th style="width: 120px;">Service Item No.</th>
-                  <th style="width: 150px;">Service Item Description</th>
+                  <th style="width: 120px;">Serv. Item No.</th>
+                  <th style="width: 150px;">Serv. Item Desc.</th>
                   <th style="width: 80px;">Group No.</th>
                   <th style="width: 150px;">No.</th>
-                  <th style="width: 250px;">Description</th>
+                  <th style="width: 250px;">Desc.</th>
                   <th style="width: 70px;">Qty.</th>
                   <th style="width: 100px;">Unit Price</th>
                   <th style="width: 60px;">Add</th>
                   <th style="width: 130px;">Ref. SQ No.</th>
-                  <th style="width: 80px;">Discount %</th>
+                  <th style="width: 80px;">Disc. %</th>
                   <th style="width: 90px;">Discount Amt.</th>
                   <th style="width: 100px;">Line Total</th>
                   <th style="width: 100px;">Actions</th>
@@ -1032,6 +1032,48 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
             </svg>
             Remove
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Clear Quote Modal -->
+  <div id="confirmClearQuoteModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[100] transition-opacity duration-300">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div id="confirmClearQuoteModalContent" class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
+        <!-- Header with Icon -->
+        <div class="p-8 text-center">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
+            <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-2">Clear Quote?</h3>
+          <p class="text-sm text-gray-600">Are you sure you want to clear the quote? All unsaved changes will be lost.</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="p-6 border-t border-slate-200 bg-slate-50 flex justify-center gap-3 rounded-b-2xl">
+          <button
+            id="cancelClearQuoteBtn"
+            class="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 text-slate-700 rounded-lg px-6 py-3 font-medium hover:bg-slate-50 hover:border-slate-400 active:scale-95 transition-all duration-200 shadow-sm"
+            onclick="window.cancelClearQuote()"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Cancel
+          </button>
+          <button
+            id="confirmClearQuoteBtn"
+            class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg px-6 py-3 font-semibold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+            onclick="window.confirmClearQuote()"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+            Clear Quote
           </button>
         </div>
       </div>

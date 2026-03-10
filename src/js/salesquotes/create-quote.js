@@ -7,7 +7,7 @@ import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines,
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess } from './ui.js';
-import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk, initDateFields } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 
@@ -726,29 +726,44 @@ function validateLineData(lineData) {
 // ============================================================
 
 /**
- * Clear quote form
+ * Clear quote form - shows confirmation modal
  */
 export function handleClearQuote() {
-  if (confirm('Are you sure you want to clear the quote? All unsaved changes will be lost.')) {
-    // Cancel any active edit
-    if (state.ui.editingLineId) {
-      exitLineEditMode(false, state.ui.editingLineId);
-    }
-
-    clearQuoteForm();
-    clearQuoteLines();
-    renderQuoteLines();
-    renderTotals();
-
-    // Reset asterisks to visible state
-    setTimeout(() => {
-      ['customerNoSearch', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType'].forEach(id => {
-        if (el(id)) el(id).dispatchEvent(new Event('input'));
-      });
-    }, 50);
-
-    showSuccess('Quote cleared');
+  // Cancel any active edit first
+  if (state.ui.editingLineId) {
+    exitLineEditMode(false, state.ui.editingLineId);
   }
+
+  // Show confirmation modal instead of native confirm
+  showConfirmClearQuoteModal();
+}
+
+/**
+ * Confirm clear quote action
+ */
+export function confirmClearQuote() {
+  hideConfirmClearQuoteModal();
+
+  clearQuoteForm();
+  clearQuoteLines();
+  renderQuoteLines();
+  renderTotals();
+
+  // Reset asterisks to visible state
+  setTimeout(() => {
+    ['customerNoSearch', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType'].forEach(id => {
+      if (el(id)) el(id).dispatchEvent(new Event('input'));
+    });
+  }, 50);
+
+  showSuccess('Quote cleared');
+}
+
+/**
+ * Cancel clear quote action
+ */
+export function cancelClearQuote() {
+  hideConfirmClearQuoteModal();
 }
 
 /**
@@ -1430,6 +1445,16 @@ function renderCustomerDropdown(customers) {
   dropdown.classList.remove('hidden');
 }
 
+// ============================================================
+// Export functions to window for onclick handlers
+// ============================================================
+
+if (typeof window !== 'undefined') {
+  window.clearQuote = handleClearQuote;
+  window.confirmClearQuote = confirmClearQuote;
+  window.cancelClearQuote = cancelClearQuote;
+}
+
 // Helper function for rendering item dropdown (imported from ui.js)
 function renderItemDropdown(items) {
   const dropdown = el('itemDropdown');
@@ -1455,4 +1480,14 @@ function renderItemDropdown(items) {
   }
 
   dropdown.classList.remove('hidden');
+}
+
+// ============================================================
+// Export functions to window for onclick handlers
+// ============================================================
+
+if (typeof window !== 'undefined') {
+  window.clearQuote = handleClearQuote;
+  window.confirmClearQuote = confirmClearQuote;
+  window.cancelClearQuote = cancelClearQuote;
 }

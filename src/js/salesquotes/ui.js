@@ -1155,6 +1155,40 @@ export function updateFullscreenTable() {
 }
 
 // ============================================================
+// Clear Quote Confirmation Modal
+// ============================================================
+
+/**
+ * Show clear quote confirmation modal
+ */
+export function showConfirmClearQuoteModal() {
+  const modal = el('confirmClearQuoteModal');
+  const modalContent = el('confirmClearQuoteModalContent');
+  if (modal && modalContent) {
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+      modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
+      modalContent.classList.add('opacity-100', 'translate-y-0');
+    }, 10);
+  }
+}
+
+/**
+ * Hide clear quote confirmation modal
+ */
+export function hideConfirmClearQuoteModal() {
+  const modal = el('confirmClearQuoteModal');
+  const modalContent = el('confirmClearQuoteModalContent');
+  if (modal && modalContent) {
+    modalContent.classList.remove('opacity-100', 'translate-y-0');
+    modalContent.classList.add('opacity-0', 'translate-y-[-10px]');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+    }, 300);
+  }
+}
+
+// ============================================================
 // Export functions to window for onclick handlers
 // ============================================================
 
@@ -1166,4 +1200,6 @@ if (typeof window !== 'undefined') {
   window.closeQuoteCreatedModal = closeQuoteCreatedModal;
   window.openFullscreenTable = openFullscreenTable;
   window.closeFullscreenTable = closeFullscreenTable;
+  window.showConfirmClearQuoteModal = showConfirmClearQuoteModal;
+  window.hideConfirmClearQuoteModal = hideConfirmClearQuoteModal;
 }
