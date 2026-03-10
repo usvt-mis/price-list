@@ -828,11 +828,4 @@ if (typeof window !== 'undefined') {
   window.openInsertLineModal = openInsertLineModal;
   window.closeAddLineModal = closeAddLineModal;
   window.closeQuoteCreatedModal = closeQuoteCreatedModal;
-  window.createAnotherQuote = () => {
-    closeQuoteCreatedModal();
-    // Import handleClearQuote dynamically to avoid circular dependency
-    import('./create-quote.js').then(({ handleClearQuote }) => {
-      handleClearQuote();
-    });
-  };
 }

@@ -554,19 +554,30 @@ export async function handleSendQuote() {
     // Extract Quote Number from response
     const quoteNumber = response?.result?.number || null;
 
-    // Show custom success modal with Quote Number
+    // Clear ALL data first (without confirmation)
+    clearQuoteForm();           // Clear form fields
+    clearQuoteLines();          // Clear all lines
+    state.quote.lines = [];     // Clear state lines
+    renderQuoteLines();         // Update UI (empty table)
+    renderTotals();             // Reset totals to 0.00
+
+    // Re-initialize date fields (Order Date = today)
+    initDateFields();
+
+    // Reset asterisks to visible state
+    setTimeout(() => {
+      ['customerNoSearch', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType'].forEach(id => {
+        if (el(id)) el(id).dispatchEvent(new Event('input'));
+      });
+    }, 50);
+
+    // Show success modal with Quote Number
     if (quoteNumber) {
       showQuoteCreatedSuccess(quoteNumber);
     } else {
       // Fallback to generic success if no Quote Number returned
       console.warn('No Quote Number in response:', response);
       showSuccess('Quote sent to Business Central successfully!');
-      // Still prompt for creating another quote
-      setTimeout(() => {
-        if (confirm('Quote created successfully! Do you want to create another quote?')) {
-          handleClearQuote();
-        }
-      }, 2000);
     }
 
   } catch (error) {

@@ -103,8 +103,10 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
   - **Quote Created Success Modal** (Sales Quotes): Custom modal that displays after successful quote creation in Business Central
     - Shows success icon with emerald/teal gradient theme
     - Prominently displays the Quote Number returned from Business Central (e.g., "SO-12345")
-    - "Create Another Quote" button clears form and modal for rapid quote creation
-    - "Close" button dismisses modal to view current state
+    - Automatically clears all form data (fields, lines, totals) before showing modal
+    - Re-initializes date fields (Order Date defaults to today)
+    - Resets all required field asterisks to visible state
+    - Single "Close" button dismisses modal (form is already ready for next quote)
     - Smooth fade-in/slide-up animation matching existing modal patterns
     - Fallback to generic success message if Quote Number is missing from response
     - Implemented in `src/js/salesquotes/ui.js` with `showQuoteCreatedSuccess()` and `closeQuoteCreatedModal()` functions

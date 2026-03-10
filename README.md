@@ -156,8 +156,8 @@ The Price List Calculator computes total cost based on four components:
 - **Sales Quotes Success Feedback**:
   - Custom success modal displays Quote Number from Business Central after quote creation
   - Large, prominent Quote Number display with emerald/teal gradient theme
-  - "Create Another Quote" button for rapid quote creation workflow
-  - "Close" button to dismiss modal and view current state
+  - Automatically clears all form data (fields, lines, totals) before showing modal
+  - Single "Close" button dismisses modal (form is already ready for next quote)
 
 ### Backend
 - **Express.js** (Node.js) for Azure App Service deployment
