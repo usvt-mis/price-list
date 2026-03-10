@@ -18,7 +18,7 @@ This is a Price List Calculator - a web application for calculating service cost
 |------------|---------|--------------|-------------------|
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
-| **Sales Quotes** | Business Central integration via Azure Function API | Create and manage sales quotes with Azure Function API (endpoint: `CreateSalesQuoteWithoutNumber`), local database customer search (min 2 chars), customer/item search, quote lines with calculations, inline editing (Quantity, Unit Price, Discount), insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH), Responsibility Center (auto-populated from BRANCH) | N/A (BC Quote Number) |
+| **Sales Quotes** | Business Central integration via Azure Function API | Create and manage sales quotes with Azure Function API (endpoint: `CreateSalesQuoteWithoutNumber`), local database customer search (min 2 chars), customer/item search, **quote lines with 13 fields** (Create SV, Type, Service Item No., Service Item Description, Group No., No. (materials search), Description, Qty., Unit Price, Addition, Ref. Sales Quote No., Discount %, Discount Amt.), bi-directional discount sync, materials search integration (searches dbo.materials by MaterialCode OR MaterialName), inline editing for all text/number fields, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH), Responsibility Center (auto-populated from BRANCH) | N/A (BC Quote Number) |
 |  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, dynamic required field indicators (asterisks hide when fields have values), modern date picker with Flatpickr (Order Date defaults to today) |  |
 
 ### Cost Components
@@ -116,8 +116,11 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Search field placeholders shortened to action-oriented text: "Search customers/salespeople/users..." (vs. verbose "Type 2+ characters to search...")
     - Other placeholders simplified for clarity: "Contact name..." (vs. "Contact person..."), "Work description..." (vs. "Describe the work to be performed...")
   - **Inline Quote Line Editing** (Sales Quotes): Edit quote lines directly in the table without opening a modal
-    - Editable fields: Quantity (min=1, step=1), Unit Price (min=0, step=0.01), Discount (min=0, step=0.01)
-    - Read-only fields: Item (locked once set), Description, Total (calculated field)
+    - **16-column table layout**: Create SV (checkbox), Type (dropdown), Service Item No., Service Item Description, Group No., No. (materials search), Description, Qty., Unit Price, Addition (checkbox), Ref. Sales Quote No., Discount %, Discount Amt., Line Total, Actions
+    - **Inline editable fields** (all 13 text/number fields): Type (dropdown), Service Item No., Service Item Description, Group No., Description, Qty., Unit Price, Ref. Sales Quote No., Discount %, Discount Amt.
+    - **Read-only fields**: Create SV, Addition, No. (require modal to change)
+    - **Bi-directional discount sync**: Discount % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Discount% / 100`
+    - **Materials search**: "No." field searches `dbo.materials` table by MaterialCode OR MaterialName (min 2 chars), Description auto-fills from MaterialName (editable), Unit Price remains manual entry
     - Visual feedback: Blue background (`bg-blue-50 ring-2 ring-blue-500`) highlights the row being edited
     - Keyboard support: Enter to save, Escape to cancel
     - Single-line edit: Only one line can be edited at a time (auto-cancels previous edit when clicking Edit on another line)
@@ -141,7 +144,7 @@ See [docs/frontend.md](docs/frontend.md) for complete frontend documentation.
   - `motorTypes.js` - Motor type endpoints
   - `branches.js` - Branch endpoints
   - `labor.js` - Labor calculation endpoints
-  - `materials.js` - Material catalog endpoints
+  - `materials.js` - Material catalog endpoints (searches dbo.Materials by MaterialCode OR MaterialName, used by Sales Quotes)
   - `savedCalculations.js` - Legacy saved calculation endpoints
   - `onsite/calculations.js` - Onsite-specific CRUD operations
   - `onsite/shared.js` - Onsite share routes
@@ -267,7 +270,19 @@ module.exports = router;
     contactName: string,          // From contact field
     division: 'MS1029',           // Hardcoded constant
     discountAmount: number,       // From invoice discount field
-    lineItems: array              // Quote line items (empty for initial testing)
+    lineItems: array              // Quote line items with 13 fields:
+                                  //   - type: "Item" | "Comment"
+                                  //   - no: Material code from search
+                                  //   - description: Line description
+                                  //   - quantity: Line quantity
+                                  //   - unitPrice: Unit price
+                                  //   - usvtAddition: Addition checkbox
+                                  //   - usvtGroupNo: Group number
+                                  //   - usvtServiceItemNo: Service item number
+                                  //   - usvtServiceItemDescription: Service item description
+                                  //   - usvtRefSalesQuoteno: Reference sales quote number
+                                  //   - discountPercent: Discount percentage
+                                  //   - discountAmount: Discount amount
   }
   ```
 - **Response Structure**:

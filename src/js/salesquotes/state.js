@@ -50,11 +50,22 @@ export const state = {
     selectedCustomer: null,
     selectedItem: null,
     newLine: {
-      itemId: null,
-      description: '',
-      quantity: 1,
-      unitPrice: 0,
-      discount: 0
+      // New line structure with all fields
+      createSv: false,              // checkbox (not sent to API)
+      lineType: 'Item',             // dropdown: "Comment" | "Item"
+      usvtServiceItemNo: '',        // text
+      usvtServiceItemDescription: '', // text
+      usvtGroupNo: '',              // number
+      lineObjectNumber: '',         // materials search
+      materialId: null,             // internal: MaterialId from search
+      description: '',              // auto-fill + editable
+      quantity: 1,                  // number
+      unitPrice: 0,                 // decimal
+      usvtAddition: false,          // boolean checkbox
+      usvtRefSalesQuoteno: '',      // text
+      discountPercent: 0,           // number (%)
+      discountAmount: 0,            // decimal (linked to %)
+      lineTotal: 0                  // calculated display only
     }
   },
 
@@ -384,12 +395,36 @@ export function isLineEditing(lineId) {
 
 /**
  * Calculate line total
+ * Formula: (Quantity × Unit Price) - Discount Amount
  */
 export function calculateLineTotal(line) {
   const quantity = parseFloat(line.quantity) || 0;
   const unitPrice = parseFloat(line.unitPrice) || 0;
-  const discount = parseFloat(line.discount) || 0;
-  return quantity * unitPrice - discount;
+  const discountAmount = parseFloat(line.discountAmount) || 0;
+  return (quantity * unitPrice) - discountAmount;
+}
+
+/**
+ * Sync discount fields bi-directionally
+ * When one discount field changes, update the other
+ * @param {Object} line - Line object to update
+ * @param {string} changedField - 'discountPercent' or 'discountAmount'
+ * @param {number} value - New value for the changed field
+ */
+export function syncDiscountFields(line, changedField, value) {
+  const quantity = parseFloat(line.quantity) || 0;
+  const unitPrice = parseFloat(line.unitPrice) || 0;
+  const lineSubtotal = quantity * unitPrice;
+
+  if (changedField === 'discountPercent') {
+    const percent = parseFloat(value) || 0;
+    line.discountPercent = percent;
+    line.discountAmount = (lineSubtotal * percent) / 100;
+  } else if (changedField === 'discountAmount') {
+    const amount = parseFloat(value) || 0;
+    line.discountAmount = amount;
+    line.discountPercent = lineSubtotal > 0 ? (amount / lineSubtotal) * 100 : 0;
+  }
 }
 
 /**

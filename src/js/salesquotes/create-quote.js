@@ -352,6 +352,83 @@ export function handleItemSelection(itemId) {
 }
 
 // ============================================================
+// Material Search (for No. field in modal)
+// ============================================================
+
+/**
+ * Handle material search for "No." field in modal
+ * Searches dbo.materials table by MaterialCode OR MaterialName
+ */
+export async function handleMaterialSearch(query) {
+  const dropdown = el('lineMaterialDropdown');
+
+  if (!query || query.length < 2) {
+    dropdown?.classList.add('hidden');
+    return;
+  }
+
+  dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">Searching...</div>';
+  dropdown?.classList.remove('hidden');
+
+  try {
+    const response = await fetch(`/api/materials?query=${encodeURIComponent(query)}`);
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+    const materials = await response.json();
+
+    if (materials.length === 0) {
+      dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">No materials found</div>';
+      return;
+    }
+
+    dropdown.innerHTML = materials.map(m => `
+      <div class="search-dropdown-item p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0"
+           data-material-id="${m.MaterialId}"
+           data-material-code="${m.MaterialCode}"
+           data-material-name="${m.MaterialName}">
+        <div class="font-medium text-gray-900">${m.MaterialCode}</div>
+        <div class="text-sm text-gray-600">${m.MaterialName}</div>
+      </div>
+    `).join('');
+
+    dropdown.querySelectorAll('.search-dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        selectMaterialFromSearch({
+          materialId: item.dataset.materialId,
+          materialCode: item.dataset.materialCode,
+          materialName: item.dataset.materialName
+        });
+      });
+    });
+  } catch (err) {
+    console.error('Material search error:', err);
+    dropdown.innerHTML = '<div class="p-3 text-sm text-red-500">Error searching materials</div>';
+  }
+}
+
+/**
+ * Select material from search results
+ * Auto-fills Description field only (Unit Price remains manual per user requirement)
+ */
+export function selectMaterialFromSearch(material) {
+  state.formData.newLine.lineObjectNumber = material.materialCode;
+  state.formData.newLine.materialId = material.materialId;
+
+  if (el('lineObjectNumberSearch')) {
+    el('lineObjectNumberSearch').value = material.materialCode;
+  }
+
+  // Auto-fill Description only (Unit Price is manual per user requirement)
+  if (el('lineDescription')) {
+    el('lineDescription').value = material.materialName;
+    el('lineDescription').dispatchEvent(new Event('input'));
+  }
+
+  el('lineMaterialDropdown')?.classList.add('hidden');
+  updateLineTotalPreview();
+}
+
+// ============================================================
 // Quote Line Management
 // ============================================================
 
@@ -359,50 +436,48 @@ export function handleItemSelection(itemId) {
  * Add quote line from modal
  */
 export function handleAddQuoteLine() {
-  // Get form data
-  const description = el('lineDescription')?.value?.trim();
-  const quantity = parseFloat(el('lineQuantity')?.value);
-  const unitPrice = parseFloat(el('lineUnitPrice')?.value);
-  const discount = parseFloat(el('lineDiscount')?.value) || 0;
+  // Gather all form data
+  const lineData = {
+    createSv: el('lineCreateSv')?.checked || false,
+    lineType: el('lineType')?.value || 'Item',
+    usvtServiceItemNo: el('lineUsvtServiceItemNo')?.value?.trim() || '',
+    usvtServiceItemDescription: el('lineUsvtServiceItemDescription')?.value?.trim() || '',
+    usvtGroupNo: el('lineUsvtGroupNo')?.value?.trim() || '',
+    lineObjectNumber: el('lineObjectNumberSearch')?.value?.trim() || '',
+    materialId: state.formData.newLine.materialId || null,
+    description: el('lineDescription')?.value?.trim() || '',
+    quantity: parseFloat(el('lineQuantity')?.value) || 1,
+    unitPrice: parseFloat(el('lineUnitPrice')?.value) || 0,
+    usvtAddition: el('lineUsvtAddition')?.checked || false,
+    usvtRefSalesQuoteno: el('lineUsvtRefSalesQuoteno')?.value?.trim() || '',
+    discountPercent: parseFloat(el('lineDiscountPercent')?.value) || 0,
+    discountAmount: parseFloat(el('lineDiscountAmount')?.value) || 0
+  };
 
-  // Validate
-  if (!description) {
+  // Validation
+  if (!lineData.description) {
     showError('Please enter a description');
     return;
   }
-
-  if (!quantity || quantity <= 0) {
-    showError('Please enter a valid quantity');
+  if (lineData.quantity <= 0) {
+    showError('Quantity must be greater than 0');
+    return;
+  }
+  if (lineData.unitPrice < 0) {
+    showError('Unit price cannot be negative');
     return;
   }
 
-  if (!unitPrice || unitPrice < 0) {
-    showError('Please enter a valid unit price');
-    return;
-  }
-
-  // Create line object
-  const line = {
-    itemId: state.formData.selectedItem?.id || null,
-    description,
-    quantity,
-    unitPrice,
-    discount
-  };
-
-  // Add or insert line based on mode
+  // Add or insert line
   const insertIndex = state.ui.insertIndex;
   if (insertIndex !== null) {
-    // Insert mode
-    insertQuoteLine(line, insertIndex);
+    insertQuoteLine(lineData, insertIndex);
     showSuccess(`Line inserted at position ${insertIndex + 1}`);
   } else {
-    // Append mode
-    addQuoteLine(line);
+    addQuoteLine(lineData);
     showSuccess('Line added successfully');
   }
 
-  // Update UI
   renderQuoteLines();
   renderTotals();
   closeAddLineModal();
@@ -451,34 +526,41 @@ export function handleEditQuoteLine(lineId) {
  * @param {string} lineId - The ID of the line being edited
  */
 export function handleSaveLineEdit(lineId) {
-  // Get current input values
-  const quantityInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`);
-  const priceInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`);
-  const discountInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="discount"]`);
+  const line = state.quote.lines.find(l => l.id === lineId);
+  if (!line) return;
 
-  if (!quantityInput || !priceInput || !discountInput) {
-    showError('Could not save line - input fields not found');
-    return;
-  }
-
-  const quantity = parseFloat(quantityInput.value);
-  const unitPrice = parseFloat(priceInput.value);
-  const discount = parseFloat(discountInput.value);
+  // Gather all inline field values
+  const newData = {
+    createSv: document.querySelector(`input[data-line-id="${lineId}"][data-field="createSv"]`)?.checked || false,
+    lineType: document.querySelector(`select[data-line-id="${lineId}"][data-field="lineType"]`)?.value || 'Item',
+    usvtServiceItemNo: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemNo"]`)?.value?.trim() || '',
+    usvtServiceItemDescription: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemDescription"]`)?.value?.trim() || '',
+    usvtGroupNo: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtGroupNo"]`)?.value?.trim() || '',
+    lineObjectNumber: document.querySelector(`input[data-line-id="${lineId}"][data-field="lineObjectNumber"]`)?.value?.trim() || '',
+    description: document.querySelector(`input[data-line-id="${lineId}"][data-field="description"]`)?.value?.trim() || '',
+    quantity: parseFloat(document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`)?.value) || 1,
+    unitPrice: parseFloat(document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`)?.value) || 0,
+    usvtAddition: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtAddition"]`)?.checked || false,
+    usvtRefSalesQuoteno: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtRefSalesQuoteno"]`)?.value?.trim() || '',
+    discountPercent: parseFloat(document.querySelector(`input[data-line-id="${lineId}"][data-field="discountPercent"]`)?.value) || 0,
+    discountAmount: parseFloat(document.querySelector(`input[data-line-id="${lineId}"][data-field="discountAmount"]`)?.value) || 0
+  };
 
   // Validate
-  const validation = validateLineData({ quantity, unitPrice, discount });
-  if (!validation.isValid) {
-    showError(validation.error);
+  if (!newData.description) {
+    showError('Description is required');
+    return;
+  }
+  if (newData.quantity <= 0) {
+    showError('Quantity must be greater than 0');
+    return;
+  }
+  if (newData.unitPrice < 0) {
+    showError('Unit price cannot be negative');
     return;
   }
 
-  // Prepare new data
-  const newData = { quantity, unitPrice, discount };
-
-  // Exit edit mode with save
   exitLineEditMode(true, lineId, newData);
-
-  // Re-render
   renderQuoteLines();
   renderTotals();
   showSuccess('Line updated');
@@ -503,7 +585,7 @@ export function handleCancelLineEdit(lineId) {
  * @returns {Object} Validation result {isValid, error}
  */
 function validateLineData(lineData) {
-  const { quantity, unitPrice, discount } = lineData;
+  const { quantity, unitPrice, discountAmount } = lineData;
 
   // Validate quantity
   if (!quantity || quantity <= 0) {
@@ -515,9 +597,9 @@ function validateLineData(lineData) {
     return { isValid: false, error: 'Unit price cannot be negative' };
   }
 
-  // Validate discount
-  if (discount < 0) {
-    return { isValid: false, error: 'Discount cannot be negative' };
+  // Validate discount amount
+  if (discountAmount < 0) {
+    return { isValid: false, error: 'Discount amount cannot be negative' };
   }
 
   return { isValid: true };
@@ -590,6 +672,22 @@ async function sendQuoteToAzureFunction(quoteData) {
   const invoiceDiscountElement = document.getElementById('invoiceDiscount');
   const discountAmount = parseFloat(invoiceDiscountElement?.value) || 0;
 
+  // Transform line items to API format
+  const lineItems = state.quote.lines.map(line => ({
+    type: line.lineType || 'Item',
+    no: line.lineObjectNumber || '',
+    description: line.description || '',
+    quantity: line.quantity || 1,
+    unitPrice: line.unitPrice || 0,
+    usvtAddition: line.usvtAddition || false,
+    usvtGroupNo: line.usvtGroupNo || '',
+    usvtServiceItemNo: line.usvtServiceItemNo || '',
+    usvtServiceItemDescription: line.usvtServiceItemDescription || '',
+    usvtRefSalesQuoteno: line.usvtRefSalesQuoteno || '',
+    discountPercent: line.discountPercent || 0,
+    discountAmount: line.discountAmount || 0
+  }));
+
   // Prepare request body
   const requestBody = {
     customerNo: state.quote.customerNo || '',
@@ -601,7 +699,7 @@ async function sendQuoteToAzureFunction(quoteData) {
     contactName: quoteData.contact || '',
     division: 'MS1029',
     discountAmount: discountAmount,
-    lineItems: [] // Empty for testing phase
+    lineItems: lineItems
   };
 
   console.log('Sending quote to Azure Function:', requestBody);
@@ -816,18 +914,19 @@ export function setupEventListeners() {
     }, 200);
   });
 
-  // Item search (in modal)
-  const itemSearch = el('lineItemSearch');
-  itemSearch?.addEventListener('input', (e) => {
-    handleItemSearch(e.target.value);
+  // Material search in modal (No. field)
+  const materialSearch = el('lineObjectNumberSearch');
+  materialSearch?.addEventListener('input', (e) => handleMaterialSearch(e.target.value));
+  materialSearch?.addEventListener('blur', () => {
+    setTimeout(() => el('lineMaterialDropdown')?.classList.add('hidden'), 200);
   });
 
-  itemSearch?.addEventListener('blur', () => {
-    setTimeout(() => hideItemDropdown(), 200);
-  });
+  // Discount sync in modal (bi-directional)
+  el('lineDiscountPercent')?.addEventListener('input', (e) => handleModalDiscountSync('discountPercent', e.target.value));
+  el('lineDiscountAmount')?.addEventListener('input', (e) => handleModalDiscountSync('discountAmount', e.target.value));
 
   // Line form changes (update total preview)
-  ['lineQuantity', 'lineUnitPrice', 'lineDiscount'].forEach(id => {
+  ['lineQuantity', 'lineUnitPrice', 'lineDiscountPercent', 'lineDiscountAmount'].forEach(id => {
     el(id)?.addEventListener('input', updateLineTotalPreview);
   });
 
@@ -856,9 +955,10 @@ export function setupEventListeners() {
       const dropdown = el('assignedUserIdDropdown');
       if (dropdown) dropdown.classList.add('hidden');
     }
-    // Hide item dropdown
-    if (!e.target.closest('#lineItemSearch') && !e.target.closest('#itemDropdown')) {
-      hideItemDropdown();
+    // Hide material dropdown
+    if (!e.target.closest('#lineObjectNumberSearch') && !e.target.closest('#lineMaterialDropdown')) {
+      const dropdown = el('lineMaterialDropdown');
+      if (dropdown) dropdown.classList.add('hidden');
     }
   });
 
@@ -882,6 +982,91 @@ export function setupEventListeners() {
 
   console.log('Event listeners setup complete');
 }
+
+// ============================================================
+// Discount Sync Handlers (Modal & Inline)
+// ============================================================
+
+/**
+ * Handle discount sync in modal (bi-directional)
+ */
+function handleModalDiscountSync(changedField, value) {
+  const quantity = parseFloat(el('lineQuantity')?.value || 0);
+  const unitPrice = parseFloat(el('lineUnitPrice')?.value || 0);
+  const lineSubtotal = quantity * unitPrice;
+
+  if (changedField === 'discountPercent') {
+    const percent = parseFloat(value) || 0;
+    el('lineDiscountPercent').value = percent.toFixed(1);
+    el('lineDiscountAmount').value = ((lineSubtotal * percent) / 100).toFixed(2);
+  } else if (changedField === 'discountAmount') {
+    const amount = parseFloat(value) || 0;
+    el('lineDiscountAmount').value = amount.toFixed(2);
+    el('lineDiscountPercent').value = (lineSubtotal > 0 ? (amount / lineSubtotal) * 100 : 0).toFixed(1);
+  }
+  updateLineTotalPreview();
+}
+
+/**
+ * Handle discount sync in inline editing
+ */
+window.handleDiscountChange = function(lineId, field, value) {
+  const line = state.quote.lines.find(l => l.id === lineId);
+  if (!line) return;
+
+  const quantityInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`);
+  const priceInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`);
+
+  const quantity = parseFloat(quantityInput?.value || line.quantity);
+  const unitPrice = parseFloat(priceInput?.value || line.unitPrice);
+  const lineSubtotal = quantity * unitPrice;
+
+  if (field === 'discountPercent') {
+    const percent = parseFloat(value) || 0;
+    line.discountPercent = percent;
+    line.discountAmount = (lineSubtotal * percent) / 100;
+
+    // Update the other field
+    const amtInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="discountAmount"]`);
+    if (amtInput) amtInput.value = line.discountAmount.toFixed(2);
+  } else if (field === 'discountAmount') {
+    const amount = parseFloat(value) || 0;
+    line.discountAmount = amount;
+    line.discountPercent = lineSubtotal > 0 ? (amount / lineSubtotal) * 100 : 0;
+
+    // Update the other field
+    const pctInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="discountPercent"]`);
+    if (pctInput) pctInput.value = line.discountPercent.toFixed(1);
+  }
+
+  // Update total display
+  window.updateLineEditTotal(lineId);
+};
+
+/**
+ * Update line edit total display during inline editing
+ */
+window.updateLineEditTotal = function(lineId) {
+  const line = state.quote.lines.find(l => l.id === lineId);
+  if (!line) return;
+
+  const quantityInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`);
+  const priceInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`);
+  const discountInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="discountAmount"]`);
+
+  const quantity = parseFloat(quantityInput?.value || line.quantity);
+  const unitPrice = parseFloat(priceInput?.value || line.unitPrice);
+  const discount = parseFloat(discountInput?.value || line.discountAmount || 0);
+
+  const total = (quantity * unitPrice) - discount;
+  const totalElement = document.getElementById(`line-total-${lineId}`);
+  if (totalElement) {
+    totalElement.textContent = total.toFixed(2);
+  }
+
+  // Also update quote totals
+  renderTotals();
+};
 
 // ============================================================
 // Export functions to window for onclick handlers

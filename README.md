@@ -31,9 +31,13 @@ The Price List Calculator computes total cost based on four components:
   - **No build process**: Uses native ES6 modules with import maps
   - **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, modern date picker with Flatpickr
   - Azure AD authentication
+  - **Quote Line Management**: 16-column table with 13 editable fields per line (Create SV checkbox, Type dropdown, Service Item No., Service Item Description, Group No., No. materials search, Description, Qty., Unit Price, Addition checkbox, Ref. Sales Quote No., Discount %, Discount Amt.)
+  - **Materials Search Integration**: "No." field searches dbo.materials table by MaterialCode OR MaterialName (min 2 chars), Description auto-fills from MaterialName (editable), Unit Price remains manual entry per user requirement
+  - **Bi-directional Discount Sync**: Discount % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Discount% / 100`
+  - **Inline Editing**: All text/number fields editable directly in table with real-time validation, Enter to save, Escape to cancel, blue highlight on active row
   - **Features**: Local database customer search (min 2 chars), customer/item search, quote line management (add/insert/remove), automatic calculations
   - **Date Picker**: Order Date defaults to today (asterisk hidden), Requested Delivery Date prevents past dates (asterisk visible until selected)
-  - **Required Field Indicators**: Dynamic red asterisks for 6 fields (Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type) - hide when field has value, show when empty
+  - **Required Field Indicators**: Dynamic red asterisks for 7 fields (Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, BRANCH) - hide when field has value, show when empty
   - **Customer Search**: Fast local lookups from BCCustomers table, auto-fills customer details and Sell-to address (Address, Address2, City, PostCode, VAT Reg No, Tax Branch No)
   - **Business Central Integration**: OAuth 2.0 client credentials flow, token caching, mock mode for local development
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`

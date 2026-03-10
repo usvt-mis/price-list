@@ -324,126 +324,85 @@ export function renderQuoteLines() {
       : (index % 2 === 0 ? 'bg-white' : 'bg-slate-50');
 
     if (isEditing) {
-      // Edit mode - render input fields
-      return `
-        <tr class="${rowClass}" data-line-id="${line.id}">
-          <td class="font-medium">${line.sequence}</td>
-          <td class="text-gray-400">${line.itemId || '-'}</td>
-          <td class="text-gray-600">${line.description}</td>
-          <td>
-            <input
-              type="number"
-              class="bc-input w-20 px-2 py-1 text-sm"
-              data-line-id="${line.id}"
-              data-field="quantity"
-              value="${line.quantity}"
-              min="1"
-              step="1"
-              onkeydown="window.handleLineEditKeyboard(event, '${line.id}')"
-              oninput="window.updateLineEditTotal('${line.id}')"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="bc-input w-24 px-2 py-1 text-sm"
-              data-line-id="${line.id}"
-              data-field="unitPrice"
-              value="${parseFloat(line.unitPrice).toFixed(2)}"
-              min="0"
-              step="0.01"
-              onkeydown="window.handleLineEditKeyboard(event, '${line.id}')"
-              oninput="window.updateLineEditTotal('${line.id}')"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="bc-input w-20 px-2 py-1 text-sm"
-              data-line-id="${line.id}"
-              data-field="discount"
-              value="${parseFloat(line.discount).toFixed(2)}"
-              min="0"
-              step="0.01"
-              onkeydown="window.handleLineEditKeyboard(event, '${line.id}')"
-              oninput="window.updateLineEditTotal('${line.id}')"
-            />
-          </td>
-          <td>
-            <span
-              id="line-total-${line.id}"
-              class="font-medium text-gray-900"
-            >
-              ${calculateLineTotal(line).toFixed(2)}
-            </span>
-          </td>
-          <td class="flex gap-2">
-            <button
-              class="text-emerald-600 hover:text-emerald-800 text-sm font-medium flex items-center gap-1"
-              onclick="window.saveLineEdit('${line.id}')"
-              title="Save changes (Enter)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              Save
-            </button>
-            <button
-              class="text-gray-600 hover:text-gray-800 text-sm flex items-center gap-1"
-              onclick="window.cancelLineEdit('${line.id}')"
-              title="Cancel (Escape)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-              Cancel
-            </button>
-          </td>
-        </tr>
-      `;
+      return renderEditingRow(line, rowClass);
     } else {
-      // View mode - render static fields
-      return `
-        <tr class="${rowClass}">
-          <td class="font-medium">${line.sequence}</td>
-          <td class="text-gray-400">${line.itemId || '-'}</td>
-          <td>${line.description}</td>
-          <td>${line.quantity}</td>
-          <td>${parseFloat(line.unitPrice).toFixed(2)}</td>
-          <td>${parseFloat(line.discount).toFixed(2)}</td>
-          <td class="font-medium text-gray-900">${calculateLineTotal(line).toFixed(2)}</td>
-          <td class="flex gap-2">
-            <button
-              class="text-blue-600 hover:text-blue-800 text-sm font-medium"
-              onclick="window.editQuoteLine('${line.id}')"
-              title="Edit this line"
-            >
-              Edit
-            </button>
-            <button
-              class="text-emerald-600 hover:text-emerald-800 text-sm font-medium"
-              onclick="window.openInsertLineModal(${index})"
-              title="Insert line at this position"
-            >
-              Insert
-            </button>
-            <button
-              class="text-red-600 hover:text-red-800 text-sm"
-              onclick="window.removeQuoteLine(${index})"
-              title="Remove this line"
-            >
-              Remove
-            </button>
-          </td>
-        </tr>
-      `;
+      return renderViewRow(line, index, rowClass);
     }
   }).join('');
 
-  // Wire up event listeners for inline inputs
   if (state.ui.editingLineId) {
     wireInlineEditEvents();
   }
+}
+
+/**
+ * Render a view mode row (read-only)
+ */
+function renderViewRow(line, index, rowClass) {
+  return `
+    <tr class="${rowClass}">
+      <td class="font-medium text-center">${line.sequence}</td>
+      <td class="text-center"><input type="checkbox" ${line.createSv ? 'checked' : ''} disabled></td>
+      <td class="text-sm">${line.lineType || '-'}</td>
+      <td class="text-sm">${line.usvtServiceItemNo || ''}</td>
+      <td class="text-sm">${line.usvtServiceItemDescription || ''}</td>
+      <td class="text-sm text-center">${line.usvtGroupNo || ''}</td>
+      <td class="text-sm font-medium">${line.lineObjectNumber || '-'}</td>
+      <td class="text-sm">${line.description || ''}</td>
+      <td class="text-sm text-center">${line.quantity}</td>
+      <td class="text-sm text-right">${parseFloat(line.unitPrice).toFixed(2)}</td>
+      <td class="text-center"><input type="checkbox" ${line.usvtAddition ? 'checked' : ''} disabled></td>
+      <td class="text-sm">${line.usvtRefSalesQuoteno || ''}</td>
+      <td class="text-sm text-right">${parseFloat(line.discountPercent || 0).toFixed(1)}%</td>
+      <td class="text-sm text-right">${parseFloat(line.discountAmount || 0).toFixed(2)}</td>
+      <td class="font-bold text-gray-900 text-right">${calculateLineTotal(line).toFixed(2)}</td>
+      <td class="flex gap-1">
+        <button class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1" onclick="window.editQuoteLine('${line.id}')">Edit</button>
+        <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1" onclick="window.openInsertLineModal(${index})">Insert</button>
+        <button class="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1" onclick="window.removeQuoteLine(${index})">Remove</button>
+      </td>
+    </tr>
+  `;
+}
+
+/**
+ * Render an edit mode row (inline editing)
+ */
+function renderEditingRow(line, rowClass) {
+  return `
+    <tr class="${rowClass}" data-line-id="${line.id}">
+      <td class="font-medium text-center">${line.sequence}</td>
+      <td class="text-center"><input type="checkbox" data-line-id="${line.id}" data-field="createSv" ${line.createSv ? 'checked' : ''}></td>
+      <td>
+        <select data-line-id="${line.id}" data-field="lineType" class="bc-input px-2 py-1 text-xs">
+          <option value="Item" ${line.lineType === 'Item' ? 'selected' : ''}>Item</option>
+          <option value="Comment" ${line.lineType === 'Comment' ? 'selected' : ''}>Comment</option>
+        </select>
+      </td>
+      <td><input type="text" data-line-id="${line.id}" data-field="usvtServiceItemNo" value="${line.usvtServiceItemNo || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
+      <td><input type="text" data-line-id="${line.id}" data-field="usvtServiceItemDescription" value="${line.usvtServiceItemDescription || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
+      <td><input type="number" data-line-id="${line.id}" data-field="usvtGroupNo" value="${line.usvtGroupNo || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
+      <td><input type="text" data-line-id="${line.id}" data-field="lineObjectNumber" value="${line.lineObjectNumber || ''}" class="bc-input px-2 py-1 text-xs w-full font-medium" readonly></td>
+      <td><input type="text" data-line-id="${line.id}" data-field="description" value="${line.description || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
+      <td><input type="number" data-line-id="${line.id}" data-field="quantity" value="${line.quantity}" min="1" class="bc-input px-2 py-1 text-xs w-16 text-center" oninput="window.updateLineEditTotal('${line.id}')"></td>
+      <td><input type="number" data-line-id="${line.id}" data-field="unitPrice" value="${parseFloat(line.unitPrice).toFixed(2)}" min="0" step="0.01" class="bc-input px-2 py-1 text-xs w-20 text-right" oninput="window.updateLineEditTotal('${line.id}')"></td>
+      <td class="text-center"><input type="checkbox" data-line-id="${line.id}" data-field="usvtAddition" ${line.usvtAddition ? 'checked' : ''}></td>
+      <td><input type="text" data-line-id="${line.id}" data-field="usvtRefSalesQuoteno" value="${line.usvtRefSalesQuoteno || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
+      <td><input type="number" data-line-id="${line.id}" data-field="discountPercent" value="${parseFloat(line.discountPercent || 0).toFixed(1)}" min="0" step="0.1" class="bc-input px-2 py-1 text-xs w-16 text-right" oninput="window.handleDiscountChange('${line.id}', 'discountPercent', this.value)"></td>
+      <td><input type="number" data-line-id="${line.id}" data-field="discountAmount" value="${parseFloat(line.discountAmount || 0).toFixed(2)}" min="0" step="0.01" class="bc-input px-2 py-1 text-xs w-20 text-right" oninput="window.handleDiscountChange('${line.id}', 'discountAmount', this.value)"></td>
+      <td class="font-bold text-gray-900 text-right" id="line-total-${line.id}">${calculateLineTotal(line).toFixed(2)}</td>
+      <td class="flex gap-1">
+        <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1 flex items-center gap-1" onclick="window.saveLineEdit('${line.id}')" title="Save (Enter)">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          Save
+        </button>
+        <button class="text-gray-600 hover:text-gray-800 text-xs font-medium px-2 py-1 flex items-center gap-1" onclick="window.cancelLineEdit('${line.id}')" title="Cancel (Esc)">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          Cancel
+        </button>
+      </td>
+    </tr>
+  `;
 }
 
 /**
@@ -486,28 +445,9 @@ window.handleLineEditKeyboard = function(e, lineId) {
 
 /**
  * Update line total display during editing
- * @param {string} lineId - The ID of the line being edited
+ * This function is now defined in create-quote.js to use the new field names
+ * @deprecated Use window.updateLineEditTotal from create-quote.js
  */
-window.updateLineEditTotal = function(lineId) {
-  const quantityInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`);
-  const priceInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`);
-  const discountInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="discount"]`);
-  const totalSpan = document.getElementById(`line-total-${lineId}`);
-
-  if (!quantityInput || !priceInput || !discountInput || !totalSpan) {
-    return;
-  }
-
-  const quantity = parseFloat(quantityInput.value) || 0;
-  const unitPrice = parseFloat(priceInput.value) || 0;
-  const discount = parseFloat(discountInput.value) || 0;
-  const total = quantity * unitPrice - discount;
-
-  totalSpan.textContent = total.toFixed(2);
-
-  // Also update quote totals
-  renderTotals();
-};
 
 // ============================================================
 // Totals Display
@@ -654,9 +594,9 @@ function handleModalFieldInput(e) {
 export function updateLineTotalPreview() {
   const quantity = parseFloat(el('lineQuantity')?.value || 0);
   const unitPrice = parseFloat(el('lineUnitPrice')?.value || 0);
-  const discount = parseFloat(el('lineDiscount')?.value || 0);
+  const discountAmount = parseFloat(el('lineDiscountAmount')?.value || 0);
 
-  const total = quantity * unitPrice - discount;
+  const total = (quantity * unitPrice) - discountAmount;
 
   if (el('lineTotalPreview')) {
     el('lineTotalPreview').textContent = total.toFixed(2);
