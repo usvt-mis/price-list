@@ -454,13 +454,12 @@ export function handleAddQuoteLine() {
   };
 
   const lineData = {
-    createSv: fieldRefs.createSv?.checked || false,
+    usvtCreateSv: fieldRefs.createSv?.checked || false,
     lineType: fieldRefs.lineType?.value || 'Item',
     usvtServiceItemNo: fieldRefs.serviceItemNo?.value?.trim() || '',
     usvtServiceItemDescription: fieldRefs.serviceItemDesc?.value?.trim() || '',
     usvtGroupNo: fieldRefs.groupNo?.value?.trim() || '',
     lineObjectNumber: fieldRefs.no?.value?.trim() || '',
-    materialId: state.formData.newLine.materialId || null,
     description: fieldRefs.description?.value?.trim() || '',
     quantity: parseFloat(fieldRefs.quantity?.value) || 1,
     unitPrice: parseFloat(fieldRefs.unitPrice?.value) || 0,
@@ -479,7 +478,7 @@ export function handleAddQuoteLine() {
   }
 
   // 2. Service Item Description (if Create SV is checked)
-  if (lineData.createSv && !lineData.usvtServiceItemDescription) {
+  if (lineData.usvtCreateSv && !lineData.usvtServiceItemDescription) {
     showError('Service Item Description is required when Create SV is enabled');
     fieldRefs.serviceItemDesc?.focus();
     return;
@@ -616,7 +615,7 @@ export function handleSaveLineEdit(lineId) {
 
   // Gather all inline field values with references
   const fieldRefs = {
-    createSv: document.querySelector(`input[data-line-id="${lineId}"][data-field="createSv"]`),
+    usvtCreateSv: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtCreateSv"]`),
     lineType: document.querySelector(`select[data-line-id="${lineId}"][data-field="lineType"]`),
     serviceItemNo: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemNo"]`),
     serviceItemDesc: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemDescription"]`),
@@ -632,7 +631,7 @@ export function handleSaveLineEdit(lineId) {
   };
 
   const newData = {
-    createSv: fieldRefs.createSv?.checked || false,
+    usvtCreateSv: fieldRefs.usvtCreateSv?.checked || false,
     lineType: fieldRefs.lineType?.value || 'Item',
     usvtServiceItemNo: fieldRefs.serviceItemNo?.value?.trim() || '',
     usvtServiceItemDescription: fieldRefs.serviceItemDesc?.value?.trim() || '',
@@ -656,7 +655,7 @@ export function handleSaveLineEdit(lineId) {
   }
 
   // 2. Service Item Description (if Create SV is checked)
-  if (newData.createSv && !newData.usvtServiceItemDescription) {
+  if (newData.usvtCreateSv && !newData.usvtServiceItemDescription) {
     showError('Service Item Description is required when Create SV is enabled');
     fieldRefs.serviceItemDesc?.focus();
     return;
@@ -790,17 +789,18 @@ async function sendQuoteToAzureFunction(quoteData) {
 
   // Transform line items to API format
   const lineItems = state.quote.lines.map(line => ({
-    type: line.lineType || 'Item',
-    no: line.lineObjectNumber || '',
+    lineObjectNumber: line.lineObjectNumber || '',
     description: line.description || '',
     quantity: line.quantity || 1,
     unitPrice: line.unitPrice || 0,
-    usvtAddition: line.usvtAddition || false,
+    lineType: line.lineType || 'Item',
+    discountPercent: line.discountPercent || 0,
     usvtGroupNo: line.usvtGroupNo || '',
     usvtServiceItemNo: line.usvtServiceItemNo || '',
     usvtServiceItemDescription: line.usvtServiceItemDescription || '',
+    usvtCreateSv: line.usvtCreateSv || line.createSv || false,  // Support both new and legacy field names
+    usvtAddition: line.usvtAddition || false,
     usvtRefSalesQuoteno: line.usvtRefSalesQuoteno || '',
-    discountPercent: line.discountPercent || 0,
     discountAmount: line.discountAmount || 0
   }));
 
@@ -810,10 +810,11 @@ async function sendQuoteToAzureFunction(quoteData) {
     workDescription: quoteData.workDescription || '',
     responsibilityCenter: quoteData.responsibilityCenter || '',
     assignedUserId: quoteData.assignedUserId || '',
-    serviceOrderType: quoteData.serviceOrderType || '',
     salespersonCode: quoteData.salespersonCode || '',
+    serviceOrderType: quoteData.serviceOrderType || '',
     contactName: quoteData.contact || '',
     division: quoteData.division || 'MS1029',
+    branchCode: state.quote.branch || '',
     discountAmount: discountAmount,
     lineItems: lineItems
   };

@@ -52,13 +52,12 @@ export const state = {
     selectedItem: null,
     newLine: {
       // New line structure with all fields
-      createSv: false,              // checkbox (not sent to API)
+      usvtCreateSv: false,          // checkbox
       lineType: 'Item',             // dropdown: "Comment" | "Item"
       usvtServiceItemNo: '',        // text
       usvtServiceItemDescription: '', // text
       usvtGroupNo: '',              // number
       lineObjectNumber: '',         // materials search
-      materialId: null,             // internal: MaterialId from search
       description: '',              // auto-fill + editable
       quantity: 1,                  // number
       unitPrice: 0,                 // decimal

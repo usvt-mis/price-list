@@ -367,7 +367,7 @@ function renderViewRow(line, index, rowClass) {
       <td class="font-medium text-center">${line.sequence}</td>
       <td class="text-center">
         <label class="toggle-switch" style="transform: scale(0.85);">
-          <input type="checkbox" ${line.createSv ? 'checked' : ''} disabled>
+          <input type="checkbox" ${line.usvtCreateSv || line.createSv ? 'checked' : ''} disabled>
           <span class="toggle-slider"></span>
         </label>
       </td>
@@ -407,7 +407,7 @@ function renderEditingRow(line, rowClass) {
       <td class="font-medium text-center">${line.sequence}</td>
       <td class="text-center">
         <label class="toggle-switch" style="transform: scale(0.85);">
-          <input type="checkbox" data-line-id="${line.id}" data-field="createSv" ${line.createSv ? 'checked' : ''}>
+          <input type="checkbox" data-line-id="${line.id}" data-field="usvtCreateSv" ${line.usvtCreateSv || line.createSv ? 'checked' : ''}>
           <span class="toggle-slider"></span>
         </label>
       </td>

@@ -315,23 +315,25 @@ module.exports = router;
     workDescription: string,      // From quote work description field
     responsibilityCenter: string, // From BRANCH field (auto-populated)
     assignedUserId: string,       // From assigned user search selection
-    serviceOrderType: string,     // From service order type dropdown
     salespersonCode: string,      // From salesperson search selection
+    serviceOrderType: string,     // From service order type dropdown
     contactName: string,          // From contact field
     division: string,             // From Division dropdown (MS1029, EL1017, PS1029, GT1029)
+    branchCode: string,           // From state.quote.branch (auto-populated)
     discountAmount: number,       // From invoice discount field
-    lineItems: array              // Quote line items with 13 fields:
-                                  //   - type: "Item" | "Comment"
-                                  //   - no: Material code from search
+    lineItems: array              // Quote line items with 14 fields:
+                                  //   - lineType: "Item" | "Comment"
+                                  //   - lineObjectNumber: Material code from search
                                   //   - description: Line description
                                   //   - quantity: Line quantity
                                   //   - unitPrice: Unit price
-                                  //   - usvtAddition: Addition checkbox
+                                  //   - discountPercent: Discount percentage
                                   //   - usvtGroupNo: Group number
                                   //   - usvtServiceItemNo: Service item number
                                   //   - usvtServiceItemDescription: Service item description
+                                  //   - usvtCreateSv: Create SV checkbox
+                                  //   - usvtAddition: Addition checkbox
                                   //   - usvtRefSalesQuoteno: Reference sales quote number
-                                  //   - discountPercent: Discount percentage
                                   //   - discountAmount: Discount amount
   }
   ```
