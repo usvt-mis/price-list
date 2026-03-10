@@ -858,6 +858,46 @@ export async function initializeBranchFields() {
 }
 
 // ============================================================
+// Line Modal Handlers
+// ============================================================
+
+/**
+ * Setup modal handlers for Type -> Create SV locking logic
+ * When Type is "Comment", Create SV checkbox is disabled and unchecked
+ * When Type is "Item", Create SV checkbox is enabled
+ */
+export function setupLineModalHandlers() {
+  const typeSelect = el('lineType');
+  const createSvCheckbox = el('lineCreateSv');
+
+  if (!typeSelect || !createSvCheckbox) {
+    console.warn('Line modal elements not found for handler setup');
+    return;
+  }
+
+  // Initial state based on default value
+  updateCreateSvState();
+
+  // Handle Type changes
+  typeSelect.addEventListener('change', updateCreateSvState);
+
+  function updateCreateSvState() {
+    const typeValue = typeSelect.value;
+
+    if (typeValue === 'Comment') {
+      // Disable and uncheck when Comment
+      createSvCheckbox.disabled = true;
+      createSvCheckbox.checked = false;
+      createSvCheckbox.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+      // Enable when Item (or any other value)
+      createSvCheckbox.disabled = false;
+      createSvCheckbox.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+  }
+}
+
+// ============================================================
 // Event Handlers Setup
 // ============================================================
 
@@ -1103,6 +1143,9 @@ if (typeof window !== 'undefined') {
   window.clearQuote = handleClearQuote;
   window.saveDraft = handleSaveDraft;
   window.sendQuote = handleSendQuote;
+
+  // Modal functions
+  window.setupLineModalHandlers = setupLineModalHandlers;
 
   // Modal functions (from ui.js)
   window.openInsertLineModal = window.openInsertLineModal;

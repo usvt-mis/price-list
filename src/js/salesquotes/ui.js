@@ -518,6 +518,18 @@ export function openAddLineModal(insertIndex = null) {
     if (el('lineDiscount')) el('lineDiscount').value = '0';
     if (el('lineTotalPreview')) el('lineTotalPreview').textContent = '0.00';
 
+    // Reset Create SV checkbox state (enabled, unchecked)
+    if (el('lineCreateSv')) {
+      el('lineCreateSv').checked = false;
+      el('lineCreateSv').disabled = false;
+      el('lineCreateSv').classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+
+    // Setup Type -> Create SV locking handler
+    if (window.setupLineModalHandlers) {
+      window.setupLineModalHandlers();
+    }
+
     // Setup modal field asterisk handlers
     setupModalAsteriskHandlers();
 
