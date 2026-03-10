@@ -7,7 +7,7 @@ import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines,
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess } from './ui.js';
-import { el, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk, initDateFields } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk, initDateFields } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 
@@ -436,35 +436,66 @@ export function selectMaterialFromSearch(material) {
  * Add quote line from modal
  */
 export function handleAddQuoteLine() {
-  // Gather all form data
-  const lineData = {
-    createSv: el('lineCreateSv')?.checked || false,
-    lineType: el('lineType')?.value || 'Item',
-    usvtServiceItemNo: el('lineUsvtServiceItemNo')?.value?.trim() || '',
-    usvtServiceItemDescription: el('lineUsvtServiceItemDescription')?.value?.trim() || '',
-    usvtGroupNo: el('lineUsvtGroupNo')?.value?.trim() || '',
-    lineObjectNumber: el('lineObjectNumberSearch')?.value?.trim() || '',
-    materialId: state.formData.newLine.materialId || null,
-    description: el('lineDescription')?.value?.trim() || '',
-    quantity: parseFloat(el('lineQuantity')?.value) || 1,
-    unitPrice: parseFloat(el('lineUnitPrice')?.value) || 0,
-    usvtAddition: el('lineUsvtAddition')?.checked || false,
-    usvtRefSalesQuoteno: el('lineUsvtRefSalesQuoteno')?.value?.trim() || '',
-    discountPercent: parseFloat(el('lineDiscountPercent')?.value) || 0,
-    discountAmount: parseFloat(el('lineDiscountAmount')?.value) || 0
+  // Gather all form data with field references
+  const fieldRefs = {
+    lineType: el('lineType'),
+    createSv: el('lineCreateSv'),
+    groupNo: el('lineUsvtGroupNo'),
+    serviceItemNo: el('lineUsvtServiceItemNo'),
+    serviceItemDesc: el('lineUsvtServiceItemDescription'),
+    no: el('lineObjectNumberSearch'),
+    description: el('lineDescription'),
+    quantity: el('lineQuantity'),
+    unitPrice: el('lineUnitPrice'),
+    discountPercent: el('lineDiscountPercent'),
+    discountAmount: el('lineDiscountAmount'),
+    addition: el('lineUsvtAddition'),
+    refSalesQuote: el('lineUsvtRefSalesQuoteno')
   };
 
-  // Validation
+  const lineData = {
+    createSv: fieldRefs.createSv?.checked || false,
+    lineType: fieldRefs.lineType?.value || 'Item',
+    usvtServiceItemNo: fieldRefs.serviceItemNo?.value?.trim() || '',
+    usvtServiceItemDescription: fieldRefs.serviceItemDesc?.value?.trim() || '',
+    usvtGroupNo: fieldRefs.groupNo?.value?.trim() || '',
+    lineObjectNumber: fieldRefs.no?.value?.trim() || '',
+    materialId: state.formData.newLine.materialId || null,
+    description: fieldRefs.description?.value?.trim() || '',
+    quantity: parseFloat(fieldRefs.quantity?.value) || 1,
+    unitPrice: parseFloat(fieldRefs.unitPrice?.value) || 0,
+    usvtAddition: fieldRefs.addition?.checked || false,
+    usvtRefSalesQuoteno: fieldRefs.refSalesQuote?.value?.trim() || '',
+    discountPercent: parseFloat(fieldRefs.discountPercent?.value) || 0,
+    discountAmount: parseFloat(fieldRefs.discountAmount?.value) || 0
+  };
+
+  // Validation (top to bottom order)
+  // 1. Description
   if (!lineData.description) {
     showError('Please enter a description');
+    fieldRefs.description?.focus();
     return;
   }
+
+  // 2. Service Item Description (if Create SV is checked)
+  if (lineData.createSv && !lineData.usvtServiceItemDescription) {
+    showError('Service Item Description is required when Create SV is enabled');
+    fieldRefs.serviceItemDesc?.focus();
+    return;
+  }
+
+  // 3. Quantity
   if (lineData.quantity <= 0) {
     showError('Quantity must be greater than 0');
+    fieldRefs.quantity?.focus();
     return;
   }
+
+  // 4. Unit Price
   if (lineData.unitPrice < 0) {
     showError('Unit price cannot be negative');
+    fieldRefs.unitPrice?.focus();
     return;
   }
 
@@ -529,34 +560,65 @@ export function handleSaveLineEdit(lineId) {
   const line = state.quote.lines.find(l => l.id === lineId);
   if (!line) return;
 
-  // Gather all inline field values
-  const newData = {
-    createSv: document.querySelector(`input[data-line-id="${lineId}"][data-field="createSv"]`)?.checked || false,
-    lineType: document.querySelector(`select[data-line-id="${lineId}"][data-field="lineType"]`)?.value || 'Item',
-    usvtServiceItemNo: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemNo"]`)?.value?.trim() || '',
-    usvtServiceItemDescription: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemDescription"]`)?.value?.trim() || '',
-    usvtGroupNo: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtGroupNo"]`)?.value?.trim() || '',
-    lineObjectNumber: document.querySelector(`input[data-line-id="${lineId}"][data-field="lineObjectNumber"]`)?.value?.trim() || '',
-    description: document.querySelector(`input[data-line-id="${lineId}"][data-field="description"]`)?.value?.trim() || '',
-    quantity: parseFloat(document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`)?.value) || 1,
-    unitPrice: parseFloat(document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`)?.value) || 0,
-    usvtAddition: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtAddition"]`)?.checked || false,
-    usvtRefSalesQuoteno: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtRefSalesQuoteno"]`)?.value?.trim() || '',
-    discountPercent: parseFloat(document.querySelector(`input[data-line-id="${lineId}"][data-field="discountPercent"]`)?.value) || 0,
-    discountAmount: parseFloat(document.querySelector(`input[data-line-id="${lineId}"][data-field="discountAmount"]`)?.value) || 0
+  // Gather all inline field values with references
+  const fieldRefs = {
+    createSv: document.querySelector(`input[data-line-id="${lineId}"][data-field="createSv"]`),
+    lineType: document.querySelector(`select[data-line-id="${lineId}"][data-field="lineType"]`),
+    serviceItemNo: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemNo"]`),
+    serviceItemDesc: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemDescription"]`),
+    groupNo: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtGroupNo"]`),
+    no: document.querySelector(`input[data-line-id="${lineId}"][data-field="lineObjectNumber"]`),
+    description: document.querySelector(`input[data-line-id="${lineId}"][data-field="description"]`),
+    quantity: document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`),
+    unitPrice: document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`),
+    discountPercent: document.querySelector(`input[data-line-id="${lineId}"][data-field="discountPercent"]`),
+    discountAmount: document.querySelector(`input[data-line-id="${lineId}"][data-field="discountAmount"]`),
+    addition: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtAddition"]`),
+    refSalesQuote: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtRefSalesQuoteno"]`)
   };
 
-  // Validate
+  const newData = {
+    createSv: fieldRefs.createSv?.checked || false,
+    lineType: fieldRefs.lineType?.value || 'Item',
+    usvtServiceItemNo: fieldRefs.serviceItemNo?.value?.trim() || '',
+    usvtServiceItemDescription: fieldRefs.serviceItemDesc?.value?.trim() || '',
+    usvtGroupNo: fieldRefs.groupNo?.value?.trim() || '',
+    lineObjectNumber: fieldRefs.no?.value?.trim() || '',
+    description: fieldRefs.description?.value?.trim() || '',
+    quantity: parseFloat(fieldRefs.quantity?.value) || 1,
+    unitPrice: parseFloat(fieldRefs.unitPrice?.value) || 0,
+    usvtAddition: fieldRefs.addition?.checked || false,
+    usvtRefSalesQuoteno: fieldRefs.refSalesQuote?.value?.trim() || '',
+    discountPercent: parseFloat(fieldRefs.discountPercent?.value) || 0,
+    discountAmount: parseFloat(fieldRefs.discountAmount?.value) || 0
+  };
+
+  // Validation (top to bottom order based on table columns)
+  // 1. Description
   if (!newData.description) {
     showError('Description is required');
+    fieldRefs.description?.focus();
     return;
   }
+
+  // 2. Service Item Description (if Create SV is checked)
+  if (newData.createSv && !newData.usvtServiceItemDescription) {
+    showError('Service Item Description is required when Create SV is enabled');
+    fieldRefs.serviceItemDesc?.focus();
+    return;
+  }
+
+  // 3. Quantity
   if (newData.quantity <= 0) {
     showError('Quantity must be greater than 0');
+    fieldRefs.quantity?.focus();
     return;
   }
+
+  // 4. Unit Price
   if (newData.unitPrice < 0) {
     showError('Unit price cannot be negative');
+    fieldRefs.unitPrice?.focus();
     return;
   }
 
@@ -865,34 +927,107 @@ export async function initializeBranchFields() {
  * Setup modal handlers for Type -> Create SV locking logic
  * When Type is "Comment", Create SV checkbox is disabled and unchecked
  * When Type is "Item", Create SV checkbox is enabled
+ * When Addition is OFF, Ref Sales Quote No is disabled and cleared
  */
 export function setupLineModalHandlers() {
   const typeSelect = el('lineType');
   const createSvCheckbox = el('lineCreateSv');
+  const additionCheckbox = el('lineUsvtAddition');
+  const refSalesQuoteField = el('lineUsvtRefSalesQuoteno');
 
-  if (!typeSelect || !createSvCheckbox) {
+  if (!typeSelect || !createSvCheckbox || !additionCheckbox || !refSalesQuoteField) {
     console.warn('Line modal elements not found for handler setup');
     return;
   }
 
   // Initial state based on default value
-  updateCreateSvState();
+  updateFieldStates();
 
   // Handle Type changes
-  typeSelect.addEventListener('change', updateCreateSvState);
+  typeSelect.addEventListener('change', updateFieldStates);
 
-  function updateCreateSvState() {
+  // Handle Addition changes
+  additionCheckbox.addEventListener('change', updateAdditionFieldState);
+
+  // Initial Addition state
+  updateAdditionFieldState();
+
+  function updateFieldStates() {
     const typeValue = typeSelect.value;
+    const isComment = typeValue === 'Comment';
 
-    if (typeValue === 'Comment') {
-      // Disable and uncheck when Comment
+    // Update Create SV checkbox state
+    if (isComment) {
       createSvCheckbox.disabled = true;
       createSvCheckbox.checked = false;
       createSvCheckbox.classList.add('opacity-50', 'cursor-not-allowed');
     } else {
-      // Enable when Item (or any other value)
       createSvCheckbox.disabled = false;
       createSvCheckbox.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+
+    // Fields to disable when Type is "Comment"
+    const itemFields = [
+      'lineUsvtServiceItemNo',        // Service Item No
+      'lineUsvtServiceItemDescription', // Service Item Description
+      'lineObjectNumberSearch',        // No (materials search)
+      'lineQuantity',                  // Qty
+      'lineUnitPrice',                 // Unit Price
+      'lineDiscountPercent',           // Discount%
+      'lineDiscountAmount',            // Discount Amt
+      'lineUsvtAddition',              // Addition
+      'lineUsvtRefSalesQuoteno'        // Ref Sales Quote No
+    ];
+
+    // Toggle disabled state for item-related fields
+    itemFields.forEach(fieldId => {
+      const field = el(fieldId);
+      if (field) {
+        if (isComment) {
+          // Disable field for Comment type
+          field.disabled = true;
+          field.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+          // Clear values when switching to Comment
+          if (field.type === 'checkbox') {
+            field.checked = false;
+          } else if (fieldId === 'lineQuantity') {
+            field.value = '1';
+          } else if (fieldId === 'lineUnitPrice' || fieldId === 'lineDiscountPercent' || fieldId === 'lineDiscountAmount') {
+            field.value = '0';
+          } else {
+            field.value = '';
+          }
+        } else {
+          // Enable field for Item type
+          field.disabled = false;
+          field.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+        }
+      }
+    });
+
+    // Update line total preview when type changes
+    if (el('lineTotalPreview')) {
+      el('lineTotalPreview').textContent = '0.00';
+    }
+  }
+
+  /**
+   * Update Ref Sales Quote No field based on Addition checkbox state
+   * When Addition is OFF (unchecked), disable and clear Ref Sales Quote No
+   * When Addition is ON (checked), enable Ref Sales Quote No
+   */
+  function updateAdditionFieldState() {
+    const isAdditionEnabled = additionCheckbox.checked;
+
+    if (!isAdditionEnabled) {
+      // Disable Ref Sales Quote No when Addition is OFF
+      refSalesQuoteField.disabled = true;
+      refSalesQuoteField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+      refSalesQuoteField.value = ''; // Clear value
+    } else {
+      // Enable Ref Sales Quote No when Addition is ON
+      refSalesQuoteField.disabled = false;
+      refSalesQuoteField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
     }
   }
 }
@@ -1139,7 +1274,7 @@ window.updateLineEditTotal = function(lineId) {
   const total = (quantity * unitPrice) - discount;
   const totalElement = document.getElementById(`line-total-${lineId}`);
   if (totalElement) {
-    totalElement.textContent = total.toFixed(2);
+    totalElement.textContent = formatCurrency(total);
   }
 
   // Also update quote totals

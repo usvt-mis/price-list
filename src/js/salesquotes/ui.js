@@ -24,6 +24,25 @@ export function els(selector) {
   return document.querySelectorAll(selector);
 }
 
+// ============================================================
+// Format Helpers
+// ============================================================
+
+/**
+ * Format number with comma separators and 2 decimal places
+ * @param {number} num - The number to format
+ * @returns {string} Formatted number with commas (e.g., "1,234.56")
+ */
+export function formatCurrency(num) {
+  if (typeof num !== 'number' || isNaN(num)) {
+    return '0.00';
+  }
+  return num.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
 /**
  * Show element
  */
@@ -359,7 +378,7 @@ function renderViewRow(line, index, rowClass) {
       <td class="text-sm font-medium">${line.lineObjectNumber || '-'}</td>
       <td class="text-sm">${line.description || ''}</td>
       <td class="text-sm text-center">${line.quantity}</td>
-      <td class="text-sm text-right">${parseFloat(line.unitPrice).toFixed(2)}</td>
+      <td class="text-sm text-right">${formatCurrency(parseFloat(line.unitPrice))}</td>
       <td class="text-center">
         <label class="toggle-switch" style="transform: scale(0.85);">
           <input type="checkbox" ${line.usvtAddition ? 'checked' : ''} disabled>
@@ -368,8 +387,8 @@ function renderViewRow(line, index, rowClass) {
       </td>
       <td class="text-sm">${line.usvtRefSalesQuoteno || ''}</td>
       <td class="text-sm text-right">${parseFloat(line.discountPercent || 0).toFixed(1)}%</td>
-      <td class="text-sm text-right">${parseFloat(line.discountAmount || 0).toFixed(2)}</td>
-      <td class="font-bold text-gray-900 text-right">${calculateLineTotal(line).toFixed(2)}</td>
+      <td class="text-sm text-right">${formatCurrency(parseFloat(line.discountAmount || 0))}</td>
+      <td class="font-bold text-gray-900 text-right">${formatCurrency(calculateLineTotal(line))}</td>
       <td class="flex gap-1">
         <button class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1" onclick="window.editQuoteLine('${line.id}')">Edit</button>
         <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1" onclick="window.openInsertLineModal(${index})">Insert</button>
@@ -414,7 +433,7 @@ function renderEditingRow(line, rowClass) {
       <td><input type="text" data-line-id="${line.id}" data-field="usvtRefSalesQuoteno" value="${line.usvtRefSalesQuoteno || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
       <td><input type="number" data-line-id="${line.id}" data-field="discountPercent" value="${parseFloat(line.discountPercent || 0).toFixed(1)}" min="0" step="0.1" class="bc-input px-2 py-1 text-xs w-16 text-right" oninput="window.handleDiscountChange('${line.id}', 'discountPercent', this.value)"></td>
       <td><input type="number" data-line-id="${line.id}" data-field="discountAmount" value="${parseFloat(line.discountAmount || 0).toFixed(2)}" min="0" step="0.01" class="bc-input px-2 py-1 text-xs w-20 text-right" oninput="window.handleDiscountChange('${line.id}', 'discountAmount', this.value)"></td>
-      <td class="font-bold text-gray-900 text-right" id="line-total-${line.id}">${calculateLineTotal(line).toFixed(2)}</td>
+      <td class="font-bold text-gray-900 text-right" id="line-total-${line.id}">${formatCurrency(calculateLineTotal(line))}</td>
       <td class="flex gap-1">
         <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1 flex items-center gap-1" onclick="window.saveLineEdit('${line.id}')" title="Save (Enter)">
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -491,12 +510,12 @@ export function renderTotals() {
   const total = afterDiscount + vatAmount;
 
   // Update display
-  if (el('subtotal')) el('subtotal').textContent = subtotal.toFixed(2);
-  if (el('discountAmount')) el('discountAmount').textContent = discountAmount.toFixed(2);
-  if (el('afterDiscount')) el('afterDiscount').textContent = afterDiscount.toFixed(2);
-  if (el('vatAmount')) el('vatAmount').textContent = vatAmount.toFixed(2);
+  if (el('subtotal')) el('subtotal').textContent = formatCurrency(subtotal);
+  if (el('discountAmount')) el('discountAmount').textContent = formatCurrency(discountAmount);
+  if (el('afterDiscount')) el('afterDiscount').textContent = formatCurrency(afterDiscount);
+  if (el('vatAmount')) el('vatAmount').textContent = formatCurrency(vatAmount);
   if (el('vatRateDisplay')) el('vatRateDisplay').textContent = (vatRate * 100).toFixed(0);
-  if (el('totalAmount')) el('totalAmount').textContent = total.toFixed(2);
+  if (el('totalAmount')) el('totalAmount').textContent = formatCurrency(total);
 }
 
 // ============================================================
@@ -537,20 +556,53 @@ export function openAddLineModal(insertIndex = null) {
       if (subtitleEl) subtitleEl.textContent = 'Search items and add to quote';
     }
 
-    // Clear form
-    if (el('lineItemSearch')) el('lineItemSearch').value = '';
-    if (el('lineDescription')) el('lineDescription').value = '';
-    if (el('lineQuantity')) el('lineQuantity').value = '1';
-    if (el('lineUnitPrice')) el('lineUnitPrice').value = '0';
-    if (el('lineDiscount')) el('lineDiscount').value = '0';
-    if (el('lineTotalPreview')) el('lineTotalPreview').textContent = '0.00';
+    // Clear form - reset all fields to default values
+    // Type dropdown
+    if (el('lineType')) el('lineType').value = 'Item';
 
-    // Reset Create SV checkbox state (enabled, unchecked)
+    // Create SV checkbox
     if (el('lineCreateSv')) {
       el('lineCreateSv').checked = false;
       el('lineCreateSv').disabled = false;
       el('lineCreateSv').classList.remove('opacity-50', 'cursor-not-allowed');
     }
+
+    // Service Item fields
+    if (el('lineUsvtServiceItemNo')) el('lineUsvtServiceItemNo').value = '';
+    if (el('lineUsvtServiceItemDescription')) el('lineUsvtServiceItemDescription').value = '';
+    if (el('lineUsvtGroupNo')) el('lineUsvtGroupNo').value = '1';
+
+    // Material search (No field)
+    if (el('lineObjectNumberSearch')) el('lineObjectNumberSearch').value = '';
+
+    // Description
+    if (el('lineDescription')) el('lineDescription').value = '';
+
+    // Pricing
+    if (el('lineQuantity')) el('lineQuantity').value = '1';
+    if (el('lineUnitPrice')) el('lineUnitPrice').value = '0';
+
+    // Discount fields
+    if (el('lineDiscountPercent')) el('lineDiscountPercent').value = '0';
+    if (el('lineDiscountAmount')) el('lineDiscountAmount').value = '0';
+
+    // Addition checkbox
+    if (el('lineUsvtAddition')) el('lineUsvtAddition').checked = false;
+
+    // Ref Sales Quote No
+    if (el('lineUsvtRefSalesQuoteno')) el('lineUsvtRefSalesQuoteno').value = '';
+
+    // Line total preview
+    if (el('lineTotalPreview')) el('lineTotalPreview').textContent = '0.00';
+
+    // Remove any disabled states or visual feedback
+    const allInputs = document.querySelectorAll('#addLineModal input, #addLineModal select');
+    allInputs.forEach(input => {
+      input.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+      if (!input.readOnly) {
+        input.disabled = false;
+      }
+    });
 
     // Setup Type -> Create SV locking handler
     if (window.setupLineModalHandlers) {
@@ -638,7 +690,7 @@ export function updateLineTotalPreview() {
   const total = (quantity * unitPrice) - discountAmount;
 
   if (el('lineTotalPreview')) {
-    el('lineTotalPreview').textContent = total.toFixed(2);
+    el('lineTotalPreview').textContent = formatCurrency(total);
   }
 }
 
