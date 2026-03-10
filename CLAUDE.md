@@ -110,6 +110,11 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Smooth fade-in/slide-up animation matching existing modal patterns
     - Fallback to generic success message if Quote Number is missing from response
     - Implemented in `src/js/salesquotes/ui.js` with `showQuoteCreatedSuccess()` and `closeQuoteCreatedModal()` functions
+  - **Subtle Placeholder Styling** (Sales Quotes): Reduced opacity (40%) for placeholder text to create a cleaner, less cluttered interface
+    - Cross-browser support: `::placeholder`, `::-webkit-input-placeholder`, `::-moz-placeholder`
+    - Readonly/locked fields have no placeholder text (cleaner appearance)
+    - Search field placeholders shortened to action-oriented text: "Search customers/salespeople/users..." (vs. verbose "Type 2+ characters to search...")
+    - Other placeholders simplified for clarity: "Contact name..." (vs. "Contact person..."), "Work description..." (vs. "Describe the work to be performed...")
 - **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode
   - **Primary interaction**: Click the row/card (list view) or RunNumber (grid view) to open in edit mode
   - List view: Entire table row is clickable (except checkbox and action buttons)

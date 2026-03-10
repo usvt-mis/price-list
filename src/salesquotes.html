@@ -19,6 +19,20 @@
       background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
       min-height: 100vh;
     }
+
+    /* Placeholder text styling - lower opacity for subtler appearance */
+    ::placeholder {
+      opacity: 0.4;
+      color: inherit;
+    }
+
+    ::-webkit-input-placeholder {
+      opacity: 0.4;
+    }
+
+    ::-moz-placeholder {
+      opacity: 0.4;
+    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -91,7 +105,7 @@
               type="text"
               id="customerNoSearch"
               class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
-              placeholder="Type 2+ characters to search..."
+              placeholder="Search customers..."
               autocomplete="off"
             />
             <div id="customerNoDropdown" class="search-dropdown hidden"></div>
@@ -105,7 +119,6 @@
               id="customerName"
               readonly
               class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
-              placeholder="Auto-filled from Customer No."
             />
           </div>
 
@@ -136,7 +149,7 @@
               type="text"
               id="contact"
               class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
-              placeholder="Contact person..."
+              placeholder="Contact name..."
             />
           </div>
 
@@ -147,7 +160,7 @@
               type="text"
               id="salespersonCodeSearch"
               class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
-              placeholder="Type 2+ characters to search..."
+              placeholder="Search salespeople..."
               autocomplete="off"
             />
             <div id="salespersonCodeDropdown" class="search-dropdown hidden"></div>
@@ -161,7 +174,6 @@
               id="salespersonName"
               readonly
               class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
-              placeholder="Auto-filled from Salesperson Code"
             />
           </div>
 
@@ -172,7 +184,7 @@
               type="text"
               id="assignedUserIdSearch"
               class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
-              placeholder="Type 2+ characters to search..."
+              placeholder="Search users..."
               autocomplete="off"
             />
             <div id="assignedUserIdDropdown" class="search-dropdown hidden"></div>
@@ -203,7 +215,6 @@
               id="branch"
               readonly
               class="w-full rounded-lg border-slate-200 bg-gray-100 text-gray-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
-              placeholder="Auto-populated from user"
             />
           </div>
 
@@ -215,7 +226,6 @@
               id="locationCode"
               readonly
               class="w-full rounded-lg border-slate-200 bg-gray-100 text-gray-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
-              placeholder="Auto-calculated from BRANCH"
             />
           </div>
 
@@ -227,7 +237,6 @@
               id="responsibilityCenter"
               readonly
               class="w-full rounded-lg border-slate-200 bg-gray-100 text-gray-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
-              placeholder="Auto-populated from BRANCH"
             />
           </div>
         </div>
@@ -239,7 +248,7 @@
             id="quoteWorkDescription"
             class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
             rows="3"
-            placeholder="Describe the work to be performed..."
+            placeholder="Work description..."
           ></textarea>
         </div>
 
@@ -262,6 +271,7 @@
                   id="sellToAddress"
                   readonly
                   class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                  placeholder=""
                 />
               </div>
 
@@ -273,6 +283,7 @@
                   id="sellToAddress2"
                   readonly
                   class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                  placeholder=""
                 />
               </div>
 
@@ -284,6 +295,7 @@
                   id="sellToCity"
                   readonly
                   class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                  placeholder=""
                 />
               </div>
 
@@ -295,6 +307,7 @@
                   id="sellToPostCode"
                   readonly
                   class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                  placeholder=""
                 />
               </div>
 
@@ -306,6 +319,7 @@
                   id="sellToVatRegNo"
                   readonly
                   class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                  placeholder=""
                 />
               </div>
 
@@ -317,6 +331,7 @@
                   id="sellToTaxBranchNo"
                   readonly
                   class="w-full rounded-lg border-slate-200 bg-slate-50 text-slate-600 shadow-sm px-4 py-2.5 cursor-not-allowed"
+                  placeholder=""
                 />
               </div>
             </div>
