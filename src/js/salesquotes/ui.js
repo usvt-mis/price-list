@@ -638,6 +638,7 @@ export function populateQuoteForm(quote) {
  */
 export function clearQuoteForm() {
   if (el('customerSearch')) el('customerSearch').value = '';
+  if (el('customerNoSearch')) el('customerNoSearch').value = '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = '';
   if (el('invoiceDiscount')) el('invoiceDiscount').value = '0';
 
