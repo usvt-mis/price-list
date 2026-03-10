@@ -128,22 +128,18 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Auto-cancel: Edits are automatically cancelled when clicking Insert/Remove/Add/Clear on other lines
     - Save/Cancel buttons with icons: Checkmark (green) for Save, X (gray) for Cancel
     - Implemented in `src/js/salesquotes/state.js` and `src/js/salesquotes/create-quote.js`
-  - **Add Line Modal with 5-Column Grid** (Sales Quotes): Consistent 3-size width system for better visual organization
-    - **5-column grid system** where: Short fields = 1 column, Medium fields = 2 columns, Long fields = full width (5 columns)
-    - **Field categories**:
-      - **สั้น (Short)**: Create SV, Type, Group No., Qty, Addition (1 column each)
-      - **กลาง (Medium)**: Service Item No, Unit Price, Ref Sales Quote No, Discount Amt. (2 columns each)
-      - **ยาว (Long)**: Service Item Description, Description (full width)
-    - **Optimized row layout**: 6 rows with minimal empty space (only 1 empty column in Row 2)
-      - Row 1: 5 short fields (Create SV, Type, Group No., Qty, Addition)
-      - Row 2: 2 medium fields (Service Item No., Unit Price) + 1 empty column
-      - Row 3: Full width (Service Item Description)
-      - Row 4: Full width (No./Materials Search)
-      - Row 5: Full width textarea (Description)
-      - Row 6: Medium + Short + Medium (Ref Sales Quote No., Discount %, Discount Amt.)
-    - **Responsive design**: Grid collapses to single column on mobile devices
+  - **Add Line Modal with 6-Column Grid** (Sales Quotes): Improved field organization matching Business Central workflow
+    - **6-column grid system** for better field alignment and data entry flow
+    - **Field organization by row**:
+      - Row 1: Type (3) | Create SV (1) | Group No. (2) - Primary Type field takes 50% width
+      - Row 2: Service Item No (3) | Service Item Description (3) - Equal width split
+      - Row 3: No (2) + Description (4) - Materials search and description combined
+      - Row 4: Qty (1) | Unit Price (2) | Discount % (1) | Discount Amt. (2) - Price/discount fields on same row
+      - Row 5: Addition (1) | Ref. Sales Quote No. (5) - Checkbox and reference field
+      - Row 6: Line Total Preview (4) | Add Line Button (2) - Integrated into modal content
     - **All element IDs preserved**: No JavaScript changes needed for this refactor
-    - Located in `src/salesquotes.html` (Add Line modal, lines ~625-708)
+    - **Responsive design**: Grid collapses to single column on mobile devices
+    - Located in `src/salesquotes.html` (Add Line modal, lines ~625-722)
 - **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode
   - **Primary interaction**: Click the row/card (list view) or RunNumber (grid view) to open in edit mode
   - List view: Entire table row is clickable (except checkbox and action buttons)
