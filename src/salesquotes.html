@@ -96,6 +96,64 @@
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
       z-index: 50;
     }
+
+    /* Toggle Switch Styles */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e1;
+      transition: 0.3s;
+      border-radius: 26px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    input:checked + .toggle-slider {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    }
+
+    input:focus + .toggle-slider {
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    input:checked + .toggle-slider:before {
+      transform: translateX(22px);
+    }
+
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -588,7 +646,7 @@
         </button>
         <button
           id="saveDraftBtn"
-          class="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 text-slate-700 rounded-lg px-4 py-2.5 font-medium hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
+          class="hidden inline-flex items-center justify-center gap-2 bg-white border border-slate-300 text-slate-700 rounded-lg px-4 py-2.5 font-medium hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
           onclick="window.saveDraft()"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -612,7 +670,7 @@
       <div class="md:hidden fixed bottom-6 right-6 flex flex-col gap-3 z-40">
         <button
           id="fabSaveDraft"
-          class="bg-white shadow-lg rounded-full p-4 flex items-center justify-center hover:shadow-xl transition-all duration-200"
+          class="hidden bg-white shadow-lg rounded-full p-4 flex items-center justify-center hover:shadow-xl transition-all duration-200"
           onclick="window.saveDraft()"
           title="Save Draft"
         >
@@ -671,12 +729,17 @@
               </select>
             </div>
             <div class="flex items-center justify-center">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Create SV</label>
-              <input type="checkbox" id="lineCreateSv" class="w-5 h-5 rounded border-slate-300 ml-2">
+              <label class="toggle-label">
+                <span class="block text-sm font-medium text-gray-700">Create SV</span>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="lineCreateSv">
+                  <span class="toggle-slider"></span>
+                </label>
+              </label>
             </div>
             <div class="col-span-2">
               <label class="block text-sm font-medium text-gray-700 mb-1">Group No.</label>
-              <input type="number" id="lineUsvtGroupNo" class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2.5" placeholder="0">
+              <input type="number" id="lineUsvtGroupNo" class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2.5" value="1" placeholder="0">
             </div>
           </div>
 
@@ -728,8 +791,13 @@
           <!-- ROW 5: Addition (1), Ref. Sales Quote No. (2), Line Total (3) -->
           <div class="grid grid-cols-6 gap-4 mb-4">
             <div class="flex items-center justify-center">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Addition</label>
-              <input type="checkbox" id="lineUsvtAddition" class="w-5 h-5 rounded border-slate-300 ml-2">
+              <label class="toggle-label">
+                <span class="block text-sm font-medium text-gray-700">Addition</span>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="lineUsvtAddition">
+                  <span class="toggle-slider"></span>
+                </label>
+              </label>
             </div>
             <div class="col-span-2">
               <label class="block text-sm font-medium text-gray-700 mb-1">Ref. Sales Quote No.</label>

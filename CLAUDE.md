@@ -116,9 +116,15 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Search field placeholders shortened to action-oriented text: "Search customers/salespeople/users..." (vs. verbose "Type 2+ characters to search...")
     - Other placeholders simplified for clarity: "Contact name..." (vs. "Contact person..."), "Work description..." (vs. "Describe the work to be performed...")
   - **Inline Quote Line Editing** (Sales Quotes): Edit quote lines directly in the table without opening a modal
-    - **16-column table layout**: Create SV (checkbox), Type (dropdown), Service Item No., Service Item Description, Group No., No. (materials search), Description, Qty., Unit Price, Addition (checkbox), Ref. Sales Quote No., Discount %, Discount Amt., Line Total, Actions
+    - **16-column table layout**: Create SV (toggle switch), Type (dropdown), Service Item No., Service Item Description, Group No., No. (materials search), Description, Qty., Unit Price, Addition (toggle switch), Ref. Sales Quote No., Discount %, Discount Amt., Line Total, Actions
+    - **Toggle Switches**: Create SV and Addition fields use modern toggle switches instead of checkboxes
+      - Gradient purple-indigo color when ON (checked), slate gray when OFF
+      - Smooth slide animation with 0.3s transition
+      - Scaled to 0.85 for compact table display
+      - Focus ring for keyboard accessibility
+      - Better visual feedback and touch-friendly for mobile
     - **Inline editable fields** (all 13 text/number fields): Type (dropdown), Service Item No., Service Item Description, Group No., Description, Qty., Unit Price, Ref. Sales Quote No., Discount %, Discount Amt.
-    - **Read-only fields**: Create SV, Addition, No. (require modal to change)
+    - **Toggle-enabled fields**: Create SV and Addition (toggle switches work in both view and edit modes)
     - **Bi-directional discount sync**: Discount % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Discount% / 100` with cursor position preservation for smooth typing
     - **Materials search**: "No." field searches `dbo.materials` table by MaterialCode OR MaterialName (min 2 chars), Description auto-fills from MaterialName (editable), Unit Price remains manual entry
     - Visual feedback: Blue background (`bg-blue-50 ring-2 ring-blue-500`) highlights the row being edited
@@ -137,7 +143,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - Row 4: Qty (1) | Unit Price (2) | Discount % (1) | Discount Amt. (2) - Price/discount fields on same row
       - Row 5: Addition (1) | Ref. Sales Quote No. (2) | Line Total (3) - Consolidated pricing info
     - **Footer actions**: Add Line button (primary gradient) + Cancel button (secondary white)
-    - **UI improvements**: Checkboxes centered with `flex items-center justify-center`, Description changed to single-line text input
+    - **UI improvements**: Toggle switches for Create SV and Addition (purple-indigo gradient when ON), Group No. defaults to 1, Description changed to single-line text input
     - **Input field enhancements**: Number input spinners hidden for cleaner UI, discount field focus preservation (cursor stays stable during bi-directional sync)
       - **Technical implementation**: Discount fields use `type="text"` with `inputmode="decimal"` for mobile numeric keypad, `pattern` attribute for validation, and `validateDiscountInput()` function for sanitization
       - This approach enables reliable cursor position preservation (`selectionStart`/`setSelectionRange`) which doesn't work with `type="number"`

@@ -345,7 +345,12 @@ function renderViewRow(line, index, rowClass) {
   return `
     <tr class="${rowClass}">
       <td class="font-medium text-center">${line.sequence}</td>
-      <td class="text-center"><input type="checkbox" ${line.createSv ? 'checked' : ''} disabled></td>
+      <td class="text-center">
+        <label class="toggle-switch" style="transform: scale(0.85);">
+          <input type="checkbox" ${line.createSv ? 'checked' : ''} disabled>
+          <span class="toggle-slider"></span>
+        </label>
+      </td>
       <td class="text-sm">${line.lineType || '-'}</td>
       <td class="text-sm">${line.usvtServiceItemNo || ''}</td>
       <td class="text-sm">${line.usvtServiceItemDescription || ''}</td>
@@ -354,7 +359,12 @@ function renderViewRow(line, index, rowClass) {
       <td class="text-sm">${line.description || ''}</td>
       <td class="text-sm text-center">${line.quantity}</td>
       <td class="text-sm text-right">${parseFloat(line.unitPrice).toFixed(2)}</td>
-      <td class="text-center"><input type="checkbox" ${line.usvtAddition ? 'checked' : ''} disabled></td>
+      <td class="text-center">
+        <label class="toggle-switch" style="transform: scale(0.85);">
+          <input type="checkbox" ${line.usvtAddition ? 'checked' : ''} disabled>
+          <span class="toggle-slider"></span>
+        </label>
+      </td>
       <td class="text-sm">${line.usvtRefSalesQuoteno || ''}</td>
       <td class="text-sm text-right">${parseFloat(line.discountPercent || 0).toFixed(1)}%</td>
       <td class="text-sm text-right">${parseFloat(line.discountAmount || 0).toFixed(2)}</td>
@@ -375,7 +385,12 @@ function renderEditingRow(line, rowClass) {
   return `
     <tr class="${rowClass}" data-line-id="${line.id}">
       <td class="font-medium text-center">${line.sequence}</td>
-      <td class="text-center"><input type="checkbox" data-line-id="${line.id}" data-field="createSv" ${line.createSv ? 'checked' : ''}></td>
+      <td class="text-center">
+        <label class="toggle-switch" style="transform: scale(0.85);">
+          <input type="checkbox" data-line-id="${line.id}" data-field="createSv" ${line.createSv ? 'checked' : ''}>
+          <span class="toggle-slider"></span>
+        </label>
+      </td>
       <td>
         <select data-line-id="${line.id}" data-field="lineType" class="bc-input px-2 py-1 text-xs">
           <option value="Item" ${line.lineType === 'Item' ? 'selected' : ''}>Item</option>
@@ -389,7 +404,12 @@ function renderEditingRow(line, rowClass) {
       <td><input type="text" data-line-id="${line.id}" data-field="description" value="${line.description || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
       <td><input type="number" data-line-id="${line.id}" data-field="quantity" value="${line.quantity}" min="1" class="bc-input px-2 py-1 text-xs w-16 text-center" oninput="window.updateLineEditTotal('${line.id}')"></td>
       <td><input type="number" data-line-id="${line.id}" data-field="unitPrice" value="${parseFloat(line.unitPrice).toFixed(2)}" min="0" step="0.01" class="bc-input px-2 py-1 text-xs w-20 text-right" oninput="window.updateLineEditTotal('${line.id}')"></td>
-      <td class="text-center"><input type="checkbox" data-line-id="${line.id}" data-field="usvtAddition" ${line.usvtAddition ? 'checked' : ''}></td>
+      <td class="text-center">
+        <label class="toggle-switch" style="transform: scale(0.85);">
+          <input type="checkbox" data-line-id="${line.id}" data-field="usvtAddition" ${line.usvtAddition ? 'checked' : ''}>
+          <span class="toggle-slider"></span>
+        </label>
+      </td>
       <td><input type="text" data-line-id="${line.id}" data-field="usvtRefSalesQuoteno" value="${line.usvtRefSalesQuoteno || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
       <td><input type="number" data-line-id="${line.id}" data-field="discountPercent" value="${parseFloat(line.discountPercent || 0).toFixed(1)}" min="0" step="0.1" class="bc-input px-2 py-1 text-xs w-16 text-right" oninput="window.handleDiscountChange('${line.id}', 'discountPercent', this.value)"></td>
       <td><input type="number" data-line-id="${line.id}" data-field="discountAmount" value="${parseFloat(line.discountAmount || 0).toFixed(2)}" min="0" step="0.01" class="bc-input px-2 py-1 text-xs w-20 text-right" oninput="window.handleDiscountChange('${line.id}', 'discountAmount', this.value)"></td>
