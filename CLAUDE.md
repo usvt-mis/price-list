@@ -83,10 +83,15 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
   - `floating-buttons.js` - Sticky header for desktop, floating Save/Records buttons for mobile
   - `collapsible-sections.js` - Collapse/expand functionality for Labor, Materials, Travel, and Onsite Options section cards
 - **UI Patterns**:
-  - **Dynamic Required Field Indicators** (Sales Quotes): Red asterisk (*) markers that hide when fields have values and show when empty, providing real-time visual feedback for form completion status
-    - Applies to 8 required fields: Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, Division, BRANCH
-    - Works with all input types: text inputs, search dropdowns, and select dropdowns
+  - **Dynamic Required Field Indicators** (Sales Quotes): Visual feedback for required fields with two indicators
+    - **Red asterisk (*)** markers that hide when fields have values and show when empty
+    - **Light red background** (#fef2f2) appears on empty required fields for better visibility
+    - Applies to main form (8 fields): Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, Division, BRANCH
+    - Applies to Add Line modal (5 fields): Type, No. (materials search), Description, Qty., Unit Price
+    - Works with all input types: text inputs, search dropdowns, select dropdowns, and numeric fields
+    - Numeric field validation: Treats 0 as empty (Qty. = 0, Unit Price = 0 show red background)
     - Automatically resets when form is cleared
+    - Real-time updates: Background color changes immediately when typing/selecting
   - **Auto-Populated Branch Fields** (Sales Quotes): BRANCH, Location Code, and Responsibility Center fields that automatically populate based on user's branch assignment
     - BRANCH field displays branch code (URY, USB, USR, UKK, UPB, UCB) from user's branchId
     - Location Code is auto-calculated from BRANCH (last 2 characters + "01", e.g., URY → RY01)
@@ -116,14 +121,15 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Search field placeholders shortened to action-oriented text: "Search customers/salespeople/users..." (vs. verbose "Type 2+ characters to search...")
     - Other placeholders simplified for clarity: "Contact name..." (vs. "Contact person..."), "Work description..." (vs. "Describe the work to be performed...")
   - **Inline Quote Line Editing** (Sales Quotes): Edit quote lines directly in the table without opening a modal
-    - **16-column table layout**: Create SV (toggle switch), Type (dropdown), Service Item No., Service Item Description, Group No., No. (materials search), Description, Qty., Unit Price, Addition (toggle switch), Ref. Sales Quote No., Discount %, Discount Amt., Line Total, Actions
+    - **16-column table layout**: Create SV (toggle switch), Type (dropdown), Service Item No., Service Item Description, Group No., No. (materials search), Description (250px width), Qty., Unit Price, Addition (toggle switch), Ref. SQ No., Discount %, Discount Amt., Line Total, Actions
+    - **Column width optimization**: Description column widened to 250px for better text display; Ref. Sales Quote No. shortened to "Ref. SQ No." for compact display
     - **Toggle Switches**: Create SV and Addition fields use modern toggle switches instead of checkboxes
       - Gradient purple-indigo color when ON (checked), slate gray when OFF
       - Smooth slide animation with 0.3s transition
       - Scaled to 0.85 for compact table display
       - Focus ring for keyboard accessibility
       - Better visual feedback and touch-friendly for mobile
-    - **Inline editable fields** (all 13 text/number fields): Type (dropdown), Service Item No., Service Item Description, Group No., Description, Qty., Unit Price, Ref. Sales Quote No., Discount %, Discount Amt.
+    - **Inline editable fields** (all 13 text/number fields): Type (dropdown), Service Item No., Service Item Description, Group No., Description, Qty., Unit Price, Ref. SQ No., Discount %, Discount Amt.
     - **Toggle-enabled fields**: Create SV and Addition (toggle switches work in both view and edit modes)
     - **Bi-directional discount sync**: Discount % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Discount% / 100` with cursor position preservation for smooth typing
     - **Materials search**: "No." field searches `dbo.materials` table by MaterialCode OR MaterialName (min 2 chars), Description auto-fills from MaterialName (editable), Unit Price remains manual entry
@@ -134,6 +140,10 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Auto-cancel: Edits are automatically cancelled when clicking Insert/Remove/Add/Clear on other lines
     - Save/Cancel buttons with icons: Checkmark (green) for Save, X (gray) for Cancel
     - Implemented in `src/js/salesquotes/state.js` and `src/js/salesquotes/create-quote.js`
+  - **Locked VAT Rate Field** (Sales Quotes): VAT Rate % field is locked to prevent user edits
+    - **Readonly attribute**: Field cannot be edited, always displays 7%
+    - **Visual styling**: Gray background (`bg-slate-50`) with `not-allowed` cursor to indicate locked state
+    - **Calculation integration**: Still participates in VAT calculation (7% of subtotal after discount)
   - **Add Line Modal with 6-Column Grid** (Sales Quotes): Improved field organization with consolidated pricing and footer action button
     - **6-column grid system** for better field alignment and data entry flow
     - **Field organization by row**:
@@ -167,12 +177,11 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **Action buttons**: Cancel (white/gray) and Remove (custom red gradient `#dc2626` → `#b91c1c`)
     - **State management**: Uses `pendingRemoveLineIndex` in `state.ui` to track line being removed
     - **Implementation**: `showConfirmRemoveModal()`, `hideConfirmRemoveModal()`, `confirmRemoveLine()`, `cancelRemoveLine()` in `src/js/salesquotes/create-quote.js`
-  - **Debounced Search Inputs** (Sales Quotes): All search dropdowns use 400ms debounce delay to prevent excessive queries
-    - **Debounce utility**: Reusable `debounce(func, delay)` function that resets timer on each keystroke
+  - **Responsive Search Dropdowns** (Sales Quotes): All search dropdowns use direct input handling for immediate response
+    - **No debounce delay**: Dropdowns appear instantly on keystroke for better UX
     - **Applied to all searches**: Customer No., Salesperson Code, Assigned User ID, Material search (modal), Customer search (legacy BC API)
-    - **User experience**: Wait 400ms after user stops typing before sending search request
-    - **Reduces server load**: Prevents API calls on every keystroke when typing quickly
-    - **Implementation**: Debounced handlers in `setupEventListeners()` function in `src/js/salesquotes/create-quote.js`
+    - **Blur handling**: 200ms delay before hiding dropdown to allow clicking on results
+    - **Implementation**: Direct handlers in `setupEventListeners()` function in `src/js/salesquotes/create-quote.js`
   - **Clear State on Page Load** (Sales Quotes): Application starts with fresh state on each page load
     - **Fixed persistence bug**: Old quote lines no longer reappear after page refresh
     - **SessionStorage cleared**: Both `STATE` and `DRAFT_QUOTE` are removed during app initialization

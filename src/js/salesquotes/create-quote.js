@@ -416,12 +416,13 @@ export function selectMaterialFromSearch(material) {
 
   if (el('lineObjectNumberSearch')) {
     el('lineObjectNumberSearch').value = material.materialCode;
+    el('lineObjectNumberSearch').dispatchEvent(new Event('input')); // Update asterisk and background
   }
 
   // Auto-fill Description only (Unit Price is manual per user requirement)
   if (el('lineDescription')) {
     el('lineDescription').value = material.materialName;
-    el('lineDescription').dispatchEvent(new Event('input'));
+    el('lineDescription').dispatchEvent(new Event('input')); // Update asterisk and background
   }
 
   el('lineMaterialDropdown')?.classList.add('hidden');
@@ -1093,6 +1094,8 @@ export function setupLineModalHandlers() {
 
 /**
  * Debounce utility - delays function execution
+ * NOTE: Currently not used for search dropdowns to prevent flickering
+ * Can be re-enabled if server performance becomes an issue
  * @param {Function} func - Function to debounce
  * @param {number} delay - Delay in milliseconds
  * @returns {Function} Debounced function
@@ -1109,11 +1112,10 @@ function debounce(func, delay) {
  * Setup event listeners
  */
 export function setupEventListeners() {
-  // Customer search (BC API - Legacy) - Debounced 400ms
+  // Customer search (BC API - Legacy) - Direct input (no debounce)
   const customerSearch = el('customerSearch');
-  const debouncedCustomerSearch = debounce((value) => handleCustomerSearch(value), 400);
   customerSearch?.addEventListener('input', (e) => {
-    debouncedCustomerSearch(e.target.value);
+    handleCustomerSearch(e.target.value);
   });
 
   customerSearch?.addEventListener('blur', () => {
@@ -1121,11 +1123,10 @@ export function setupEventListeners() {
     setTimeout(() => hideCustomerDropdown(), 200);
   });
 
-  // Customer No. search (Local Database - New) - Debounced 400ms
+  // Customer No. search (Local Database - New) - Direct input (no debounce)
   const customerNoSearch = el('customerNoSearch');
-  const debouncedCustomerNoSearch = debounce((value) => handleCustomerNoSearch(value), 400);
   customerNoSearch?.addEventListener('input', (e) => {
-    debouncedCustomerNoSearch(e.target.value);
+    handleCustomerNoSearch(e.target.value);
   });
 
   customerNoSearch?.addEventListener('blur', () => {
@@ -1136,11 +1137,10 @@ export function setupEventListeners() {
     }, 200);
   });
 
-  // Salesperson Code search - Debounced 400ms
+  // Salesperson Code search - Direct input (no debounce)
   const salespersonCodeSearch = el('salespersonCodeSearch');
-  const debouncedSalespersonSearch = debounce((value) => handleSalespersonCodeSearch(value), 400);
   salespersonCodeSearch?.addEventListener('input', (e) => {
-    debouncedSalespersonSearch(e.target.value);
+    handleSalespersonCodeSearch(e.target.value);
   });
   salespersonCodeSearch?.addEventListener('blur', () => {
     setTimeout(() => {
@@ -1149,11 +1149,10 @@ export function setupEventListeners() {
     }, 200);
   });
 
-  // Assigned User ID search - Debounced 400ms
+  // Assigned User ID search - Direct input (no debounce)
   const assignedUserIdSearch = el('assignedUserIdSearch');
-  const debouncedAssignedUserSearch = debounce((value) => handleAssignedUserIdSearch(value), 400);
   assignedUserIdSearch?.addEventListener('input', (e) => {
-    debouncedAssignedUserSearch(e.target.value);
+    handleAssignedUserIdSearch(e.target.value);
   });
   assignedUserIdSearch?.addEventListener('blur', () => {
     setTimeout(() => {
@@ -1162,10 +1161,9 @@ export function setupEventListeners() {
     }, 200);
   });
 
-  // Material search in modal (No. field) - Debounced 400ms
+  // Material search in modal (No. field) - Direct input (no debounce)
   const materialSearch = el('lineObjectNumberSearch');
-  const debouncedMaterialSearch = debounce((value) => handleMaterialSearch(value), 400);
-  materialSearch?.addEventListener('input', (e) => debouncedMaterialSearch(e.target.value));
+  materialSearch?.addEventListener('input', (e) => handleMaterialSearch(e.target.value));
   materialSearch?.addEventListener('blur', () => {
     setTimeout(() => el('lineMaterialDropdown')?.classList.add('hidden'), 200);
   });

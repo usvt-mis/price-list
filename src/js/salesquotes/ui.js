@@ -655,7 +655,7 @@ export function closeAddLineModal() {
  * Setup asterisk handlers for modal fields
  */
 function setupModalAsteriskHandlers() {
-  const modalFields = ['lineDescription', 'lineQuantity', 'lineUnitPrice'];
+  const modalFields = ['lineType', 'lineObjectNumberSearch', 'lineDescription', 'lineQuantity', 'lineUnitPrice'];
 
   modalFields.forEach(fieldId => {
     const field = el(fieldId);
@@ -666,9 +666,11 @@ function setupModalAsteriskHandlers() {
 
     // Remove old listeners to prevent duplicates
     field.removeEventListener('input', handleModalFieldInput);
+    field.removeEventListener('change', handleModalFieldInput);
 
-    // Add fresh listener
+    // Add fresh listeners (input for text fields, change for select dropdowns)
     field.addEventListener('input', handleModalFieldInput);
+    field.addEventListener('change', handleModalFieldInput);
   });
 }
 
@@ -873,7 +875,7 @@ export function initDateFields() {
 // ============================================================
 
 /**
- * Update required field asterisk visibility based on field value
+ * Update required field asterisk visibility and background color based on field value
  * @param {string} fieldId - The ID of the input field
  */
 export function updateRequiredAsterisk(fieldId) {
@@ -891,13 +893,22 @@ export function updateRequiredAsterisk(fieldId) {
   if (!asterisk) return;
 
   // Check if field has value
-  const hasValue = field.value.trim() !== '';
+  // For numeric fields (number type or price/qty fields), treat 0 as empty
+  let hasValue = field.value.trim() !== '';
+  if (hasValue && (field.type === 'number' || fieldId.includes('Price') || fieldId.includes('Quantity') || fieldId.includes('Qty'))) {
+    const numValue = parseFloat(field.value);
+    hasValue = !isNaN(numValue) && numValue > 0;
+  }
 
   // Toggle asterisk visibility
   if (hasValue) {
     asterisk.classList.add('hidden');
+    // Remove red background when field has value
+    field.classList.remove('field-required-empty');
   } else {
     asterisk.classList.remove('hidden');
+    // Add red background when field is empty
+    field.classList.add('field-required-empty');
   }
 }
 
