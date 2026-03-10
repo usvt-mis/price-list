@@ -137,13 +137,12 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
   - **Add Line Modal with 6-Column Grid** (Sales Quotes): Improved field organization with consolidated pricing and footer action button
     - **6-column grid system** for better field alignment and data entry flow
     - **Field organization by row**:
-      - Row 1: Type (3) | Create SV (1) | Group No. (2) - Primary Type field takes 50% width
-      - Row 2: Service Item No (3) | Service Item Description (3) - Equal width split
-      - Row 3: No (2) + Description (4) - Materials search and description (single-line input)
-      - Row 4: Qty (1) | Unit Price (2) | Discount % (1) | Discount Amt. (2) - Price/discount fields on same row
-      - Row 5: Addition (1) | Ref. Sales Quote No. (2) | Line Total (3) - Consolidated pricing info
+      - Row 1: Type (1) | Create SV (1) | Group No (1) | Service Item No (1) | Service Item Description (2) - Compact 5-field layout with vertical toggle labels
+      - Row 2: No (2) + Description (4) - Materials search and description (single-line input)
+      - Row 3: Qty (1) | Unit Price (2) | Discount % (1) | Discount Amt. (2) - Price/discount fields on same row
+      - Row 4: Addition (1) | Ref. Sales Quote No. (2) | Line Total (3) - Consolidated pricing info with vertical toggle label
     - **Footer actions**: Add Line button (primary gradient) + Cancel button (secondary white)
-    - **UI improvements**: Toggle switches for Create SV and Addition (purple-indigo gradient when ON), Group No. defaults to 1, Description changed to single-line text input
+    - **UI improvements**: Toggle switches for Create SV and Addition (purple-indigo gradient when ON), Group No. defaults to 1, labels positioned above toggle switches (vertical layout), compact field sizes with reduced padding and font sizes
     - **Input field enhancements**: Number input spinners hidden for cleaner UI, discount field focus preservation (cursor stays stable during bi-directional sync)
       - **Technical implementation**: Discount fields use `type="text"` with `inputmode="decimal"` for mobile numeric keypad, `pattern` attribute for validation, and `validateDiscountInput()` function for sanitization
       - This approach enables reliable cursor position preservation (`selectionStart`/`setSelectionRange`) which doesn't work with `type="number"`
