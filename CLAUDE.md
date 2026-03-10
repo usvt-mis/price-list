@@ -119,7 +119,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **16-column table layout**: Create SV (checkbox), Type (dropdown), Service Item No., Service Item Description, Group No., No. (materials search), Description, Qty., Unit Price, Addition (checkbox), Ref. Sales Quote No., Discount %, Discount Amt., Line Total, Actions
     - **Inline editable fields** (all 13 text/number fields): Type (dropdown), Service Item No., Service Item Description, Group No., Description, Qty., Unit Price, Ref. Sales Quote No., Discount %, Discount Amt.
     - **Read-only fields**: Create SV, Addition, No. (require modal to change)
-    - **Bi-directional discount sync**: Discount % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Discount% / 100`
+    - **Bi-directional discount sync**: Discount % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Discount% / 100` with cursor position preservation for smooth typing
     - **Materials search**: "No." field searches `dbo.materials` table by MaterialCode OR MaterialName (min 2 chars), Description auto-fills from MaterialName (editable), Unit Price remains manual entry
     - Visual feedback: Blue background (`bg-blue-50 ring-2 ring-blue-500`) highlights the row being edited
     - Keyboard support: Enter to save, Escape to cancel
@@ -137,8 +137,9 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - Row 4: Qty (1) | Unit Price (2) | Discount % (1) | Discount Amt. (2) - Price/discount fields on same row
       - Row 5: Addition (1) | Ref. Sales Quote No. (2) | Line Total (3) - Consolidated pricing info
     - **Footer actions**: Add Line button (primary gradient) + Cancel button (secondary white)
-    - **UI improvements**: Checkboxes centered (no mt-2), Description changed to single-line text input
-    - **All element IDs preserved**: No JavaScript changes needed for this refactor
+    - **UI improvements**: Checkboxes centered with `flex items-center justify-center`, Description changed to single-line text input
+    - **Input field enhancements**: Number input spinners hidden for cleaner UI, discount field focus preservation (cursor stays stable during bi-directional sync)
+    - **All element IDs preserved**: No JavaScript changes needed for grid refactor
     - **Responsive design**: Grid collapses to single column on mobile devices
     - Located in `src/salesquotes.html` (Add Line modal, lines ~625-720)
 - **Saved Records UI**: Both calculators feature clickable rows/cards for quick access to edit mode
