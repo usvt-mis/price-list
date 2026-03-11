@@ -1606,7 +1606,7 @@ function renderItemDropdown(items) {
  * @param {string} lineId - The ID of the line to edit
  */
 function openEditLineModal(lineId) {
-  const line = state.lines.find(l => l.id === lineId);
+  const line = state.quote.lines.find(l => l.id === lineId);
   if (!line) {
     console.error(`Line with ID ${lineId} not found`);
     return;
