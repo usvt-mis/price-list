@@ -225,14 +225,15 @@ export function getBcApiHeaders() {
 
 /**
  * Check if mock mode is enabled
+ * Mock mode is enabled for local development (localhost)
  */
 export function isMockEnabled() {
-  return MOCK_DATA.enabled || process.env.BC_MOCK_ENABLED === 'true';
+  return MOCK_DATA.enabled;
 }
 
 /**
  * Get mock company ID for local development
  */
 export function getMockCompanyId() {
-  return process.env.BC_MOCK_COMPANY_ID || '00000000-0000-0000-0000-000000000000';
+  return '00000000-0000-0000-0000-000000000000';
 }
