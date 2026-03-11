@@ -1666,11 +1666,13 @@ function openEditLineModal(lineId) {
   document.getElementById('editLineUsvtAddition').checked = line.usvtAddition || false;
   document.getElementById('editLineUsvtRefSalesQuoteno').value = line.usvtRefSalesQuoteno || '';
 
+  // Check if line has existing Service Item No - lock Type, Serv Item No, Serv Item Desc
+  const hasExistingSer = line.usvtServiceItemNo && line.usvtServiceItemNo.trim() !== '';
+  state.ui.editLineLocked = hasExistingSer;
+
   // Initialize New SER button state based on existing line data
   const newSerButton = document.getElementById('editLineCreateSv');
   if (newSerButton) {
-    // Disable button if line already has a Service Item No.
-    const hasExistingSer = line.usvtServiceItemNo && line.usvtServiceItemNo.trim() !== '';
     const isComment = line.lineType === 'Comment';
 
     if (hasExistingSer || isComment) {
@@ -1687,7 +1689,26 @@ function openEditLineModal(lineId) {
     newSerButton.style.opacity = '1';
   }
 
-  // Update field states based on Type
+  // Lock fields if Service Item No exists
+  if (hasExistingSer) {
+    const typeField = document.getElementById('editLineType');
+    const servItemNoField = document.getElementById('editLineUsvtServiceItemNo');
+    const servItemDescField = document.getElementById('editLineUsvtServiceItemDescription');
+
+    // Disable Type dropdown
+    typeField.disabled = true;
+    typeField.classList.add('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+
+    // Disable Service Item No
+    servItemNoField.disabled = true;
+    servItemNoField.classList.add('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+
+    // Disable Service Item Description
+    servItemDescField.disabled = true;
+    servItemDescField.classList.add('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+  }
+
+  // Update field states based on Type (respects locked state)
   updateEditModalFieldStates(line.lineType);
 
   // Setup required field asterisk handlers for Edit modal
@@ -1715,6 +1736,25 @@ function openEditLineModal(lineId) {
 function closeEditLineModal() {
   const modal = document.getElementById('editLineModal');
   const content = document.getElementById('editLineModalContent');
+
+  // Reset locked state and unlock fields
+  state.ui.editLineLocked = false;
+  const typeField = document.getElementById('editLineType');
+  const servItemNoField = document.getElementById('editLineUsvtServiceItemNo');
+  const servItemDescField = document.getElementById('editLineUsvtServiceItemDescription');
+
+  if (typeField) {
+    typeField.disabled = false;
+    typeField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+  }
+  if (servItemNoField) {
+    servItemNoField.disabled = false;
+    servItemNoField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+  }
+  if (servItemDescField) {
+    servItemDescField.disabled = false;
+    servItemDescField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+  }
 
   content.classList.remove('opacity-100', 'translate-y-0');
   content.classList.add('opacity-0', 'translate-y-[-10px]');
@@ -1808,6 +1848,11 @@ function updateEditModalFieldStates(type) {
   const servItemDesc = document.getElementById('editLineUsvtServiceItemDescription');
   const newSerButton = document.getElementById('editLineCreateSv');
 
+  // If fields are locked due to existing Service Item, skip state updates
+  if (state.ui.editLineLocked) {
+    return; // Keep fields in their locked state
+  }
+
   if (type === 'Comment') {
     servItemNo.disabled = true;
     servItemDesc.disabled = true;
@@ -1888,6 +1933,12 @@ function updateEditAdditionFieldState() {
  * Show confirmation modal for New SER creation (Edit modal context)
  */
 function showConfirmNewSerModalForEdit() {
+  // Prevent creation if fields are locked due to existing Service Item
+  if (state.ui.editLineLocked) {
+    showError('Cannot create new Service Item - this line already has a Service Item.');
+    return;
+  }
+
   const description = document.getElementById('editLineUsvtServiceItemDescription').value.trim();
 
   // Validate description before showing modal
@@ -1935,6 +1986,12 @@ async function createServiceItemAndLockFieldsForEdit() {
   // If already created, do nothing
   if (state.ui.serCreatedEdit) {
     showError('Service Item already created');
+    return;
+  }
+
+  // Prevent creation if fields are locked due to existing Service Item
+  if (state.ui.editLineLocked) {
+    showError('Cannot create new Service Item - this line already has a Service Item.');
     return;
   }
 

@@ -85,7 +85,8 @@ export const state = {
     serCreated: false,  // Track if SER was successfully created in Add Line modal
     pendingSerCreation: false,  // Track if SER creation confirmation modal is open (Add Line)
     serCreatedEdit: false,  // Track if SER was successfully created in Edit Line modal
-    pendingSerCreationEdit: false  // Track if SER creation confirmation modal is open (Edit Line)
+    pendingSerCreationEdit: false,  // Track if SER creation confirmation modal is open (Edit Line)
+    editLineLocked: false  // Track if Edit Line fields are locked (Type, Serv Item No, Serv Item Desc) when Service Item already exists
   },
 
   // Data cache

@@ -161,6 +161,13 @@ x-functions-key: <API_KEY>
 - New SER button shows "✓ Created" state
 - Type dropdown cannot be changed
 
+**Edit Line Modal - Existing Service Item:**
+When editing a line that already has a Service Item No:
+- Type, Serv. Item No., and Serv. Item Desc. fields are locked (disabled, gray background)
+- New SER button is disabled and shows "✓ Created"
+- Prevents accidental modification of Service Item-related fields
+- `state.ui.editLineLocked` flag tracks this state
+
 ---
 
 ## Error Handling
@@ -186,6 +193,7 @@ Both APIs implement comprehensive error handling:
 - `state.ui.serCreatedEdit` - Tracks if SER was created (Edit Line modal)
 - `state.ui.pendingSerCreation` - Tracks confirmation modal state
 - `state.ui.pendingSerCreationEdit` - Tracks confirmation modal state (Edit mode)
+- `state.ui.editLineLocked` - Tracks if Edit Line fields are locked due to existing Service Item No
 
 ---
 
