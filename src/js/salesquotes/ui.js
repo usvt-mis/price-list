@@ -351,7 +351,7 @@ export function renderQuoteLines() {
  */
 function renderViewRow(line, index, rowClass) {
   return `
-    <tr class="${rowClass}">
+    <tr class="${rowClass} row-double-clickable" ondblclick="window.openEditLineModal('${line.id}')">
       <td class="font-medium text-center">${line.sequence}</td>
       <td class="text-sm">${line.lineType || '-'}</td>
       <td class="text-sm">${line.usvtServiceItemNo || ''}</td>

@@ -169,6 +169,10 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - **Auto-cancel**: Modal closes automatically when opening Add Line modal, fullscreen table, or clearing quote
       - **Implementation**: `openEditLineModal()`, `closeEditLineModal()`, `saveEditLine()` in `src/js/salesquotes/create-quote.js`
     - **View mode table display**: Read-only table with Edit button that opens modal
+      - **Double-click to edit**: Double-clicking any row opens the Edit Line Modal (same as clicking Edit button)
+      - **Visual feedback**: Cursor changes to pointer on hover, background becomes slate-100 on hover
+      - **Works in fullscreen**: Double-click functionality also available in fullscreen table view
+      - **Implementation**: `.row-double-clickable` CSS class in `src/salesquotes.html`, `ondblclick` event in `renderViewRow()` in `src/js/salesquotes/ui.js`
     - **Benefits over inline editing**: Cleaner validation (single save point), better mobile UX (full-width inputs), consistent UI patterns
   - **Locked VAT Rate Field** (Sales Quotes): VAT Rate % field is locked to prevent user edits
     - **Readonly attribute**: Field cannot be edited, always displays 7%
