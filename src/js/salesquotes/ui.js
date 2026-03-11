@@ -1188,6 +1188,37 @@ export function hideConfirmClearQuoteModal() {
   }
 }
 
+/**
+ * Show No Branch Assigned modal
+ */
+export function showNoBranchModal() {
+  const modal = el('noBranchModal');
+  const modalContent = el('noBranchModalContent');
+  if (modal && modalContent) {
+    modal.classList.remove('hidden');
+    modal.style.zIndex = '200'; // Highest priority
+    setTimeout(() => {
+      modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
+      modalContent.classList.add('opacity-100', 'translate-y-0');
+    }, 10);
+  }
+}
+
+/**
+ * Hide No Branch Assigned modal
+ */
+export function hideNoBranchModal() {
+  const modal = el('noBranchModal');
+  const modalContent = el('noBranchModalContent');
+  if (modal && modalContent) {
+    modalContent.classList.remove('opacity-100', 'translate-y-0');
+    modalContent.classList.add('opacity-0', 'translate-y-[-10px]');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+    }, 300);
+  }
+}
+
 // ============================================================
 // Export functions to window for onclick handlers
 // ============================================================
@@ -1202,4 +1233,5 @@ if (typeof window !== 'undefined') {
   window.closeFullscreenTable = closeFullscreenTable;
   window.showConfirmClearQuoteModal = showConfirmClearQuoteModal;
   window.hideConfirmClearQuoteModal = hideConfirmClearQuoteModal;
+  window.closeNoBranchModal = hideNoBranchModal;
 }

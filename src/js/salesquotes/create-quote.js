@@ -6,7 +6,7 @@
 import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState, enterLineEditMode, exitLineEditMode } from './state.js';
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
-import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess } from './ui.js';
+import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showNoBranchModal } from './ui.js';
 import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
@@ -899,7 +899,8 @@ export async function initializeBranchFields() {
     const branchId = clientPrincipal.branchId;
 
     if (!branchId) {
-      console.warn('No branchId found in user info');
+      console.error('No branchId found in user info');
+      showNoBranchModal();
       return;
     }
 
@@ -908,6 +909,13 @@ export async function initializeBranchFields() {
 
     // Generate branch code and location code
     const branchCode = getBranchCode(branchId);
+
+    if (!branchCode) {
+      console.error(`Invalid branchId: ${branchId}`);
+      showNoBranchModal();
+      return;
+    }
+
     const locationCode = generateLocationCode(branchCode);
 
     // Set field values
@@ -1233,8 +1241,31 @@ export function setupEventListeners() {
   // REQUIRED FIELD ASTERISK HANDLING
   // =================================
   // Main form required fields (must be initialized AFTER Flatpickr)
-  const mainRequiredFields = ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType', 'division', 'branch'];
+  // Note: 'branch' is excluded because it's auto-populated from user auth data
+  const mainRequiredFields = ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType', 'division'];
   setupRequiredAsteriskHandlers(mainRequiredFields);
+
+  // OPTIONAL FIELD VISUAL HINT
+  // ============================
+  // Work Description field - subtle hint to encourage filling
+  const workDescriptionField = el('quoteWorkDescription');
+  if (workDescriptionField) {
+    // Function to update hint based on content
+    const updateOptionalFieldHint = () => {
+      if (workDescriptionField.value.trim()) {
+        workDescriptionField.classList.add('has-content');
+      } else {
+        workDescriptionField.classList.remove('has-content');
+      }
+    };
+
+    // Initial check
+    updateOptionalFieldHint();
+
+    // Add event listeners
+    workDescriptionField.addEventListener('input', updateOptionalFieldHint);
+    workDescriptionField.addEventListener('change', updateOptionalFieldHint);
+  }
 
   console.log('Event listeners setup complete');
 }

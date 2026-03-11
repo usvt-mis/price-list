@@ -86,7 +86,8 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
   - **Dynamic Required Field Indicators** (Sales Quotes): Visual feedback for required fields with two indicators
     - **Red asterisk (*)** markers that hide when fields have values and show when empty
     - **Light red background** (#fef2f2) appears on empty required fields for better visibility
-    - Applies to main form (8 fields): Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, Division, BRANCH
+    - Applies to main form (7 fields): Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, Division
+    - **Note**: BRANCH field is excluded from required validation (auto-populated from user auth data)
     - Applies to Add Line modal (5 fields): Type, No. (materials search), Description, Qty., Unit Price
     - Works with all input types: text inputs, search dropdowns, select dropdowns, and numeric fields
     - Numeric field validation: Treats 0 as empty (Qty. = 0, Unit Price = 0 show red background)
@@ -97,8 +98,24 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Location Code is auto-calculated from BRANCH (last 2 characters + "01", e.g., URY → RY01)
     - Responsibility Center mirrors the BRANCH value (e.g., URY → URY)
     - All three fields are readonly with gray background to prevent manual override
-    - BRANCH field has required asterisk that hides when auto-populated
+    - BRANCH field is no longer validated as required (removed from required field array since it's auto-populated)
     - Branch ID mapping: 1=URY, 2=USB, 3=USR, 4=UKK, 5=UPB, 6=UCB
+  - **Optional-but-Encouraged Field Hint** (Sales Quotes): Subtle visual cue to prompt users to fill optional but valuable fields
+    - **Light yellow/amber background** (#fefce8) appears on empty fields to draw attention without urgency
+    - **Helper text** below field explains the value: "Optional but recommended - helps provide context for the quote"
+    - Background changes to white when field has content, providing positive feedback
+    - **Non-threatening color**: Yellow/amber suggests "please fill this" without the error connotation of red
+    - Applied to Work Description field in main quote form
+    - **No asterisk**: Field doesn't use required asterisk to avoid confusion (asterisks universally mean "required")
+    - Real-time updates: Background color changes immediately when typing/clearing content
+    - **Implementation**: CSS class `.field-optional-hint` with `.has-content` modifier in `src/salesquotes.html`, event listeners in `src/js/salesquotes/create-quote.js`
+  - **No Branch Assigned Modal** (Sales Quotes): Error modal for users without branch assignment
+    - Shows when user's `branchId` is missing or invalid (not in 1-6 range)
+    - **Amber gradient theme** with warning icon, centered on screen, backdrop blur effect
+    - Explains: "You don't have permission to create Sales Quotes. Please wait for an Admin to assign a branch to your account."
+    - **Highest z-index** (200) to appear above all other modals
+    - Single "Close" button to dismiss modal
+    - **Implementation**: `showNoBranchModal()`, `hideNoBranchModal()` in `src/js/salesquotes/ui.js`, modal HTML in `src/salesquotes.html`, validation in `initializeBranchFields()` in `src/js/salesquotes/create-quote.js`
   - **Modern Date Picker** (Sales Quotes): Flatpickr library integration for Order Date and Requested Delivery Date fields
     - Order Date defaults to today's date (asterisk hidden when populated)
     - Requested Delivery Date has no default value (asterisk visible until date selected)

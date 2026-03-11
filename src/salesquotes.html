@@ -184,6 +184,19 @@
       border-color: #fecaca !important; /* red-200 */
       transition: background-color 0.2s ease, border-color 0.2s ease;
     }
+
+    /* Optional-but-Encouraged Field - Light Yellow/Amber Background */
+    .field-optional-hint {
+      background-color: #fefce8 !important; /* yellow-50 - very light yellow */
+      border-color: #fde047 !important; /* yellow-300 - subtle yellow border */
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    /* Remove hint when field has content */
+    .field-optional-hint.has-content {
+      background-color: #ffffff !important; /* white */
+      border-color: #cbd5e1 !important; /* slate-300 - default border */
+    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -411,10 +424,11 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Work Description</label>
           <textarea
             id="quoteWorkDescription"
-            class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
+            class="field-optional-hint w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
             rows="3"
             placeholder="Work description..."
           ></textarea>
+          <p class="mt-1 text-xs text-amber-600">Optional but recommended - helps provide context for the quote</p>
         </div>
 
         <!-- Sell-to Subsection (Read-only, auto-filled) -->
@@ -1074,6 +1088,37 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
             </svg>
             Clear Quote
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- No Branch Assigned Modal -->
+  <div id="noBranchModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[200] transition-opacity duration-300">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div id="noBranchModalContent" class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
+        <!-- Header with Icon -->
+        <div class="p-8 text-center">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
+            <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-2">No Branch Assigned</h3>
+          <p class="text-sm text-gray-600">You don't have permission to create Sales Quotes. Please wait for an Admin to assign a branch to your account.</p>
+        </div>
+
+        <!-- Action Button -->
+        <div class="p-6 border-t border-slate-200 bg-slate-50 flex justify-center rounded-b-2xl">
+          <button
+            class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-slate-500 to-slate-600 text-white rounded-lg px-6 py-3 font-semibold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+            onclick="window.closeNoBranchModal()"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Close
           </button>
         </div>
       </div>
