@@ -835,15 +835,15 @@ async function createServiceItem(description, customerNo, groupNo) {
     throw new Error('Service Item Description is required to create a Service Item');
   }
 
-  // Prepare request body
-  const requestBody = {
+  // Prepare request body - MUST be an array
+  const requestBody = [{
     description: description.trim(),
     item_No: 'SERV-ITEM', // Hardcoded as per requirement
     Customer_Number: customerNo || '',
     Group_No: groupNo || ''
-  };
+  }];
 
-  console.log('Creating Service Item:', requestBody);
+  console.log('Creating Service Item with payload:', JSON.stringify(requestBody, null, 2));
 
   try {
     // Show loading state on the button
@@ -869,6 +869,13 @@ async function createServiceItem(description, customerNo, groupNo) {
 
     const responseData = await response.json();
     console.log('CreateServiceItem API response:', responseData);
+    console.log('Response structure analysis:', {
+      hasResult: !!responseData?.result,
+      hasResults: !!responseData?.result?.Results,
+      resultsLength: responseData?.result?.Results?.length,
+      firstResult: responseData?.result?.Results?.[0],
+      serviceItemNo: responseData?.result?.Results?.[0]?.ServiceItemNo
+    });
 
     // Extract ServiceItemNo from response
     // Response structure: { result: { Results: [ { ServiceItemNo, GroupNo, Success, Error } ] } }

@@ -185,7 +185,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - **Always-enabled fields**: Both Serv. Item No. and Serv. Item Desc. are always editable - users can type freely without clicking New SER button first
       - **New SER button workflow**: Validates Service Item Description, calls CreateServiceItem API, auto-populates Serv. Item No. with API response (field remains editable after population)
       - **API Integration**: When clicked (turned ON), button calls `CreateServiceItem` Azure Function API
-        - Request body: `{ description, item_No: "SERV-ITEM", Customer_Number, Group_No }`
+        - Request body: `[{ description, item_No: "SERV-ITEM", Customer_Number, Group_No }]` (MUST be an array)
         - Response: `{ result: { Results: [ { ServiceItemNo, GroupNo, Success, Error } ] } }`
         - Service Item No. is auto-populated from `ServiceItemNo` field in API response
       - **Validation**: Service Item Description is required before API call (error toast if empty)
@@ -416,13 +416,14 @@ module.exports = router;
   - `x-functions-key: <API_KEY>` (stored in `create-quote.js`)
 - **Request Body Structure**:
   ```javascript
-  {
+  [{
     description: string,      // Service Item Description from user input (required)
     item_No: string,          // Hardcoded as "SERV-ITEM"
     Customer_Number: string,  // Customer number from state.quote.customerNo (optional)
     Group_No: string          // Group number from lineUsvtGroupNo field (defaults to '1')
-  }
+  }]
   ```
+  **IMPORTANT**: The request body MUST be an array, even when creating a single service item.
 - **Response Structure**:
   ```javascript
   {
