@@ -79,9 +79,8 @@ export const state = {
     showItemDropdown: false,
     selectedLineIndex: null,
     insertIndex: null,  // null = append mode, number = insert at this index
-    // NEW: Track editing state for inline editing
-    editingLineId: null,        // ID of line currently being edited
-    originalLineData: null,     // Copy of line data before editing (for cancel)
+    // Track editing state for modal editing
+    editingLineId: null,        // ID of line currently being edited in modal
     pendingRemoveLineIndex: null, // Index of line pending removal (for confirmation modal)
     serCreated: false,  // Track if SER was successfully created in current modal session
     pendingSerCreation: false  // Track if SER creation confirmation modal is open
@@ -322,75 +321,6 @@ export function removeQuoteLine(index) {
 export function clearQuoteLines() {
   state.quote.lines = [];
   saveState();
-}
-
-// ============================================================
-// Line Editing State Management (Inline Editing)
-// ============================================================
-
-/**
- * Enter inline edit mode for a quote line
- * @param {string} lineId - The ID of the line to edit
- */
-export function enterLineEditMode(lineId) {
-  // Find the line
-  const line = state.quote.lines.find(l => l.id === lineId);
-  if (!line) {
-    console.error(`Line with ID ${lineId} not found`);
-    return false;
-  }
-
-  // Store original data for cancel functionality
-  state.ui.originalLineData = { ...line };
-
-  // Set editing state
-  state.ui.editingLineId = lineId;
-
-  console.log(`Entered edit mode for line ${lineId}`);
-  return true;
-}
-
-/**
- * Exit inline edit mode for a quote line
- * @param {boolean} save - Whether to save changes (true) or cancel (false)
- * @param {string} lineId - The ID of the line being edited
- * @param {Object} newData - New data if saving
- */
-export function exitLineEditMode(save, lineId, newData = null) {
-  if (!state.ui.editingLineId) {
-    return; // Not in edit mode
-  }
-
-  if (save && newData) {
-    // Update the line with new data
-    const lineIndex = state.quote.lines.findIndex(l => l.id === lineId);
-    if (lineIndex >= 0) {
-      Object.assign(state.quote.lines[lineIndex], newData);
-      saveState();
-      console.log(`Saved changes to line ${lineId}`);
-    }
-  } else {
-    // Cancel - restore original data
-    const lineIndex = state.quote.lines.findIndex(l => l.id === lineId);
-    if (lineIndex >= 0 && state.ui.originalLineData) {
-      Object.assign(state.quote.lines[lineIndex], state.ui.originalLineData);
-      saveState();
-      console.log(`Cancelled edit for line ${lineId}, restored original data`);
-    }
-  }
-
-  // Clear editing state
-  state.ui.editingLineId = null;
-  state.ui.originalLineData = null;
-}
-
-/**
- * Check if a line is currently in edit mode
- * @param {string} lineId - The ID of the line to check
- * @returns {boolean} True if the line is in edit mode
- */
-export function isLineEditing(lineId) {
-  return state.ui.editingLineId === lineId;
 }
 
 // ============================================================

@@ -3,7 +3,7 @@
  * BC-style UI components and helpers for Sales Quotes module
  */
 
-import { state, exitLineEditMode } from './state.js';
+import { state } from './state.js';
 import { BC_UI_CONFIG } from './config.js';
 
 // ============================================================
@@ -321,7 +321,7 @@ export function hideItemDropdown() {
 // ============================================================
 
 /**
- * Render quote lines table with inline editing support
+ * Render quote lines table
  */
 export function renderQuoteLines() {
   const tbody = el('linesTableBody');
@@ -338,21 +338,9 @@ export function renderQuoteLines() {
   if (noLinesMessage) noLinesMessage.classList.add('hidden');
 
   tbody.innerHTML = state.quote.lines.map((line, index) => {
-    const isEditing = state.ui.editingLineId === line.id;
-    const rowClass = isEditing
-      ? 'bg-blue-50 ring-2 ring-blue-500'
-      : (index % 2 === 0 ? 'bg-white' : 'bg-slate-50');
-
-    if (isEditing) {
-      return renderEditingRow(line, rowClass);
-    } else {
-      return renderViewRow(line, index, rowClass);
-    }
+    const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+    return renderViewRow(line, index, rowClass);
   }).join('');
-
-  if (state.ui.editingLineId) {
-    wireInlineEditEvents();
-  }
 
   // Update fullscreen table if open
   updateFullscreenTable();
@@ -384,53 +372,9 @@ function renderViewRow(line, index, rowClass) {
       <td class="text-sm text-right">${formatCurrency(parseFloat(line.discountAmount || 0))}</td>
       <td class="font-bold text-gray-900 text-right">${formatCurrency(calculateLineTotal(line))}</td>
       <td class="flex gap-1">
-        <button class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1" onclick="window.editQuoteLine('${line.id}')">Edit</button>
+        <button class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1" onclick="window.openEditLineModal('${line.id}')">Edit</button>
         <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1" onclick="window.openInsertLineModal(${index})">Insert</button>
         <button class="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1" onclick="window.removeQuoteLine(${index})">Remove</button>
-      </td>
-    </tr>
-  `;
-}
-
-/**
- * Render an edit mode row (inline editing)
- */
-function renderEditingRow(line, rowClass) {
-  return `
-    <tr class="${rowClass}" data-line-id="${line.id}">
-      <td class="font-medium text-center">${line.sequence}</td>
-      <td>
-        <select data-line-id="${line.id}" data-field="lineType" class="bc-input px-2 py-1 text-xs">
-          <option value="Item" ${line.lineType === 'Item' ? 'selected' : ''}>Item</option>
-          <option value="Comment" ${line.lineType === 'Comment' ? 'selected' : ''}>Comment</option>
-        </select>
-      </td>
-      <td><input type="text" data-line-id="${line.id}" data-field="usvtServiceItemNo" value="${line.usvtServiceItemNo || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
-      <td><input type="text" data-line-id="${line.id}" data-field="usvtServiceItemDescription" value="${line.usvtServiceItemDescription || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
-      <td><input type="number" data-line-id="${line.id}" data-field="usvtGroupNo" value="${line.usvtGroupNo || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
-      <td><input type="text" data-line-id="${line.id}" data-field="lineObjectNumber" value="${line.lineObjectNumber || ''}" class="bc-input px-2 py-1 text-xs w-full font-medium" readonly></td>
-      <td><input type="text" data-line-id="${line.id}" data-field="description" value="${line.description || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
-      <td><input type="number" data-line-id="${line.id}" data-field="quantity" value="${line.quantity}" min="1" class="bc-input px-2 py-1 text-xs w-full text-center" oninput="window.updateLineEditTotal('${line.id}')"></td>
-      <td><input type="number" data-line-id="${line.id}" data-field="unitPrice" value="${parseFloat(line.unitPrice).toFixed(2)}" min="0" step="0.01" class="bc-input px-2 py-1 text-xs w-full text-right" oninput="window.updateLineEditTotal('${line.id}')"></td>
-      <td class="text-center">
-        <label class="toggle-switch" style="transform: scale(0.85);">
-          <input type="checkbox" data-line-id="${line.id}" data-field="usvtAddition" ${line.usvtAddition ? 'checked' : ''}>
-          <span class="toggle-slider"></span>
-        </label>
-      </td>
-      <td><input type="text" data-line-id="${line.id}" data-field="usvtRefSalesQuoteno" value="${line.usvtRefSalesQuoteno || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
-      <td><input type="number" data-line-id="${line.id}" data-field="discountPercent" value="${parseFloat(line.discountPercent || 0).toFixed(1)}" min="0" step="0.1" class="bc-input px-2 py-1 text-xs w-full text-right" oninput="window.handleDiscountChange('${line.id}', 'discountPercent', this.value)"></td>
-      <td><input type="number" data-line-id="${line.id}" data-field="discountAmount" value="${parseFloat(line.discountAmount || 0).toFixed(2)}" min="0" step="0.01" class="bc-input px-2 py-1 text-xs w-full text-right" oninput="window.handleDiscountChange('${line.id}', 'discountAmount', this.value)"></td>
-      <td class="font-bold text-gray-900 text-right" id="line-total-${line.id}">${formatCurrency(calculateLineTotal(line))}</td>
-      <td class="flex gap-1">
-        <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1 flex items-center gap-1" onclick="window.saveLineEdit('${line.id}')" title="Save (Enter)">
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-          Save
-        </button>
-        <button class="text-gray-600 hover:text-gray-800 text-xs font-medium px-2 py-1 flex items-center gap-1" onclick="window.cancelLineEdit('${line.id}')" title="Cancel (Esc)">
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-          Cancel
-        </button>
       </td>
     </tr>
   `;
@@ -445,40 +389,6 @@ function calculateLineTotal(line) {
   const discount = parseFloat(line.discount) || 0;
   return quantity * unitPrice - discount;
 }
-
-// ============================================================
-// Inline Edit Helpers
-// ============================================================
-
-/**
- * Wire up event listeners for inline edit inputs
- */
-function wireInlineEditEvents() {
-  // Event listeners are already attached via oninput/onkeydown attributes
-  // This function is a placeholder for any additional wiring needed
-  console.log('Inline edit events wired');
-}
-
-/**
- * Handle keyboard shortcuts for line editing
- * @param {KeyboardEvent} e - The keyboard event
- * @param {string} lineId - The ID of the line being edited
- */
-window.handleLineEditKeyboard = function(e, lineId) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    window.saveLineEdit(lineId);
-  } else if (e.key === 'Escape') {
-    e.preventDefault();
-    window.cancelLineEdit(lineId);
-  }
-};
-
-/**
- * Update line total display during editing
- * This function is now defined in create-quote.js to use the new field names
- * @deprecated Use window.updateLineEditTotal from create-quote.js
- */
 
 // ============================================================
 // Totals Display
@@ -514,9 +424,16 @@ export function renderTotals() {
  * Open add line modal
  */
 export function openAddLineModal(insertIndex = null) {
-  // Cancel any active edit before opening modal
-  if (state.ui.editingLineId) {
-    exitLineEditMode(false, state.ui.editingLineId);
+  // Close edit modal if open
+  const editModal = el('editLineModal');
+  if (editModal && !editModal.classList.contains('hidden')) {
+    const content = el('editLineModalContent');
+    content.classList.remove('opacity-100', 'translate-y-0');
+    content.classList.add('opacity-0', 'translate-y-[-10px]');
+    setTimeout(() => {
+      editModal.classList.add('hidden');
+      state.ui.editingLineId = null;
+    }, 300);
   }
 
   const modal = el('addLineModal');
@@ -1047,9 +964,16 @@ export function openFullscreenTable() {
   const modalContent = el('fullscreenTableContent');
   if (!modal || !modalContent) return;
 
-  // Cancel any active edit before opening fullscreen
-  if (state.ui.editingLineId) {
-    exitLineEditMode(false, state.ui.editingLineId);
+  // Close edit modal if open
+  const editModal = el('editLineModal');
+  if (editModal && !editModal.classList.contains('hidden')) {
+    const content = el('editLineModalContent');
+    content.classList.remove('opacity-100', 'translate-y-0');
+    content.classList.add('opacity-0', 'translate-y-[-10px]');
+    setTimeout(() => {
+      editModal.classList.add('hidden');
+      state.ui.editingLineId = null;
+    }, 300);
   }
 
   // Sync table content
@@ -1094,8 +1018,6 @@ export function closeFullscreenTable() {
  */
 function handleFullscreenEsc(event) {
   if (event.key === 'Escape' && !el('fullscreenTableModal')?.classList.contains('hidden')) {
-    // Don't close if editing a line
-    if (state.ui.editingLineId) return;
     closeFullscreenTable();
   }
 }
@@ -1121,40 +1043,6 @@ function syncFullscreenTable() {
       fullscreenNoLines.classList.add('hidden');
     }
   }
-
-  // Re-wire inline edit events for fullscreen table
-  if (state.ui.editingLineId) {
-    wireFullscreenInlineEditEvents();
-  }
-}
-
-/**
- * Wire inline edit events for fullscreen table
- */
-function wireFullscreenInlineEditEvents() {
-  // Edit buttons in fullscreen table
-  const editButtons = document.querySelectorAll('#fullscreenLinesTableBody .edit-line-btn, #fullscreenLinesTableBody button[onclick*="editQuoteLine"]');
-  editButtons.forEach(btn => {
-    // Clone button to remove old event listeners
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-
-    newBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const lineId = newBtn.getAttribute('onclick')?.match(/editQuoteLine\('([^']+)'\)/)?.[1];
-      if (lineId && window.editQuoteLine) {
-        window.editQuoteLine(lineId);
-      }
-    });
-  });
-
-  // Insert/Remove buttons
-  const actionButtons = document.querySelectorAll('#fullscreenLinesTableBody button[onclick*="openInsertLineModal"], #fullscreenLinesTableBody button[onclick*="removeQuoteLine"]');
-  actionButtons.forEach(btn => {
-    // Clone to remove old event listeners
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-  });
 }
 
 /**

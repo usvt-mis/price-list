@@ -18,7 +18,7 @@ This is a Price List Calculator - a web application for calculating service cost
 |------------|---------|--------------|-------------------|
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
-| **Sales Quotes** | Business Central integration via Azure Function API | Create and manage sales quotes with Azure Function API (endpoint: `CreateSalesQuoteWithoutNumber`), local database customer search (min 2 chars), customer/item search, **quote lines with 12 fields** (Type, Group No., Service Item No., Service Item Description, No. (materials search), Description, Qty., Unit Price, Addition, Ref. Sales Quote No., Discount %, Discount Amt.), bi-directional discount sync, materials search integration (searches dbo.materials by MaterialCode OR MaterialName), inline editing for all text/number fields, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, Division (selectable: MS1029, EL1017, PS1029, GT1029), BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH), Responsibility Center (auto-populated from BRANCH) | N/A (BC Quote Number) |
+| **Sales Quotes** | Business Central integration via Azure Function API | Create and manage sales quotes with Azure Function API (endpoint: `CreateSalesQuoteWithoutNumber`), local database customer search (min 2 chars), customer/item search, **quote lines with 12 fields** (Type, Group No., Service Item No., Service Item Description, No. (materials search), Description, Qty., Unit Price, Addition, Ref. Sales Quote No., Discount %, Discount Amt.), bi-directional discount sync, materials search integration (searches dbo.materials by MaterialCode OR MaterialName), modal-based editing for quote lines (reuses Add Line modal structure), insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, Division (selectable: MS1029, EL1017, PS1029, GT1029), BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH), Responsibility Center (auto-populated from BRANCH) | N/A (BC Quote Number) |
 |  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, dynamic required field indicators (asterisks hide when fields have values), modern date picker with Flatpickr (Order Date defaults to today) |  |
 
 ### Cost Components
@@ -138,7 +138,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Readonly/locked fields have no placeholder text (cleaner appearance)
     - Search field placeholders shortened to action-oriented text: "Search customers/salespeople/users..." (vs. verbose "Type 2+ characters to search...")
     - Other placeholders simplified for clarity: "Contact name..." (vs. "Contact person..."), "Work description..." (vs. "Describe the work to be performed...")
-  - **Inline Quote Line Editing** (Sales Quotes): Edit quote lines directly in the table without opening a modal
+  - **Modal-Based Quote Line Editing** (Sales Quotes): Edit quote lines using a dedicated modal (reuses Add Line modal structure)
     - **15-column table layout**: Type (dropdown), Group No., Serv. Item No., Serv. Item Desc., No. (materials search), Desc. (250px width), Qty., Unit Price, Addition (toggle switch), Ref. SQ No., Disc. %, Discount Amt., Line Total, Actions
     - **Column header shortening**: Service Item No. → Serv. Item No., Service Item Description → Serv. Item Desc., Description → Desc., Discount % → Disc. % for compact display
     - **Column width optimization**: Desc. column widened to 250px for better text display; Ref. Sales Quote No. shortened to "Ref. SQ No."
@@ -148,17 +148,19 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - Scaled to 0.85 for compact table display
       - Focus ring for keyboard accessibility
       - Better visual feedback and touch-friendly for mobile
-    - **Inline editable fields** (all 12 text/number fields): Type (dropdown), Serv. Item No., Serv. Item Desc., Group No., Desc., Qty., Unit Price, Ref. SQ No., Disc. %, Discount Amt.
-    - **Toggle-enabled fields**: Addition toggle switch (works in both view and edit modes)
-    - **Bi-directional discount sync**: Disc. % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Disc% / 100` with cursor position preservation for smooth typing
-    - **Materials search**: "No." field searches `dbo.materials` table by MaterialCode OR MaterialName (min 2 chars), Desc. auto-fills from MaterialName (editable), Unit Price remains manual entry
-    - Visual feedback: Blue background (`bg-blue-50 ring-2 ring-blue-500`) highlights the row being edited
-    - Keyboard support: Enter to save, Escape to cancel
-    - Single-line edit: Only one line can be edited at a time (auto-cancels previous edit when clicking Edit on another line)
-    - Real-time validation: Quantity > 0, Price >= 0, Discount >= 0
-    - Auto-cancel: Edits are automatically cancelled when clicking Insert/Remove/Add/Clear on other lines
-    - Save/Cancel buttons with icons: Checkmark (green) for Save, X (gray) for Cancel
-    - Implemented in `src/js/salesquotes/state.js` and `src/js/salesquotes/create-quote.js`
+    - **Edit Line Modal**: Same 6-column grid layout as Add Line modal (without New SER button)
+      - **Modal fields**: Type (dropdown), Group No., Serv. Item No., Serv. Item Desc., No. (readonly), Desc., Qty., Unit Price, Disc. %, Discount Amt., Addition (toggle), Ref. SQ No., Line Total (preview)
+      - **Field states based on Type**: When Type="Comment", Service Item fields are disabled and cleared
+      - **Pre-populated data**: All fields populate with existing line data when modal opens
+      - **Real-time total preview**: Line Total updates automatically as Qty, Unit Price, or Discount changes
+      - **Bi-directional discount sync**: Disc. % ↔ Discount Amt. sync with formula: `Discount Amt = (Qty × Unit Price) × Disc% / 100`
+      - **Validation**: Required fields (No., Description, Qty. > 0) with error toast notifications
+      - **Modal actions**: Save Changes (primary blue gradient) + Cancel (secondary white)
+      - **Keyboard support**: ESC key closes modal
+      - **Auto-cancel**: Modal closes automatically when opening Add Line modal, fullscreen table, or clearing quote
+      - **Implementation**: `openEditLineModal()`, `closeEditLineModal()`, `saveEditLine()` in `src/js/salesquotes/create-quote.js`
+    - **View mode table display**: Read-only table with Edit button that opens modal
+    - **Benefits over inline editing**: Cleaner validation (single save point), better mobile UX (full-width inputs), consistent UI patterns
   - **Locked VAT Rate Field** (Sales Quotes): VAT Rate % field is locked to prevent user edits
     - **Readonly attribute**: Field cannot be edited, always displays 7%
     - **Visual styling**: Gray background (`bg-slate-50`) with `not-allowed` cursor to indicate locked state

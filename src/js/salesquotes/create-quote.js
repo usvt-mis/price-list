@@ -3,7 +3,7 @@
  * Handles quote creation, line management, and BC API integration
  */
 
-import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState, enterLineEditMode, exitLineEditMode } from './state.js';
+import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState } from './state.js';
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showNoBranchModal } from './ui.js';
@@ -650,105 +650,6 @@ function confirmNewSerCreation() {
 }
 
 // ============================================================
-// Inline Edit Handlers
-// ============================================================
-
-/**
- * Handle edit button click - enter edit mode
- * @param {string} lineId - The ID of the line to edit
- */
-export function handleEditQuoteLine(lineId) {
-  // Cancel any active edit first
-  if (state.ui.editingLineId && state.ui.editingLineId !== lineId) {
-    exitLineEditMode(false, state.ui.editingLineId);
-  }
-
-  // Enter edit mode
-  const success = enterLineEditMode(lineId);
-  if (success) {
-    renderQuoteLines();
-  }
-}
-
-/**
- * Handle save button click or Enter key - save changes
- * @param {string} lineId - The ID of the line being edited
- */
-export function handleSaveLineEdit(lineId) {
-  const line = state.quote.lines.find(l => l.id === lineId);
-  if (!line) return;
-
-  // Gather all inline field values with references
-  const newSerButton = document.querySelector(`button[data-line-id="${lineId}"][data-field="usvtCreateSv"]`);
-  const fieldRefs = {
-    usvtCreateSv: newSerButton,
-    lineType: document.querySelector(`select[data-line-id="${lineId}"][data-field="lineType"]`),
-    serviceItemNo: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemNo"]`),
-    serviceItemDesc: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemDescription"]`),
-    groupNo: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtGroupNo"]`),
-    no: document.querySelector(`input[data-line-id="${lineId}"][data-field="lineObjectNumber"]`),
-    description: document.querySelector(`input[data-line-id="${lineId}"][data-field="description"]`),
-    quantity: document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`),
-    unitPrice: document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`),
-    discountPercent: document.querySelector(`input[data-line-id="${lineId}"][data-field="discountPercent"]`),
-    discountAmount: document.querySelector(`input[data-line-id="${lineId}"][data-field="discountAmount"]`),
-    addition: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtAddition"]`),
-    refSalesQuote: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtRefSalesQuoteno"]`)
-  };
-
-  // Check New SER button state by looking for the gradient class
-  const isNewSerOn = newSerButton?.classList.contains('from-indigo-500');
-
-  const newData = {
-    usvtCreateSv: isNewSerOn || false,
-    lineType: fieldRefs.lineType?.value || 'Item',
-    usvtServiceItemNo: fieldRefs.serviceItemNo?.value?.trim() || '',
-    usvtServiceItemDescription: fieldRefs.serviceItemDesc?.value?.trim() || '',
-    usvtGroupNo: fieldRefs.groupNo?.value?.trim() || '',
-    lineObjectNumber: fieldRefs.no?.value?.trim() || '',
-    description: fieldRefs.description?.value?.trim() || '',
-    quantity: parseFloat(fieldRefs.quantity?.value) || 1,
-    unitPrice: parseFloat(fieldRefs.unitPrice?.value) || 0,
-    usvtAddition: fieldRefs.addition?.checked || false,
-    usvtRefSalesQuoteno: fieldRefs.refSalesQuote?.value?.trim() || '',
-    discountPercent: sanitizeDiscountInput(fieldRefs.discountPercent?.value || '0', 1),
-    discountAmount: sanitizeDiscountInput(fieldRefs.discountAmount?.value || '0', 2)
-  };
-
-  // Use shared validation
-  const validation = validateQuoteLineData(newData);
-
-  if (!validation.isValid) {
-    const firstField = validation.firstErrorField;
-    const errorMessage = Object.values(validation.errors)[0];
-
-    showError(errorMessage);
-
-    // Focus on error field in inline table
-    fieldRefs[firstField]?.focus();
-    return;
-  }
-
-  exitLineEditMode(true, lineId, newData);
-  renderQuoteLines();
-  renderTotals();
-  showSuccess('Line updated');
-}
-
-/**
- * Handle cancel button click or Escape key - discard changes
- * @param {string} lineId - The ID of the line being edited
- */
-export function handleCancelLineEdit(lineId) {
-  // Exit edit mode without saving
-  exitLineEditMode(false, lineId);
-
-  // Re-render
-  renderQuoteLines();
-  renderTotals();
-}
-
-// ============================================================
 // Quote Actions
 // ============================================================
 
@@ -756,9 +657,10 @@ export function handleCancelLineEdit(lineId) {
  * Clear quote form - shows confirmation modal
  */
 export function handleClearQuote() {
-  // Cancel any active edit first
-  if (state.ui.editingLineId) {
-    exitLineEditMode(false, state.ui.editingLineId);
+  // Close edit modal if open
+  const editModal = document.getElementById('editLineModal');
+  if (editModal && !editModal.classList.contains('hidden')) {
+    closeEditLineModal();
   }
 
   // Show confirmation modal instead of native confirm
@@ -1532,6 +1434,11 @@ export function setupEventListeners() {
     workDescriptionField.addEventListener('change', updateOptionalFieldHint);
   }
 
+  // EDIT LINE MODAL SETUP
+  // =====================
+  // Setup event listeners for the edit line modal
+  setupEditModalEventListeners();
+
   console.log('Event listeners setup complete');
 }
 
@@ -1577,67 +1484,6 @@ function handleModalDiscountSync(changedField, value) {
   updateLineTotalPreview();
 }
 
-/**
- * Handle discount sync in inline editing
- */
-window.handleDiscountChange = function(lineId, field, value) {
-  const line = state.quote.lines.find(l => l.id === lineId);
-  if (!line) return;
-
-  const quantityInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`);
-  const priceInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`);
-
-  const quantity = parseFloat(quantityInput?.value || line.quantity);
-  const unitPrice = parseFloat(priceInput?.value || line.unitPrice);
-  const lineSubtotal = quantity * unitPrice;
-
-  if (field === 'discountPercent') {
-    const percent = parseFloat(value) || 0;
-    line.discountPercent = percent;
-    line.discountAmount = (lineSubtotal * percent) / 100;
-
-    // Update the other field
-    const amtInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="discountAmount"]`);
-    if (amtInput) amtInput.value = line.discountAmount.toFixed(2);
-  } else if (field === 'discountAmount') {
-    const amount = parseFloat(value) || 0;
-    line.discountAmount = amount;
-    line.discountPercent = lineSubtotal > 0 ? (amount / lineSubtotal) * 100 : 0;
-
-    // Update the other field
-    const pctInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="discountPercent"]`);
-    if (pctInput) pctInput.value = line.discountPercent.toFixed(1);
-  }
-
-  // Update total display
-  window.updateLineEditTotal(lineId);
-};
-
-/**
- * Update line edit total display during inline editing
- */
-window.updateLineEditTotal = function(lineId) {
-  const line = state.quote.lines.find(l => l.id === lineId);
-  if (!line) return;
-
-  const quantityInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="quantity"]`);
-  const priceInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="unitPrice"]`);
-  const discountInput = document.querySelector(`input[data-line-id="${lineId}"][data-field="discountAmount"]`);
-
-  const quantity = parseFloat(quantityInput?.value || line.quantity);
-  const unitPrice = parseFloat(priceInput?.value || line.unitPrice);
-  const discount = parseFloat(discountInput?.value || line.discountAmount || 0);
-
-  const total = (quantity * unitPrice) - discount;
-  const totalElement = document.getElementById(`line-total-${lineId}`);
-  if (totalElement) {
-    totalElement.textContent = formatCurrency(total);
-  }
-
-  // Also update quote totals
-  renderTotals();
-};
-
 // ============================================================
 // Export functions to window for onclick handlers
 // ============================================================
@@ -1663,11 +1509,6 @@ if (typeof window !== 'undefined') {
   window.removeQuoteLine = removeQuoteLineIndex => {
     handleRemoveQuoteLine(removeQuoteLineIndex);
   };
-
-  // Inline edit actions
-  window.editQuoteLine = handleEditQuoteLine;
-  window.saveLineEdit = handleSaveLineEdit;
-  window.cancelLineEdit = handleCancelLineEdit;
 
   // Quote actions
   window.clearQuote = handleClearQuote;
@@ -1757,6 +1598,218 @@ function renderItemDropdown(items) {
 }
 
 // ============================================================
+// Edit Line Modal Functions
+// ============================================================
+
+/**
+ * Open edit line modal with line data pre-populated
+ * @param {string} lineId - The ID of the line to edit
+ */
+function openEditLineModal(lineId) {
+  const line = state.lines.find(l => l.id === lineId);
+  if (!line) {
+    console.error(`Line with ID ${lineId} not found`);
+    return;
+  }
+
+  // Store the line ID being edited
+  state.ui.editingLineId = lineId;
+
+  // Populate modal fields with line data
+  document.getElementById('editLineType').value = line.lineType || 'Item';
+  document.getElementById('editLineUsvtGroupNo').value = line.usvtGroupNo || '';
+  document.getElementById('editLineUsvtServiceItemNo').value = line.usvtServiceItemNo || '';
+  document.getElementById('editLineUsvtServiceItemDescription').value = line.usvtServiceItemDescription || '';
+  document.getElementById('editLineObjectNumberSearch').value = line.lineObjectNumber || '';
+  document.getElementById('editLineDescription').value = line.description;
+  document.getElementById('editLineQuantity').value = line.quantity;
+  document.getElementById('editLineUnitPrice').value = line.unitPrice || 0;
+  document.getElementById('editLineDiscountPercent').value = line.discountPercent || 0;
+  document.getElementById('editLineDiscountAmount').value = line.discountAmount || 0;
+  document.getElementById('editLineUsvtAddition').checked = line.usvtAddition || false;
+  document.getElementById('editLineUsvtRefSalesQuoteno').value = line.usvtRefSalesQuoteno || '';
+
+  // Update field states based on Type
+  updateEditModalFieldStates(line.lineType);
+
+  // Update line total preview
+  updateEditLineTotal();
+
+  // Show modal
+  const modal = document.getElementById('editLineModal');
+  const content = document.getElementById('editLineModalContent');
+  modal.classList.remove('hidden');
+  setTimeout(() => {
+    content.classList.remove('opacity-0', 'translate-y-[-10px]');
+    content.classList.add('opacity-100', 'translate-y-0');
+  }, 10);
+}
+
+/**
+ * Close edit line modal without saving
+ */
+function closeEditLineModal() {
+  const modal = document.getElementById('editLineModal');
+  const content = document.getElementById('editLineModalContent');
+
+  content.classList.remove('opacity-100', 'translate-y-0');
+  content.classList.add('opacity-0', 'translate-y-[-10px]');
+  setTimeout(() => {
+    modal.classList.add('hidden');
+    state.ui.editingLineId = null;
+  }, 300);
+}
+
+/**
+ * Save changes from edit line modal
+ */
+function saveEditLine() {
+  const lineId = state.ui.editingLineId;
+  if (!lineId) return;
+
+  // Get values from modal
+  const lineData = {
+    lineType: document.getElementById('editLineType').value,
+    usvtGroupNo: parseInt(document.getElementById('editLineUsvtGroupNo').value) || 0,
+    usvtServiceItemNo: document.getElementById('editLineUsvtServiceItemNo').value,
+    usvtServiceItemDescription: document.getElementById('editLineUsvtServiceItemDescription').value,
+    lineObjectNumber: document.getElementById('editLineObjectNumberSearch').value,
+    description: document.getElementById('editLineDescription').value.trim(),
+    quantity: parseFloat(document.getElementById('editLineQuantity').value),
+    unitPrice: parseFloat(document.getElementById('editLineUnitPrice').value) || 0,
+    discountPercent: parseFloat(document.getElementById('editLineDiscountPercent').value) || 0,
+    discountAmount: parseFloat(document.getElementById('editLineDiscountAmount').value) || 0,
+    usvtAddition: document.getElementById('editLineUsvtAddition').checked,
+    usvtRefSalesQuoteno: document.getElementById('editLineUsvtRefSalesQuoteno').value
+  };
+
+  // Validation
+  if (!lineData.lineObjectNumber) {
+    showToast('error', 'Validation Error', 'Material No. is required');
+    return;
+  }
+  if (!lineData.description) {
+    showToast('error', 'Validation Error', 'Description is required');
+    return;
+  }
+  if (lineData.quantity <= 0) {
+    showToast('error', 'Validation Error', 'Quantity must be greater than 0');
+    return;
+  }
+
+  // Update line in state
+  const lineIndex = state.lines.findIndex(l => l.id === lineId);
+  if (lineIndex !== -1) {
+    state.lines[lineIndex] = { ...state.lines[lineIndex], ...lineData };
+  }
+
+  // Recalculate totals
+  calculateTotals();
+
+  // Re-render table
+  renderQuoteLines();
+
+  // Sync fullscreen table
+  syncFullscreenTable();
+
+  // Close modal
+  closeEditLineModal();
+
+  // Show success toast
+  showToast('success', 'Line Updated', 'Quote line has been updated successfully');
+}
+
+/**
+ * Update line total preview in edit modal
+ */
+function updateEditLineTotal() {
+  const qty = parseFloat(document.getElementById('editLineQuantity').value) || 0;
+  const price = parseFloat(document.getElementById('editLineUnitPrice').value) || 0;
+  const discAmt = parseFloat(document.getElementById('editLineDiscountAmount').value) || 0;
+
+  const lineTotal = (qty * price) - discAmt;
+  document.getElementById('editLineTotalPreview').textContent = formatCurrency(lineTotal);
+}
+
+/**
+ * Update field states based on Type selection in edit modal
+ * @param {string} type - The line type ('Item' or 'Comment')
+ */
+function updateEditModalFieldStates(type) {
+  const servItemNo = document.getElementById('editLineUsvtServiceItemNo');
+  const servItemDesc = document.getElementById('editLineUsvtServiceItemDescription');
+
+  if (type === 'Comment') {
+    servItemNo.disabled = true;
+    servItemDesc.disabled = true;
+    servItemNo.value = '';
+    servItemDesc.value = '';
+  } else {
+    servItemNo.disabled = false;
+    servItemDesc.disabled = false;
+  }
+}
+
+/**
+ * Handle bi-directional discount sync in edit modal
+ * @param {string} field - The field that changed ('percent' or 'amount')
+ * @param {string} value - The new value
+ */
+function handleEditModalDiscountChange(field, value) {
+  const qty = parseFloat(document.getElementById('editLineQuantity').value) || 0;
+  const price = parseFloat(document.getElementById('editLineUnitPrice').value) || 0;
+  const subtotal = qty * price;
+
+  if (field === 'percent') {
+    const percent = parseFloat(value) || 0;
+    const amount = (subtotal * percent) / 100;
+    document.getElementById('editLineDiscountAmount').value = amount.toFixed(2);
+  } else {
+    const amount = parseFloat(value) || 0;
+    const percent = subtotal > 0 ? (amount / subtotal) * 100 : 0;
+    document.getElementById('editLineDiscountPercent').value = percent.toFixed(1);
+  }
+
+  updateEditLineTotal();
+}
+
+/**
+ * Setup event listeners for edit modal
+ */
+function setupEditModalEventListeners() {
+  // Quantity and Unit Price changes - update total
+  document.getElementById('editLineQuantity').addEventListener('input', updateEditLineTotal);
+  document.getElementById('editLineUnitPrice').addEventListener('input', updateEditLineTotal);
+
+  // Discount fields - bi-directional sync
+  document.getElementById('editLineDiscountPercent').addEventListener('input', (e) => {
+    handleEditModalDiscountChange('percent', e.target.value);
+  });
+  document.getElementById('editLineDiscountAmount').addEventListener('input', (e) => {
+    handleEditModalDiscountChange('amount', e.target.value);
+  });
+
+  // Type change - update field states
+  document.getElementById('editLineType').addEventListener('change', (e) => {
+    updateEditModalFieldStates(e.target.value);
+  });
+
+  // Close modal on backdrop click
+  document.getElementById('editLineModal').addEventListener('click', (e) => {
+    if (e.target.id === 'editLineModal') {
+      closeEditLineModal();
+    }
+  });
+
+  // Close modal on ESC key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('editLineModal').classList.contains('hidden')) {
+      closeEditLineModal();
+    }
+  });
+}
+
+// ============================================================
 // Export functions to window for onclick handlers
 // ============================================================
 
@@ -1764,4 +1817,7 @@ if (typeof window !== 'undefined') {
   window.clearQuote = handleClearQuote;
   window.confirmClearQuote = confirmClearQuote;
   window.cancelClearQuote = cancelClearQuote;
+  window.openEditLineModal = openEditLineModal;
+  window.closeEditLineModal = closeEditLineModal;
+  window.saveEditLine = saveEditLine;
 }
