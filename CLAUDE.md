@@ -162,7 +162,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - **Real-time total preview**: Line Total updates automatically as Qty, Unit Price, or Discount changes
       - **Bi-directional discount sync**: Disc. % ↔ Discount Amt. sync with formula: `Discount Amt = (Qty × Unit Price) × Disc% / 100`
       - **Validation**: Required fields (No., Description, Qty. > 0) with error toast notifications
-      - **Modal actions**: Save Changes (primary blue gradient) + Cancel (secondary white)
+      - **Modal actions**: Save Changes (primary indigo gradient, matching Add Line modal) + Cancel (secondary white)
       - **Keyboard support**: ESC key closes modal
       - **Auto-cancel**: Modal closes automatically when opening Add Line modal, fullscreen table, or clearing quote
       - **Implementation**: `openEditLineModal()`, `closeEditLineModal()`, `saveEditLine()` in `src/js/salesquotes/create-quote.js`
