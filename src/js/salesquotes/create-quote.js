@@ -1077,9 +1077,9 @@ export function setupLineModalHandlers() {
     const isCurrentlyOn = newSerButton.classList.contains('from-indigo-500');
 
     if (isCurrentlyOn) {
-      // Turn OFF - clear fields and disable
+      // Turn OFF - just update button state (fields remain enabled)
       setNewSerButtonState(false);
-      updateServiceItemFieldState(); // This will clear both fields
+      updateServiceItemFieldState(); // Keeps both fields enabled
     } else {
       // Turn ON - validate and create Service Item via API
       try {
@@ -1107,7 +1107,7 @@ export function setupLineModalHandlers() {
           serviceItemNoField.value = serviceItemNo;
         }
 
-        // Update Service Item field states (keeps Desc. enabled, No. disabled but populated)
+        // Update Service Item field states (both fields remain enabled)
         updateServiceItemFieldState();
 
         // Show success message
@@ -1218,11 +1218,9 @@ export function setupLineModalHandlers() {
   }
 
   /**
-   * Update Service Item fields based on New SER button state
-   * When New SER is OFF, disable and clear BOTH Service Item fields
-   * When New SER is ON:
-   *   - Serv. Item No. remains disabled (auto-generated/not applicable)
-   *   - Serv. Item Desc. is enabled for user entry
+   * Update Service Item fields - always enable both fields for manual entry
+   * Users can now type freely in both Serv. Item No. and Serv. Item Desc. fields
+   * regardless of the New SER button state
    */
   function updateServiceItemFieldState() {
     const serviceItemNoField = el('lineUsvtServiceItemNo');
@@ -1232,29 +1230,12 @@ export function setupLineModalHandlers() {
       return;
     }
 
-    const isNewSerOn = newSerButton.classList.contains('from-indigo-500');
+    // Always enable BOTH fields - users can type freely
+    serviceItemNoField.disabled = false;
+    serviceItemNoField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
 
-    if (!isNewSerOn) {
-      // New SER OFF: Disable BOTH fields
-      serviceItemNoField.disabled = true;
-      serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-      serviceItemNoField.value = ''; // Clear value
-
-      serviceItemDescField.disabled = true;
-      serviceItemDescField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-      serviceItemDescField.value = ''; // Clear value
-    } else {
-      // New SER ON: Disable Serv. Item No. but enable Serv. Item Desc.
-      // Note: Serv. Item No. is populated by API and remains read-only
-      serviceItemNoField.disabled = true; // Keep disabled (read-only)
-      serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-      // Don't clear value - it's populated by the API call
-
-      serviceItemDescField.disabled = false; // Enable this field for editing
-      serviceItemDescField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-      // Focus on description field for better UX
-      serviceItemDescField.focus();
-    }
+    serviceItemDescField.disabled = false;
+    serviceItemDescField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
   }
 }
 

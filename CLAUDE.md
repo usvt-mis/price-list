@@ -181,9 +181,9 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **Input field enhancements**: Number input spinners hidden for cleaner UI, discount field focus preservation (cursor stays stable during bi-directional sync)
       - **Technical implementation**: Discount fields use `type="text"` with `inputmode="decimal"` for mobile numeric keypad, `pattern` attribute for validation, and `validateDiscountInput()` function for sanitization
       - This approach enables reliable cursor position preservation (`selectionStart`/`setSelectionRange`) which doesn't work with `type="number"`
-    - **New SER field behavior**: Controls Service Item field states with specialized workflow and API integration
-      - **New SER OFF**: Both Serv. Item No. and Serv. Item Desc. are disabled (grayed out, values cleared)
-      - **New SER ON**: Validates Service Item Description, calls CreateServiceItem API, auto-populates Serv. Item No. with API response, keeps Serv. Item Desc. enabled for editing
+    - **New SER field behavior**: Helper button that auto-populates Service Item No. via API integration
+      - **Always-enabled fields**: Both Serv. Item No. and Serv. Item Desc. are always editable - users can type freely without clicking New SER button first
+      - **New SER button workflow**: Validates Service Item Description, calls CreateServiceItem API, auto-populates Serv. Item No. with API response (field remains editable after population)
       - **API Integration**: When clicked (turned ON), button calls `CreateServiceItem` Azure Function API
         - Request body: `{ description, item_No: "SERV-ITEM", Customer_Number, Group_No }`
         - Response: `{ result: { Results: [ { ServiceItemNo, GroupNo, Success, Error } ] } }`
