@@ -1204,7 +1204,7 @@ export function setupLineModalHandlers() {
           if (field.type === 'checkbox') {
             field.checked = false;
           } else if (fieldId === 'lineQuantity') {
-            field.value = '1';
+            field.value = '0';
           } else if (fieldId === 'lineUnitPrice' || fieldId === 'lineDiscountPercent' || fieldId === 'lineDiscountAmount') {
             field.value = '0';
           } else {
@@ -1847,6 +1847,7 @@ function updateEditModalFieldStates(type) {
   const servItemNo = document.getElementById('editLineUsvtServiceItemNo');
   const servItemDesc = document.getElementById('editLineUsvtServiceItemDescription');
   const newSerButton = document.getElementById('editLineCreateSv');
+  const quantityField = document.getElementById('editLineQuantity');
 
   // If fields are locked due to existing Service Item, skip state updates
   if (state.ui.editLineLocked) {
@@ -1858,11 +1859,17 @@ function updateEditModalFieldStates(type) {
     servItemDesc.disabled = true;
     servItemNo.value = '';
     servItemDesc.value = '';
+    // Set Quantity to 0 for Comment type
+    if (quantityField) {
+      quantityField.value = '0';
+    }
     // Disable New SER button for Comment type
     if (newSerButton) {
       newSerButton.disabled = true;
       newSerButton.innerHTML = 'New SER';
     }
+    // Update line total preview to reflect 0 quantity
+    updateEditLineTotal();
   } else {
     servItemNo.disabled = false;
     servItemDesc.disabled = false;
