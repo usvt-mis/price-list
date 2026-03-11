@@ -640,6 +640,29 @@ function handleModalFieldInput(e) {
 }
 
 /**
+ * Setup asterisk handlers for Edit Line modal fields
+ */
+export function setupEditModalAsteriskHandlers() {
+  const editModalFields = ['editLineType', 'editLineObjectNumberSearch', 'editLineDescription', 'editLineQuantity'];
+
+  editModalFields.forEach(fieldId => {
+    const field = el(fieldId);
+    if (!field) return;
+
+    // Check initial state
+    updateRequiredAsterisk(fieldId);
+
+    // Remove old listeners to prevent duplicates
+    field.removeEventListener('input', handleModalFieldInput);
+    field.removeEventListener('change', handleModalFieldInput);
+
+    // Add fresh listeners (input for text fields, change for select dropdowns)
+    field.addEventListener('input', handleModalFieldInput);
+    field.addEventListener('change', handleModalFieldInput);
+  });
+}
+
+/**
  * Update line total preview in modal
  */
 export function updateLineTotalPreview() {

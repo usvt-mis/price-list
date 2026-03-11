@@ -89,6 +89,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Applies to main form (7 fields): Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, Division
     - **Note**: BRANCH field is excluded from required validation (auto-populated from user auth data)
     - Applies to Add Line modal (4 fields): Type, No. (materials search), Description, Qty.
+    - Applies to Edit Line modal (4 fields): Type, No. (readonly, auto-populated), Description, Qty.
     - **Note**: Unit Price is optional (no asterisk, no validation)
     - Works with all input types: text inputs, search dropdowns, select dropdowns, and numeric fields
     - Numeric field validation: Treats 0 as empty (Qty. = 0 shows red background)
@@ -161,6 +162,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - **Pre-populated data**: All fields populate with existing line data when modal opens
       - **Real-time total preview**: Line Total updates automatically as Qty, Unit Price, or Discount changes
       - **Bi-directional discount sync**: Disc. % ↔ Discount Amt. sync with formula: `Discount Amt = (Qty × Unit Price) × Disc% / 100`
+      - **Required field validation**: Light red background (#fef2f2) on empty required fields (Type, No., Description, Qty.) matching Add Line modal behavior
       - **Validation**: Required fields (No., Description, Qty. > 0) with error toast notifications
       - **Modal actions**: Save Changes (primary indigo gradient, matching Add Line modal) + Cancel (secondary white)
       - **Keyboard support**: ESC key closes modal
