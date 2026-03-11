@@ -1138,39 +1138,16 @@ export function setupLineModalHandlers() {
   }
 
   function setButtonNormalState() {
-    // Normal state: blue gradient, enabled
+    // Normal state: gray button with Tailwind classes
     newSerButton.disabled = false;
-    newSerButton.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
-    newSerButton.style.color = 'white';
-    newSerButton.style.cursor = 'pointer';
-    newSerButton.style.opacity = '1';
     newSerButton.innerHTML = 'New SER';
   }
 
   function setButtonCreatedState() {
     // Created state: gray, disabled, shows checkmark
     newSerButton.disabled = true;
-    newSerButton.style.background = '#94a3b8'; // Slate-400
-    newSerButton.style.color = 'white';
-    newSerButton.style.cursor = 'not-allowed';
-    newSerButton.style.opacity = '0.8';
     newSerButton.innerHTML = '✓ Created';
   }
-
-  // Add hover effect for button (only when enabled)
-  newSerButton.addEventListener('mouseenter', () => {
-    if (!newSerButton.disabled) {
-      newSerButton.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
-      newSerButton.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.15)';
-    }
-  });
-
-  newSerButton.addEventListener('mouseleave', () => {
-    if (!newSerButton.disabled) {
-      newSerButton.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
-      newSerButton.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
-    }
-  });
 
   function updateFieldStates() {
     const typeValue = typeSelect.value;
@@ -1189,12 +1166,9 @@ export function setupLineModalHandlers() {
     if (isComment) {
       newSerButton.disabled = true;
       setButtonNormalState();
-      newSerButton.style.opacity = '0.5';
-      newSerButton.style.cursor = 'not-allowed';
     } else {
       newSerButton.disabled = false;
-      newSerButton.style.opacity = '1';
-      newSerButton.style.cursor = 'pointer';
+      setButtonNormalState();
     }
 
     // Fields to disable when Type is "Comment"

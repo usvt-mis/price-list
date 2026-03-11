@@ -554,12 +554,8 @@ export function openAddLineModal(insertIndex = null) {
     // New SER button - reset to normal state
     if (el('lineCreateSv')) {
       const button = el('lineCreateSv');
-      // Reset to normal state using inline styles
+      // Reset to normal state (Tailwind classes handle styling)
       button.disabled = false;
-      button.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
-      button.style.color = 'white';
-      button.style.cursor = 'pointer';
-      button.style.opacity = '1';
       button.innerHTML = 'New SER';
     }
 

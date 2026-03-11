@@ -163,25 +163,25 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **Readonly attribute**: Field cannot be edited, always displays 7%
     - **Visual styling**: Gray background (`bg-slate-50`) with `not-allowed` cursor to indicate locked state
     - **Calculation integration**: Still participates in VAT calculation (7% of subtotal after discount)
-  - **Add Line Modal with 5-Column Grid** (Sales Quotes): Improved field organization with consolidated pricing and footer action button
-    - **5-column grid system** for better field alignment and data entry flow
+  - **Add Line Modal with 6-Column Grid** (Sales Quotes): Improved field organization with consolidated pricing and footer action button
+    - **6-column grid system** for better field alignment and data entry flow
     - **Field organization by row**:
-      - Row 1: Type (1) | Group No (1) | Service Item No (1) | New SER Button (1) | Service Item Description (2) - Compact 5-field layout with button control
+      - Row 1: Type (1) | Group No (1) | New SER (1) | Serv. Item No (1) | Serv. Item Desc (2) - Compact 6-field layout with button control
       - Row 2: No (2) + Description (4) - Materials search and description (single-line input)
       - Row 3: Qty (1) | Unit Price (2) | Discount % (1) | Discount Amt. (2) - Price/discount fields on same row
       - Row 4: Addition (1) | Ref. Sales Quote No. (2) | Line Total (3) - Consolidated pricing info with vertical toggle label
     - **Footer actions**: Add Line button (primary gradient) + Cancel button (secondary white)
-    - **UI improvements**: New SER button (blue gradient CREATE button, turns gray after creation) and Addition toggle switch (purple-indigo gradient when ON), Group No. defaults to 1, labels positioned above controls (vertical layout), compact field sizes with reduced padding and font sizes
+    - **UI improvements**: New SER button (gray button with label above in `toggle-label-vertical` wrapper, turns disabled after creation) and Addition toggle switch (purple-indigo gradient when ON), Group No. defaults to 1, labels positioned above controls (vertical layout), compact field sizes with reduced padding and font sizes
     - **Input field enhancements**: Number input spinners hidden for cleaner UI, discount field focus preservation (cursor stays stable during bi-directional sync)
       - **Technical implementation**: Discount fields use `type="text"` with `inputmode="decimal"` for mobile numeric keypad, `pattern` attribute for validation, and `validateDiscountInput()` function for sanitization
       - This approach enables reliable cursor position preservation (`selectionStart`/`setSelectionRange`) which doesn't work with `type="number"`
     - **New SER field behavior**: Helper CREATE button that auto-populates Service Item No. via API integration (not a toggle)
-      - **Button styling**: Blue gradient (`#3b82f6 → #2563eb`) with inline CSS, no Tailwind classes
-        - Normal state: Blue gradient, enabled, shows "New SER"
-        - Hover state: Darker blue gradient (`#2563eb → #1d4ed8`) with enhanced shadow
-        - Creating state: Blue gradient + 70% opacity, shows "Creating..."
-        - Created state: Gray (`#94a3b8`), disabled, shows "✓ Created"
-        - Comment type: Blue + 50% opacity, disabled
+      - **Button styling**: Gray button with Tailwind classes (`bg-slate-200 text-slate-700 hover:bg-slate-300`) in `toggle-label-vertical` wrapper
+        - Normal state: Gray background, enabled, shows "New SER" with label above
+        - Hover state: Darker gray background (`hover:bg-slate-300`)
+        - Creating state: Disabled during API call, shows "Creating..."
+        - Created state: Gray background, disabled, shows "✓ Created"
+        - Comment type: Gray background, disabled
       - **Simple CREATE flow** (no toggle): Click → Validate Description → Call API → Create SER → Lock fields → Disable button
       - **Always-enabled fields**: Both Serv. Item No. and Serv. Item Desc. are editable until SER is created or Type="Comment" is selected
       - **New SER button workflow**: Validates Service Item Description, calls CreateServiceItem API, auto-populates Serv. Item No. with API response
