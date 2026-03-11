@@ -1125,7 +1125,7 @@ function wireFullscreenInlineEditEvents() {
   editButtons.forEach(btn => {
     // Clone button to remove old event listeners
     const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, newBtn);
+    btn.parentNode.replaceChild(newBtn, btn);
 
     newBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1141,7 +1141,7 @@ function wireFullscreenInlineEditEvents() {
   actionButtons.forEach(btn => {
     // Clone to remove old event listeners
     const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, newBtn);
+    btn.parentNode.replaceChild(newBtn, btn);
   });
 }
 
