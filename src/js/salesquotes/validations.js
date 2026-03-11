@@ -339,3 +339,61 @@ export function sanitizeQuoteData(quote) {
     }))
   };
 }
+
+// ============================================================
+// Quote Line Validation (Comprehensive)
+// ============================================================
+
+/**
+ * Validate quote line data (comprehensive version for Add/Edit)
+ * @param {Object} line - Line data to validate
+ * @returns {Object} {isValid, errors, firstErrorField}
+ */
+export function validateQuoteLineData(line) {
+  const errors = {};
+  let firstErrorField = null;
+
+  // 1. Description (required)
+  if (!line.description || line.description.trim() === '') {
+    errors.description = 'Description is required';
+    if (!firstErrorField) firstErrorField = 'description';
+  }
+
+  // 2. Service Item Description (required if Create SV is checked)
+  if (line.usvtCreateSv && (!line.usvtServiceItemDescription || line.usvtServiceItemDescription.trim() === '')) {
+    errors.usvtServiceItemDescription = 'Service Item Description is required when Create SV is enabled';
+    if (!firstErrorField) firstErrorField = 'usvtServiceItemDescription';
+  }
+
+  // 3. Quantity (must be > 0)
+  if (!line.quantity || line.quantity <= 0) {
+    errors.quantity = 'Quantity must be greater than 0';
+    if (!firstErrorField) firstErrorField = 'quantity';
+  }
+
+  // 4. Unit Price (cannot be negative)
+  if (line.unitPrice < 0) {
+    errors.unitPrice = 'Unit price cannot be negative';
+    if (!firstErrorField) firstErrorField = 'unitPrice';
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+    firstErrorField
+  };
+}
+
+/**
+ * Sanitize discount input value
+ * @param {string} value - Raw input value
+ * @param {number} decimals - Decimal places (1 for %, 2 for amount)
+ * @returns {number} Sanitized number
+ */
+export function sanitizeDiscountInput(value, decimals) {
+  const cleaned = value.replace(/[^\d.]/g, '');
+  const parsed = parseFloat(cleaned);
+
+  if (isNaN(parsed)) return 0;
+  return Number(parsed.toFixed(decimals));
+}

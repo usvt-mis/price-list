@@ -5,7 +5,7 @@
 
 import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState, enterLineEditMode, exitLineEditMode } from './state.js';
 import { bcClient } from './bc-api-client.js';
-import { validateQuote, validateAndUpdate, sanitizeQuoteData } from './validations.js';
+import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess } from './ui.js';
 import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
@@ -466,36 +466,28 @@ export function handleAddQuoteLine() {
     unitPrice: parseFloat(fieldRefs.unitPrice?.value) || 0,
     usvtAddition: fieldRefs.addition?.checked || false,
     usvtRefSalesQuoteno: fieldRefs.refSalesQuote?.value?.trim() || '',
-    discountPercent: parseFloat(fieldRefs.discountPercent?.value) || 0,
-    discountAmount: parseFloat(fieldRefs.discountAmount?.value) || 0
+    discountPercent: sanitizeDiscountInput(fieldRefs.discountPercent?.value || '0', 1),
+    discountAmount: sanitizeDiscountInput(fieldRefs.discountAmount?.value || '0', 2)
   };
 
-  // Validation (top to bottom order)
-  // 1. Description
-  if (!lineData.description) {
-    showError('Please enter a description');
-    fieldRefs.description?.focus();
-    return;
-  }
+  // Use shared validation
+  const validation = validateQuoteLineData(lineData);
 
-  // 2. Service Item Description (if Create SV is checked)
-  if (lineData.usvtCreateSv && !lineData.usvtServiceItemDescription) {
-    showError('Service Item Description is required when Create SV is enabled');
-    fieldRefs.serviceItemDesc?.focus();
-    return;
-  }
+  if (!validation.isValid) {
+    const firstField = validation.firstErrorField;
+    const errorMessage = Object.values(validation.errors)[0];
 
-  // 3. Quantity
-  if (lineData.quantity <= 0) {
-    showError('Quantity must be greater than 0');
-    fieldRefs.quantity?.focus();
-    return;
-  }
+    showError(errorMessage);
 
-  // 4. Unit Price
-  if (lineData.unitPrice < 0) {
-    showError('Unit price cannot be negative');
-    fieldRefs.unitPrice?.focus();
+    // Map field name to element ID
+    const fieldMap = {
+      'description': 'lineDescription',
+      'usvtServiceItemDescription': 'lineUsvtServiceItemDescription',
+      'quantity': 'lineQuantity',
+      'unitPrice': 'lineUnitPrice'
+    };
+
+    el(fieldMap[firstField])?.focus();
     return;
   }
 
@@ -643,36 +635,21 @@ export function handleSaveLineEdit(lineId) {
     unitPrice: parseFloat(fieldRefs.unitPrice?.value) || 0,
     usvtAddition: fieldRefs.addition?.checked || false,
     usvtRefSalesQuoteno: fieldRefs.refSalesQuote?.value?.trim() || '',
-    discountPercent: parseFloat(fieldRefs.discountPercent?.value) || 0,
-    discountAmount: parseFloat(fieldRefs.discountAmount?.value) || 0
+    discountPercent: sanitizeDiscountInput(fieldRefs.discountPercent?.value || '0', 1),
+    discountAmount: sanitizeDiscountInput(fieldRefs.discountAmount?.value || '0', 2)
   };
 
-  // Validation (top to bottom order based on table columns)
-  // 1. Description
-  if (!newData.description) {
-    showError('Description is required');
-    fieldRefs.description?.focus();
-    return;
-  }
+  // Use shared validation
+  const validation = validateQuoteLineData(newData);
 
-  // 2. Service Item Description (if Create SV is checked)
-  if (newData.usvtCreateSv && !newData.usvtServiceItemDescription) {
-    showError('Service Item Description is required when Create SV is enabled');
-    fieldRefs.serviceItemDesc?.focus();
-    return;
-  }
+  if (!validation.isValid) {
+    const firstField = validation.firstErrorField;
+    const errorMessage = Object.values(validation.errors)[0];
 
-  // 3. Quantity
-  if (newData.quantity <= 0) {
-    showError('Quantity must be greater than 0');
-    fieldRefs.quantity?.focus();
-    return;
-  }
+    showError(errorMessage);
 
-  // 4. Unit Price
-  if (newData.unitPrice < 0) {
-    showError('Unit price cannot be negative');
-    fieldRefs.unitPrice?.focus();
+    // Focus on error field in inline table
+    fieldRefs[firstField]?.focus();
     return;
   }
 
@@ -693,32 +670,6 @@ export function handleCancelLineEdit(lineId) {
   // Re-render
   renderQuoteLines();
   renderTotals();
-}
-
-/**
- * Validate line data (private helper)
- * @param {Object} lineData - The line data to validate
- * @returns {Object} Validation result {isValid, error}
- */
-function validateLineData(lineData) {
-  const { quantity, unitPrice, discountAmount } = lineData;
-
-  // Validate quantity
-  if (!quantity || quantity <= 0) {
-    return { isValid: false, error: 'Quantity must be greater than 0' };
-  }
-
-  // Validate unit price
-  if (unitPrice < 0) {
-    return { isValid: false, error: 'Unit price cannot be negative' };
-  }
-
-  // Validate discount amount
-  if (discountAmount < 0) {
-    return { isValid: false, error: 'Discount amount cannot be negative' };
-  }
-
-  return { isValid: true };
 }
 
 // ============================================================
@@ -1020,8 +971,14 @@ export function setupLineModalHandlers() {
   // Handle Addition changes
   additionCheckbox.addEventListener('change', updateAdditionFieldState);
 
+  // Handle Create SV changes
+  createSvCheckbox.addEventListener('change', updateServiceItemFieldState);
+
   // Initial Addition state
   updateAdditionFieldState();
+
+  // Initial Service Item field state
+  updateServiceItemFieldState();
 
   function updateFieldStates() {
     const typeValue = typeSelect.value;
@@ -1080,6 +1037,9 @@ export function setupLineModalHandlers() {
     if (el('lineTotalPreview')) {
       el('lineTotalPreview').textContent = '0.00';
     }
+
+    // Sync Service Item fields with Create SV checkbox state
+    updateServiceItemFieldState();
   }
 
   /**
@@ -1099,6 +1059,40 @@ export function setupLineModalHandlers() {
       // Enable Ref Sales Quote No when Addition is ON
       refSalesQuoteField.disabled = false;
       refSalesQuoteField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    }
+  }
+
+  /**
+   * Update Service Item fields based on Create SV checkbox state
+   * When Create SV is OFF (unchecked), disable and clear Service Item fields
+   * When Create SV is ON (checked), enable Service Item fields
+   */
+  function updateServiceItemFieldState() {
+    const serviceItemNoField = el('lineUsvtServiceItemNo');
+    const serviceItemDescField = el('lineUsvtServiceItemDescription');
+
+    if (!serviceItemNoField || !serviceItemDescField) {
+      return;
+    }
+
+    const isCreateSvEnabled = createSvCheckbox.checked;
+
+    if (!isCreateSvEnabled) {
+      // Disable Service Item fields when Create SV is OFF
+      serviceItemNoField.disabled = true;
+      serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+      serviceItemNoField.value = ''; // Clear value
+
+      serviceItemDescField.disabled = true;
+      serviceItemDescField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+      serviceItemDescField.value = ''; // Clear value
+    } else {
+      // Enable Service Item fields when Create SV is ON
+      serviceItemNoField.disabled = false;
+      serviceItemNoField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+
+      serviceItemDescField.disabled = false;
+      serviceItemDescField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
     }
   }
 }
@@ -1258,7 +1252,7 @@ function handleModalDiscountSync(changedField, value) {
   const lineSubtotal = quantity * unitPrice;
 
   if (changedField === 'discountPercent') {
-    const percent = validateDiscountInput(value, 1); // 1 decimal place
+    const percent = sanitizeDiscountInput(value, 1); // 1 decimal place
     const percentInput = el('lineDiscountPercent');
     const amtInput = el('lineDiscountAmount');
 
@@ -1271,7 +1265,7 @@ function handleModalDiscountSync(changedField, value) {
     // Restore cursor position (will work with type="text")
     percentInput.setSelectionRange(cursorPos, cursorPos);
   } else if (changedField === 'discountAmount') {
-    const amount = validateDiscountInput(value, 2); // 2 decimal places
+    const amount = sanitizeDiscountInput(value, 2); // 2 decimal places
     const amtInput = el('lineDiscountAmount');
     const percentInput = el('lineDiscountPercent');
 
@@ -1285,26 +1279,6 @@ function handleModalDiscountSync(changedField, value) {
     amtInput.setSelectionRange(cursorPos, cursorPos);
   }
   updateLineTotalPreview();
-}
-
-/**
- * Validate and sanitize discount input value
- * @param {string} value - Raw input value
- * @param {number} decimals - Maximum decimal places (1 for %, 2 for amount)
- * @returns {number} - Parsed and validated number
- */
-function validateDiscountInput(value, decimals) {
-  // Remove non-numeric characters except decimal point
-  const cleaned = value.replace(/[^\d.]/g, '');
-
-  // Parse as float
-  const parsed = parseFloat(cleaned);
-
-  // Return 0 for invalid input
-  if (isNaN(parsed)) return 0;
-
-  // Round to specified decimal places
-  return Number(parsed.toFixed(decimals));
 }
 
 /**
