@@ -79,6 +79,22 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
 - **Four separate calculator applications**: `index.html` (landing), `onsite.html` (onsite calculator), `workshop.html` (workshop calculator), `salesquotes.html` (Sales Quotes with Business Central integration)
 - **Modular JavaScript**: Each calculator has its own isolated state in `src/js/onsite/`, `src/js/workshop/`, and `src/js/salesquotes/`
 - **Shared utilities**: `src/js/core/` for common functions, `src/js/auth/` for authentication
+- **Sales Quotes Modular Components** (refactored for maintainability):
+  - **External CSS**: `src/salesquotes/components/styles/salesquotes-styles.css` - All custom styles extracted from inline `<style>` block
+  - **Modal Components**: `src/salesquotes/components/modals/` - 8 separate modal HTML files:
+    - `add-line-modal.html` - Add Quote Line modal with 6-column grid
+    - `edit-line-modal.html` - Edit Quote Line modal (reuses Add Line structure)
+    - `quote-created-modal.html` - Success modal after BC quote creation
+    - `fullscreen-table-modal.html` - Expandable fullscreen table view
+    - `confirm-remove-modal.html` - Quote line removal confirmation
+    - `confirm-clear-modal.html` - Clear quote confirmation
+    - `confirm-new-ser-modal.html` - New Service Item creation confirmation
+    - `no-branch-modal.html` - No branch assigned error modal
+  - **Modal Loader**: `src/js/salesquotes/components/modal-loader.js` - Dynamic modal loading with caching
+    - `preloadAllModals()` - Loads all modals during app initialization
+    - `loadModal(modalName)` - Load a single modal on demand
+    - Modals are injected into `#modalContainer` div in main HTML
+    - Enables lazy loading and reduces initial HTML file size (~750 lines vs 1,342 lines)
   - `scrollspy.js` - Floating section navigation with Intersection Observer for active section detection
   - `floating-buttons.js` - Sticky header for desktop, floating Save/Records buttons for mobile
   - `collapsible-sections.js` - Collapse/expand functionality for Labor, Materials, Travel, and Onsite Options section cards
@@ -110,14 +126,14 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Applied to Work Description field in main quote form
     - **No asterisk**: Field doesn't use required asterisk to avoid confusion (asterisks universally mean "required")
     - Real-time updates: Background color changes immediately when typing/clearing content
-    - **Implementation**: CSS class `.field-optional-hint` with `.has-content` modifier in `src/salesquotes.html`, event listeners in `src/js/salesquotes/create-quote.js`
+    - **Implementation**: CSS class `.field-optional-hint` with `.has-content` modifier in `src/salesquotes/components/styles/salesquotes-styles.css`, event listeners in `src/js/salesquotes/create-quote.js`
   - **No Branch Assigned Modal** (Sales Quotes): Error modal for users without branch assignment
     - Shows when user's `branchId` is missing or invalid (not in 1-6 range)
     - **Amber gradient theme** with warning icon, centered on screen, backdrop blur effect
     - Explains: "You don't have permission to create Sales Quotes. Please wait for an Admin to assign a branch to your account."
     - **Highest z-index** (200) to appear above all other modals
     - Single "Close" button to dismiss modal
-    - **Implementation**: `showNoBranchModal()`, `hideNoBranchModal()` in `src/js/salesquotes/ui.js`, modal HTML in `src/salesquotes.html`, validation in `initializeBranchFields()` in `src/js/salesquotes/create-quote.js`
+    - **Implementation**: `showNoBranchModal()`, `hideNoBranchModal()` in `src/js/salesquotes/ui.js`, modal HTML in `src/salesquotes/components/modals/no-branch-modal.html`, validation in `initializeBranchFields()` in `src/js/salesquotes/create-quote.js`
   - **Modern Date Picker** (Sales Quotes): Flatpickr library integration for Order Date and Requested Delivery Date fields
     - Order Date defaults to today's date (asterisk hidden when populated)
     - Requested Delivery Date has no default value (asterisk visible until date selected)
@@ -176,7 +192,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - **Double-click to edit**: Double-clicking any row opens the Edit Line Modal (same as clicking Edit button)
       - **Visual feedback**: Cursor changes to pointer on hover, background becomes slate-100 on hover
       - **Works in fullscreen**: Double-click functionality also available in fullscreen table view
-      - **Implementation**: `.row-double-clickable` CSS class in `src/salesquotes.html`, `ondblclick` event in `renderViewRow()` in `src/js/salesquotes/ui.js`
+      - **Implementation**: `.row-double-clickable` CSS class in `src/salesquotes/components/styles/salesquotes-styles.css`, `ondblclick` event in `renderViewRow()` in `src/js/salesquotes/ui.js`
     - **Benefits over inline editing**: Cleaner validation (single save point), better mobile UX (full-width inputs), consistent UI patterns
   - **Locked VAT Rate Field** (Sales Quotes): VAT Rate % field is locked to prevent user edits
     - **Readonly attribute**: Field cannot be edited, always displays 7%
@@ -236,7 +252,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - Implemented in `createServiceItem()`, `createServiceItemAndLockFields()`, `setButtonNormalState()`, `setButtonCreatedState()`, `updateServiceItemFieldState()`, `updateFieldStates()` functions and confirmation modal handlers (`showConfirmNewSerModal()`, `hideConfirmNewSerModal()`, `confirmNewSerCreation()`, `cancelNewSerCreation()`) in `src/js/salesquotes/create-quote.js`
     - **All element IDs preserved**: No JavaScript changes needed for grid refactor
     - **Responsive design**: Grid collapses to single column on mobile devices
-    - Located in `src/salesquotes.html` (Add Line modal, lines ~625-720)
+    - **Modular implementation**: Modal HTML located in `src/salesquotes/components/modals/add-line-modal.html`
   - **Fullscreen Quote Lines Table** (Sales Quotes): Expandable modal for viewing all table columns at maximum width
     - **Expand button**: Purple gradient button next to "Add Line" with fullscreen icon
     - **Modal layout**: Fullscreen modal at 90% viewport height with maximum width table

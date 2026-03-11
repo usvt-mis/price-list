@@ -8,6 +8,7 @@ import { initAuth, renderAuthSection } from '../auth/index.js';
 import { state, initState, setCurrentView, STORAGE_KEYS } from './state.js';
 import { el, show, hide, showToast } from './ui.js';
 import { loadInitialData, setupEventListeners } from './create-quote.js';
+import { preloadAllModals } from './components/modal-loader.js';
 
 // ============================================================
 // Application Initialization
@@ -41,11 +42,15 @@ async function initApp() {
     await loadInitialData();
     console.log('Initial data loaded');
 
-    // 6. Setup event listeners
+    // 6. Preload modals
+    await preloadAllModals();
+    console.log('Modals preloaded');
+
+    // 7. Setup event listeners
     setupEventListeners();
     console.log('Event listeners setup');
 
-    // 7. Initialize asterisk state for any default values
+    // 9. Initialize asterisk state for any default values
     setTimeout(() => {
       ['customerNoSearch', 'orderDate', 'requestedDeliveryDate'].forEach(id => {
         const field = el(id);
@@ -55,7 +60,7 @@ async function initApp() {
       });
     }, 100);
 
-    // 8. Set initial view
+    // 10. Set initial view
     setCurrentView('create');
     console.log('Initial view set');
 
