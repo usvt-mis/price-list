@@ -397,6 +397,7 @@ function calculateLineTotal(line) {
 
 /**
  * Render totals
+ * Also syncs invoice discount percent when called from line changes
  */
 export function renderTotals() {
   const invoiceDiscount = parseFloat(el('invoiceDiscount')?.value || 0);
@@ -415,6 +416,13 @@ export function renderTotals() {
   if (el('vatAmount')) el('vatAmount').textContent = formatCurrency(vatAmount);
   if (el('vatRateDisplay')) el('vatRateDisplay').textContent = (vatRate * 100).toFixed(0);
   if (el('totalAmount')) el('totalAmount').textContent = formatCurrency(total);
+
+  // Sync invoice discount percent (unless currently being edited by user)
+  const percentInput = el('invoiceDiscountPercent');
+  if (percentInput && document.activeElement !== percentInput) {
+    const calculatedPercent = subtotal > 0 ? (discountAmount / subtotal) * 100 : 0;
+    percentInput.value = calculatedPercent.toFixed(1);
+  }
 }
 
 // ============================================================
@@ -816,6 +824,7 @@ export function clearQuoteForm() {
   if (el('customerNoSearch')) el('customerNoSearch').value = '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = '';
   if (el('invoiceDiscount')) el('invoiceDiscount').value = '0';
+  if (el('invoiceDiscountPercent')) el('invoiceDiscountPercent').value = '0.0';
 
   // Clear new fields
   if (el('contact')) el('contact').value = '';

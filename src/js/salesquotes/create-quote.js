@@ -1378,8 +1378,11 @@ export function setupEventListeners() {
     el(id)?.addEventListener('input', updateLineTotalPreview);
   });
 
-  // Invoice discount and VAT rate changes (update totals)
-  el('invoiceDiscount')?.addEventListener('input', renderTotals);
+  // Invoice discount sync in totals card (bi-directional)
+  el('invoiceDiscountPercent')?.addEventListener('input', (e) => handleInvoiceDiscountSync('invoiceDiscountPercent', e.target.value));
+  el('invoiceDiscount')?.addEventListener('input', (e) => handleInvoiceDiscountSync('invoiceDiscount', e.target.value));
+
+  // VAT rate changes (update totals)
   el('vatRate')?.addEventListener('input', renderTotals);
 
   // Close dropdowns when clicking outside
@@ -1516,6 +1519,57 @@ function handleModalDiscountSync(changedField, value) {
     amtInput.setSelectionRange(cursorPos, cursorPos);
   }
   updateLineTotalPreview();
+}
+
+/**
+ * Handle invoice discount sync in totals card (bi-directional)
+ * Syncs between invoiceDiscount (amount) and invoiceDiscountPercent (%)
+ */
+function handleInvoiceDiscountSync(changedField, value) {
+  // Get subtotal from all quote lines
+  const subtotal = state.quote.lines.reduce((sum, line) => {
+    const quantity = parseFloat(line.quantity) || 0;
+    const unitPrice = parseFloat(line.unitPrice) || 0;
+    const discountAmount = parseFloat(line.discountAmount) || 0;
+    return sum + (quantity * unitPrice - discountAmount);
+  }, 0);
+
+  if (changedField === 'invoiceDiscountPercent') {
+    // Percent changed - calculate amount
+    const percent = sanitizeDiscountInput(value, 1); // 1 decimal place
+    const percentInput = el('invoiceDiscountPercent');
+    const amtInput = el('invoiceDiscount');
+
+    if (!percentInput || !amtInput) return;
+
+    // Save cursor position BEFORE updating value
+    const cursorPos = percentInput.selectionStart;
+
+    percentInput.value = percent.toFixed(1);
+    amtInput.value = ((subtotal * percent) / 100).toFixed(2);
+
+    // Restore cursor position
+    percentInput.setSelectionRange(cursorPos, cursorPos);
+  } else if (changedField === 'invoiceDiscount') {
+    // Amount changed - calculate percent
+    const amount = sanitizeDiscountInput(value, 2); // 2 decimal places
+    const amtInput = el('invoiceDiscount');
+    const percentInput = el('invoiceDiscountPercent');
+
+    if (!percentInput || !amtInput) return;
+
+    // Save cursor position BEFORE updating value
+    const cursorPos = amtInput.selectionStart;
+
+    amtInput.value = amount.toFixed(2);
+    percentInput.value = (subtotal > 0 ? (amount / subtotal) * 100 : 0).toFixed(1);
+
+    // Restore cursor position
+    amtInput.setSelectionRange(cursorPos, cursorPos);
+  }
+
+  // Update totals display
+  renderTotals();
 }
 
 // ============================================================
