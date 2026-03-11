@@ -82,8 +82,10 @@ export const state = {
     // Track editing state for modal editing
     editingLineId: null,        // ID of line currently being edited in modal
     pendingRemoveLineIndex: null, // Index of line pending removal (for confirmation modal)
-    serCreated: false,  // Track if SER was successfully created in current modal session
-    pendingSerCreation: false  // Track if SER creation confirmation modal is open
+    serCreated: false,  // Track if SER was successfully created in Add Line modal
+    pendingSerCreation: false,  // Track if SER creation confirmation modal is open (Add Line)
+    serCreatedEdit: false,  // Track if SER was successfully created in Edit Line modal
+    pendingSerCreationEdit: false  // Track if SER creation confirmation modal is open (Edit Line)
   },
 
   // Data cache

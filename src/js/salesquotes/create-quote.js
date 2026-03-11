@@ -627,6 +627,7 @@ function hideConfirmNewSerModal() {
     setTimeout(() => {
       modal.classList.add('hidden');
       state.ui.pendingSerCreation = false;
+      state.ui.pendingSerCreationEdit = false;
     }, 300);
   }
 }
@@ -640,12 +641,18 @@ function cancelNewSerCreation() {
 
 /**
  * Confirm and proceed with New SER creation
+ * Handles both Add Line and Edit Line contexts
  */
 function confirmNewSerCreation() {
   hideConfirmNewSerModal();
   // Proceed with the actual creation after modal closes
   setTimeout(() => {
-    createServiceItemAndLockFields();
+    // Check which context we're in (Add or Edit)
+    if (state.ui.pendingSerCreationEdit) {
+      createServiceItemAndLockFieldsForEdit();
+    } else {
+      createServiceItemAndLockFields();
+    }
   }, 350); // Wait for modal animation to complete
 }
 
@@ -661,6 +668,19 @@ export function handleClearQuote() {
   const editModal = document.getElementById('editLineModal');
   if (editModal && !editModal.classList.contains('hidden')) {
     closeEditLineModal();
+  }
+
+  // Close confirmation modal if open
+  const confirmModal = el('confirmNewSerModal');
+  if (confirmModal && !confirmModal.classList.contains('hidden')) {
+    const confirmContent = el('confirmNewSerModalContent');
+    confirmContent.classList.remove('opacity-100', 'translate-y-0');
+    confirmContent.classList.add('opacity-0', 'translate-y-[-10px]');
+    setTimeout(() => {
+      confirmModal.classList.add('hidden');
+      state.ui.pendingSerCreation = false;
+      state.ui.pendingSerCreationEdit = false;
+    }, 300);
   }
 
   // Show confirmation modal instead of native confirm
@@ -1615,6 +1635,9 @@ function openEditLineModal(lineId) {
   // Store the line ID being edited
   state.ui.editingLineId = lineId;
 
+  // Reset SER creation flag for Edit modal
+  state.ui.serCreatedEdit = false;
+
   // Populate modal fields with line data
   document.getElementById('editLineType').value = line.lineType || 'Item';
   document.getElementById('editLineUsvtGroupNo').value = line.usvtGroupNo || '';
@@ -1628,6 +1651,27 @@ function openEditLineModal(lineId) {
   document.getElementById('editLineDiscountAmount').value = line.discountAmount || 0;
   document.getElementById('editLineUsvtAddition').checked = line.usvtAddition || false;
   document.getElementById('editLineUsvtRefSalesQuoteno').value = line.usvtRefSalesQuoteno || '';
+
+  // Initialize New SER button state based on existing line data
+  const newSerButton = document.getElementById('editLineCreateSv');
+  if (newSerButton) {
+    // Disable button if line already has a Service Item No.
+    const hasExistingSer = line.usvtServiceItemNo && line.usvtServiceItemNo.trim() !== '';
+    const isComment = line.lineType === 'Comment';
+
+    if (hasExistingSer || isComment) {
+      newSerButton.disabled = true;
+      if (hasExistingSer) {
+        newSerButton.innerHTML = '✓ Created';
+      } else {
+        newSerButton.innerHTML = 'New SER';
+      }
+    } else {
+      newSerButton.disabled = false;
+      newSerButton.innerHTML = 'New SER';
+    }
+    newSerButton.style.opacity = '1';
+  }
 
   // Update field states based on Type
   updateEditModalFieldStates(line.lineType);
@@ -1657,6 +1701,10 @@ function closeEditLineModal() {
   setTimeout(() => {
     modal.classList.add('hidden');
     state.ui.editingLineId = null;
+    // Reset SER creation flag for Edit modal
+    state.ui.serCreatedEdit = false;
+    // Also reset pending flag if confirmation modal was open
+    state.ui.pendingSerCreationEdit = false;
   }, 300);
 }
 
@@ -1738,16 +1786,30 @@ function updateEditLineTotal() {
 function updateEditModalFieldStates(type) {
   const servItemNo = document.getElementById('editLineUsvtServiceItemNo');
   const servItemDesc = document.getElementById('editLineUsvtServiceItemDescription');
+  const newSerButton = document.getElementById('editLineCreateSv');
 
   if (type === 'Comment') {
     servItemNo.disabled = true;
     servItemDesc.disabled = true;
     servItemNo.value = '';
     servItemDesc.value = '';
+    // Disable New SER button for Comment type
+    if (newSerButton) {
+      newSerButton.disabled = true;
+      newSerButton.innerHTML = 'New SER';
+    }
   } else {
     servItemNo.disabled = false;
     servItemDesc.disabled = false;
+    // Re-enable New SER button if no SER was created yet
+    if (newSerButton && !state.ui.serCreatedEdit) {
+      newSerButton.disabled = false;
+      newSerButton.innerHTML = 'New SER';
+    }
   }
+
+  // Update Service Item field state based on SER creation flag
+  updateEditServiceItemFieldState();
 }
 
 /**
@@ -1773,6 +1835,158 @@ function handleEditModalDiscountChange(field, value) {
   updateEditLineTotal();
 }
 
+// ============================================================
+// Edit Modal - New SER Button Handlers
+// ============================================================
+
+/**
+ * Show confirmation modal for New SER creation (Edit modal context)
+ */
+function showConfirmNewSerModalForEdit() {
+  const description = document.getElementById('editLineUsvtServiceItemDescription').value.trim();
+
+  // Validate description before showing modal
+  if (!description) {
+    showError('Service Item Description is required before creating a Service Item.');
+    document.getElementById('editLineUsvtServiceItemDescription').focus();
+    return;
+  }
+
+  // Display the description in the modal
+  const descriptionEl = document.getElementById('confirmNewSerDescription');
+  if (descriptionEl) {
+    descriptionEl.textContent = `"${description}"`;
+  }
+
+  // Show modal with animation
+  const modal = document.getElementById('confirmNewSerModal');
+  const modalContent = document.getElementById('confirmNewSerModalContent');
+
+  if (modal && modalContent) {
+    state.ui.pendingSerCreationEdit = true;
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+      modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
+      modalContent.classList.add('opacity-100', 'translate-y-0');
+    }, 10);
+  }
+}
+
+/**
+ * Confirm and proceed with New SER creation (Edit modal context)
+ */
+function confirmNewSerCreationForEdit() {
+  hideConfirmNewSerModal();
+  // Proceed with the actual creation after modal closes
+  setTimeout(() => {
+    createServiceItemAndLockFieldsForEdit();
+  }, 350); // Wait for modal animation to complete
+}
+
+/**
+ * Create Service Item and lock fields in Edit modal
+ */
+async function createServiceItemAndLockFieldsForEdit() {
+  // If already created, do nothing
+  if (state.ui.serCreatedEdit) {
+    showError('Service Item already created');
+    return;
+  }
+
+  // Get required field values
+  const serviceItemDesc = document.getElementById('editLineUsvtServiceItemDescription')?.value?.trim();
+  const customerNo = state.quote.customerNo || '';
+  const groupNo = document.getElementById('editLineUsvtGroupNo')?.value?.trim() || '1';
+
+  // Validation: Serv. Item Desc is required
+  if (!serviceItemDesc) {
+    showError('Please enter Service Item Description before creating New SER');
+    document.getElementById('editLineUsvtServiceItemDescription')?.focus();
+    return;
+  }
+
+  // Show creating state
+  const newSerButton = document.getElementById('editLineCreateSv');
+  if (newSerButton) {
+    newSerButton.disabled = true;
+    newSerButton.innerHTML = 'Creating...';
+    newSerButton.style.opacity = '0.7';
+  }
+
+  try {
+    // Call CreateServiceItem API
+    const serviceItemNo = await createServiceItem(serviceItemDesc, customerNo, groupNo);
+
+    // Set SER creation flag
+    state.ui.serCreatedEdit = true;
+
+    // Populate Serv. Item No. field with API response
+    const serviceItemNoField = document.getElementById('editLineUsvtServiceItemNo');
+    if (serviceItemNoField) {
+      serviceItemNoField.value = serviceItemNo;
+    }
+
+    // Lock fields (Service Item No, Desc)
+    updateEditServiceItemFieldState();
+
+    // Lock Type dropdown
+    const typeSelect = document.getElementById('editLineType');
+    if (typeSelect) {
+      typeSelect.disabled = true;
+      typeSelect.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    }
+
+    // Update button to "Created" state (disabled)
+    if (newSerButton) {
+      newSerButton.disabled = true;
+      newSerButton.innerHTML = '✓ Created';
+      newSerButton.style.opacity = '1';
+    }
+
+    // Show success message
+    showSuccess(`Service Item ${serviceItemNo} created successfully`);
+
+  } catch (error) {
+    // API call failed - re-enable button
+    console.error('Failed to create Service Item:', error);
+    showError(error.message || 'Failed to create Service Item. Please try again.');
+    if (newSerButton) {
+      newSerButton.disabled = false;
+      newSerButton.innerHTML = 'New SER';
+      newSerButton.style.opacity = '1';
+    }
+  }
+}
+
+/**
+ * Update Service Item fields in Edit modal - lock fields if SER was created OR Type is Comment
+ */
+function updateEditServiceItemFieldState() {
+  const serviceItemNoField = document.getElementById('editLineUsvtServiceItemNo');
+  const serviceItemDescField = document.getElementById('editLineUsvtServiceItemDescription');
+  const typeSelect = document.getElementById('editLineType');
+
+  if (!serviceItemNoField || !serviceItemDescField || !typeSelect) {
+    return;
+  }
+
+  const isComment = typeSelect.value === 'Comment';
+  const isSerCreated = state.ui.serCreatedEdit;
+
+  // Lock fields if SER was created OR Type is Comment
+  if (isSerCreated || isComment) {
+    serviceItemNoField.disabled = true;
+    serviceItemDescField.disabled = true;
+    serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    serviceItemDescField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+  } else {
+    serviceItemNoField.disabled = false;
+    serviceItemDescField.disabled = false;
+    serviceItemNoField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    serviceItemDescField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+  }
+}
+
 /**
  * Setup event listeners for edit modal
  */
@@ -1793,6 +2007,12 @@ function setupEditModalEventListeners() {
   document.getElementById('editLineType').addEventListener('change', (e) => {
     updateEditModalFieldStates(e.target.value);
   });
+
+  // New SER button - show confirmation modal first
+  const newSerButton = document.getElementById('editLineCreateSv');
+  if (newSerButton) {
+    newSerButton.addEventListener('click', showConfirmNewSerModalForEdit);
+  }
 
   // Close modal on backdrop click
   document.getElementById('editLineModal').addEventListener('click', (e) => {

@@ -433,6 +433,22 @@ export function openAddLineModal(insertIndex = null) {
     setTimeout(() => {
       editModal.classList.add('hidden');
       state.ui.editingLineId = null;
+      // Reset SER creation flag for Edit modal
+      state.ui.serCreatedEdit = false;
+      state.ui.pendingSerCreationEdit = false;
+    }, 300);
+  }
+
+  // Close confirmation modal if open
+  const confirmModal = el('confirmNewSerModal');
+  if (confirmModal && !confirmModal.classList.contains('hidden')) {
+    const confirmContent = el('confirmNewSerModalContent');
+    confirmContent.classList.remove('opacity-100', 'translate-y-0');
+    confirmContent.classList.add('opacity-0', 'translate-y-[-10px]');
+    setTimeout(() => {
+      confirmModal.classList.add('hidden');
+      state.ui.pendingSerCreation = false;
+      state.ui.pendingSerCreationEdit = false;
     }, 300);
   }
 
@@ -557,6 +573,19 @@ export function closeAddLineModal() {
 
     // Reset insert mode
     state.ui.insertIndex = null;
+
+    // Close confirmation modal if open
+    const confirmModal = el('confirmNewSerModal');
+    if (confirmModal && !confirmModal.classList.contains('hidden')) {
+      const confirmContent = el('confirmNewSerModalContent');
+      confirmContent.classList.remove('opacity-100', 'translate-y-0');
+      confirmContent.classList.add('opacity-0', 'translate-y-[-10px]');
+      setTimeout(() => {
+        confirmModal.classList.add('hidden');
+        state.ui.pendingSerCreation = false;
+        state.ui.pendingSerCreationEdit = false;
+      }, 300);
+    }
   }
 
   // Hide New SER confirmation modal if open
@@ -973,6 +1002,22 @@ export function openFullscreenTable() {
     setTimeout(() => {
       editModal.classList.add('hidden');
       state.ui.editingLineId = null;
+      // Reset SER creation flag for Edit modal
+      state.ui.serCreatedEdit = false;
+      state.ui.pendingSerCreationEdit = false;
+    }, 300);
+  }
+
+  // Close confirmation modal if open
+  const confirmModal = el('confirmNewSerModal');
+  if (confirmModal && !confirmModal.classList.contains('hidden')) {
+    const confirmContent = el('confirmNewSerModalContent');
+    confirmContent.classList.remove('opacity-100', 'translate-y-0');
+    confirmContent.classList.add('opacity-0', 'translate-y-[-10px]');
+    setTimeout(() => {
+      confirmModal.classList.add('hidden');
+      state.ui.pendingSerCreation = false;
+      state.ui.pendingSerCreationEdit = false;
     }, 300);
   }
 

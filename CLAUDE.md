@@ -148,8 +148,15 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - Scaled to 0.85 for compact table display
       - Focus ring for keyboard accessibility
       - Better visual feedback and touch-friendly for mobile
-    - **Edit Line Modal**: Same 6-column grid layout as Add Line modal (without New SER button)
-      - **Modal fields**: Type (dropdown), Group No., Serv. Item No., Serv. Item Desc., No. (readonly), Desc., Qty., Unit Price, Disc. %, Discount Amt., Addition (toggle), Ref. SQ No., Line Total (preview)
+    - **Edit Line Modal**: Same 6-column grid layout as Add Line modal (now includes New SER button)
+      - **Modal fields**: Type (dropdown), Group No., New SER button, Serv. Item No., Serv. Item Desc., No. (readonly), Desc., Qty., Unit Price, Disc. %, Discount Amt., Addition (toggle), Ref. SQ No., Line Total (preview)
+      - **New SER button in Edit mode**: Same functionality as Add Line modal
+        - Button disabled if line already has Service Item No. OR Type="Comment"
+        - Shows "✓ Created" state when line has existing Service Item No.
+        - Confirmation modal workflow before creating new Service Item
+        - Field locking after SER creation (Serv. Item No., Serv. Item Desc., Type locked)
+        - State tracking via `state.ui.serCreatedEdit` and `state.ui.pendingSerCreationEdit`
+        - Implementation: `showConfirmNewSerModalForEdit()`, `createServiceItemAndLockFieldsForEdit()`, `updateEditServiceItemFieldState()`
       - **Field states based on Type**: When Type="Comment", Service Item fields are disabled and cleared
       - **Pre-populated data**: All fields populate with existing line data when modal opens
       - **Real-time total preview**: Line Total updates automatically as Qty, Unit Price, or Discount changes
@@ -530,34 +537,10 @@ See [docs/backoffice.md](docs/backoffice.md) for complete backoffice documentati
 
 ## Agent Team System
 
-Hierarchical agent team for coordinating complex tasks across domains.
-- Located in `.claude/agents/`
-- Team structure: Orchestrator → Architect/Planner → Specialists
-- See `.claude/agents/TEAM.md` for coordination protocols
-
-**Agent Categories:**
-- **Translation Agents**: `english-to-chinese-translator.md` (FanYi)
-- **Coordination Agents**: `orchestrator.md`, `planner.md`, `chinese-foreman.md` (工头/Gongtou)
-- **Leadership Agents**: `architect.md` - Technical lead
-- **Domain Specialists**: frontend, backend, auth, database, calculation, deployment, logging, backoffice
-- **Utility Agents**: `internet-researcher.md` (Scout), `Template.md`
-
-**Skill Template System:**
-- `.claude/skills/template/` - Base template for creating new skills
-- `.claude/skills/add-agents/` - Template for creating new agents
-- `.claude/skills/add-skills/` - Template for creating new skills
+ดูข้อมูลเกี่ยวกับ Agent Team System ใน [`.claude/agents.md`](.claude/agents.md)
 
 ---
 
 ## Custom Skills
 
-Custom slash commands for automating workflows:
-- Located in `.claude/skills/`
-- `update` skill: Automatically updates documentation and creates git commits
-- `bs` skill: Coordinates brainstorming sessions across multiple agents
-- `deploy` skill: Deploys application to Azure App Service Production environment
-
-**Skill Templates:**
-- `template/` - Base template for creating new skills
-- `add-agents/` - Template for creating new agents
-- `add-skills/` - Template for creating new skills
+ดูข้อมูลเกี่ยวกับ Custom Skills ใน [`.claude/skills.md`](.claude/skills.md)
