@@ -299,9 +299,10 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/backoffice/audit-log` | GET | View role change audit history (?email=search for filtering) | Backoffice session |
 | `/api/backoffice/repair` | GET | Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit/BackofficeAdmins tables) | Backoffice session |
 | `/api/backoffice/timezone-check` | GET | Diagnostic endpoint for timezone configuration (returns database and JavaScript timezone info) | Backoffice session |
-| `/api/business-central/token` | POST | Acquire OAuth token for Business Central API | Yes |
-| `/api/business-central/token` | DELETE | Clear cached BC token | Yes |
-| `/api/business-central/config` | GET | Get Business Central configuration (public, safe values only) | No |
+| `/api/business-central/config` | GET | Get Business Central configuration status (public, safe values only) | No |
+| `/api/business-central/customers/search` | GET | Search customers in local database | Yes |
+| `/api/business-central/salespeople/search` | GET | Search salespeople in local database | Yes |
+| `/api/business-central/assigned-users/search` | GET | Search assigned users in local database | Yes |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/api/version` | GET | Application version info | No |
 | `/.auth/me` | GET | Get current user info from App Service Easy Auth | No |
@@ -332,15 +333,9 @@ MOCK_USER_EMAIL="Dev User"
 MOCK_USER_ROLE="PriceListSales"
 MOCK_USER_BRANCH_ID=1
 
-# Business Central REST API Configuration
-BC_API_BASE_URL=https://api.businesscentral.dynamics.com/v2.0/
-BC_API_VERSION=v2.20
-BC_TENANT_ID=your-tenant-id-here
-BC_ENVIRONMENT=Production
-BC_COMPANY_ID=your-company-guid-here
-BC_CLIENT_ID=your-azure-ad-app-client-id
-BC_CLIENT_SECRET=your-client-secret-here
-BC_OAUTH_SCOPE=https://api.businesscentral.dynamics.com/.default
+# Business Central Integration (Local Database + Gateway)
+# BC integration uses local database for lookups and gateway for quote creation
+# No direct BC OAuth connection required
 BC_MOCK_ENABLED=true
 ```
 
@@ -618,17 +613,9 @@ The application is deployed to Azure App Service via manual deployment:
 **Environment Variables** (configured in App Service):
 - `DATABASE_CONNECTION_STRING` - SQL Server connection string
 - `NODE_ENV` - Set to "production"
-- `BC_API_BASE_URL` - Business Central API base URL
-- `BC_API_VERSION` - BC API version (e.g., v2.20)
-- `BC_TENANT_ID` - Azure AD tenant ID
-- `BC_ENVIRONMENT` - BC environment name (Production/Sandbox)
-- `BC_COMPANY_ID` - BC company GUID
-- `BC_CLIENT_ID` - Azure AD app client ID
-- `BC_CLIENT_SECRET` - Azure AD app client secret
-- `BC_OAUTH_SCOPE` - OAuth scope (default: https://api.businesscentral.dynamics.com/.default)
-- `BC_MOCK_ENABLED` - Set to "false" in production to use real BC API
+- `BC_MOCK_ENABLED` - Set to "false" in production (uses local database + gateway)
 
-**Note**: Share link generation automatically uses the App Service hostname. No additional environment variables needed. Business Central credentials must be configured for Sales Quotes functionality in production.
+**Note**: Share link generation automatically uses the App Service hostname. No additional environment variables needed. Business Central integration uses local database for lookups and a gateway service for quote creation.
 
 ## License
 

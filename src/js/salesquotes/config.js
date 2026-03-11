@@ -10,8 +10,7 @@ import { isLocalDev } from '../core/config.js';
 // ============================================================
 
 export const BC_API_CONFIG = {
-  // Token endpoint (backend proxy)
-  TOKEN: '/api/business-central/token',
+  // Config endpoint (backend)
   CONFIG: '/api/business-central/config',
 
   // Base API URL (returned by token endpoint)
@@ -185,7 +184,8 @@ export const BC_ERROR_MESSAGES = {
   VALIDATION_ERROR: 'Please check your input and try again.',
   UNKNOWN_ERROR: 'An unexpected error occurred. Please try again.',
   TOKEN_EXPIRED: 'Your session has expired. Please refresh the page.',
-  INSUFFICIENT_PERMISSIONS: 'You do not have permission to perform this action in Business Central.'
+  INSUFFICIENT_PERMISSIONS: 'You do not have permission to perform this action in Business Central.',
+  NOT_CONFIGURED: 'Business Central integration is not configured. Using local database instead.'
 };
 
 // ============================================================

@@ -16,34 +16,25 @@ import { getUserInfo } from '../auth/ui.js';
 // ============================================================
 
 /**
- * Load initial data (customers and items from BC)
+ * Load initial data - initialize the app
+ * All data comes from local database, no BC direct connection
  */
 export async function loadInitialData() {
   try {
-    showLoading('Loading Business Central data...');
+    showLoading('Initializing...');
 
-    // Initialize BC client
+    // Initialize BC client (just logs init message, no actual config needed)
     await bcClient.initialize();
 
-    // Load customers
-    const customersResponse = await bcClient.getCustomers();
-    cacheCustomers(customersResponse.value);
-    console.log(`Loaded ${customersResponse.value.length} customers`);
-
-    // Load items
-    const itemsResponse = await bcClient.getItems();
-    cacheItems(itemsResponse.value);
-    console.log(`Loaded ${itemsResponse.value.length} items`);
+    // Initialize branch fields
+    await initializeBranchFields();
 
     hideLoading();
-
-    // Initialize branch fields after loading
-    await initializeBranchFields();
 
   } catch (error) {
     hideLoading();
-    console.error('Failed to load initial data:', error);
-    showError('Failed to load data from Business Central. Please refresh the page.');
+    console.error('Failed to initialize:', error);
+    showError('Failed to initialize. Please refresh the page.');
   }
 }
 
