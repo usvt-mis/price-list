@@ -1091,6 +1091,47 @@
     </div>
   </div>
 
+  <!-- Confirm New SER Modal -->
+  <div id="confirmNewSerModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[100] transition-opacity duration-300">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div id="confirmNewSerModalContent" class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
+        <!-- Header with Icon -->
+        <div class="p-8 text-center">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-2">Create New Service Item?</h3>
+          <p class="text-sm text-gray-600">Are you sure you want to create a new Service Item?</p>
+          <div id="confirmNewSerDescription" class="mt-3 p-3 bg-slate-50 rounded-lg text-sm text-slate-700 break-words"></div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="p-6 border-t border-slate-200 bg-slate-50 flex justify-center gap-3 rounded-b-2xl">
+          <button
+            class="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 text-slate-700 rounded-lg px-6 py-3 font-medium hover:bg-slate-50 hover:border-slate-400 active:scale-95 transition-all duration-200 shadow-sm"
+            onclick="window.cancelNewSerCreation()"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Cancel
+          </button>
+          <button
+            class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg px-6 py-3 font-semibold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+            onclick="window.confirmNewSerCreation()"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Create Service Item
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- No Branch Assigned Modal -->
   <div id="noBranchModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[200] transition-opacity duration-300">
     <div class="flex items-center justify-center min-h-screen p-4">

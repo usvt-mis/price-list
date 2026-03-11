@@ -182,9 +182,18 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
         - Creating state: Disabled during API call, shows "Creating..."
         - Created state: Gray background, disabled, shows "✓ Created"
         - Comment type: Gray background, disabled
-      - **Simple CREATE flow** (no toggle): Click → Validate Description → Call API → Create SER → Lock fields → Disable button
+      - **Simple CREATE flow** (no toggle): Click → Show Confirmation Modal → User Confirms → Call API → Create SER → Lock fields → Disable button
       - **Always-enabled fields**: Both Serv. Item No. and Serv. Item Desc. are editable until SER is created or Type="Comment" is selected
-      - **New SER button workflow**: Validates Service Item Description, calls CreateServiceItem API, auto-populates Serv. Item No. with API response
+      - **New SER button workflow**: Validates Service Item Description, shows confirmation modal, calls CreateServiceItem API on confirmation, auto-populates Serv. Item No. with API response
+      - **Confirmation Modal**: Blue/indigo themed modal prevents accidental SER creation
+        - **Visual design**: Blue gradient (from-blue-500 to-blue-600) with plus icon, centered on screen, backdrop blur effect
+        - **Modal content**: Displays the Service Item Description that will be used (in quotes)
+        - **Action buttons**: Cancel (white/gray) and Create Service Item (blue gradient)
+        - **State management**: Uses `pendingSerCreation` flag in `state.ui` to track modal state
+        - **Animation**: 300ms fade-in/slide-up transitions matching existing modal patterns
+        - **Validation**: Shows error toast if description is empty (no modal displayed)
+        - **Modal cleanup**: Automatically closes if Add Line modal is closed while confirmation is open
+        - **Implementation**: `showConfirmNewSerModal()`, `hideConfirmNewSerModal()`, `confirmNewSerCreation()`, `cancelNewSerCreation()` in `src/js/salesquotes/create-quote.js`
       - **Field Locking After SER Creation**: Prevents data inconsistency by locking fields after successful Service Item creation
         - When SER is created successfully: Serv. Item No., Serv. Item Desc., and Type fields become locked (disabled, gray background)
         - New SER button becomes disabled and shows "✓ Created" (gray, cannot be clicked again)
@@ -196,11 +205,11 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
         - Request body: `[{ description, item_No: "SERV-ITEM", Customer_Number, Group_No }]` (MUST be an array)
         - Response: `{ result: { Results: [ { ServiceItemNo, GroupNo, Success, Error } ] } }`
         - Service Item No. is auto-populated from `ServiceItemNo` field in API response
-      - **Validation**: Service Item Description is required before API call (error toast if empty)
+      - **Validation**: Service Item Description is required before showing confirmation modal (error toast if empty)
       - **Error Handling**: API failures re-enable button with error toast; successful API call locks all related fields
       - **Loading State**: Button shows "Creating..." during API call
       - Button is disabled when Type="Comment" (grayed out, cannot be clicked)
-      - Implemented in `createServiceItem()`, `createServiceItemAndLockFields()`, `setButtonNormalState()`, `setButtonCreatedState()`, `updateServiceItemFieldState()`, and `updateFieldStates()` functions in `src/js/salesquotes/create-quote.js`
+      - Implemented in `createServiceItem()`, `createServiceItemAndLockFields()`, `setButtonNormalState()`, `setButtonCreatedState()`, `updateServiceItemFieldState()`, `updateFieldStates()` functions and confirmation modal handlers (`showConfirmNewSerModal()`, `hideConfirmNewSerModal()`, `confirmNewSerCreation()`, `cancelNewSerCreation()`) in `src/js/salesquotes/create-quote.js`
     - **All element IDs preserved**: No JavaScript changes needed for grid refactor
     - **Responsive design**: Grid collapses to single column on mobile devices
     - Located in `src/salesquotes.html` (Add Line modal, lines ~625-720)

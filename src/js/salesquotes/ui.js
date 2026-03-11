@@ -641,6 +641,26 @@ export function closeAddLineModal() {
     // Reset insert mode
     state.ui.insertIndex = null;
   }
+
+  // Hide New SER confirmation modal if open
+  hideConfirmNewSerModal();
+}
+
+/**
+ * Hide confirmation modal for New SER creation (internal helper)
+ */
+function hideConfirmNewSerModal() {
+  const modal = el('confirmNewSerModal');
+  const modalContent = el('confirmNewSerModalContent');
+
+  if (modal && modalContent) {
+    modalContent.classList.remove('opacity-100', 'translate-y-0');
+    modalContent.classList.add('opacity-0', 'translate-y-[-10px]');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      state.ui.pendingSerCreation = false;
+    }, 300);
+  }
 }
 
 /**

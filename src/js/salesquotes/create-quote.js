@@ -578,6 +578,78 @@ function cancelRemoveLine() {
 }
 
 // ============================================================
+// New SER Confirmation Modal Handlers
+// ============================================================
+
+/**
+ * Show confirmation modal for New SER creation
+ */
+function showConfirmNewSerModal() {
+  const description = el('lineUsvtServiceItemDescription').value.trim();
+
+  // Validate description before showing modal
+  if (!description) {
+    showError('Service Item Description is required before creating a Service Item.');
+    el('lineUsvtServiceItemDescription').focus();
+    return;
+  }
+
+  // Display the description in the modal
+  const descriptionEl = el('confirmNewSerDescription');
+  if (descriptionEl) {
+    descriptionEl.textContent = `"${description}"`;
+  }
+
+  // Show modal with animation
+  const modal = el('confirmNewSerModal');
+  const modalContent = el('confirmNewSerModalContent');
+
+  if (modal && modalContent) {
+    state.ui.pendingSerCreation = true;
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+      modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
+      modalContent.classList.add('opacity-100', 'translate-y-0');
+    }, 10);
+  }
+}
+
+/**
+ * Hide confirmation modal for New SER creation
+ */
+function hideConfirmNewSerModal() {
+  const modal = el('confirmNewSerModal');
+  const modalContent = el('confirmNewSerModalContent');
+
+  if (modal && modalContent) {
+    modalContent.classList.remove('opacity-100', 'translate-y-0');
+    modalContent.classList.add('opacity-0', 'translate-y-[-10px]');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      state.ui.pendingSerCreation = false;
+    }, 300);
+  }
+}
+
+/**
+ * Cancel New SER creation
+ */
+function cancelNewSerCreation() {
+  hideConfirmNewSerModal();
+}
+
+/**
+ * Confirm and proceed with New SER creation
+ */
+function confirmNewSerCreation() {
+  hideConfirmNewSerModal();
+  // Proceed with the actual creation after modal closes
+  setTimeout(() => {
+    createServiceItemAndLockFields();
+  }, 350); // Wait for modal animation to complete
+}
+
+// ============================================================
 // Inline Edit Handlers
 // ============================================================
 
@@ -1071,8 +1143,8 @@ export function setupLineModalHandlers() {
   // Handle Addition changes
   additionCheckbox.addEventListener('change', updateAdditionFieldState);
 
-  // Handle New SER button clicks
-  newSerButton.addEventListener('click', createServiceItemAndLockFields);
+  // Handle New SER button clicks - show confirmation first
+  newSerButton.addEventListener('click', showConfirmNewSerModal);
 
   // Initial Addition state
   updateAdditionFieldState();
@@ -1605,6 +1677,10 @@ if (typeof window !== 'undefined') {
   // Remove confirmation modal
   window.confirmRemoveLine = confirmRemoveLine;
   window.cancelRemoveLine = cancelRemoveLine;
+
+  // New SER confirmation modal
+  window.confirmNewSerCreation = confirmNewSerCreation;
+  window.cancelNewSerCreation = cancelNewSerCreation;
 
   // Modal functions
   window.setupLineModalHandlers = setupLineModalHandlers;
