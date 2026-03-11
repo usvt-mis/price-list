@@ -551,13 +551,16 @@ export function openAddLineModal(insertIndex = null) {
     // Type dropdown
     if (el('lineType')) el('lineType').value = 'Item';
 
-    // New SER button - reset to OFF state
+    // New SER button - reset to normal state
     if (el('lineCreateSv')) {
       const button = el('lineCreateSv');
-      button.className = 'h-10 px-3 text-xs font-semibold rounded-lg text-slate-700 hover:bg-slate-300 transition-all';
-      button.style.background = '#e2e8f0';
-      button.innerHTML = 'New SER';
+      // Reset to normal state using inline styles
       button.disabled = false;
+      button.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+      button.style.color = 'white';
+      button.style.cursor = 'pointer';
+      button.style.opacity = '1';
+      button.innerHTML = 'New SER';
     }
 
     // Service Item fields

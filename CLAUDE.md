@@ -171,30 +171,36 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - Row 3: Qty (1) | Unit Price (2) | Discount % (1) | Discount Amt. (2) - Price/discount fields on same row
       - Row 4: Addition (1) | Ref. Sales Quote No. (2) | Line Total (3) - Consolidated pricing info with vertical toggle label
     - **Footer actions**: Add Line button (primary gradient) + Cancel button (secondary white)
-    - **UI improvements**: New SER button (gray when OFF, green gradient when ON) and Addition toggle switch (purple-indigo gradient when ON), Group No. defaults to 1, labels positioned above controls (vertical layout), compact field sizes with reduced padding and font sizes
+    - **UI improvements**: New SER button (blue gradient CREATE button, turns gray after creation) and Addition toggle switch (purple-indigo gradient when ON), Group No. defaults to 1, labels positioned above controls (vertical layout), compact field sizes with reduced padding and font sizes
     - **Input field enhancements**: Number input spinners hidden for cleaner UI, discount field focus preservation (cursor stays stable during bi-directional sync)
       - **Technical implementation**: Discount fields use `type="text"` with `inputmode="decimal"` for mobile numeric keypad, `pattern` attribute for validation, and `validateDiscountInput()` function for sanitization
       - This approach enables reliable cursor position preservation (`selectionStart`/`setSelectionRange`) which doesn't work with `type="number"`
-    - **New SER field behavior**: Helper button that auto-populates Service Item No. via API integration
-      - **Button styling**: Green gradient (inline CSS) when ON, gray when OFF - not displayed in table, only in Add Line modal
+    - **New SER field behavior**: Helper CREATE button that auto-populates Service Item No. via API integration (not a toggle)
+      - **Button styling**: Blue gradient (`#3b82f6 → #2563eb`) with inline CSS, no Tailwind classes
+        - Normal state: Blue gradient, enabled, shows "New SER"
+        - Hover state: Darker blue gradient (`#2563eb → #1d4ed8`) with enhanced shadow
+        - Creating state: Blue gradient + 70% opacity, shows "Creating..."
+        - Created state: Gray (`#94a3b8`), disabled, shows "✓ Created"
+        - Comment type: Blue + 50% opacity, disabled
+      - **Simple CREATE flow** (no toggle): Click → Validate Description → Call API → Create SER → Lock fields → Disable button
       - **Always-enabled fields**: Both Serv. Item No. and Serv. Item Desc. are editable until SER is created or Type="Comment" is selected
       - **New SER button workflow**: Validates Service Item Description, calls CreateServiceItem API, auto-populates Serv. Item No. with API response
       - **Field Locking After SER Creation**: Prevents data inconsistency by locking fields after successful Service Item creation
         - When SER is created successfully: Serv. Item No., Serv. Item Desc., and Type fields become locked (disabled, gray background)
-        - New SER button becomes locked (disabled, cannot turn OFF) - shows error toast if clicked
+        - New SER button becomes disabled and shows "✓ Created" (gray, cannot be clicked again)
         - Type dropdown cannot be changed after SER creation
         - Modal reopen resets all locks - fresh state for next line entry
         - Implemented via `state.ui.serCreated` flag tracking
-      - **Type="Comment" Behavior**: When Comment type is selected, Service Item fields are disabled and cleared
-      - **API Integration**: When clicked (turned ON), button calls `CreateServiceItem` Azure Function API
+      - **Type="Comment" Behavior**: When Comment type is selected, Service Item fields are disabled and cleared, button is disabled
+      - **API Integration**: When clicked, button calls `CreateServiceItem` Azure Function API
         - Request body: `[{ description, item_No: "SERV-ITEM", Customer_Number, Group_No }]` (MUST be an array)
         - Response: `{ result: { Results: [ { ServiceItemNo, GroupNo, Success, Error } ] } }`
         - Service Item No. is auto-populated from `ServiceItemNo` field in API response
       - **Validation**: Service Item Description is required before API call (error toast if empty)
-      - **Error Handling**: API failures keep button OFF with error toast; successful API call locks all related fields
-      - **Loading State**: Button shows "Creating..." with pulse animation during API call
+      - **Error Handling**: API failures re-enable button with error toast; successful API call locks all related fields
+      - **Loading State**: Button shows "Creating..." during API call
       - Button is disabled when Type="Comment" (grayed out, cannot be clicked)
-      - Implemented in `createServiceItem()`, `toggleNewSerButton()`, `updateServiceItemFieldState()`, and `updateFieldStates()` functions in `src/js/salesquotes/create-quote.js`
+      - Implemented in `createServiceItem()`, `createServiceItemAndLockFields()`, `setButtonNormalState()`, `setButtonCreatedState()`, `updateServiceItemFieldState()`, and `updateFieldStates()` functions in `src/js/salesquotes/create-quote.js`
     - **All element IDs preserved**: No JavaScript changes needed for grid refactor
     - **Responsive design**: Grid collapses to single column on mobile devices
     - Located in `src/salesquotes.html` (Add Line modal, lines ~625-720)
