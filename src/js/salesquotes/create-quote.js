@@ -656,6 +656,89 @@ function confirmNewSerCreation() {
   }, 350); // Wait for modal animation to complete
 }
 
+/**
+ * Create Service Item and lock fields in Add Line modal
+ * Module-level function to be accessible from confirmNewSerCreation
+ */
+async function createServiceItemAndLockFields() {
+  // If already created, do nothing
+  if (state.ui.serCreated) {
+    showError('Service Item already created');
+    return;
+  }
+
+  // Get required field values
+  const serviceItemDesc = document.getElementById('lineUsvtServiceItemDescription')?.value?.trim();
+  const customerNo = state.quote.customerNo || '';
+  const groupNo = document.getElementById('lineUsvtGroupNo')?.value?.trim() || '1';
+
+  // Validation: Serv. Item Desc is required
+  if (!serviceItemDesc) {
+    showError('Please enter Service Item Description before creating New SER');
+    document.getElementById('lineUsvtServiceItemDescription')?.focus();
+    return;
+  }
+
+  // Show creating state
+  const newSerButton = document.getElementById('lineCreateSv');
+  if (newSerButton) {
+    newSerButton.disabled = true;
+    newSerButton.innerHTML = 'Creating...';
+    newSerButton.style.opacity = '0.7';
+  }
+
+  try {
+    // Call CreateServiceItem API
+    const serviceItemNo = await createServiceItem(serviceItemDesc, customerNo, groupNo);
+
+    // Set SER creation flag
+    state.ui.serCreated = true;
+
+    // Populate Serv. Item No. field with API response
+    const serviceItemNoField = document.getElementById('lineUsvtServiceItemNo');
+    if (serviceItemNoField) {
+      serviceItemNoField.value = serviceItemNo;
+    }
+
+    // Lock fields (Service Item No, Desc)
+    const serviceItemNoFieldEl = document.getElementById('lineUsvtServiceItemNo');
+    const serviceItemDescFieldEl = document.getElementById('lineUsvtServiceItemDescription');
+    if (serviceItemNoFieldEl && serviceItemDescFieldEl) {
+      serviceItemNoFieldEl.disabled = true;
+      serviceItemNoFieldEl.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+      serviceItemDescFieldEl.disabled = true;
+      serviceItemDescFieldEl.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    }
+
+    // Lock Type dropdown
+    const typeSelect = document.getElementById('lineType');
+    if (typeSelect) {
+      typeSelect.disabled = true;
+      typeSelect.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    }
+
+    // Update button to "Created" state (disabled)
+    if (newSerButton) {
+      newSerButton.disabled = true;
+      newSerButton.innerHTML = '✓ Created';
+      newSerButton.style.opacity = '1';
+    }
+
+    // Show success message
+    showSuccess(`Service Item ${serviceItemNo} created successfully`);
+
+  } catch (error) {
+    // API call failed - re-enable button
+    console.error('Failed to create Service Item:', error);
+    showError(error.message || 'Failed to create Service Item. Please try again.');
+    if (newSerButton) {
+      newSerButton.disabled = false;
+      newSerButton.innerHTML = 'New SER';
+      newSerButton.style.opacity = '1';
+    }
+  }
+}
+
 // ============================================================
 // Quote Actions
 // ============================================================
@@ -895,7 +978,7 @@ async function createServiceItem(description, customerNo, groupNo) {
     const newSerButton = el('lineCreateSv');
     if (newSerButton) {
       newSerButton.disabled = false;
-      // Button state will be updated by setButtonCreatedState() in the calling function
+      // Button state will be updated by createServiceItemAndLockFields() function
     }
   }
 }
@@ -1074,75 +1157,6 @@ export function setupLineModalHandlers() {
   // Initial Service Item field state
   updateServiceItemFieldState();
 
-  async function createServiceItemAndLockFields() {
-    // If already created, do nothing
-    if (state.ui.serCreated) {
-      showError('Service Item already created');
-      return;
-    }
-
-    // Get required field values
-    const serviceItemDesc = el('lineUsvtServiceItemDescription')?.value?.trim();
-    const customerNo = state.quote.customerNo || '';
-    const groupNo = el('lineUsvtGroupNo')?.value?.trim() || '1';
-
-    // Validation: Serv. Item Desc is required
-    if (!serviceItemDesc) {
-      showError('Please enter Service Item Description before creating New SER');
-      el('lineUsvtServiceItemDescription')?.focus();
-      return;
-    }
-
-    // Show creating state
-    newSerButton.disabled = true;
-    newSerButton.innerHTML = 'Creating...';
-    newSerButton.style.opacity = '0.7';
-
-    try {
-      // Call CreateServiceItem API
-      const serviceItemNo = await createServiceItem(serviceItemDesc, customerNo, groupNo);
-
-      // Set SER creation flag
-      state.ui.serCreated = true;
-
-      // Populate Serv. Item No. field with API response
-      const serviceItemNoField = el('lineUsvtServiceItemNo');
-      if (serviceItemNoField) {
-        serviceItemNoField.value = serviceItemNo;
-      }
-
-      // Lock fields (Service Item No, Desc, Type)
-      updateServiceItemFieldState();
-
-      // Lock Type dropdown
-      updateFieldStates();
-
-      // Update button to "Created" state (disabled)
-      setButtonCreatedState();
-
-      // Show success message
-      showSuccess(`Service Item ${serviceItemNo} created successfully`);
-
-    } catch (error) {
-      // API call failed - re-enable button
-      console.error('Failed to create Service Item:', error);
-      showError(error.message || 'Failed to create Service Item. Please try again.');
-      setButtonNormalState();
-    }
-  }
-
-  function setButtonNormalState() {
-    // Normal state: gray button with Tailwind classes
-    newSerButton.disabled = false;
-    newSerButton.innerHTML = 'New SER';
-  }
-
-  function setButtonCreatedState() {
-    // Created state: gray, disabled, shows checkmark
-    newSerButton.disabled = true;
-    newSerButton.innerHTML = '✓ Created';
-  }
-
   function updateFieldStates() {
     const typeValue = typeSelect.value;
     const isComment = typeValue === 'Comment';
@@ -1159,10 +1173,10 @@ export function setupLineModalHandlers() {
     // Update New SER button state
     if (isComment) {
       newSerButton.disabled = true;
-      setButtonNormalState();
+      newSerButton.innerHTML = 'New SER';
     } else {
       newSerButton.disabled = false;
-      setButtonNormalState();
+      newSerButton.innerHTML = 'New SER';
     }
 
     // Fields to disable when Type is "Comment"
