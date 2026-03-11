@@ -422,8 +422,8 @@ function renderEditingRow(line, rowClass) {
       <td><input type="number" data-line-id="${line.id}" data-field="usvtGroupNo" value="${line.usvtGroupNo || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
       <td><input type="text" data-line-id="${line.id}" data-field="lineObjectNumber" value="${line.lineObjectNumber || ''}" class="bc-input px-2 py-1 text-xs w-full font-medium" readonly></td>
       <td><input type="text" data-line-id="${line.id}" data-field="description" value="${line.description || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
-      <td><input type="number" data-line-id="${line.id}" data-field="quantity" value="${line.quantity}" min="1" class="bc-input px-2 py-1 text-xs w-16 text-center" oninput="window.updateLineEditTotal('${line.id}')"></td>
-      <td><input type="number" data-line-id="${line.id}" data-field="unitPrice" value="${parseFloat(line.unitPrice).toFixed(2)}" min="0" step="0.01" class="bc-input px-2 py-1 text-xs w-20 text-right" oninput="window.updateLineEditTotal('${line.id}')"></td>
+      <td><input type="number" data-line-id="${line.id}" data-field="quantity" value="${line.quantity}" min="1" class="bc-input px-2 py-1 text-xs w-full text-center" oninput="window.updateLineEditTotal('${line.id}')"></td>
+      <td><input type="number" data-line-id="${line.id}" data-field="unitPrice" value="${parseFloat(line.unitPrice).toFixed(2)}" min="0" step="0.01" class="bc-input px-2 py-1 text-xs w-full text-right" oninput="window.updateLineEditTotal('${line.id}')"></td>
       <td class="text-center">
         <label class="toggle-switch" style="transform: scale(0.85);">
           <input type="checkbox" data-line-id="${line.id}" data-field="usvtAddition" ${line.usvtAddition ? 'checked' : ''}>
@@ -431,8 +431,8 @@ function renderEditingRow(line, rowClass) {
         </label>
       </td>
       <td><input type="text" data-line-id="${line.id}" data-field="usvtRefSalesQuoteno" value="${line.usvtRefSalesQuoteno || ''}" class="bc-input px-2 py-1 text-xs w-full"></td>
-      <td><input type="number" data-line-id="${line.id}" data-field="discountPercent" value="${parseFloat(line.discountPercent || 0).toFixed(1)}" min="0" step="0.1" class="bc-input px-2 py-1 text-xs w-16 text-right" oninput="window.handleDiscountChange('${line.id}', 'discountPercent', this.value)"></td>
-      <td><input type="number" data-line-id="${line.id}" data-field="discountAmount" value="${parseFloat(line.discountAmount || 0).toFixed(2)}" min="0" step="0.01" class="bc-input px-2 py-1 text-xs w-20 text-right" oninput="window.handleDiscountChange('${line.id}', 'discountAmount', this.value)"></td>
+      <td><input type="number" data-line-id="${line.id}" data-field="discountPercent" value="${parseFloat(line.discountPercent || 0).toFixed(1)}" min="0" step="0.1" class="bc-input px-2 py-1 text-xs w-full text-right" oninput="window.handleDiscountChange('${line.id}', 'discountPercent', this.value)"></td>
+      <td><input type="number" data-line-id="${line.id}" data-field="discountAmount" value="${parseFloat(line.discountAmount || 0).toFixed(2)}" min="0" step="0.01" class="bc-input px-2 py-1 text-xs w-full text-right" oninput="window.handleDiscountChange('${line.id}', 'discountAmount', this.value)"></td>
       <td class="font-bold text-gray-900 text-right" id="line-total-${line.id}">${formatCurrency(calculateLineTotal(line))}</td>
       <td class="flex gap-1">
         <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1 flex items-center gap-1" onclick="window.saveLineEdit('${line.id}')" title="Save (Enter)">
