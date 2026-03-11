@@ -174,6 +174,12 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **Input field enhancements**: Number input spinners hidden for cleaner UI, discount field focus preservation (cursor stays stable during bi-directional sync)
       - **Technical implementation**: Discount fields use `type="text"` with `inputmode="decimal"` for mobile numeric keypad, `pattern` attribute for validation, and `validateDiscountInput()` function for sanitization
       - This approach enables reliable cursor position preservation (`selectionStart`/`setSelectionRange`) which doesn't work with `type="number"`
+    - **Create SV field behavior**: Controls Service Item field states with specialized workflow
+      - **Create SV OFF**: Both Serv. Item No. and Serv. Item Desc. are disabled (grayed out, values cleared)
+      - **Create SV ON**: Serv. Item No. remains disabled (auto-generated/not applicable), Serv. Item Desc. is enabled for user entry
+      - This supports workflow where Service Item Description is user-entered when Create SV is enabled, but Service Item No. is system-generated
+      - Field states update immediately when Create SV toggle is clicked
+      - Implemented in `updateServiceItemFieldState()` function in `src/js/salesquotes/create-quote.js`
     - **All element IDs preserved**: No JavaScript changes needed for grid refactor
     - **Responsive design**: Grid collapses to single column on mobile devices
     - Located in `src/salesquotes.html` (Add Line modal, lines ~625-720)

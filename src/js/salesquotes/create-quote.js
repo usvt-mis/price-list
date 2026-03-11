@@ -1072,8 +1072,10 @@ export function setupLineModalHandlers() {
 
   /**
    * Update Service Item fields based on Create SV checkbox state
-   * When Create SV is OFF (unchecked), disable and clear Service Item fields
-   * When Create SV is ON (checked), enable Service Item fields
+   * When Create SV is OFF (unchecked), disable and clear BOTH Service Item fields
+   * When Create SV is ON (checked):
+   *   - Serv. Item No. remains disabled (auto-generated/not applicable)
+   *   - Serv. Item Desc. is enabled for user entry
    */
   function updateServiceItemFieldState() {
     const serviceItemNoField = el('lineUsvtServiceItemNo');
@@ -1086,7 +1088,7 @@ export function setupLineModalHandlers() {
     const isCreateSvEnabled = createSvCheckbox.checked;
 
     if (!isCreateSvEnabled) {
-      // Disable Service Item fields when Create SV is OFF
+      // Create SV OFF: Disable BOTH fields
       serviceItemNoField.disabled = true;
       serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
       serviceItemNoField.value = ''; // Clear value
@@ -1095,11 +1097,12 @@ export function setupLineModalHandlers() {
       serviceItemDescField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
       serviceItemDescField.value = ''; // Clear value
     } else {
-      // Enable Service Item fields when Create SV is ON
-      serviceItemNoField.disabled = false;
-      serviceItemNoField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+      // Create SV ON: Disable Serv. Item No. but enable Serv. Item Desc.
+      serviceItemNoField.disabled = true; // Keep disabled
+      serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+      serviceItemNoField.value = ''; // Clear value when disabled
 
-      serviceItemDescField.disabled = false;
+      serviceItemDescField.disabled = false; // Enable this field
       serviceItemDescField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
     }
   }
