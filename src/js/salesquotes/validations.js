@@ -168,8 +168,8 @@ export function validateQuoteLine(line) {
   // const unitPriceError = validateUnitPrice(line.unitPrice);
   // if (unitPriceError) errors.unitPrice = unitPriceError;
 
-  const discountError = validateDiscount(line.discount, line.quantity, line.unitPrice);
-  if (discountError) errors.discount = discountError;
+  const discountError = validateDiscount(line.discountAmount, line.quantity, line.unitPrice);
+  if (discountError) errors.discountAmount = discountError;
 
   return errors;
 }
@@ -336,7 +336,7 @@ export function sanitizeQuoteData(quote) {
       description: sanitizeText(line.description),
       quantity: sanitizeNumber(line.quantity),
       unitPrice: sanitizeNumber(line.unitPrice),
-      discount: sanitizeNumber(line.discount)
+      discountAmount: sanitizeNumber(line.discountAmount)
     }))
   };
 }

@@ -382,12 +382,13 @@ function renderViewRow(line, index, rowClass) {
 
 /**
  * Calculate line total
+ * Formula: (Quantity × Unit Price) - Discount Amount
  */
 function calculateLineTotal(line) {
   const quantity = parseFloat(line.quantity) || 0;
   const unitPrice = parseFloat(line.unitPrice) || 0;
-  const discount = parseFloat(line.discount) || 0;
-  return quantity * unitPrice - discount;
+  const discountAmount = parseFloat(line.discountAmount) || 0;
+  return quantity * unitPrice - discountAmount;
 }
 
 // ============================================================
