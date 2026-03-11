@@ -655,7 +655,7 @@ export function closeAddLineModal() {
  * Setup asterisk handlers for modal fields
  */
 function setupModalAsteriskHandlers() {
-  const modalFields = ['lineType', 'lineObjectNumberSearch', 'lineDescription', 'lineQuantity', 'lineUnitPrice'];
+  const modalFields = ['lineType', 'lineObjectNumberSearch', 'lineDescription', 'lineQuantity'];
 
   modalFields.forEach(fieldId => {
     const field = el(fieldId);

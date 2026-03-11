@@ -164,8 +164,9 @@ export function validateQuoteLine(line) {
   const quantityError = validateQuantity(line.quantity);
   if (quantityError) errors.quantity = quantityError;
 
-  const unitPriceError = validateUnitPrice(line.unitPrice);
-  if (unitPriceError) errors.unitPrice = unitPriceError;
+  // Unit Price is now optional - no validation required
+  // const unitPriceError = validateUnitPrice(line.unitPrice);
+  // if (unitPriceError) errors.unitPrice = unitPriceError;
 
   const discountError = validateDiscount(line.discount, line.quantity, line.unitPrice);
   if (discountError) errors.discount = discountError;

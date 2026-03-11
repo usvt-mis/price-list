@@ -88,9 +88,10 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **Light red background** (#fef2f2) appears on empty required fields for better visibility
     - Applies to main form (7 fields): Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, Division
     - **Note**: BRANCH field is excluded from required validation (auto-populated from user auth data)
-    - Applies to Add Line modal (5 fields): Type, No. (materials search), Description, Qty., Unit Price
+    - Applies to Add Line modal (4 fields): Type, No. (materials search), Description, Qty.
+    - **Note**: Unit Price is optional (no asterisk, no validation)
     - Works with all input types: text inputs, search dropdowns, select dropdowns, and numeric fields
-    - Numeric field validation: Treats 0 as empty (Qty. = 0, Unit Price = 0 show red background)
+    - Numeric field validation: Treats 0 as empty (Qty. = 0 shows red background)
     - Automatically resets when form is cleared
     - Real-time updates: Background color changes immediately when typing/selecting
   - **Auto-Populated Branch Fields** (Sales Quotes): BRANCH, Location Code, and Responsibility Center fields that automatically populate based on user's branch assignment
