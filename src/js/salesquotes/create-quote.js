@@ -2057,4 +2057,7 @@ if (typeof window !== 'undefined') {
   window.openEditLineModal = openEditLineModal;
   window.closeEditLineModal = closeEditLineModal;
   window.saveEditLine = saveEditLine;
+  // New SER confirmation modal handlers
+  window.confirmNewSerCreation = confirmNewSerCreation;
+  window.cancelNewSerCreation = cancelNewSerCreation;
 }
