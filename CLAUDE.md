@@ -159,6 +159,10 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
         - State tracking via `state.ui.serCreatedEdit` and `state.ui.pendingSerCreationEdit`
         - Implementation: `showConfirmNewSerModalForEdit()`, `createServiceItemAndLockFieldsForEdit()`, `updateEditServiceItemFieldState()`
       - **Field states based on Type**: When Type="Comment", Service Item fields are disabled and cleared
+      - **Addition Toggle Sync**: Addition toggle controls Ref. SQ No. field availability (same as Add Line modal)
+        - When Addition is OFF (unchecked): Ref. SQ No. field is disabled, value is cleared, visual styling applied (opacity-50, bg-slate-50)
+        - When Addition is ON (checked): Ref. SQ No. field is enabled for input
+        - **Implementation**: `updateEditAdditionFieldState()` function in `src/js/salesquotes/create-quote.js`
       - **Pre-populated data**: All fields populate with existing line data when modal opens
       - **Real-time total preview**: Line Total updates automatically as Qty, Unit Price, or Discount changes
       - **Bi-directional discount sync**: Disc. % ↔ Discount Amt. sync with formula: `Discount Amt = (Qty × Unit Price) × Disc% / 100`
@@ -185,6 +189,11 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - Row 2: No (2) + Description (4) - Materials search and description (single-line input)
       - Row 3: Qty (1) | Unit Price (2) | Discount % (1) | Discount Amt. (2) - Price/discount fields on same row
       - Row 4: Addition (1) | Ref. Sales Quote No. (2) | Line Total (3) - Consolidated pricing info with vertical toggle label
+    - **Addition Toggle Sync**: Addition toggle controls Ref. Sales Quote No. field availability
+      - When Addition is OFF (unchecked): Ref. Sales Quote No. field is disabled, value is cleared, visual styling applied (opacity-50, bg-slate-50)
+      - When Addition is ON (checked): Ref. Sales Quote No. field is enabled for input
+      - **Purpose**: Prevents entering Ref. Sales Quote No. when line is not marked as an addition
+      - **Implementation**: `updateAdditionFieldState()` function in `src/js/salesquotes/create-quote.js`
     - **Footer actions**: Add Line button (primary gradient) + Cancel button (secondary white)
     - **UI improvements**: New SER button (gray button with label above in `toggle-label-vertical` wrapper, turns disabled after creation) and Addition toggle switch (purple-indigo gradient when ON), Group No. defaults to 1, labels positioned above controls (vertical layout), compact field sizes with reduced padding and font sizes
     - **Input field enhancements**: Number input spinners hidden for cleaner UI, discount field focus preservation (cursor stays stable during bi-directional sync)

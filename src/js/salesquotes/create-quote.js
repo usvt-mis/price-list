@@ -1696,6 +1696,9 @@ function openEditLineModal(lineId) {
   // Update line total preview
   updateEditLineTotal();
 
+  // Update Ref Sales Quote No field state based on Addition checkbox
+  updateEditAdditionFieldState();
+
   // Show modal
   const modal = document.getElementById('editLineModal');
   const content = document.getElementById('editLineModalContent');
@@ -1850,6 +1853,31 @@ function handleEditModalDiscountChange(field, value) {
   }
 
   updateEditLineTotal();
+}
+
+/**
+ * Update Ref Sales Quote No field based on Addition checkbox state in edit modal
+ * When Addition is OFF (unchecked), disable and clear Ref Sales Quote No
+ * When Addition is ON (checked), enable Ref Sales Quote No
+ */
+function updateEditAdditionFieldState() {
+  const additionCheckbox = document.getElementById('editLineUsvtAddition');
+  const refSalesQuoteField = document.getElementById('editLineUsvtRefSalesQuoteno');
+
+  if (!additionCheckbox || !refSalesQuoteField) return;
+
+  const isAdditionEnabled = additionCheckbox.checked;
+
+  if (!isAdditionEnabled) {
+    // Disable Ref Sales Quote No when Addition is OFF
+    refSalesQuoteField.disabled = true;
+    refSalesQuoteField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    refSalesQuoteField.value = ''; // Clear value
+  } else {
+    // Enable Ref Sales Quote No when Addition is ON
+    refSalesQuoteField.disabled = false;
+    refSalesQuoteField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+  }
 }
 
 // ============================================================
@@ -2024,6 +2052,9 @@ function setupEditModalEventListeners() {
   document.getElementById('editLineType').addEventListener('change', (e) => {
     updateEditModalFieldStates(e.target.value);
   });
+
+  // Addition change - update Ref Sales Quote No field state
+  document.getElementById('editLineUsvtAddition').addEventListener('change', updateEditAdditionFieldState);
 
   // New SER button - show confirmation modal first
   const newSerButton = document.getElementById('editLineCreateSv');
