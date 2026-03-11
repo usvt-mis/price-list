@@ -975,6 +975,66 @@ async function createServiceItem(description, customerNo, groupNo) {
 }
 
 /**
+ * Create Service Order from Sales Quote via Azure Function API
+ * @param {string} salesQuoteId - The Sales Quote number from BC
+ * @param {string} branchCode - The branch code
+ * @returns {Promise<Object>} Response with service order number
+ * @throws {Error} If API call fails
+ */
+async function createServiceOrderFromSQ(salesQuoteId, branchCode) {
+  const API_URL = 'https://func-api-gateway-prod-uat-f7ffhjejehcmbued.southeastasia-01.azurewebsites.net/api/CreateServiceOrderFromSQ';
+  const API_KEY = '***REDACTED_AZURE_FUNCTION_KEY_2***';
+
+  // Extract unique Group No values from quote lines
+  const uniqueGroupNos = [...new Set(
+    state.quote.lines
+      .map(line => line.usvtGroupNo)
+      .filter(groupNo => groupNo && groupNo.trim() !== '')
+  )];
+
+  console.log('Unique Group Nos:', uniqueGroupNos);
+
+  if (uniqueGroupNos.length === 0) {
+    console.warn('No Group Nos found in quote lines, skipping Service Order creation');
+    return null;
+  }
+
+  // Build payload array - one entry per unique Group No
+  const requestBody = uniqueGroupNos.map(groupNo => ({
+    salesQuoteId: salesQuoteId,
+    branchCode: branchCode,
+    GroupNo: parseInt(groupNo, 10)
+  }));
+
+  console.log('Creating Service Order from SQ with payload:', JSON.stringify(requestBody, null, 2));
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-functions-key': API_KEY
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error ${response.status}: ${errorText}`);
+    }
+
+    const responseData = await response.json();
+    console.log('CreateServiceOrderFromSQ API response:', responseData);
+
+    return responseData;
+
+  } catch (error) {
+    console.error('CreateServiceOrderFromSQ API call failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Send quote to Business Central
  */
 export async function handleSendQuote() {
@@ -999,10 +1059,36 @@ export async function handleSendQuote() {
     // Call Azure Function API
     const response = await sendQuoteToAzureFunction(sanitizedData);
 
-    hideSaving();
-
     // Extract Quote Number from response
     const quoteNumber = response?.result?.number || null;
+
+    // Extract branch code for Service Order creation
+    const branchCode = state.quote.branch || '';
+
+    // Create Service Order from Sales Quote (if we have a quote number and branch)
+    let serviceOrderResponse = null;
+    let serviceOrderNo = null;
+
+    if (quoteNumber && branchCode) {
+      try {
+        // Update loading message
+        const messageEl = el('loadingMessage');
+        const titleEl = el('loadingTitle');
+        if (messageEl) messageEl.textContent = 'Creating Service Order...';
+        if (titleEl) titleEl.textContent = 'Creating Service Order';
+
+        serviceOrderResponse = await createServiceOrderFromSQ(quoteNumber, branchCode);
+        serviceOrderNo = serviceOrderResponse?.result?.serviceOrderNo || null;
+
+        console.log('Service Order created:', serviceOrderNo);
+      } catch (soError) {
+        console.error('Failed to create Service Order:', soError);
+        // Continue anyway - quote was created successfully
+        // We'll show the modal but note that Service Order creation failed
+      }
+    }
+
+    hideSaving();
 
     // Clear ALL data first (without confirmation)
     clearQuoteForm();           // Clear form fields
@@ -1021,9 +1107,9 @@ export async function handleSendQuote() {
       });
     }, 50);
 
-    // Show success modal with Quote Number
+    // Show success modal with Quote Number and Service Order No
     if (quoteNumber) {
-      showQuoteCreatedSuccess(quoteNumber);
+      showQuoteCreatedSuccess(quoteNumber, serviceOrderNo);
     } else {
       // Fallback to generic success if no Quote Number returned
       console.warn('No Quote Number in response:', response);
@@ -1044,22 +1130,30 @@ export async function handleSendQuote() {
 /**
  * Initialize branch fields based on logged-in user's branch
  * Auto-populates BRANCH and Location Code fields
+ * Shows No Branch modal if user has no branch assigned
  */
 export async function initializeBranchFields() {
   try {
     // Get user info from auth
     const userInfo = await getUserInfo();
 
+    console.log('[BRANCH-INIT] userInfo:', userInfo);
+
     if (!userInfo || !userInfo.clientPrincipal) {
-      console.warn('No user info available for branch initialization');
+      console.warn('[BRANCH-INIT] No user info available for branch initialization');
+      showNoBranchModal();
       return;
     }
 
     const clientPrincipal = userInfo.clientPrincipal;
-    const branchId = clientPrincipal.branchId;
+    console.log('[BRANCH-INIT] clientPrincipal:', clientPrincipal);
 
-    if (!branchId) {
-      console.error('No branchId found in user info');
+    const branchId = clientPrincipal.branchId;
+    console.log('[BRANCH-INIT] branchId:', branchId, '(type:', typeof branchId, ')');
+
+    if (!branchId && branchId !== 0) {  // Check for null/undefined, but allow 0
+      console.error('[BRANCH-INIT] No branchId found in user info - showing No Branch modal');
+      console.log('[BRANCH-INIT] Full clientPrincipal data for debugging:', JSON.stringify(clientPrincipal));
       showNoBranchModal();
       return;
     }
@@ -1070,13 +1164,16 @@ export async function initializeBranchFields() {
     // Generate branch code and location code
     const branchCode = getBranchCode(branchId);
 
+    console.log('[BRANCH-INIT] branchCode:', branchCode, 'for branchId:', branchId);
+
     if (!branchCode) {
-      console.error(`Invalid branchId: ${branchId}`);
+      console.error(`[BRANCH-INIT] Invalid branchId: ${branchId} - no matching branch code found`);
       showNoBranchModal();
       return;
     }
 
     const locationCode = generateLocationCode(branchCode);
+    console.log('[BRANCH-INIT] locationCode:', locationCode);
 
     // Set field values
     if (el('branch')) {
@@ -1103,9 +1200,10 @@ export async function initializeBranchFields() {
       branchAsterisk.classList.add('hidden');
     }
 
-    console.log(`Branch fields initialized: ${branchCode} -> ${locationCode}`);
+    console.log(`[BRANCH-INIT] SUCCESS: Branch fields initialized: ${branchCode} -> ${locationCode}`);
   } catch (error) {
-    console.error('Failed to initialize branch fields:', error);
+    console.error('[BRANCH-INIT] Failed to initialize branch fields:', error);
+    showNoBranchModal();
   }
 }
 

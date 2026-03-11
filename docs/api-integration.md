@@ -9,6 +9,7 @@ Documentation for Business Central integration via Azure Function APIs.
 Sales Quotes module integrates with Business Central through Azure Function APIs:
 - **CreateSalesQuoteWithoutNumber** - Create sales quotes in BC
 - **CreateServiceItem** - Create service items (New SER button)
+- **CreateServiceOrderFromSQ** - Create service orders from sales quote (automatic after quote creation)
 
 **Base URL**: `https://func-api-gateway-prod-uat-f7ffhjejehcmbued.southeastasia-01.azurewebsites.net/api`
 
@@ -170,6 +171,90 @@ When editing a line that already has a Service Item No:
 
 ---
 
+## CreateServiceOrderFromSQ
+
+Create Service Orders from a Sales Quote (automatically called after successful quote creation).
+
+### Endpoint
+```
+POST /api/CreateServiceOrderFromSQ
+```
+
+### Headers
+```
+Content-Type: application/json
+x-functions-key: <API_KEY>
+```
+
+### Request Body
+
+**IMPORTANT**: The request body MUST be an array with one entry per unique Group No from the quote lines.
+
+```javascript
+[{
+  salesQuoteId: string,    // Quote Number returned from CreateSalesQuoteWithoutNumber
+  branchCode: string,      // Branch code (e.g., "URY", "USB", "USR")
+  GroupNo: number          // Group number from quote line (integer)
+}]
+```
+
+**Example:**
+```javascript
+// If quote has lines with Group Nos: 1, 2, 1, 3
+// Unique Group Nos: 1, 2, 3
+// Payload:
+[
+  { salesQuoteId: "SQRY2602-0032", branchCode: "URY", GroupNo: 1 },
+  { salesQuoteId: "SQRY2602-0032", branchCode: "URY", GroupNo: 2 },
+  { salesQuoteId: "SQRY2602-0032", branchCode: "URY", GroupNo: 3 }
+]
+```
+
+### Response
+
+```javascript
+{
+  success: boolean,
+  message: string,
+  processedAt: string,      // ISO timestamp
+  salesQuoteId: string,     // Echo of input
+  result: {
+    serviceOrderNo: string,        // Service Order Number created in BC (e.g., "SVRY2512-0013")
+    serviceOrderLinesCreated: number,
+    serviceOrderLinesStatus: string,
+    statusCode: number,
+    success: boolean
+  }
+}
+```
+
+### Implementation
+
+**Location**: `src/js/salesquotes/create-quote.js`
+
+**Functions:**
+- `createServiceOrderFromSQ(salesQuoteId, branchCode)` - Handles API call
+
+**Workflow (Automatic):**
+1. After `CreateSalesQuoteWithoutNumber` succeeds
+2. Extract unique Group No values from `state.quote.lines`
+3. Build payload array (one entry per unique Group No)
+4. Call `CreateServiceOrderFromSQ` API
+5. Extract Service Order No from response
+6. Display in success modal alongside Quote Number
+
+**Error Handling:**
+- If Service Order creation fails, quote creation still succeeds
+- Modal shows Quote Number only (Service Order No section hidden)
+- Error logged to console for debugging
+
+**Success Modal Update:**
+- Quote Number displayed in green (emerald) section
+- Service Order No displayed in blue section below (if created)
+- Both numbers clearly labeled with color-coded backgrounds
+
+---
+
 ## Error Handling
 
 Both APIs implement comprehensive error handling:
@@ -185,7 +270,7 @@ Both APIs implement comprehensive error handling:
 
 ### CreateSalesQuote State
 - Quote data stored in `state.quote`
-- Line items in `state.quote.lines`
+- Line items in `state.quote.lines` (includes `usvtGroupNo` for Service Order creation)
 - Form data in individual state fields
 
 ### CreateServiceItem State
@@ -194,6 +279,10 @@ Both APIs implement comprehensive error handling:
 - `state.ui.pendingSerCreation` - Tracks confirmation modal state
 - `state.ui.pendingSerCreationEdit` - Tracks confirmation modal state (Edit mode)
 - `state.ui.editLineLocked` - Tracks if Edit Line fields are locked due to existing Service Item No
+
+### CreateServiceOrderFromSQ State
+- No additional state required (uses `state.quote.lines` for Group No extraction)
+- Service Order No passed directly to `showQuoteCreatedSuccess()` function
 
 ---
 
@@ -204,3 +293,4 @@ Both APIs implement comprehensive error handling:
 - `src/salesquotes/components/modals/add-line-modal.html` - Add Line modal
 - `src/salesquotes/components/modals/edit-line-modal.html` - Edit Line modal
 - `src/salesquotes/components/modals/confirm-new-ser-modal.html` - Confirmation modal
+- `src/salesquotes/components/modals/quote-created-modal.html` - Success modal (shows Quote No + Service Order No)

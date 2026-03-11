@@ -963,13 +963,16 @@ export function clearValidationErrors() {
 // ============================================================
 
 /**
- * Show Quote Created Success modal with Quote Number
+ * Show Quote Created Success modal with Quote Number and Service Order No
  * @param {string} quoteNumber - The Quote Number from Business Central
+ * @param {string|null} serviceOrderNo - The Service Order Number (optional)
  */
-export function showQuoteCreatedSuccess(quoteNumber) {
+export function showQuoteCreatedSuccess(quoteNumber, serviceOrderNo = null) {
   const modal = el('quoteCreatedModal');
   const modalContent = el('quoteCreatedModalContent');
   const quoteNumberDisplay = el('quoteCreatedNumber');
+  const serviceOrderNoDisplay = el('serviceOrderCreatedNumber');
+  const serviceOrderNoSection = el('serviceOrderNoSection');
 
   if (!modal) {
     console.error('Quote Created modal not found in DOM');
@@ -980,6 +983,18 @@ export function showQuoteCreatedSuccess(quoteNumber) {
   // Set the Quote Number
   if (quoteNumberDisplay) {
     quoteNumberDisplay.textContent = quoteNumber || 'N/A';
+  }
+
+  // Set Service Order No if available
+  if (serviceOrderNo && serviceOrderNoDisplay) {
+    serviceOrderNoDisplay.textContent = serviceOrderNo;
+    if (serviceOrderNoSection) {
+      serviceOrderNoSection.classList.remove('hidden');
+    }
+  } else {
+    if (serviceOrderNoSection) {
+      serviceOrderNoSection.classList.add('hidden');
+    }
   }
 
   // Show modal
@@ -1168,22 +1183,32 @@ export function hideConfirmClearQuoteModal() {
 
 /**
  * Show No Branch Assigned modal
+ * FREEZES the page - user cannot interact with anything until they refresh
  */
 export function showNoBranchModal() {
   const modal = el('noBranchModal');
   const modalContent = el('noBranchModalContent');
   if (modal && modalContent) {
     modal.classList.remove('hidden');
-    modal.style.zIndex = '200'; // Highest priority
+    modal.style.zIndex = '9999'; // Highest priority - above everything
     setTimeout(() => {
       modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
       modalContent.classList.add('opacity-100', 'translate-y-0');
     }, 10);
+
+    // Freeze the entire page - prevent any interaction
+    document.body.style.pointerEvents = 'none';
+    document.body.style.overflow = 'hidden';
+    // But allow interaction with the modal itself
+    if (modal) {
+      modal.style.pointerEvents = 'auto';
+    }
   }
 }
 
 /**
  * Hide No Branch Assigned modal
+ * Only used if page is refreshed (this function won't normally be called)
  */
 export function hideNoBranchModal() {
   const modal = el('noBranchModal');
@@ -1193,6 +1218,9 @@ export function hideNoBranchModal() {
     modalContent.classList.add('opacity-0', 'translate-y-[-10px]');
     setTimeout(() => {
       modal.classList.add('hidden');
+      // Unfreeze the page
+      document.body.style.pointerEvents = '';
+      document.body.style.overflow = '';
     }, 300);
   }
 }

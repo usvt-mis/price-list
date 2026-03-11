@@ -140,8 +140,14 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 **Endpoints:**
 - `CreateSalesQuoteWithoutNumber` - Create quotes in Business Central
 - `CreateServiceItem` - Create Service Items (New SER button)
+- `CreateServiceOrderFromSQ` - Create Service Orders from Sales Quote (after quote creation)
 
 **Implementation:** `src/js/salesquotes/create-quote.js`
+
+**Flow:** After successfully creating a Sales Quote, the system automatically:
+1. Extracts unique Group No values from all quote lines
+2. Calls `CreateServiceOrderFromSQ` with one payload per unique Group No
+3. Displays Service Order No in the success modal (if creation succeeds)
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 
