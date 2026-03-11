@@ -147,6 +147,7 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - ON state: Purple-indigo gradient (`from-indigo-500 to-purple-500`) with checkmark (✓) and shadow
       - Smooth transition with 0.3s animation
       - Better visual feedback and touch-friendly for mobile
+      - **API Integration**: When clicked (ON), calls CreateServiceItem API to auto-generate Service Item No. (requires Service Item Description)
     - **Addition Toggle Switch**: Uses modern toggle switch instead of checkbox
       - Gradient purple-indigo color when ON (checked), slate gray when OFF
       - Smooth slide animation with 0.3s transition
@@ -180,13 +181,18 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **Input field enhancements**: Number input spinners hidden for cleaner UI, discount field focus preservation (cursor stays stable during bi-directional sync)
       - **Technical implementation**: Discount fields use `type="text"` with `inputmode="decimal"` for mobile numeric keypad, `pattern` attribute for validation, and `validateDiscountInput()` function for sanitization
       - This approach enables reliable cursor position preservation (`selectionStart`/`setSelectionRange`) which doesn't work with `type="number"`
-    - **New SER field behavior**: Controls Service Item field states with specialized workflow
+    - **New SER field behavior**: Controls Service Item field states with specialized workflow and API integration
       - **New SER OFF**: Both Serv. Item No. and Serv. Item Desc. are disabled (grayed out, values cleared)
-      - **New SER ON**: Serv. Item No. remains disabled (auto-generated/not applicable), Serv. Item Desc. is enabled for user entry
-      - This supports workflow where Service Item Description is user-entered when New SER is enabled, but Service Item No. is system-generated
-      - Field states update immediately when New SER button is clicked
+      - **New SER ON**: Validates Service Item Description, calls CreateServiceItem API, auto-populates Serv. Item No. with API response, keeps Serv. Item Desc. enabled for editing
+      - **API Integration**: When clicked (turned ON), button calls `CreateServiceItem` Azure Function API
+        - Request body: `{ description, item_No: "SERV-ITEM", Customer_Number, Group_No }`
+        - Response: `{ result: { Results: [ { ServiceItemNo, GroupNo, Success, Error } ] } }`
+        - Service Item No. is auto-populated from `ServiceItemNo` field in API response
+      - **Validation**: Service Item Description is required before API call (error toast if empty)
+      - **Error Handling**: API failures keep button OFF with error toast; successful API call turns button ON with success toast
+      - **Loading State**: Button shows "Creating..." with pulse animation during API call
       - Button is disabled when Type="Comment" (grayed out, cannot be clicked)
-      - Implemented in `updateServiceItemFieldState()` function in `src/js/salesquotes/create-quote.js`
+      - Implemented in `createServiceItem()`, `toggleNewSerButton()`, and `updateServiceItemFieldState()` functions in `src/js/salesquotes/create-quote.js`
     - **All element IDs preserved**: No JavaScript changes needed for grid refactor
     - **Responsive design**: Grid collapses to single column on mobile devices
     - Located in `src/salesquotes.html` (Add Line modal, lines ~625-720)
@@ -400,6 +406,52 @@ module.exports = router;
   - Extracts Quote Number from response and displays in custom success modal
 - **Error Handling**: Comprehensive error catching with user-friendly toast notifications
 - **Success Feedback**: Custom modal displays the created Quote Number prominently with options to create another quote or close
+- **Logging**: Console logging for request payload and API response (for debugging)
+
+### CreateServiceItem API Integration (Sales Quotes - New SER Button)
+- **Endpoint**: `https://func-api-gateway-prod-uat-f7ffhjejehcmbued.southeastasia-01.azurewebsites.net/api/CreateServiceItem`
+- **Purpose**: Create Service Items in Business Central via Azure Function API (triggered by "New SER" button in Add Line modal)
+- **Required Headers**:
+  - `Content-Type: application/json`
+  - `x-functions-key: <API_KEY>` (stored in `create-quote.js`)
+- **Request Body Structure**:
+  ```javascript
+  {
+    description: string,      // Service Item Description from user input (required)
+    item_No: string,          // Hardcoded as "SERV-ITEM"
+    Customer_Number: string,  // Customer number from state.quote.customerNo (optional)
+    Group_No: string          // Group number from lineUsvtGroupNo field (defaults to '1')
+  }
+  ```
+- **Response Structure**:
+  ```javascript
+  {
+    success: boolean,
+    message: string,
+    result: {
+      Results: [
+        {
+          ServiceItemNo: string,  // Service Item Number created in BC (e.g., "SER0036079")
+          GroupNo: string,
+          Success: boolean,
+          Error: string | null
+        }
+      ],
+      TotalCount: number,
+      SuccessCount: number,
+      FailureCount: number
+    }
+  }
+  ```
+- **Implementation**: Located in `src/js/salesquotes/create-quote.js`
+  - `createServiceItem(description, customerNo, groupNo)` - Handles API call with proper headers and error handling
+  - `toggleNewSerButton()` - Orchestrates validation, API call, and UI state updates
+  - Extracts ServiceItemNo from response and auto-populates Serv. Item No. field
+  - Validates Service Item Description before calling API (required field)
+- **Error Handling**: Comprehensive error catching with user-friendly toast notifications
+- **Success Feedback**: Success toast displays the created Service Item No. with "✓ New SER" button state
+- **Loading State**: Button shows "Creating..." with pulse animation during API call
+- **Validation**: Service Item Description must be entered before API call (error toast if empty)
 - **Logging**: Console logging for request payload and API response (for debugging)
 
 ---

@@ -819,6 +819,87 @@ async function sendQuoteToAzureFunction(quoteData) {
 }
 
 /**
+ * Create Service Item via Azure Function API
+ * @param {string} description - Service Item Description
+ * @param {string} customerNo - Customer Number
+ * @param {string} groupNo - Group Number
+ * @returns {Promise<string>} Service Item Number from API response
+ * @throws {Error} If API call fails or validation fails
+ */
+async function createServiceItem(description, customerNo, groupNo) {
+  const API_URL = 'https://func-api-gateway-prod-uat-f7ffhjejehcmbued.southeastasia-01.azurewebsites.net/api/CreateServiceItem';
+  const API_KEY = '***REDACTED_AZURE_FUNCTION_KEY_3***';
+
+  // Validate required fields
+  if (!description || description.trim() === '') {
+    throw new Error('Service Item Description is required to create a Service Item');
+  }
+
+  // Prepare request body
+  const requestBody = {
+    description: description.trim(),
+    item_No: 'SERV-ITEM', // Hardcoded as per requirement
+    Customer_Number: customerNo || '',
+    Group_No: groupNo || ''
+  };
+
+  console.log('Creating Service Item:', requestBody);
+
+  try {
+    // Show loading state on the button
+    const newSerButton = el('lineCreateSv');
+    if (newSerButton) {
+      newSerButton.disabled = true;
+      newSerButton.innerHTML = '<span class="animate-pulse">Creating...</span>';
+    }
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-functions-key': API_KEY
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error ${response.status}: ${errorText}`);
+    }
+
+    const responseData = await response.json();
+    console.log('CreateServiceItem API response:', responseData);
+
+    // Extract ServiceItemNo from response
+    // Response structure: { result: { Results: [ { ServiceItemNo, GroupNo, Success, Error } ] } }
+    const serviceItemNo = responseData?.result?.Results?.[0]?.ServiceItemNo;
+
+    if (!serviceItemNo) {
+      throw new Error('Service Item Number not found in API response');
+    }
+
+    // Check if the API call was successful
+    if (!responseData?.result?.Results?.[0]?.Success) {
+      const error = responseData?.result?.Results?.[0]?.Error || 'Unknown error';
+      throw new Error(`Failed to create Service Item: ${error}`);
+    }
+
+    return serviceItemNo;
+
+  } catch (error) {
+    console.error('CreateServiceItem API call failed:', error);
+    throw error;
+  } finally {
+    // Re-enable button after API call completes
+    const newSerButton = el('lineCreateSv');
+    if (newSerButton) {
+      newSerButton.disabled = false;
+      // Button state will be updated by setNewSerButtonState(true) in the calling function
+    }
+  }
+}
+
+/**
  * Send quote to Business Central
  */
 export async function handleSendQuote() {
@@ -992,19 +1073,54 @@ export function setupLineModalHandlers() {
   // Initial Service Item field state
   updateServiceItemFieldState();
 
-  function toggleNewSerButton() {
+  async function toggleNewSerButton() {
     const isCurrentlyOn = newSerButton.classList.contains('from-indigo-500');
 
     if (isCurrentlyOn) {
-      // Turn OFF
+      // Turn OFF - clear fields and disable
       setNewSerButtonState(false);
+      updateServiceItemFieldState(); // This will clear both fields
     } else {
-      // Turn ON
-      setNewSerButtonState(true);
-    }
+      // Turn ON - validate and create Service Item via API
+      try {
+        // Get required field values
+        const serviceItemDesc = el('lineUsvtServiceItemDescription')?.value?.trim();
+        const customerNo = state.quote.customerNo || '';
+        const groupNo = el('lineUsvtGroupNo')?.value?.trim() || '1';
 
-    // Update Service Item field states
-    updateServiceItemFieldState();
+        // Validation: Serv. Item Desc is required
+        if (!serviceItemDesc) {
+          showError('Please enter Service Item Description before creating New SER');
+          el('lineUsvtServiceItemDescription')?.focus();
+          return; // Don't toggle button ON
+        }
+
+        // Call CreateServiceItem API
+        const serviceItemNo = await createServiceItem(serviceItemDesc, customerNo, groupNo);
+
+        // API call successful - toggle button ON
+        setNewSerButtonState(true);
+
+        // Populate Serv. Item No. field with API response
+        const serviceItemNoField = el('lineUsvtServiceItemNo');
+        if (serviceItemNoField) {
+          serviceItemNoField.value = serviceItemNo;
+        }
+
+        // Update Service Item field states (keeps Desc. enabled, No. disabled but populated)
+        updateServiceItemFieldState();
+
+        // Show success message
+        showSuccess(`Service Item ${serviceItemNo} created successfully`);
+
+      } catch (error) {
+        // API call failed - keep button OFF
+        console.error('Failed to create Service Item:', error);
+        showError(error.message || 'Failed to create Service Item. Please try again.');
+        setNewSerButtonState(false);
+        updateServiceItemFieldState();
+      }
+    }
   }
 
   function setNewSerButtonState(isOn) {
@@ -1129,12 +1245,15 @@ export function setupLineModalHandlers() {
       serviceItemDescField.value = ''; // Clear value
     } else {
       // New SER ON: Disable Serv. Item No. but enable Serv. Item Desc.
-      serviceItemNoField.disabled = true; // Keep disabled
+      // Note: Serv. Item No. is populated by API and remains read-only
+      serviceItemNoField.disabled = true; // Keep disabled (read-only)
       serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-      serviceItemNoField.value = ''; // Clear value when disabled
+      // Don't clear value - it's populated by the API call
 
-      serviceItemDescField.disabled = false; // Enable this field
+      serviceItemDescField.disabled = false; // Enable this field for editing
       serviceItemDescField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+      // Focus on description field for better UX
+      serviceItemDescField.focus();
     }
   }
 }
