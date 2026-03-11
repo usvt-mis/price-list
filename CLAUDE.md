@@ -18,7 +18,7 @@ This is a Price List Calculator - a web application for calculating service cost
 |------------|---------|--------------|-------------------|
 | **Onsite** | Field/onsite service calculations | Onsite Options (Crane, 4 People, Safety), Scope, Priority Level, Site Access | `ONS-YYYY-XXX` |
 | **Workshop** | Workshop/facility-based service calculations | Simplified layout (Labor, Materials, Travel) | `WKS-YYYY-XXX` |
-| **Sales Quotes** | Business Central integration via Azure Function API | Create and manage sales quotes with Azure Function API (endpoint: `CreateSalesQuoteWithoutNumber`), local database customer search (min 2 chars), customer/item search, **quote lines with 13 fields** (New SER, Type, Group No., Service Item No., Service Item Description, No. (materials search), Description, Qty., Unit Price, Addition, Ref. Sales Quote No., Discount %, Discount Amt.), bi-directional discount sync, materials search integration (searches dbo.materials by MaterialCode OR MaterialName), inline editing for all text/number fields, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, Division (selectable: MS1029, EL1017, PS1029, GT1029), BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH), Responsibility Center (auto-populated from BRANCH) | N/A (BC Quote Number) |
+| **Sales Quotes** | Business Central integration via Azure Function API | Create and manage sales quotes with Azure Function API (endpoint: `CreateSalesQuoteWithoutNumber`), local database customer search (min 2 chars), customer/item search, **quote lines with 12 fields** (Type, Group No., Service Item No., Service Item Description, No. (materials search), Description, Qty., Unit Price, Addition, Ref. Sales Quote No., Discount %, Discount Amt.), bi-directional discount sync, materials search integration (searches dbo.materials by MaterialCode OR MaterialName), inline editing for all text/number fields, insert lines at specific positions, Contact person, Salesperson Code/Name (search), Assigned User ID (search), Service Order Type, Division (selectable: MS1029, EL1017, PS1029, GT1029), BRANCH (auto-filled from user), Location Code (auto-calculated from BRANCH), Responsibility Center (auto-populated from BRANCH) | N/A (BC Quote Number) |
 |  |  | **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, dynamic required field indicators (asterisks hide when fields have values), modern date picker with Flatpickr (Order Date defaults to today) |  |
 
 ### Cost Components
@@ -139,23 +139,17 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - Search field placeholders shortened to action-oriented text: "Search customers/salespeople/users..." (vs. verbose "Type 2+ characters to search...")
     - Other placeholders simplified for clarity: "Contact name..." (vs. "Contact person..."), "Work description..." (vs. "Describe the work to be performed...")
   - **Inline Quote Line Editing** (Sales Quotes): Edit quote lines directly in the table without opening a modal
-    - **16-column table layout**: New SER (button), Type (dropdown), Group No., Serv. Item No., Serv. Item Desc., No. (materials search), Desc. (250px width), Qty., Unit Price, Addition (toggle switch), Ref. SQ No., Disc. %, Discount Amt., Line Total, Actions
+    - **15-column table layout**: Type (dropdown), Group No., Serv. Item No., Serv. Item Desc., No. (materials search), Desc. (250px width), Qty., Unit Price, Addition (toggle switch), Ref. SQ No., Disc. %, Discount Amt., Line Total, Actions
     - **Column header shortening**: Service Item No. → Serv. Item No., Service Item Description → Serv. Item Desc., Description → Desc., Discount % → Disc. % for compact display
     - **Column width optimization**: Desc. column widened to 250px for better text display; Ref. Sales Quote No. shortened to "Ref. SQ No."
-    - **New SER Button**: Clickable button (gray when OFF, purple-indigo gradient with ✓ when ON) - replaces toggle switch for better usability
-      - OFF state: Gray background (`bg-slate-200`) with hover effect
-      - ON state: Purple-indigo gradient (`from-indigo-500 to-purple-500`) with checkmark (✓) and shadow
-      - Smooth transition with 0.3s animation
-      - Better visual feedback and touch-friendly for mobile
-      - **API Integration**: When clicked (ON), calls CreateServiceItem API to auto-generate Service Item No. (requires Service Item Description)
     - **Addition Toggle Switch**: Uses modern toggle switch instead of checkbox
       - Gradient purple-indigo color when ON (checked), slate gray when OFF
       - Smooth slide animation with 0.3s transition
       - Scaled to 0.85 for compact table display
       - Focus ring for keyboard accessibility
       - Better visual feedback and touch-friendly for mobile
-    - **Inline editable fields** (all 13 text/number fields): Type (dropdown), Serv. Item No., Serv. Item Desc., Group No., Desc., Qty., Unit Price, Ref. SQ No., Disc. %, Discount Amt.
-    - **Toggle-enabled fields**: New SER button (clickable in edit mode, disabled in view mode) and Addition toggle switch (works in both view and edit modes)
+    - **Inline editable fields** (all 12 text/number fields): Type (dropdown), Serv. Item No., Serv. Item Desc., Group No., Desc., Qty., Unit Price, Ref. SQ No., Disc. %, Discount Amt.
+    - **Toggle-enabled fields**: Addition toggle switch (works in both view and edit modes)
     - **Bi-directional discount sync**: Disc. % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Disc% / 100` with cursor position preservation for smooth typing
     - **Materials search**: "No." field searches `dbo.materials` table by MaterialCode OR MaterialName (min 2 chars), Desc. auto-fills from MaterialName (editable), Unit Price remains manual entry
     - Visual feedback: Blue background (`bg-blue-50 ring-2 ring-blue-500`) highlights the row being edited
@@ -169,19 +163,20 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
     - **Readonly attribute**: Field cannot be edited, always displays 7%
     - **Visual styling**: Gray background (`bg-slate-50`) with `not-allowed` cursor to indicate locked state
     - **Calculation integration**: Still participates in VAT calculation (7% of subtotal after discount)
-  - **Add Line Modal with 6-Column Grid** (Sales Quotes): Improved field organization with consolidated pricing and footer action button
-    - **6-column grid system** for better field alignment and data entry flow
+  - **Add Line Modal with 5-Column Grid** (Sales Quotes): Improved field organization with consolidated pricing and footer action button
+    - **5-column grid system** for better field alignment and data entry flow
     - **Field organization by row**:
-      - Row 1: Type (1) | Group No (1) | New SER (1) | Service Item No (1) | Service Item Description (2) - Compact 5-field layout with button control
+      - Row 1: Type (1) | Group No (1) | Service Item No (1) | New SER Button (1) | Service Item Description (2) - Compact 5-field layout with button control
       - Row 2: No (2) + Description (4) - Materials search and description (single-line input)
       - Row 3: Qty (1) | Unit Price (2) | Discount % (1) | Discount Amt. (2) - Price/discount fields on same row
       - Row 4: Addition (1) | Ref. Sales Quote No. (2) | Line Total (3) - Consolidated pricing info with vertical toggle label
     - **Footer actions**: Add Line button (primary gradient) + Cancel button (secondary white)
-    - **UI improvements**: New SER button (gray when OFF, purple-indigo gradient when ON) and Addition toggle switch (purple-indigo gradient when ON), Group No. defaults to 1, labels positioned above controls (vertical layout), compact field sizes with reduced padding and font sizes
+    - **UI improvements**: New SER button (gray when OFF, green gradient when ON) and Addition toggle switch (purple-indigo gradient when ON), Group No. defaults to 1, labels positioned above controls (vertical layout), compact field sizes with reduced padding and font sizes
     - **Input field enhancements**: Number input spinners hidden for cleaner UI, discount field focus preservation (cursor stays stable during bi-directional sync)
       - **Technical implementation**: Discount fields use `type="text"` with `inputmode="decimal"` for mobile numeric keypad, `pattern` attribute for validation, and `validateDiscountInput()` function for sanitization
       - This approach enables reliable cursor position preservation (`selectionStart`/`setSelectionRange`) which doesn't work with `type="number"`
     - **New SER field behavior**: Helper button that auto-populates Service Item No. via API integration
+      - **Button styling**: Green gradient (inline CSS) when ON, gray when OFF - not displayed in table, only in Add Line modal
       - **Always-enabled fields**: Both Serv. Item No. and Serv. Item Desc. are always editable - users can type freely without clicking New SER button first
       - **New SER button workflow**: Validates Service Item Description, calls CreateServiceItem API, auto-populates Serv. Item No. with API response (field remains editable after population)
       - **API Integration**: When clicked (turned ON), button calls `CreateServiceItem` Azure Function API

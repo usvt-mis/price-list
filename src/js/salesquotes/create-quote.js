@@ -1132,12 +1132,14 @@ export function setupLineModalHandlers() {
 
   function setNewSerButtonState(isOn) {
     if (isOn) {
-      newSerButton.classList.remove('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
-      newSerButton.classList.add('bg-gradient-to-r', 'from-indigo-500', 'to-purple-500', 'text-white', 'shadow-md', 'hover:shadow-lg');
+      // ON state: green gradient (inline style, no Tailwind color classes)
+      newSerButton.className = 'h-10 px-3 text-xs font-semibold rounded-lg text-white shadow-md hover:shadow-lg transition-all';
+      newSerButton.style.background = 'linear-gradient(135deg, #10b981 0%, #14b8a6 100%)';
       newSerButton.innerHTML = '✓ New SER';
     } else {
-      newSerButton.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
-      newSerButton.classList.remove('bg-gradient-to-r', 'from-indigo-500', 'to-purple-500', 'text-white', 'shadow-md', 'hover:shadow-lg');
+      // OFF state: gray
+      newSerButton.className = 'h-10 px-3 text-xs font-semibold rounded-lg text-slate-700 hover:bg-slate-300 transition-all';
+      newSerButton.style.background = '#e2e8f0';
       newSerButton.innerHTML = 'New SER';
     }
   }
