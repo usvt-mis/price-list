@@ -177,17 +177,24 @@ For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md).
       - This approach enables reliable cursor position preservation (`selectionStart`/`setSelectionRange`) which doesn't work with `type="number"`
     - **New SER field behavior**: Helper button that auto-populates Service Item No. via API integration
       - **Button styling**: Green gradient (inline CSS) when ON, gray when OFF - not displayed in table, only in Add Line modal
-      - **Always-enabled fields**: Both Serv. Item No. and Serv. Item Desc. are always editable - users can type freely without clicking New SER button first
-      - **New SER button workflow**: Validates Service Item Description, calls CreateServiceItem API, auto-populates Serv. Item No. with API response (field remains editable after population)
+      - **Always-enabled fields**: Both Serv. Item No. and Serv. Item Desc. are editable until SER is created or Type="Comment" is selected
+      - **New SER button workflow**: Validates Service Item Description, calls CreateServiceItem API, auto-populates Serv. Item No. with API response
+      - **Field Locking After SER Creation**: Prevents data inconsistency by locking fields after successful Service Item creation
+        - When SER is created successfully: Serv. Item No., Serv. Item Desc., and Type fields become locked (disabled, gray background)
+        - New SER button becomes locked (disabled, cannot turn OFF) - shows error toast if clicked
+        - Type dropdown cannot be changed after SER creation
+        - Modal reopen resets all locks - fresh state for next line entry
+        - Implemented via `state.ui.serCreated` flag tracking
+      - **Type="Comment" Behavior**: When Comment type is selected, Service Item fields are disabled and cleared
       - **API Integration**: When clicked (turned ON), button calls `CreateServiceItem` Azure Function API
         - Request body: `[{ description, item_No: "SERV-ITEM", Customer_Number, Group_No }]` (MUST be an array)
         - Response: `{ result: { Results: [ { ServiceItemNo, GroupNo, Success, Error } ] } }`
         - Service Item No. is auto-populated from `ServiceItemNo` field in API response
       - **Validation**: Service Item Description is required before API call (error toast if empty)
-      - **Error Handling**: API failures keep button OFF with error toast; successful API call turns button ON with success toast
+      - **Error Handling**: API failures keep button OFF with error toast; successful API call locks all related fields
       - **Loading State**: Button shows "Creating..." with pulse animation during API call
       - Button is disabled when Type="Comment" (grayed out, cannot be clicked)
-      - Implemented in `createServiceItem()`, `toggleNewSerButton()`, and `updateServiceItemFieldState()` functions in `src/js/salesquotes/create-quote.js`
+      - Implemented in `createServiceItem()`, `toggleNewSerButton()`, `updateServiceItemFieldState()`, and `updateFieldStates()` functions in `src/js/salesquotes/create-quote.js`
     - **All element IDs preserved**: No JavaScript changes needed for grid refactor
     - **Responsive design**: Grid collapses to single column on mobile devices
     - Located in `src/salesquotes.html` (Add Line modal, lines ~625-720)

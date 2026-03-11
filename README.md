@@ -33,6 +33,7 @@ The Price List Calculator computes total cost based on four components:
   - Azure AD authentication
   - **Quote Line Management**: 16-column table with 13 editable fields per line (New SER button, Type dropdown, Group No., Service Item No., Service Item Description, No. materials search, Description, Qty., Unit Price, Addition checkbox, Ref. Sales Quote No., Discount %, Discount Amt.)
     - **New SER Button**: Auto-generates Service Item No. via CreateServiceItem API when clicked (requires Service Item Description)
+    - **Field Locking**: After SER creation, Service Item fields (No., Description) and Type dropdown lock to prevent data inconsistency; all fields unlock when modal reopens
   - **Materials Search Integration**: "No." field searches dbo.materials table by MaterialCode OR MaterialName (min 2 chars), Description auto-fills from MaterialName (editable), Unit Price remains manual entry per user requirement
   - **Bi-directional Discount Sync**: Discount % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Discount% / 100`
   - **Inline Editing**: All text/number fields editable directly in table with real-time validation, Enter to save, Escape to cancel, blue highlight on active row

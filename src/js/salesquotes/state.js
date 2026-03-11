@@ -82,7 +82,8 @@ export const state = {
     // NEW: Track editing state for inline editing
     editingLineId: null,        // ID of line currently being edited
     originalLineData: null,     // Copy of line data before editing (for cancel)
-    pendingRemoveLineIndex: null // Index of line pending removal (for confirmation modal)
+    pendingRemoveLineIndex: null, // Index of line pending removal (for confirmation modal)
+    serCreated: false  // Track if SER was successfully created in current modal session
   },
 
   // Data cache

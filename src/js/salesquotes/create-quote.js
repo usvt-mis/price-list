@@ -1084,6 +1084,11 @@ export function setupLineModalHandlers() {
     const isCurrentlyOn = newSerButton.classList.contains('from-indigo-500');
 
     if (isCurrentlyOn) {
+      // Check if SER was created - prevent turning OFF
+      if (state.ui.serCreated) {
+        showError('Cannot disable New SER after Service Item has been created');
+        return;
+      }
       // Turn OFF - just update button state (fields remain enabled)
       setNewSerButtonState(false);
       updateServiceItemFieldState(); // Keeps both fields enabled
@@ -1105,6 +1110,9 @@ export function setupLineModalHandlers() {
         // Call CreateServiceItem API
         const serviceItemNo = await createServiceItem(serviceItemDesc, customerNo, groupNo);
 
+        // Set SER creation flag
+        state.ui.serCreated = true;
+
         // API call successful - toggle button ON
         setNewSerButtonState(true);
 
@@ -1114,8 +1122,11 @@ export function setupLineModalHandlers() {
           serviceItemNoField.value = serviceItemNo;
         }
 
-        // Update Service Item field states (both fields remain enabled)
+        // Update Service Item field states (locks both fields)
         updateServiceItemFieldState();
+
+        // Lock Type dropdown after SER creation
+        updateFieldStates();
 
         // Show success message
         showSuccess(`Service Item ${serviceItemNo} created successfully`);
@@ -1132,21 +1143,38 @@ export function setupLineModalHandlers() {
 
   function setNewSerButtonState(isOn) {
     if (isOn) {
-      // ON state: green gradient (inline style, no Tailwind color classes)
-      newSerButton.className = 'h-10 px-3 text-xs font-semibold rounded-lg text-white shadow-md hover:shadow-lg transition-all';
+      // ON state: green gradient
+      newSerButton.className = 'h-10 px-3 text-xs font-semibold rounded-lg text-white shadow-md transition-all';
       newSerButton.style.background = 'linear-gradient(135deg, #10b981 0%, #14b8a6 100%)';
       newSerButton.innerHTML = '✓ New SER';
+
+      // Disable button to prevent turning OFF after SER creation
+      newSerButton.disabled = true;
+      newSerButton.classList.add('cursor-not-allowed', 'opacity-90');
     } else {
       // OFF state: gray
       newSerButton.className = 'h-10 px-3 text-xs font-semibold rounded-lg text-slate-700 hover:bg-slate-300 transition-all';
       newSerButton.style.background = '#e2e8f0';
       newSerButton.innerHTML = 'New SER';
+
+      // Ensure button is enabled when OFF
+      newSerButton.disabled = false;
+      newSerButton.classList.remove('cursor-not-allowed', 'opacity-90');
     }
   }
 
   function updateFieldStates() {
     const typeValue = typeSelect.value;
     const isComment = typeValue === 'Comment';
+
+    // Lock Type dropdown if SER was created
+    if (state.ui.serCreated) {
+      typeSelect.disabled = true;
+      typeSelect.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    } else {
+      typeSelect.disabled = false;
+      typeSelect.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    }
 
     // Update New SER button state
     if (isComment) {
@@ -1227,24 +1255,44 @@ export function setupLineModalHandlers() {
   }
 
   /**
-   * Update Service Item fields - always enable both fields for manual entry
-   * Users can now type freely in both Serv. Item No. and Serv. Item Desc. fields
-   * regardless of the New SER button state
+   * Update Service Item fields - lock fields if SER was created OR Type is Comment
+   * When SER is created successfully, lock both Service Item fields
+   * When Type is Comment, disable and clear both Service Item fields
    */
   function updateServiceItemFieldState() {
     const serviceItemNoField = el('lineUsvtServiceItemNo');
     const serviceItemDescField = el('lineUsvtServiceItemDescription');
+    const typeSelect = el('lineType');
 
-    if (!serviceItemNoField || !serviceItemDescField) {
+    if (!serviceItemNoField || !serviceItemDescField || !typeSelect) {
       return;
     }
 
-    // Always enable BOTH fields - users can type freely
-    serviceItemNoField.disabled = false;
-    serviceItemNoField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    const isComment = typeSelect.value === 'Comment';
+    const isSerCreated = state.ui.serCreated;
 
-    serviceItemDescField.disabled = false;
-    serviceItemDescField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    // Lock fields if SER was created OR Type is Comment
+    if (isSerCreated || isComment) {
+      // Disable both fields
+      serviceItemNoField.disabled = true;
+      serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+
+      serviceItemDescField.disabled = true;
+      serviceItemDescField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+
+      // Clear values if switching to Comment (but not if SER was created)
+      if (isComment && !isSerCreated) {
+        serviceItemNoField.value = '';
+        serviceItemDescField.value = '';
+      }
+    } else {
+      // Enable both fields for manual entry
+      serviceItemNoField.disabled = false;
+      serviceItemNoField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+
+      serviceItemDescField.disabled = false;
+      serviceItemDescField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    }
   }
 }
 

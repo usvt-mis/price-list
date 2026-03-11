@@ -530,6 +530,9 @@ export function openAddLineModal(insertIndex = null) {
     // Store insert index in state
     state.ui.insertIndex = insertIndex;
 
+    // Reset SER creation flag on modal open
+    state.ui.serCreated = false;
+
     // Update modal title/subtitle based on mode
     const titleEl = el('addLineModalTitle');
     const subtitleEl = el('addLineModalSubtitle');
