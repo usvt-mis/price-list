@@ -360,9 +360,9 @@ export function validateQuoteLineData(line) {
     if (!firstErrorField) firstErrorField = 'description';
   }
 
-  // 2. Service Item Description (required if Create SV is checked)
+  // 2. Service Item Description (required if New SER is enabled)
   if (line.usvtCreateSv && (!line.usvtServiceItemDescription || line.usvtServiceItemDescription.trim() === '')) {
-    errors.usvtServiceItemDescription = 'Service Item Description is required when Create SV is enabled';
+    errors.usvtServiceItemDescription = 'Service Item Description is required when New SER is enabled';
     if (!firstErrorField) firstErrorField = 'usvtServiceItemDescription';
   }
 

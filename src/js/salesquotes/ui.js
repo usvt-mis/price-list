@@ -362,14 +362,19 @@ export function renderQuoteLines() {
  * Render a view mode row (read-only)
  */
 function renderViewRow(line, index, rowClass) {
+  const isNewSerOn = line.usvtCreateSv || line.createSv;
+  const newSerButtonClass = isNewSerOn
+    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md'
+    : 'bg-slate-200 text-slate-700 hover:bg-slate-300';
+  const newSerButtonText = isNewSerOn ? '✓ New SER' : 'New SER';
+
   return `
     <tr class="${rowClass}">
       <td class="font-medium text-center">${line.sequence}</td>
       <td class="text-center">
-        <label class="toggle-switch" style="transform: scale(0.85);">
-          <input type="checkbox" ${line.usvtCreateSv || line.createSv ? 'checked' : ''} disabled>
-          <span class="toggle-slider"></span>
-        </label>
+        <button type="button" class="h-8 px-3 text-xs font-semibold rounded-lg ${newSerButtonClass} transition-all" disabled>
+          ${newSerButtonText}
+        </button>
       </td>
       <td class="text-sm">${line.lineType || '-'}</td>
       <td class="text-sm">${line.usvtServiceItemNo || ''}</td>
@@ -402,14 +407,19 @@ function renderViewRow(line, index, rowClass) {
  * Render an edit mode row (inline editing)
  */
 function renderEditingRow(line, rowClass) {
+  const isNewSerOn = line.usvtCreateSv || line.createSv;
+  const newSerButtonClass = isNewSerOn
+    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md hover:shadow-lg'
+    : 'bg-slate-200 text-slate-700 hover:bg-slate-300';
+  const newSerButtonText = isNewSerOn ? '✓ New SER' : 'New SER';
+
   return `
     <tr class="${rowClass}" data-line-id="${line.id}">
       <td class="font-medium text-center">${line.sequence}</td>
       <td class="text-center">
-        <label class="toggle-switch" style="transform: scale(0.85);">
-          <input type="checkbox" data-line-id="${line.id}" data-field="usvtCreateSv" ${line.usvtCreateSv || line.createSv ? 'checked' : ''}>
-          <span class="toggle-slider"></span>
-        </label>
+        <button type="button" data-line-id="${line.id}" data-field="usvtCreateSv" class="h-8 px-3 text-xs font-semibold rounded-lg ${newSerButtonClass} transition-all">
+          ${newSerButtonText}
+        </button>
       </td>
       <td>
         <select data-line-id="${line.id}" data-field="lineType" class="bc-input px-2 py-1 text-xs">
@@ -560,11 +570,13 @@ export function openAddLineModal(insertIndex = null) {
     // Type dropdown
     if (el('lineType')) el('lineType').value = 'Item';
 
-    // Create SV checkbox
+    // New SER button - reset to OFF state
     if (el('lineCreateSv')) {
-      el('lineCreateSv').checked = false;
-      el('lineCreateSv').disabled = false;
-      el('lineCreateSv').classList.remove('opacity-50', 'cursor-not-allowed');
+      const button = el('lineCreateSv');
+      button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+      button.classList.remove('bg-gradient-to-r', 'from-indigo-500', 'to-purple-500', 'text-white', 'shadow-md', 'hover:shadow-lg', 'opacity-50', 'cursor-not-allowed');
+      button.innerHTML = 'New SER';
+      button.disabled = false;
     }
 
     // Service Item fields
@@ -604,7 +616,7 @@ export function openAddLineModal(insertIndex = null) {
       }
     });
 
-    // Setup Type -> Create SV locking handler
+    // Setup Type -> New SER locking handler
     if (window.setupLineModalHandlers) {
       window.setupLineModalHandlers();
     }

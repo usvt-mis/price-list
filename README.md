@@ -31,7 +31,7 @@ The Price List Calculator computes total cost based on four components:
   - **No build process**: Uses native ES6 modules with import maps
   - **Modern UI**: Color-coded sections (blue/indigo/emerald), gradient backgrounds, rounded cards, icons, modal animations, mobile FABs, modern date picker with Flatpickr
   - Azure AD authentication
-  - **Quote Line Management**: 16-column table with 13 editable fields per line (Create SV checkbox, Type dropdown, Service Item No., Service Item Description, Group No., No. materials search, Description, Qty., Unit Price, Addition checkbox, Ref. Sales Quote No., Discount %, Discount Amt.)
+  - **Quote Line Management**: 16-column table with 13 editable fields per line (New SER button, Type dropdown, Group No., Service Item No., Service Item Description, No. materials search, Description, Qty., Unit Price, Addition checkbox, Ref. Sales Quote No., Discount %, Discount Amt.)
   - **Materials Search Integration**: "No." field searches dbo.materials table by MaterialCode OR MaterialName (min 2 chars), Description auto-fills from MaterialName (editable), Unit Price remains manual entry per user requirement
   - **Bi-directional Discount Sync**: Discount % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Discount% / 100`
   - **Inline Editing**: All text/number fields editable directly in table with real-time validation, Enter to save, Escape to cancel, blue highlight on active row

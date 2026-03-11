@@ -607,8 +607,9 @@ export function handleSaveLineEdit(lineId) {
   if (!line) return;
 
   // Gather all inline field values with references
+  const newSerButton = document.querySelector(`button[data-line-id="${lineId}"][data-field="usvtCreateSv"]`);
   const fieldRefs = {
-    usvtCreateSv: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtCreateSv"]`),
+    usvtCreateSv: newSerButton,
     lineType: document.querySelector(`select[data-line-id="${lineId}"][data-field="lineType"]`),
     serviceItemNo: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemNo"]`),
     serviceItemDesc: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtServiceItemDescription"]`),
@@ -623,8 +624,11 @@ export function handleSaveLineEdit(lineId) {
     refSalesQuote: document.querySelector(`input[data-line-id="${lineId}"][data-field="usvtRefSalesQuoteno"]`)
   };
 
+  // Check New SER button state by looking for the gradient class
+  const isNewSerOn = newSerButton?.classList.contains('from-indigo-500');
+
   const newData = {
-    usvtCreateSv: fieldRefs.usvtCreateSv?.checked || false,
+    usvtCreateSv: isNewSerOn || false,
     lineType: fieldRefs.lineType?.value || 'Item',
     usvtServiceItemNo: fieldRefs.serviceItemNo?.value?.trim() || '',
     usvtServiceItemDescription: fieldRefs.serviceItemDesc?.value?.trim() || '',
@@ -954,18 +958,18 @@ export async function initializeBranchFields() {
 // ============================================================
 
 /**
- * Setup modal handlers for Type -> Create SV locking logic
- * When Type is "Comment", Create SV checkbox is disabled and unchecked
- * When Type is "Item", Create SV checkbox is enabled
+ * Setup modal handlers for Type -> New SER locking logic
+ * When Type is "Comment", New SER button is disabled and OFF
+ * When Type is "Item", New SER button is enabled
  * When Addition is OFF, Ref Sales Quote No is disabled and cleared
  */
 export function setupLineModalHandlers() {
   const typeSelect = el('lineType');
-  const createSvCheckbox = el('lineCreateSv');
+  const newSerButton = el('lineCreateSv');
   const additionCheckbox = el('lineUsvtAddition');
   const refSalesQuoteField = el('lineUsvtRefSalesQuoteno');
 
-  if (!typeSelect || !createSvCheckbox || !additionCheckbox || !refSalesQuoteField) {
+  if (!typeSelect || !newSerButton || !additionCheckbox || !refSalesQuoteField) {
     console.warn('Line modal elements not found for handler setup');
     return;
   }
@@ -979,8 +983,8 @@ export function setupLineModalHandlers() {
   // Handle Addition changes
   additionCheckbox.addEventListener('change', updateAdditionFieldState);
 
-  // Handle Create SV changes
-  createSvCheckbox.addEventListener('change', updateServiceItemFieldState);
+  // Handle New SER button clicks
+  newSerButton.addEventListener('click', toggleNewSerButton);
 
   // Initial Addition state
   updateAdditionFieldState();
@@ -988,18 +992,45 @@ export function setupLineModalHandlers() {
   // Initial Service Item field state
   updateServiceItemFieldState();
 
+  function toggleNewSerButton() {
+    const isCurrentlyOn = newSerButton.classList.contains('from-indigo-500');
+
+    if (isCurrentlyOn) {
+      // Turn OFF
+      setNewSerButtonState(false);
+    } else {
+      // Turn ON
+      setNewSerButtonState(true);
+    }
+
+    // Update Service Item field states
+    updateServiceItemFieldState();
+  }
+
+  function setNewSerButtonState(isOn) {
+    if (isOn) {
+      newSerButton.classList.remove('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+      newSerButton.classList.add('bg-gradient-to-r', 'from-indigo-500', 'to-purple-500', 'text-white', 'shadow-md', 'hover:shadow-lg');
+      newSerButton.innerHTML = '✓ New SER';
+    } else {
+      newSerButton.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+      newSerButton.classList.remove('bg-gradient-to-r', 'from-indigo-500', 'to-purple-500', 'text-white', 'shadow-md', 'hover:shadow-lg');
+      newSerButton.innerHTML = 'New SER';
+    }
+  }
+
   function updateFieldStates() {
     const typeValue = typeSelect.value;
     const isComment = typeValue === 'Comment';
 
-    // Update Create SV checkbox state
+    // Update New SER button state
     if (isComment) {
-      createSvCheckbox.disabled = true;
-      createSvCheckbox.checked = false;
-      createSvCheckbox.classList.add('opacity-50', 'cursor-not-allowed');
+      newSerButton.disabled = true;
+      setNewSerButtonState(false);
+      newSerButton.classList.add('opacity-50', 'cursor-not-allowed');
     } else {
-      createSvCheckbox.disabled = false;
-      createSvCheckbox.classList.remove('opacity-50', 'cursor-not-allowed');
+      newSerButton.disabled = false;
+      newSerButton.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 
     // Fields to disable when Type is "Comment"
@@ -1046,7 +1077,7 @@ export function setupLineModalHandlers() {
       el('lineTotalPreview').textContent = '0.00';
     }
 
-    // Sync Service Item fields with Create SV checkbox state
+    // Sync Service Item fields with New SER button state
     updateServiceItemFieldState();
   }
 
@@ -1071,9 +1102,9 @@ export function setupLineModalHandlers() {
   }
 
   /**
-   * Update Service Item fields based on Create SV checkbox state
-   * When Create SV is OFF (unchecked), disable and clear BOTH Service Item fields
-   * When Create SV is ON (checked):
+   * Update Service Item fields based on New SER button state
+   * When New SER is OFF, disable and clear BOTH Service Item fields
+   * When New SER is ON:
    *   - Serv. Item No. remains disabled (auto-generated/not applicable)
    *   - Serv. Item Desc. is enabled for user entry
    */
@@ -1085,10 +1116,10 @@ export function setupLineModalHandlers() {
       return;
     }
 
-    const isCreateSvEnabled = createSvCheckbox.checked;
+    const isNewSerOn = newSerButton.classList.contains('from-indigo-500');
 
-    if (!isCreateSvEnabled) {
-      // Create SV OFF: Disable BOTH fields
+    if (!isNewSerOn) {
+      // New SER OFF: Disable BOTH fields
       serviceItemNoField.disabled = true;
       serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
       serviceItemNoField.value = ''; // Clear value
@@ -1097,7 +1128,7 @@ export function setupLineModalHandlers() {
       serviceItemDescField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
       serviceItemDescField.value = ''; // Clear value
     } else {
-      // Create SV ON: Disable Serv. Item No. but enable Serv. Item Desc.
+      // New SER ON: Disable Serv. Item No. but enable Serv. Item Desc.
       serviceItemNoField.disabled = true; // Keep disabled
       serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
       serviceItemNoField.value = ''; // Clear value when disabled
@@ -1226,6 +1257,23 @@ export function setupEventListeners() {
     if (!e.target.closest('#lineObjectNumberSearch') && !e.target.closest('#lineMaterialDropdown')) {
       const dropdown = el('lineMaterialDropdown');
       if (dropdown) dropdown.classList.add('hidden');
+    }
+
+    // Handle inline New SER button clicks
+    if (e.target.matches('[data-field="usvtCreateSv"]') || e.target.closest('[data-field="usvtCreateSv"]')) {
+      const button = e.target.matches('[data-field="usvtCreateSv"]') ? e.target : e.target.closest('[data-field="usvtCreateSv"]');
+      const lineId = button.dataset.lineId;
+
+      if (lineId) {
+        const line = state.quote.lines.find(l => l.id === lineId);
+        if (line) {
+          // Toggle state
+          line.usvtCreateSv = !line.usvtCreateSv;
+
+          // Re-render row to show updated button state
+          renderQuoteLines();
+        }
+      }
     }
   });
 
