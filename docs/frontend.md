@@ -331,6 +331,102 @@ Clean module resolution without relative path clutter:
 
 ---
 
+## Sales Quotes Calculator
+
+**Purpose**: Business Central integration for creating and managing sales quotes.
+
+**Features:**
+- Azure Function API integration (CreateSalesQuoteWithoutNumber, CreateServiceItem)
+- Local database customer/item search (min 2 chars)
+- Quote lines with 12 fields
+- Modal-based line editing
+- Modern UI with color-coded sections
+
+**Module Organization**:
+```
+src/js/salesquotes/
+├── app.js                    # Sales Quotes app initialization
+├── config.js                 # Sales Quotes-specific configuration
+├── state.js                  # State management
+├── create-quote.js           # Quote creation logic, API integration
+├── ui.js                     # UI rendering, modals
+└── components/
+    ├── modal-loader.js       # Dynamic modal loading with caching
+    └── modals/               # 8 modular HTML files
+```
+
+### UI Patterns
+
+#### Dynamic Required Field Indicators
+- Red asterisk (*) hides when field has value, shows when empty
+- Light red background (#fef2f2) on empty required fields
+- Applies to: Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, Division
+- Add/Edit Line modals: Type, No., Description, Qty.
+
+#### Auto-Populated Branch Fields
+- BRANCH displays branch code from user's branchId
+- Location Code = BRANCH (last 2 chars) + "01"
+- Responsibility Center = BRANCH value
+- All readonly with gray background
+
+#### Addition Toggle Switch
+- Gradient purple-indigo when ON, slate gray when OFF
+- Controls Ref. SQ No. field availability (disabled when OFF)
+- Smooth slide animation (0.3s transition)
+
+#### Modal-Based Quote Line Editing
+- 15-column table: Type, Group No., Serv. Item No., Serv. Item Desc., No., Desc., Qty., Unit Price, Addition, Ref. SQ No., Disc. %, Discount Amt., Line Total, Actions
+- Double-click row to open Edit Line Modal
+- Real-time total preview
+- Bi-directional discount sync (Disc. % ↔ Discount Amt.)
+
+#### New SER Button
+- Creates Service Items via Azure Function API
+- Confirmation modal prevents accidental creation
+- Field locking after creation (Serv. Item No., Serv. Item Desc., Type)
+- States: Normal, Creating, Created (✓), Disabled (Comment type)
+
+#### Modern Date Picker
+- Flatpickr library integration
+- Order Date defaults to today
+- Requested Delivery Date prevents past dates
+- Custom styling to match Tailwind blue-500 theme
+
+#### Responsive Search Dropdowns
+- No debounce delay - instant response
+- 200ms blur delay for clicking results
+- Applied to: Customer No., Salesperson Code, Assigned User ID, Material search
+
+### Modular Components
+
+#### External CSS
+`src/salesquotes/components/styles/salesquotes-styles.css` - All custom styles extracted from inline `<style>` block
+
+#### Modal Components (8 files)
+`src/salesquotes/components/modals/`:
+- `add-line-modal.html` - Add Quote Line with 6-column grid
+- `edit-line-modal.html` - Edit Quote Line (reuses Add Line structure)
+- `quote-created-modal.html` - Success modal after BC quote creation
+- `fullscreen-table-modal.html` - Expandable fullscreen table view
+- `confirm-remove-modal.html` - Quote line removal confirmation
+- `confirm-clear-modal.html` - Clear quote confirmation
+- `confirm-new-ser-modal.html` - New Service Item creation confirmation
+- `no-branch-modal.html` - No branch assigned error modal
+
+#### Modal Loader
+`src/js/salesquotes/components/modal-loader.js`:
+- `preloadAllModals()` - Loads all modals during initialization
+- `loadModal(modalName)` - Load single modal on demand
+- Modals injected into `#modalContainer` div
+- Reduces initial HTML file size (~750 lines vs 1,342 lines)
+
+### Clear State on Page Load
+- Fixed persistence bug - old quote lines no longer reappear
+- SessionStorage cleared (`STATE`, `DRAFT_QUOTE`) during `initApp()`
+- Lines table empty when page loads
+
+---
+
 ## See Also
 
 - [CLAUDE.md](../CLAUDE.md) - Project overview
