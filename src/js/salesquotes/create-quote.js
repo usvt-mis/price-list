@@ -576,6 +576,13 @@ function cancelRemoveLine() {
  * Show confirmation modal for New SER creation
  */
 function showConfirmNewSerModal() {
+  // Prevent action if button is disabled
+  const newSerButton = el('lineCreateSv');
+  if (newSerButton && newSerButton.disabled) {
+    showError(newSerButton.title || 'Cannot create Service Item - button is disabled.');
+    return;
+  }
+
   const description = el('lineUsvtServiceItemDescription').value.trim();
 
   // Validate description before showing modal
