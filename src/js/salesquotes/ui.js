@@ -1001,11 +1001,11 @@ export function showQuoteCreatedSuccess(quoteNumber, serviceOrderNo = null) {
   modal.classList.remove('hidden');
   modal.style.zIndex = '120'; // Higher than add line modal
 
-  // Trigger animation
+  // Trigger animation - scale up for modern effect
   setTimeout(() => {
     if (modalContent) {
-      modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
-      modalContent.classList.add('opacity-100', 'translate-y-0');
+      modalContent.classList.remove('opacity-0', 'scale-95');
+      modalContent.classList.add('opacity-100', 'scale-100');
     }
   }, 10);
 }
@@ -1018,14 +1018,14 @@ export function closeQuoteCreatedModal() {
   const modalContent = el('quoteCreatedModalContent');
 
   if (modal && modalContent) {
-    // Start closing animation
-    modalContent.classList.remove('opacity-100', 'translate-y-0');
-    modalContent.classList.add('opacity-0', 'translate-y-[-10px]');
+    // Start closing animation - scale down
+    modalContent.classList.remove('opacity-100', 'scale-100');
+    modalContent.classList.add('opacity-0', 'scale-95');
 
     // Hide modal after animation completes
     setTimeout(() => {
       modal.classList.add('hidden');
-    }, 300);
+    }, 500);
   }
 }
 
