@@ -6,7 +6,7 @@
 import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState } from './state.js';
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
-import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showNoBranchModal } from './ui.js';
+import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess } from './ui.js';
 import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
@@ -1157,7 +1157,8 @@ export async function initializeBranchFields() {
 
     if (!userInfo || !userInfo.clientPrincipal) {
       console.warn('[BRANCH-INIT] No user info available for branch initialization');
-      showNoBranchModal();
+      const { showNoBranchModal } = await import('./ui.js');
+      await showNoBranchModal();
       return;
     }
 
@@ -1170,7 +1171,8 @@ export async function initializeBranchFields() {
     if (!branchId && branchId !== 0) {  // Check for null/undefined, but allow 0
       console.error('[BRANCH-INIT] No branchId found in user info - showing No Branch modal');
       console.log('[BRANCH-INIT] Full clientPrincipal data for debugging:', JSON.stringify(clientPrincipal));
-      showNoBranchModal();
+      const { showNoBranchModal } = await import('./ui.js');
+      await showNoBranchModal();
       return;
     }
 
@@ -1184,7 +1186,8 @@ export async function initializeBranchFields() {
 
     if (!branchCode) {
       console.error(`[BRANCH-INIT] Invalid branchId: ${branchId} - no matching branch code found`);
-      showNoBranchModal();
+      const { showNoBranchModal } = await import('./ui.js');
+      await showNoBranchModal();
       return;
     }
 
@@ -1219,7 +1222,8 @@ export async function initializeBranchFields() {
     console.log(`[BRANCH-INIT] SUCCESS: Branch fields initialized: ${branchCode} -> ${locationCode}`);
   } catch (error) {
     console.error('[BRANCH-INIT] Failed to initialize branch fields:', error);
-    showNoBranchModal();
+    const { showNoBranchModal } = await import('./ui.js');
+    await showNoBranchModal();
   }
 }
 

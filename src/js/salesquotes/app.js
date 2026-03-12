@@ -38,13 +38,13 @@ async function initApp() {
     initState();
     console.log('State initialized');
 
-    // 5. Load initial data from BC (customers, items)
-    await loadInitialData();
-    console.log('Initial data loaded');
-
-    // 6. Preload modals
+    // 5. Preload modals FIRST (before loading data - noBranchModal may be needed)
     await preloadAllModals();
     console.log('Modals preloaded');
+
+    // 6. Load initial data from BC (customers, items)
+    await loadInitialData();
+    console.log('Initial data loaded');
 
     // 7. Setup event listeners
     setupEventListeners();

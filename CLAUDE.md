@@ -120,6 +120,12 @@ module.exports = router;
 ### Branch ID Mapping
 URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
+### Critical Modal Loading Pattern
+- For modals that block user access (e.g., "No Branch Assigned" modal), preload modals BEFORE validation logic
+- Implementation: In `app.js`, call `preloadAllModals()` before `loadInitialData()`
+- Include fallback: Modal loading function should attempt dynamic load if modal not found in DOM
+- Last resort: Use `alert()` as fallback if modal loading completely fails
+
 ---
 
 ## Authentication & Authorization
@@ -154,6 +160,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - When adding/editing a line, if the selected Group No already has a Service Item No in another line, the "New SER" button is disabled with a tooltip
 - This prevents duplicate Service Item creation within the same group
 - Implementation: `src/js/salesquotes/create-quote.js` - functions `hasServiceItemInGroupNo()`, `updateNewSerButtonStateForAddModal()`, `updateNewSerButtonStateForEditModal()`
+
+**Branch Assignment Validation:**
+- **Policy**: Users must have a Branch assigned (via `branchId` in user profile) to access Sales Quotes
+- If no `branchId` is found, a modal is displayed that freezes the page until the user refreshes after being assigned a branch
+- Modal is preloaded during app initialization to ensure availability before branch validation runs
+- Includes fallback mechanism to load modal dynamically if preload fails
+- Implementation: `src/js/salesquotes/create-quote.js` - `initializeBranchFields()`, `src/js/salesquotes/ui.js` - `showNoBranchModal()`
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 

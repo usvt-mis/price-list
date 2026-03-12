@@ -1188,10 +1188,29 @@ export function hideConfirmClearQuoteModal() {
 /**
  * Show No Branch Assigned modal
  * FREEZES the page - user cannot interact with anything until they refresh
+ * Includes fallback to load modal on-demand if not already in DOM
  */
-export function showNoBranchModal() {
-  const modal = el('noBranchModal');
-  const modalContent = el('noBranchModalContent');
+export async function showNoBranchModal() {
+  let modal = el('noBranchModal');
+  let modalContent = el('noBranchModalContent');
+
+  // Fallback: if modal not in DOM, load it dynamically
+  if (!modal || !modalContent) {
+    console.warn('[NO-BRANCH-MODAL] Modal not found in DOM, loading dynamically...');
+    try {
+      const { loadModal } = await import('./components/modal-loader.js');
+      await loadModal('noBranchModal');
+      modal = el('noBranchModal');
+      modalContent = el('noBranchModalContent');
+      console.log('[NO-BRANCH-MODAL] Modal loaded dynamically');
+    } catch (err) {
+      console.error('[NO-BRANCH-MODAL] Failed to load modal:', err);
+      // Fallback: use browser alert as last resort
+      alert('คุณยังไม่มี Branch ที่กำหนด\nกรุณาติดต่อผู้ดูแลระบบเพื่อ Assign Branch\n\nYou do not have an assigned Branch.\nPlease contact the administrator.');
+      return;
+    }
+  }
+
   if (modal && modalContent) {
     modal.classList.remove('hidden');
     modal.style.zIndex = '9999'; // Highest priority - above everything
@@ -1207,6 +1226,10 @@ export function showNoBranchModal() {
     if (modal) {
       modal.style.pointerEvents = 'auto';
     }
+  } else {
+    // Last resort fallback if modal still not available
+    console.error('[NO-BRANCH-MODAL] Modal still not available after loading');
+    alert('คุณยังไม่มี Branch ที่กำหนด\nกรุณาติดต่อผู้ดูแลระบบเพื่อ Assign Branch\n\nYou do not have an assigned Branch.\nPlease contact the administrator.');
   }
 }
 
