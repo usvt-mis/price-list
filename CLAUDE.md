@@ -149,6 +149,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 2. Calls `CreateServiceOrderFromSQ` with one payload per unique Group No
 3. Displays Service Order No in the success modal (if creation succeeds)
 
+**Service Item No Validation:**
+- **Policy**: Only one Service Item No is allowed per Group No across all quote lines
+- When adding/editing a line, if the selected Group No already has a Service Item No in another line, the "New SER" button is disabled with a tooltip
+- This prevents duplicate Service Item creation within the same group
+- Implementation: `src/js/salesquotes/create-quote.js` - functions `hasServiceItemInGroupNo()`, `updateNewSerButtonStateForAddModal()`, `updateNewSerButtonStateForEditModal()`
+
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 
 ---

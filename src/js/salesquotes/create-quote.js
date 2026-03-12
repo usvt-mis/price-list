@@ -1217,6 +1217,137 @@ export async function initializeBranchFields() {
 }
 
 // ============================================================
+// Service Item No per Group No Validation
+// ============================================================
+
+/**
+ * Check if any line in the same Group No already has a Service Item No
+ * @param {string|number} groupNo - The Group No to check
+ * @param {string|null} excludeLineId - Line ID to exclude (for edit mode)
+ * @returns {boolean} true if Service Item No exists in the group
+ */
+function hasServiceItemInGroupNo(groupNo, excludeLineId = null) {
+  if (!groupNo || groupNo.toString().trim() === '') {
+    return false;
+  }
+
+  const groupNoStr = groupNo.toString().trim();
+
+  // Check all existing lines
+  return state.quote.lines.some(line => {
+    // Skip the line being edited
+    if (excludeLineId && line.id === excludeLineId) {
+      return false;
+    }
+    // Check if same Group No and has Service Item No
+    return line.usvtGroupNo?.toString() === groupNoStr &&
+           line.usvtServiceItemNo &&
+           line.usvtServiceItemNo.trim() !== '';
+  });
+}
+
+/**
+ * Update New SER button state in Add Line modal based on Group No
+ * Checks if any existing line in the same Group No has a Service Item No
+ */
+function updateNewSerButtonStateForAddModal() {
+  const groupNoField = el('lineUsvtGroupNo');
+  const newSerButton = el('lineCreateSv');
+  const typeSelect = el('lineType');
+
+  if (!groupNoField || !newSerButton || !typeSelect) {
+    return;
+  }
+
+  const groupNo = groupNoField.value;
+  const isComment = typeSelect.value === 'Comment';
+
+  // If Type is Comment, button is already disabled
+  if (isComment) {
+    newSerButton.disabled = true;
+    newSerButton.removeAttribute('title');
+    return;
+  }
+
+  // If SER was already created in this modal session, keep it disabled
+  if (state.ui.serCreated) {
+    newSerButton.disabled = true;
+    newSerButton.removeAttribute('title');
+    return;
+  }
+
+  // Check if any existing line in the same Group No has Service Item No
+  const hasExistingSerInGroup = hasServiceItemInGroupNo(groupNo, null);
+
+  if (hasExistingSerInGroup) {
+    // Disable button and show tooltip
+    newSerButton.disabled = true;
+    newSerButton.title = `Group No ${groupNo} already has a Service Item No. Only one Service Item is allowed per group.`;
+    newSerButton.style.cursor = 'not-allowed';
+  } else {
+    // Enable button and remove tooltip
+    newSerButton.disabled = false;
+    newSerButton.removeAttribute('title');
+    newSerButton.style.cursor = '';
+  }
+}
+
+/**
+ * Update New SER button state in Edit Line modal based on Group No
+ * Checks if any existing line in the same Group No has a Service Item No
+ * @param {string|null} excludeLineId - The line ID being edited
+ */
+function updateNewSerButtonStateForEditModal(excludeLineId) {
+  const groupNoField = document.getElementById('editLineUsvtGroupNo');
+  const newSerButton = document.getElementById('editLineCreateSv');
+  const typeSelect = document.getElementById('editLineType');
+
+  if (!groupNoField || !newSerButton || !typeSelect) {
+    return;
+  }
+
+  const groupNo = groupNoField.value;
+  const isComment = typeSelect.value === 'Comment';
+
+  // If Type is Comment, button is already disabled
+  if (isComment) {
+    newSerButton.disabled = true;
+    newSerButton.removeAttribute('title');
+    return;
+  }
+
+  // If SER was already created for this line in edit mode
+  if (state.ui.serCreatedEdit) {
+    newSerButton.disabled = true;
+    newSerButton.removeAttribute('title');
+    return;
+  }
+
+  // If line has existing Service Item No (from before opening modal), keep disabled
+  const line = state.quote.lines.find(l => l.id === excludeLineId);
+  if (line && line.usvtServiceItemNo && line.usvtServiceItemNo.trim() !== '') {
+    newSerButton.disabled = true;
+    newSerButton.removeAttribute('title');
+    return;
+  }
+
+  // Check if any OTHER line in the same Group No has Service Item No
+  const hasExistingSerInGroup = hasServiceItemInGroupNo(groupNo, excludeLineId);
+
+  if (hasExistingSerInGroup) {
+    // Disable button and show tooltip
+    newSerButton.disabled = true;
+    newSerButton.title = `Group No ${groupNo} already has a Service Item No. Only one Service Item is allowed per group.`;
+    newSerButton.style.cursor = 'not-allowed';
+  } else {
+    // Enable button and remove tooltip
+    newSerButton.disabled = false;
+    newSerButton.removeAttribute('title');
+    newSerButton.style.cursor = '';
+  }
+}
+
+// ============================================================
 // Line Modal Handlers
 // ============================================================
 
@@ -1249,6 +1380,13 @@ export function setupLineModalHandlers() {
   // Handle New SER button clicks - show confirmation first
   newSerButton.addEventListener('click', showConfirmNewSerModal);
 
+  // Handle Group No changes - update New SER button state
+  const groupNoField = el('lineUsvtGroupNo');
+  if (groupNoField) {
+    groupNoField.addEventListener('input', updateNewSerButtonStateForAddModal);
+    groupNoField.addEventListener('change', updateNewSerButtonStateForAddModal);
+  }
+
   // Initial Addition state
   updateAdditionFieldState();
 
@@ -1258,6 +1396,9 @@ export function setupLineModalHandlers() {
   function updateFieldStates() {
     const typeValue = typeSelect.value;
     const isComment = typeValue === 'Comment';
+
+    // Update New SER button state based on Group No
+    updateNewSerButtonStateForAddModal();
 
     // Lock Type dropdown if SER was created
     if (state.ui.serCreated) {
@@ -1841,6 +1982,9 @@ function openEditLineModal(lineId) {
     newSerButton.style.opacity = '1';
   }
 
+  // Update New SER button state based on Group No (checks for existing Service Items in the same group)
+  updateNewSerButtonStateForEditModal(lineId);
+
   // Lock fields if Service Item No exists
   if (hasExistingSer) {
     const typeField = document.getElementById('editLineType');
@@ -2025,11 +2169,8 @@ function updateEditModalFieldStates(type) {
   } else {
     servItemNo.disabled = false;
     servItemDesc.disabled = false;
-    // Re-enable New SER button if no SER was created yet
-    if (newSerButton && !state.ui.serCreatedEdit) {
-      newSerButton.disabled = false;
-      newSerButton.innerHTML = 'New SER';
-    }
+    // Update New SER button state based on Group No when switching to Item type
+    updateNewSerButtonStateForEditModal(state.ui.editingLineId);
   }
 
   // Update Service Item field state based on SER creation flag
@@ -2271,6 +2412,19 @@ function setupEditModalEventListeners() {
 
   // Addition change - update Ref Sales Quote No field state
   document.getElementById('editLineUsvtAddition').addEventListener('change', updateEditAdditionFieldState);
+
+  // Group No change - update New SER button state
+  const groupNoField = document.getElementById('editLineUsvtGroupNo');
+  if (groupNoField) {
+    groupNoField.addEventListener('input', () => {
+      const editingLineId = state.ui.editingLineId;
+      updateNewSerButtonStateForEditModal(editingLineId);
+    });
+    groupNoField.addEventListener('change', () => {
+      const editingLineId = state.ui.editingLineId;
+      updateNewSerButtonStateForEditModal(editingLineId);
+    });
+  }
 
   // New SER button - show confirmation modal first
   const newSerButton = document.getElementById('editLineCreateSv');
