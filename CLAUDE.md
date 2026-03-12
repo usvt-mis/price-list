@@ -145,7 +145,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 **Implementation:** `src/js/salesquotes/create-quote.js`
 
 **Flow:** After successfully creating a Sales Quote, the system automatically:
-1. Extracts unique Group No values from all quote lines
+1. Extracts unique Group No values from all quote lines (only groups with at least one Service Item No)
 2. Calls `CreateServiceOrderFromSQ` with one payload per unique Group No
 3. Displays Service Order No in the success modal (if creation succeeds)
 

@@ -237,7 +237,7 @@ x-functions-key: <API_KEY>
 
 **Workflow (Automatic):**
 1. After `CreateSalesQuoteWithoutNumber` succeeds
-2. Extract unique Group No values from `state.quote.lines`
+2. Extract unique Group No values from `state.quote.lines` (only groups with at least one Service Item No)
 3. Build payload array (one entry per unique Group No)
 4. Call `CreateServiceOrderFromSQ` API
 5. Extract Service Order No from response

@@ -986,17 +986,25 @@ async function createServiceOrderFromSQ(salesQuoteId, branchCode) {
   const API_URL = 'https://func-api-gateway-prod-uat-f7ffhjejehcmbued.southeastasia-01.azurewebsites.net/api/CreateServiceOrderFromSQ';
   const API_KEY = '***REDACTED_AZURE_FUNCTION_KEY_2***';
 
-  // Extract unique Group No values from quote lines
-  const uniqueGroupNos = [...new Set(
-    state.quote.lines
-      .map(line => line.usvtGroupNo)
-      .filter(groupNo => groupNo && groupNo.trim() !== '')
-  )];
+  // Extract unique Group No values - only include groups that have at least one Service Item No
+  const groupNosWithServiceItem = new Set();
 
-  console.log('Unique Group Nos:', uniqueGroupNos);
+  for (const line of state.quote.lines) {
+    const groupNo = line.usvtGroupNo;
+    const serviceItemNo = line.usvtServiceItemNo;
+
+    // Include this group if it has a Service Item No
+    if (groupNo && groupNo.trim() !== '' && serviceItemNo && serviceItemNo.trim() !== '') {
+      groupNosWithServiceItem.add(groupNo);
+    }
+  }
+
+  const uniqueGroupNos = Array.from(groupNosWithServiceItem);
+
+  console.log('Unique Group Nos with Service Item:', uniqueGroupNos);
 
   if (uniqueGroupNos.length === 0) {
-    console.warn('No Group Nos found in quote lines, skipping Service Order creation');
+    console.warn('No Group Nos with Service Item found in quote lines, skipping Service Order creation');
     return null;
   }
 
