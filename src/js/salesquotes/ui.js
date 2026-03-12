@@ -834,10 +834,8 @@ export function clearQuoteForm() {
   if (el('serviceOrderType')) el('serviceOrderType').value = '';
   if (el('division')) el('division').value = 'MS1029';
 
-  // Clear branch fields
-  if (el('branch')) el('branch').value = '';
-  if (el('locationCode')) el('locationCode').value = '';
-  if (el('responsibilityCenter')) el('responsibilityCenter').value = '';
+  // NOTE: Do NOT clear branch, locationCode, and responsibilityCenter
+  // These are auto-populated from the user's session/branch data and should persist
 
   clearCustomerSelection();
   hideCustomerDropdown();
