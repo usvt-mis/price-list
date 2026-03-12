@@ -855,6 +855,7 @@ async function sendQuoteToAzureFunction(quoteData) {
     division: quoteData.division || 'MS1029',
     branchCode: state.quote.branch || '',
     discountAmount: discountAmount,
+    requestedDeliveryDate: quoteData.requestedDeliveryDate || '',
     lineItems: lineItems
   };
 
