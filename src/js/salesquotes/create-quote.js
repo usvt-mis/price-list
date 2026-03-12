@@ -1257,7 +1257,7 @@ function hasServiceItemInGroupNo(groupNo, excludeLineId = null) {
  * Update New SER button state in Add Line modal based on Group No
  * Checks if any existing line in the same Group No has a Service Item No
  */
-function updateNewSerButtonStateForAddModal() {
+export function updateNewSerButtonStateForAddModal() {
   const groupNoField = el('lineUsvtGroupNo');
   const newSerButton = el('lineCreateSv');
   const typeSelect = el('lineType');
@@ -1859,6 +1859,7 @@ if (typeof window !== 'undefined') {
 
   // Modal functions
   window.setupLineModalHandlers = setupLineModalHandlers;
+  window.updateNewSerButtonStateForAddModal = updateNewSerButtonStateForAddModal;
 
   // Modal functions (from ui.js)
   window.openInsertLineModal = window.openInsertLineModal;

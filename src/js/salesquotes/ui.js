@@ -543,6 +543,12 @@ export function openAddLineModal(insertIndex = null) {
       window.setupLineModalHandlers();
     }
 
+    // Initialize New SER button state based on default Group No (1)
+    // This ensures the button is properly disabled if Group No 1 already has a Service Item
+    if (window.updateNewSerButtonStateForAddModal) {
+      window.updateNewSerButtonStateForAddModal();
+    }
+
     // Setup modal field asterisk handlers
     setupModalAsteriskHandlers();
 
