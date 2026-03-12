@@ -1,42 +1,25 @@
 <!-- Quote Created Success Modal -->
-<div id="quoteCreatedModal" class="fixed inset-0 bg-black/70 backdrop-blur-md hidden z-50 transition-opacity duration-300">
-  <div class="flex items-center justify-center py-8 px-4 min-h-0">
-    <div id="quoteCreatedModalContent" class="bg-white rounded-3xl shadow-2xl max-w-lg w-full transform transition-all duration-500 opacity-0 scale-95 overflow-hidden relative">
-
-      <!-- Decorative Background Elements -->
-      <div class="absolute top-0 left-0 w-full h-32 overflow-hidden">
-        <div class="absolute -top-16 -left-16 w-32 h-32 bg-gradient-to-br from-emerald-400/20 to-teal-500/20 rounded-full blur-2xl"></div>
-        <div class="absolute -top-8 right-0 w-24 h-24 bg-gradient-to-br from-blue-400/20 to-indigo-500/20 rounded-full blur-xl"></div>
-        <div class="absolute top-12 right-20 w-16 h-16 bg-gradient-to-br from-purple-400/20 to-pink-500/20 rounded-full blur-lg"></div>
-      </div>
-
-      <!-- Confetti Container -->
-      <div id="confettiContainer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+<div id="quoteCreatedModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 transition-opacity duration-200">
+  <div class="flex items-center justify-center p-4 min-h-screen">
+    <div id="quoteCreatedModalContent" class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 opacity-0 scale-95 overflow-hidden">
 
       <!-- Success Icon & Header -->
-      <div class="p-8 pt-10 text-center relative z-10">
-        <!-- Animated Success Icon -->
-        <div class="relative inline-block mb-6">
-          <!-- Pulse rings -->
-          <div class="absolute inset-0 rounded-full bg-emerald-400/30 animate-ping"></div>
-          <div class="absolute inset-0 rounded-full bg-emerald-400/20 animate-pulse" style="animation-delay: 0.5s;"></div>
-
-          <!-- Main icon container -->
-          <div class="relative inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl shadow-lg shadow-emerald-500/30 transform transition-transform duration-300 hover:scale-110">
-            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-              <path class="checkmark-path" stroke-width="3" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </div>
+      <div class="p-6 pb-4 text-center">
+        <!-- Success Icon -->
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-emerald-500 rounded-full mb-4 shadow-lg">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path class="checkmark-path" stroke-width="3" d="M5 13l4 4L19 7"></path>
+          </svg>
         </div>
 
         <!-- Success Message -->
-        <h3 class="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
+        <h3 class="text-xl font-bold text-gray-900 mb-1">
           Sales Quote Created!
         </h3>
-        <p class="text-sm text-gray-500">Your quote has been successfully created in Business Central</p>
+        <p class="text-sm text-gray-500">Successfully created in Business Central</p>
 
         <!-- Timestamp -->
-        <div class="flex items-center justify-center gap-1.5 mt-3 text-xs text-gray-400">
+        <div class="flex items-center justify-center gap-1.5 mt-2 text-xs text-gray-400">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
@@ -45,128 +28,103 @@
       </div>
 
       <!-- Quote Number Display -->
-      <div class="px-8 pb-4 relative z-10">
-        <div class="relative group">
-          <!-- Gradient background with subtle pattern -->
-          <div class="absolute inset-0 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 rounded-2xl opacity-90 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-xl group-hover:shadow-emerald-500/30"></div>
-
-          <!-- Shimmer effect -->
-          <div class="absolute inset-0 rounded-2xl overflow-hidden">
-            <div class="shimmer-effect"></div>
+      <div class="px-6 pb-3">
+        <div class="bg-emerald-500 rounded-xl p-4 text-center relative group">
+          <div class="flex items-center justify-center gap-2 mb-1">
+            <svg class="w-4 h-4 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <p class="text-xs font-semibold text-white/90 uppercase tracking-wider">Quote Number</p>
           </div>
+          <p id="quoteCreatedNumber" class="text-2xl font-bold text-white tracking-wide tabular-nums">SO-12345</p>
 
-          <!-- Content -->
-          <div class="relative p-5 text-center">
-            <div class="flex items-center justify-center gap-2 mb-2">
-              <svg class="w-4 h-4 text-emerald-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-              <p class="text-xs font-semibold text-emerald-100 uppercase tracking-wider">Quote Number</p>
-            </div>
-            <p id="quoteCreatedNumber" class="text-3xl font-bold text-white tracking-wide tabular-nums">SO-12345</p>
-
-            <!-- Copy button -->
-            <button
-              onclick="window.copyQuoteNumber()"
-              class="absolute top-3 right-3 p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200 group-hover:opacity-100 opacity-60"
-              title="Copy to clipboard"
-            >
-              <svg id="copyQuoteIcon" class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-              </svg>
-              <svg id="copiedQuoteIcon" class="w-4 h-4 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-            </button>
-          </div>
+          <!-- Copy button -->
+          <button
+            onclick="window.copyQuoteNumber()"
+            class="absolute top-2 right-2 p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200"
+            title="Copy to clipboard"
+          >
+            <svg id="copyQuoteIcon" class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            <svg id="copiedQuoteIcon" class="w-4 h-4 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </button>
         </div>
       </div>
 
       <!-- Service Order No Display (hidden by default) -->
-      <div id="serviceOrderNoSection" class="px-8 pb-6 relative z-10 hidden">
-        <div class="relative group">
-          <!-- Gradient background -->
-          <div class="absolute inset-0 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500 rounded-2xl opacity-90 transition-all duration-300 group-hover:opacity-100 group-hover:shadow-xl group-hover:shadow-blue-500/30"></div>
-
-          <!-- Shimmer effect -->
-          <div class="absolute inset-0 rounded-2xl overflow-hidden">
-            <div class="shimmer-effect"></div>
+      <div id="serviceOrderNoSection" class="px-6 pb-3 hidden">
+        <div class="bg-blue-500 rounded-xl p-3 text-center relative group">
+          <div class="flex items-center justify-center gap-2 mb-1">
+            <svg class="w-3.5 h-3.5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+            <p class="text-xs font-semibold text-white/90 uppercase tracking-wider">Service Order No</p>
           </div>
+          <p id="serviceOrderCreatedNumber" class="text-lg font-bold text-white tracking-wide tabular-nums">SVRY2512-0013</p>
 
-          <!-- Content -->
-          <div class="relative p-4 text-center">
-            <div class="flex items-center justify-center gap-2 mb-1">
-              <svg class="w-3.5 h-3.5 text-blue-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-              </svg>
-              <p class="text-xs font-semibold text-blue-100 uppercase tracking-wider">Service Order No</p>
-            </div>
-            <p id="serviceOrderCreatedNumber" class="text-xl font-bold text-white tracking-wide tabular-nums">SVRY2512-0013</p>
-
-            <!-- Copy button -->
-            <button
-              onclick="window.copyServiceOrderNumber()"
-              class="absolute top-2 right-2 p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200 group-hover:opacity-100 opacity-60"
-              title="Copy to clipboard"
-            >
-              <svg id="copySOIcon" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-              </svg>
-              <svg id="copiedSOIcon" class="w-3.5 h-3.5 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-            </button>
-          </div>
+          <!-- Copy button -->
+          <button
+            onclick="window.copyServiceOrderNumber()"
+            class="absolute top-1.5 right-1.5 p-1 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200"
+            title="Copy to clipboard"
+          >
+            <svg id="copySOIcon" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            <svg id="copiedSOIcon" class="w-3.5 h-3.5 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </button>
         </div>
       </div>
 
-      <!-- Additional Info Cards -->
-      <div id="additionalInfoSection" class="px-8 pb-5 relative z-10">
-        <div class="flex gap-3">
-          <!-- Quote Status Card -->
-          <div class="flex-1 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/60 rounded-xl p-3 flex items-center gap-2.5">
-            <div class="flex-shrink-0 w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <!-- Status Info -->
+      <div class="px-6 pb-4">
+        <div class="flex gap-2">
+          <div class="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-2.5 flex items-center gap-2">
+            <div class="flex-shrink-0 w-7 h-7 bg-emerald-500 rounded-md flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
             </div>
             <div>
               <p class="text-xs text-gray-500">Status</p>
-              <p class="text-sm font-semibold text-emerald-700">Open</p>
+              <p class="text-sm font-semibold text-gray-700">Open</p>
             </div>
           </div>
-
-          <!-- Sync Status Card -->
-          <div class="flex-1 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 rounded-xl p-3 flex items-center gap-2.5">
-            <div class="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-2.5 flex items-center gap-2">
+            <div class="flex-shrink-0 w-7 h-7 bg-blue-500 rounded-md flex items-center justify-center">
+              <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
               </svg>
             </div>
             <div>
               <p class="text-xs text-gray-500">Sync</p>
-              <p class="text-sm font-semibold text-blue-700">Complete</p>
+              <p class="text-sm font-semibold text-gray-700">Complete</p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Action Buttons -->
-      <div class="p-6 bg-gradient-to-r from-slate-50 to-gray-50 border-t border-slate-100 flex flex-col sm:flex-row justify-center gap-3 rounded-b-3xl relative z-10">
+      <div class="p-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row justify-center gap-2">
         <button
-          class="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 rounded-xl px-6 py-3 font-medium hover:bg-slate-50 hover:border-slate-300 hover:shadow-md active:scale-95 transition-all duration-200"
+          class="inline-flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 rounded-lg px-5 py-2.5 font-medium hover:bg-gray-100 active:scale-95 transition-all duration-200"
           onclick="window.closeQuoteCreatedModal()"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
           Close
         </button>
         <button
-          class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl px-6 py-3 font-semibold shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-105 active:scale-95 transition-all duration-200"
+          class="inline-flex items-center justify-center gap-2 bg-emerald-500 text-white rounded-lg px-5 py-2.5 font-semibold hover:bg-emerald-600 active:scale-95 transition-all duration-200"
           onclick="window.createNewQuote()"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
           </svg>
           Create New Quote
@@ -181,68 +139,14 @@
 .checkmark-path {
   stroke-dasharray: 24;
   stroke-dashoffset: 24;
-  animation: drawCheckmark 0.6s ease-out forwards;
-  animation-delay: 0.3s;
+  animation: drawCheckmark 0.5s ease-out forwards;
+  animation-delay: 0.2s;
 }
 
 @keyframes drawCheckmark {
   to {
     stroke-dashoffset: 0;
   }
-}
-
-/* Shimmer Effect */
-.shimmer-effect {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  animation: shimmer 3s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 200%;
-  }
-}
-
-/* Confetti Animations */
-@keyframes confetti-fall {
-  0% {
-    transform: translateY(-20px) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(400px) rotate(720deg);
-    opacity: 0;
-  }
-}
-
-@keyframes confetti-sway {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(20px);
-  }
-}
-
-.confetti {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  opacity: 0;
-  animation: confetti-fall 3s ease-in forwards, confetti-sway 2s ease-in-out infinite;
 }
 
 /* Tabular nums for number alignment */
@@ -297,40 +201,6 @@
     window.clearQuote();
   };
 
-  // Create confetti particles
-  function createConfetti() {
-    const container = document.getElementById('confettiContainer');
-    if (!container) return;
-
-    const colors = ['#10b981', '#14b8a6', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
-    const shapes = ['circle', 'square', 'rectangle'];
-
-    for (let i = 0; i < 30; i++) {
-      const confetti = document.createElement('div');
-      confetti.className = 'confetti';
-
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const shape = shapes[Math.floor(Math.random() * shapes.length)];
-      const left = Math.random() * 100;
-      const delay = Math.random() * 0.5;
-      const duration = 2 + Math.random() * 1;
-
-      confetti.style.cssText = `
-        left: ${left}%;
-        background: ${color};
-        animation-delay: ${delay}s;
-        animation-duration: ${duration}s;
-        ${shape === 'circle' ? 'border-radius: 50%;' : ''}
-        ${shape === 'rectangle' ? 'width: 6px; height: 12px;' : ''}
-      `;
-
-      container.appendChild(confetti);
-
-      // Remove after animation
-      setTimeout(() => confetti.remove(), 4000);
-    }
-  }
-
   // Update timestamp when modal opens
   function updateTimestamp() {
     const timestampEl = document.getElementById('quoteCreatedTimestamp');
@@ -345,14 +215,13 @@
     }
   }
 
-  // Initialize confetti when modal opens
+  // Initialize timestamp when modal opens
   const modal = document.getElementById('quoteCreatedModal');
   if (modal) {
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
           if (!modal.classList.contains('hidden')) {
-            createConfetti();
             updateTimestamp();
           }
         }
