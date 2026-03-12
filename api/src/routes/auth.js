@@ -34,7 +34,8 @@ router.get('/me', async (req, res) => {
     effectiveRole = await getUserEffectiveRole(user);
     logger.debug('AUTH', 'EffectiveRoleLookup', `Effective role determined: ${effectiveRole}`, {
       userEmail: user.userDetails,
-      effectiveRole: effectiveRole
+      effectiveRole: effectiveRole,
+      branchId: user.branchId  // Log branchId for debugging
     });
   } catch (error) {
     logger.error('AUTH', 'EffectiveRoleLookupFailed', 'Failed to get effective role from database', {
@@ -51,8 +52,11 @@ router.get('/me', async (req, res) => {
     logger.debug('AUTH', 'EffectiveRoleFallback', `Using Azure AD fallback role: ${effectiveRole}`);
   }
 
+  // CRITICAL: Log final user.branchId before sending response
+  logger.info('AUTH', 'AuthMeResponse', `Sending user info: email=${user.userDetails}, branchId=${user.branchId}, effectiveRole=${effectiveRole}`);
+
   // Return user info with effective role and branch
-  res.json({
+  const response = {
     clientPrincipal: {
       userId: user.userId,
       userDetails: user.userDetails,
@@ -61,7 +65,13 @@ router.get('/me', async (req, res) => {
       branchId: user.branchId || null
     },
     effectiveRole: effectiveRole
-  });
+  };
+
+  // CRITICAL: Log what we're ACTUALLY sending back
+  console.log('[AUTH-ME-DEBUG] Final response being sent:', JSON.stringify(response, null, 2));
+  console.log('[AUTH-ME-DEBUG] user.branchId value:', user.branchId, '(type:', typeof user.branchId, ')');
+
+  res.json(response);
 });
 
 module.exports = router;

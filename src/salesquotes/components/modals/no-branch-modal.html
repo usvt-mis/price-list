@@ -1,28 +1,33 @@
-<!-- No Branch Assigned Modal -->
-<div id="noBranchModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[200] transition-opacity duration-300">
+<!-- No Branch Assigned Modal - Blocks page until user has a branch assigned -->
+<div id="noBranchModal" class="fixed inset-0 bg-red-900/80 backdrop-blur-md hidden z-[200] transition-opacity duration-300">
   <div class="flex items-center justify-center min-h-screen p-4">
     <div id="noBranchModalContent" class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
       <!-- Header with Icon -->
       <div class="p-8 text-center">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
-          <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-4 animate-pulse">
+          <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
           </svg>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 mb-2">No Branch Assigned</h3>
-        <p class="text-sm text-gray-600">You don't have permission to create Sales Quotes. Please wait for an Admin to assign a branch to your account.</p>
+        <h3 class="text-2xl font-bold text-gray-900 mb-2">ไม่พบ Branch ของท่าน</h3>
+        <p class="text-sm text-gray-600 mb-4">ท่านยังไม่มีสิทธิ์สร้าง Sales Quotes เนื่องจากยังไม่ได้รับการมอบหมาย Branch ในระบบ</p>
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-left">
+          <p class="text-xs text-amber-800 font-medium mb-1">กรุณาติดต่อ:</p>
+          <p class="text-xs text-amber-700">• Admin หรือ Manager เพื่อขอให้มอบหมาย Branch</p>
+          <p class="text-xs text-amber-700">• หรือรอสัญญาณจาก Admin ว่าได้รับการมอบหมายแล้ว</p>
+        </div>
       </div>
 
-      <!-- Action Button -->
+      <!-- Refresh Button -->
       <div class="p-6 border-t border-slate-200 bg-slate-50 flex justify-center rounded-b-2xl">
         <button
-          class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-slate-500 to-slate-600 text-white rounded-lg px-6 py-3 font-semibold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
-          onclick="window.closeNoBranchModal()"
+          class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg px-6 py-3 font-semibold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+          onclick="window.location.reload()"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
           </svg>
-          Close
+          ตรวจสอบใหม่ (Refresh)
         </button>
       </div>
     </div>

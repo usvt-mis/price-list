@@ -447,6 +447,9 @@ async function getUserEffectiveRole(user) {
       const firstLoginAt = result.recordset[0].FirstLoginAt;
       const branchId = result.recordset[0].BranchId;
 
+      // DEBUG: Log what we got from database
+      logger.info('AUTH', 'UserRoleFound', `User found in UserRoles: email=${user.userDetails}, role=${role}, branchId=${branchId} (type: ${typeof branchId})`);
+
       // Store BranchId in user object for later use
       user.branchId = branchId;
 
