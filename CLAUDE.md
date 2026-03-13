@@ -127,6 +127,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Include fallback: Modal loading function should attempt dynamic load if modal not found in DOM
 - Last resort: Use `alert()` as fallback if modal loading completely fails
 
+### Modal Stacking Context Pattern
+- For modals that appear over other modals (e.g., confirmation dialogs), ensure proper stacking:
+  1. Use higher z-index value (e.g., `z-[150]` for overlays on top of `z-[100]` base modals)
+  2. Move modal to end of container before showing: `modalContainer.appendChild(modal)`
+- This ensures the modal appears on top regardless of DOM order when dynamically loaded
+- Implementation: See `showConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
+
 ---
 
 ## Authentication & Authorization

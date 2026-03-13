@@ -713,6 +713,12 @@ function showConfirmNewSerModal() {
   const modalContent = el('confirmNewSerModalContent');
 
   if (modal && modalContent) {
+    // Move modal to end of container to ensure proper stacking context
+    const modalContainer = document.getElementById('modalContainer');
+    if (modalContainer && modalContainer.lastElementChild !== modal) {
+      modalContainer.appendChild(modal);
+    }
+
     state.ui.pendingSerCreation = true;
     modal.classList.remove('hidden');
     setTimeout(() => {
@@ -2599,6 +2605,12 @@ function showConfirmNewSerModalForEdit() {
   const modalContent = document.getElementById('confirmNewSerModalContent');
 
   if (modal && modalContent) {
+    // Move modal to end of container to ensure proper stacking context
+    const modalContainer = document.getElementById('modalContainer');
+    if (modalContainer && modalContainer.lastElementChild !== modal) {
+      modalContainer.appendChild(modal);
+    }
+
     state.ui.pendingSerCreationEdit = true;
     modal.classList.remove('hidden');
     setTimeout(() => {
