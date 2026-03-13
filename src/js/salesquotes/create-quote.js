@@ -521,6 +521,14 @@ export function selectMaterialFromEditSearch(material) {
  * Add quote line from modal
  */
 export function handleAddQuoteLine() {
+  // Force blur event on Material No field to trigger dropdown validation
+  const materialNoField = el('lineObjectNumberSearch');
+  if (materialNoField) {
+    materialNoField.blur();
+    // Small delay to allow blur event to complete validation
+    // Use setTimeout with 0ms to defer execution until after the event loop
+  }
+
   // Gather all form data with field references
   const fieldRefs = {
     lineType: el('lineType'),
@@ -553,6 +561,14 @@ export function handleAddQuoteLine() {
     discountPercent: sanitizeDiscountInput(fieldRefs.discountPercent?.value || '0', 1),
     discountAmount: sanitizeDiscountInput(fieldRefs.discountAmount?.value || '0', 2)
   };
+
+  // Check Material No dropdown validation first (must be selected from dropdown, not free text)
+  const isItem = lineData.lineType === 'Item';
+  if (isItem && !state.ui.dropdownFields.materialNo.valid && lineData.lineObjectNumber !== '') {
+    showError('Please select a material from the dropdown list');
+    fieldRefs.no?.focus();
+    return;
+  }
 
   // Use shared validation
   const validation = validateQuoteLineData(lineData);
@@ -2297,6 +2313,12 @@ function saveEditLine() {
   const lineId = state.ui.editingLineId;
   if (!lineId) return;
 
+  // Force blur event on Material No field to trigger dropdown validation
+  const editMaterialNoField = document.getElementById('editLineObjectNumberSearch');
+  if (editMaterialNoField) {
+    editMaterialNoField.blur();
+  }
+
   // Get values from modal
   const lineData = {
     lineType: document.getElementById('editLineType').value,
@@ -2316,6 +2338,12 @@ function saveEditLine() {
   // Validation
   // Material No. and quantity are only required for Item type
   if (lineData.lineType === 'Item') {
+    // Check dropdown validation first (must be selected from dropdown, not free text)
+    if (!state.ui.dropdownFields.editMaterialNo.valid && lineData.lineObjectNumber !== '') {
+      showToast('Please select a material from the dropdown list', 'error');
+      if (editMaterialNoField) editMaterialNoField.focus();
+      return;
+    }
     if (!lineData.lineObjectNumber) {
       showToast('Material No. is required', 'error');
       return;
