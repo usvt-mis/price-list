@@ -1185,6 +1185,82 @@ async function createServiceOrderFromSQ(salesQuoteId, branchCode) {
 }
 
 /**
+ * Extract Service Order Numbers from varying API response shapes.
+ * The upstream function may return a single value, arrays, nested result sets,
+ * or comma/newline-separated strings depending on how many groups were processed.
+ * @param {unknown} payload - Raw API response payload
+ * @returns {string[]} Normalized Service Order Numbers
+ */
+function extractServiceOrderNos(payload) {
+  const serviceOrderNos = [];
+  const seen = new Set();
+  const serviceOrderKeyPattern = /^serviceorder(?:no|nos|number|numbers)$/i;
+
+  function addValue(value) {
+    if (typeof value !== 'string') {
+      return;
+    }
+
+    value
+      .split(/[\r\n,;]+/)
+      .map(part => part.trim())
+      .filter(part => part !== '')
+      .forEach(part => {
+        if (!seen.has(part)) {
+          seen.add(part);
+          serviceOrderNos.push(part);
+        }
+      });
+  }
+
+  function visit(node, inServiceOrderContext = false) {
+    if (!node) {
+      return;
+    }
+
+    if (typeof node === 'string') {
+      if (inServiceOrderContext) {
+        addValue(node);
+      }
+      return;
+    }
+
+    if (Array.isArray(node)) {
+      node.forEach(item => {
+        if (inServiceOrderContext && typeof item === 'string') {
+          addValue(item);
+          return;
+        }
+        visit(item, inServiceOrderContext);
+      });
+      return;
+    }
+
+    if (typeof node !== 'object') {
+      return;
+    }
+
+    Object.entries(node).forEach(([key, value]) => {
+      const nextInServiceOrderContext = inServiceOrderContext || serviceOrderKeyPattern.test(key);
+      visit(value, nextInServiceOrderContext);
+    });
+  }
+
+  if (typeof payload === 'string') {
+    addValue(payload);
+    return serviceOrderNos;
+  }
+
+  if (Array.isArray(payload) && payload.every(item => typeof item === 'string')) {
+    payload.forEach(addValue);
+    return serviceOrderNos;
+  }
+
+  visit(payload);
+  return serviceOrderNos;
+}
+
+/**
  * Send quote to Business Central
  */
 export async function handleSendQuote() {
@@ -1228,18 +1304,7 @@ export async function handleSendQuote() {
         if (titleEl) titleEl.textContent = 'Creating Service Order';
 
         serviceOrderResponse = await createServiceOrderFromSQ(quoteNumber, branchCode);
-
-        // Extract Service Order numbers from response
-        // The API returns an array of results, one per Group No
-        if (serviceOrderResponse?.result?.Results && Array.isArray(serviceOrderResponse.result.Results)) {
-          serviceOrderNos = serviceOrderResponse.result.Results
-            .map(result => result?.ServiceOrderNo || result?.serviceOrderNo)
-            .filter(soNo => soNo && soNo.trim() !== '');
-        } else if (serviceOrderResponse?.result?.ServiceOrderNo || serviceOrderResponse?.result?.serviceOrderNo) {
-          // Fallback for single Service Order No (handle both casings)
-          const singleSoNo = serviceOrderResponse.result.ServiceOrderNo || serviceOrderResponse.result.serviceOrderNo;
-          serviceOrderNos = [singleSoNo];
-        }
+        serviceOrderNos = extractServiceOrderNos(serviceOrderResponse);
 
         console.log('Service Orders created:', serviceOrderNos);
       } catch (soError) {

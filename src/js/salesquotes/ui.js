@@ -982,6 +982,16 @@ export function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = null) {
   const serviceOrderNoDisplay = el('serviceOrderCreatedNumber');
   const serviceOrderNoSection = el('serviceOrderNoSection');
   const soCountLabel = el('soCountLabel');
+  const normalizedServiceOrderNos = Array.isArray(serviceOrderNos)
+    ? serviceOrderNos
+      .map(soNo => typeof soNo === 'string' ? soNo.trim() : '')
+      .filter(soNo => soNo !== '')
+    : typeof serviceOrderNos === 'string' && serviceOrderNos.trim() !== ''
+      ? serviceOrderNos
+        .split(/[\r\n,;]+/)
+        .map(soNo => soNo.trim())
+        .filter(soNo => soNo !== '')
+      : [];
 
   if (!modal) {
     console.error('Quote Created modal not found in DOM');
@@ -996,16 +1006,10 @@ export function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = null) {
 
   // Set Service Order Nos if available
   // Handle both array and single string (for backward compatibility)
-  const isArray = Array.isArray(serviceOrderNos);
-  const hasServiceOrders = isArray
-    ? serviceOrderNos.length > 0
-    : serviceOrderNos && serviceOrderNos.trim() !== '';
+  const hasServiceOrders = normalizedServiceOrderNos.length > 0;
 
   if (hasServiceOrders && serviceOrderNoDisplay) {
-    // Format for display: single number or comma-separated list
-    const displayValue = isArray
-      ? serviceOrderNos.join(', ')
-      : serviceOrderNos;
+    const displayValue = normalizedServiceOrderNos.join('\n');
     serviceOrderNoDisplay.textContent = displayValue;
     if (serviceOrderNoSection) {
       serviceOrderNoSection.classList.remove('hidden');
@@ -1013,7 +1017,7 @@ export function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = null) {
 
     // Show plural "(s)" label if multiple Service Orders
     if (soCountLabel) {
-      if (isArray && serviceOrderNos.length > 1) {
+      if (normalizedServiceOrderNos.length > 1) {
         soCountLabel.classList.remove('hidden');
       } else {
         soCountLabel.classList.add('hidden');
