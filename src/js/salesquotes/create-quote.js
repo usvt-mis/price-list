@@ -3,7 +3,7 @@
  * Handles quote creation, line management, and BC API integration
  */
 
-import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState } from './state.js';
+import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState, calculateTotals } from './state.js';
 import { bcClient } from './bc-api-client.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess } from './ui.js';
@@ -472,6 +472,7 @@ export function handleAddQuoteLine() {
 
     // Map field name to element ID
     const fieldMap = {
+      'lineObjectNumber': 'lineObjectNumberSearch',
       'description': 'lineDescription',
       'usvtServiceItemDescription': 'lineUsvtServiceItemDescription',
       'quantity': 'lineQuantity',

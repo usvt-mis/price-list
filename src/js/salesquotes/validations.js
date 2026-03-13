@@ -360,7 +360,14 @@ export function validateQuoteLineData(line) {
     if (!firstErrorField) firstErrorField = 'description';
   }
 
-  // 2. Service Item Description (required if New SER is enabled)
+  // 2. No. / Material No (required when Type is Item)
+  const isItem = line.lineType === 'Item';
+  if (isItem && (!line.lineObjectNumber || line.lineObjectNumber.trim() === '')) {
+    errors.lineObjectNumber = 'No. (Material No.) is required';
+    if (!firstErrorField) firstErrorField = 'lineObjectNumber';
+  }
+
+  // 3. Service Item Description (required if New SER is enabled)
   if (line.usvtCreateSv && (!line.usvtServiceItemDescription || line.usvtServiceItemDescription.trim() === '')) {
     errors.usvtServiceItemDescription = 'Service Item Description is required when New SER is enabled';
     if (!firstErrorField) firstErrorField = 'usvtServiceItemDescription';
