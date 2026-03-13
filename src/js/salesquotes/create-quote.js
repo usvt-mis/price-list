@@ -685,7 +685,7 @@ function cancelRemoveLine() {
 /**
  * Show confirmation modal for New SER creation
  */
-function showConfirmNewSerModal() {
+async function showConfirmNewSerModal() {
   // Prevent action if button is disabled
   const newSerButton = el('lineCreateSv');
   if (newSerButton && newSerButton.disabled) {
@@ -702,6 +702,26 @@ function showConfirmNewSerModal() {
     return;
   }
 
+  // Get modal elements
+  let modal = el('confirmNewSerModal');
+  let modalContent = el('confirmNewSerModalContent');
+
+  // Fallback: if modal not in DOM, load it dynamically
+  if (!modal || !modalContent) {
+    console.warn('[CONFIRM-NEW-SER] Modal not found in DOM, loading dynamically...');
+    try {
+      const { loadModal } = await import('./components/modal-loader.js');
+      await loadModal('confirmNewSerModal');
+      modal = el('confirmNewSerModal');
+      modalContent = el('confirmNewSerModalContent');
+      console.log('[CONFIRM-NEW-SER] Modal loaded dynamically');
+    } catch (err) {
+      console.error('[CONFIRM-NEW-SER] Failed to load modal:', err);
+      showError('Failed to load confirmation modal. Please refresh the page and try again.');
+      return;
+    }
+  }
+
   // Display the description in the modal
   const descriptionEl = el('confirmNewSerDescription');
   if (descriptionEl) {
@@ -709,9 +729,6 @@ function showConfirmNewSerModal() {
   }
 
   // Show modal with animation
-  const modal = el('confirmNewSerModal');
-  const modalContent = el('confirmNewSerModalContent');
-
   if (modal && modalContent) {
     // Move modal to end of container to ensure proper stacking context
     const modalContainer = document.getElementById('modalContainer');
@@ -2578,7 +2595,7 @@ function updateEditAdditionFieldState() {
 /**
  * Show confirmation modal for New SER creation (Edit modal context)
  */
-function showConfirmNewSerModalForEdit() {
+async function showConfirmNewSerModalForEdit() {
   // Prevent creation if fields are locked due to existing Service Item
   if (state.ui.editLineLocked) {
     showError('Cannot create new Service Item - this line already has a Service Item.');
@@ -2594,6 +2611,26 @@ function showConfirmNewSerModalForEdit() {
     return;
   }
 
+  // Get modal elements
+  let modal = document.getElementById('confirmNewSerModal');
+  let modalContent = document.getElementById('confirmNewSerModalContent');
+
+  // Fallback: if modal not in DOM, load it dynamically
+  if (!modal || !modalContent) {
+    console.warn('[CONFIRM-NEW-SER-EDIT] Modal not found in DOM, loading dynamically...');
+    try {
+      const { loadModal } = await import('./components/modal-loader.js');
+      await loadModal('confirmNewSerModal');
+      modal = document.getElementById('confirmNewSerModal');
+      modalContent = document.getElementById('confirmNewSerModalContent');
+      console.log('[CONFIRM-NEW-SER-EDIT] Modal loaded dynamically');
+    } catch (err) {
+      console.error('[CONFIRM-NEW-SER-EDIT] Failed to load modal:', err);
+      showError('Failed to load confirmation modal. Please refresh the page and try again.');
+      return;
+    }
+  }
+
   // Display the description in the modal
   const descriptionEl = document.getElementById('confirmNewSerDescription');
   if (descriptionEl) {
@@ -2601,9 +2638,6 @@ function showConfirmNewSerModalForEdit() {
   }
 
   // Show modal with animation
-  const modal = document.getElementById('confirmNewSerModal');
-  const modalContent = document.getElementById('confirmNewSerModalContent');
-
   if (modal && modalContent) {
     // Move modal to end of container to ensure proper stacking context
     const modalContainer = document.getElementById('modalContainer');
