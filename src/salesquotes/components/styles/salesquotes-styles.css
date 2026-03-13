@@ -346,21 +346,6 @@ button:disabled:hover {
     0 16px 30px rgba(0, 0, 0, 0.18);
 }
 
-.quote-failed-icon {
-  width: 4rem;
-  height: 4rem;
-  margin-top: 0.9rem;
-  margin-bottom: 0.85rem;
-  border-radius: 1.2rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(254, 226, 226, 0.16));
-  border-color: rgba(255, 255, 255, 0.34);
-}
-
-.quote-failed-icon-svg {
-  width: 1.75rem;
-  height: 1.75rem;
-}
-
 .quote-created-title {
   position: relative;
   z-index: 1;
@@ -368,6 +353,10 @@ button:disabled:hover {
   font-size: 1.65rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.quote-failed-title {
+  margin-top: 1rem;
 }
 
 .quote-created-subtitle {
