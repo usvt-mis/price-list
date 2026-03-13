@@ -417,14 +417,14 @@ export function selectMaterialFromSearch(material) {
   state.formData.newLine.lineObjectNumber = material.materialCode;
   state.formData.newLine.materialId = material.materialId;
 
-  // Mark as valid selection from dropdown
-  state.ui.dropdownFields.materialNo.valid = true;
-  state.ui.dropdownFields.materialNo.touched = true;
-
   if (el('lineObjectNumberSearch')) {
     el('lineObjectNumberSearch').value = material.materialCode;
     el('lineObjectNumberSearch').dispatchEvent(new Event('input')); // Update asterisk and background
   }
+
+  // Mark as valid selection from dropdown (must be AFTER input event to override the input handler)
+  state.ui.dropdownFields.materialNo.touched = true;
+  state.ui.dropdownFields.materialNo.valid = true;
 
   // Auto-fill Description only (Unit Price is manual per user requirement)
   if (el('lineDescription')) {
@@ -492,15 +492,15 @@ export async function handleEditMaterialSearch(query) {
  * Auto-fills Description field only (Unit Price remains manual per user requirement)
  */
 export function selectMaterialFromEditSearch(material) {
-  // Mark as valid selection from dropdown
-  state.ui.dropdownFields.editMaterialNo.valid = true;
-  state.ui.dropdownFields.editMaterialNo.touched = true;
-
   const noField = document.getElementById('editLineObjectNumberSearch');
   if (noField) {
     noField.value = material.materialCode;
     noField.dispatchEvent(new Event('input')); // Update asterisk and background
   }
+
+  // Mark as valid selection from dropdown (must be AFTER input event to override the input handler)
+  state.ui.dropdownFields.editMaterialNo.touched = true;
+  state.ui.dropdownFields.editMaterialNo.valid = true;
 
   // Auto-fill Description only (Unit Price is manual per user requirement)
   const descField = document.getElementById('editLineDescription');
