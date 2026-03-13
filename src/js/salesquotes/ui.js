@@ -971,16 +971,17 @@ export function clearValidationErrors() {
 // ============================================================
 
 /**
- * Show Quote Created Success modal with Quote Number and Service Order No
+ * Show Quote Created Success modal with Quote Number and Service Order Nos
  * @param {string} quoteNumber - The Quote Number from Business Central
- * @param {string|null} serviceOrderNo - The Service Order Number (optional)
+ * @param {string[]|null} serviceOrderNos - Array of Service Order Numbers (optional)
  */
-export function showQuoteCreatedSuccess(quoteNumber, serviceOrderNo = null) {
+export function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = null) {
   const modal = el('quoteCreatedModal');
   const modalContent = el('quoteCreatedModalContent');
   const quoteNumberDisplay = el('quoteCreatedNumber');
   const serviceOrderNoDisplay = el('serviceOrderCreatedNumber');
   const serviceOrderNoSection = el('serviceOrderNoSection');
+  const soCountLabel = el('soCountLabel');
 
   if (!modal) {
     console.error('Quote Created modal not found in DOM');
@@ -993,11 +994,30 @@ export function showQuoteCreatedSuccess(quoteNumber, serviceOrderNo = null) {
     quoteNumberDisplay.textContent = quoteNumber || 'N/A';
   }
 
-  // Set Service Order No if available
-  if (serviceOrderNo && serviceOrderNoDisplay) {
-    serviceOrderNoDisplay.textContent = serviceOrderNo;
+  // Set Service Order Nos if available
+  // Handle both array and single string (for backward compatibility)
+  const isArray = Array.isArray(serviceOrderNos);
+  const hasServiceOrders = isArray
+    ? serviceOrderNos.length > 0
+    : serviceOrderNos && serviceOrderNos.trim() !== '';
+
+  if (hasServiceOrders && serviceOrderNoDisplay) {
+    // Format for display: single number or comma-separated list
+    const displayValue = isArray
+      ? serviceOrderNos.join(', ')
+      : serviceOrderNos;
+    serviceOrderNoDisplay.textContent = displayValue;
     if (serviceOrderNoSection) {
       serviceOrderNoSection.classList.remove('hidden');
+    }
+
+    // Show plural "(s)" label if multiple Service Orders
+    if (soCountLabel) {
+      if (isArray && serviceOrderNos.length > 1) {
+        soCountLabel.classList.remove('hidden');
+      } else {
+        soCountLabel.classList.add('hidden');
+      }
     }
   } else {
     if (serviceOrderNoSection) {

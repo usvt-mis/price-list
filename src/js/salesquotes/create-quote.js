@@ -1193,7 +1193,7 @@ export async function handleSendQuote() {
 
     // Create Service Order from Sales Quote (if we have a quote number and branch)
     let serviceOrderResponse = null;
-    let serviceOrderNo = null;
+    let serviceOrderNos = []; // Array to hold multiple Service Order numbers
 
     if (quoteNumber && branchCode) {
       try {
@@ -1204,9 +1204,20 @@ export async function handleSendQuote() {
         if (titleEl) titleEl.textContent = 'Creating Service Order';
 
         serviceOrderResponse = await createServiceOrderFromSQ(quoteNumber, branchCode);
-        serviceOrderNo = serviceOrderResponse?.result?.serviceOrderNo || null;
 
-        console.log('Service Order created:', serviceOrderNo);
+        // Extract Service Order numbers from response
+        // The API returns an array of results, one per Group No
+        if (serviceOrderResponse?.result?.Results && Array.isArray(serviceOrderResponse.result.Results)) {
+          serviceOrderNos = serviceOrderResponse.result.Results
+            .map(result => result?.ServiceOrderNo || result?.serviceOrderNo)
+            .filter(soNo => soNo && soNo.trim() !== '');
+        } else if (serviceOrderResponse?.result?.ServiceOrderNo || serviceOrderResponse?.result?.serviceOrderNo) {
+          // Fallback for single Service Order No (handle both casings)
+          const singleSoNo = serviceOrderResponse.result.ServiceOrderNo || serviceOrderResponse.result.serviceOrderNo;
+          serviceOrderNos = [singleSoNo];
+        }
+
+        console.log('Service Orders created:', serviceOrderNos);
       } catch (soError) {
         console.error('Failed to create Service Order:', soError);
         // Continue anyway - quote was created successfully
@@ -1233,9 +1244,9 @@ export async function handleSendQuote() {
       });
     }, 50);
 
-    // Show success modal with Quote Number and Service Order No
+    // Show success modal with Quote Number and Service Order Nos
     if (quoteNumber) {
-      showQuoteCreatedSuccess(quoteNumber, serviceOrderNo);
+      showQuoteCreatedSuccess(quoteNumber, serviceOrderNos);
     } else {
       // Fallback to generic success if no Quote Number returned
       console.warn('No Quote Number in response:', response);

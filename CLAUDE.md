@@ -154,7 +154,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 **Flow:** After successfully creating a Sales Quote, the system automatically:
 1. Extracts unique Group No values from all quote lines (only groups with at least one Service Item No)
 2. Calls `CreateServiceOrderFromSQ` with one payload per unique Group No
-3. Displays Service Order No in the success modal (if creation succeeds)
+3. Displays Service Order number(s) in the success modal (comma-separated if multiple)
+
+**Success Modal Display:**
+- Single Service Order: Shows "Service Order No: SVRY2512-0013"
+- Multiple Service Orders: Shows "Service Order Nos: SVRY2512-0013, SVRY2512-0014, ..."
+- All Service Order numbers are displayed and can be copied to clipboard
+- Implementation: `src/js/salesquotes/ui.js` - `showQuoteCreatedSuccess()`, `src/salesquotes/components/modals/quote-created-modal.html`
 
 **Service Item No Validation:**
 - **Policy**: Only one Service Item No is allowed per Group No across all quote lines
