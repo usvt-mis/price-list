@@ -131,15 +131,17 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - For modals that appear over other modals (e.g., confirmation dialogs), ensure proper stacking:
   1. Use higher z-index value (e.g., `z-[150]` for overlays on top of `z-[100]` base modals)
   2. Move modal to end of container before showing: `modalContainer.appendChild(modal)`
-- This ensures the modal appears on top regardless of DOM order when dynamically loaded
+  3. **Use inline styles as fallback** - Set `modal.style.zIndex = '150'` in JS and `style="z-index: 150;"` in HTML to ensure proper stacking even when Tailwind CSS build is stale
+- This ensures the modal appears on top regardless of DOM order or CSS output state
 - Implementation: See `showConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
 
 ### Modal Animation Pattern
-- **Use inline styles for animations**, not Tailwind CSS classes with classList manipulation
-- Tailwind arbitrary value syntax (e.g., `translate-y-[-10px]`) may not work correctly with `classList.remove()`
+- **Use inline styles for animations and critical visual properties**, not Tailwind CSS classes with classList manipulation
+- Tailwind arbitrary value syntax (e.g., `translate-y-[-10px]`) may not work correctly with `classList.remove()`, and CSS builds can become stale
 - **Initial hidden state** (in HTML): `style="opacity: 0; transform: translateY(-10px);"`
 - **Show animation** (in JS): `modalContent.style.opacity = '1'; modalContent.style.transform = 'translateY(0)';`
 - **Hide animation** (in JS): `modalContent.style.opacity = '0'; modalContent.style.transform = 'translateY(-10px)';`
+- **Z-index fallback** (for overlay modals): `modal.style.zIndex = '150';` in JS and `style="z-index: 150;"` in HTML
 - Implementation: See `confirm-new-ser-modal.html` and `showConfirmNewSerModal()` / `hideConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
 
 ---

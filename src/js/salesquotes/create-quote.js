@@ -737,7 +737,12 @@ async function showConfirmNewSerModal() {
       modalContainer.appendChild(modal);
     }
 
+    // Do not rely only on Tailwind-generated z-index classes here.
+    // The modal HTML is loaded dynamically, and an outdated CSS build can
+    // cause z-[150] to be missing, which places this dialog behind base modals.
+    modal.style.zIndex = '150';
     state.ui.pendingSerCreation = true;
+    state.ui.pendingSerCreationEdit = false;
     modal.classList.remove('hidden');
     setTimeout(() => {
       modalContent.style.opacity = '1';
@@ -776,11 +781,12 @@ function cancelNewSerCreation() {
  * Handles both Add Line and Edit Line contexts
  */
 function confirmNewSerCreation() {
+  const shouldUseEditFlow = state.ui.pendingSerCreationEdit;
   hideConfirmNewSerModal();
   // Proceed with the actual creation after modal closes
   setTimeout(() => {
     // Check which context we're in (Add or Edit)
-    if (state.ui.pendingSerCreationEdit) {
+    if (shouldUseEditFlow) {
       createServiceItemAndLockFieldsForEdit();
     } else {
       createServiceItemAndLockFields();
@@ -2712,6 +2718,10 @@ async function showConfirmNewSerModalForEdit() {
       modalContainer.appendChild(modal);
     }
 
+    // Match the add-line confirmation behavior so this dialog always sits
+    // above the base add/edit modals even when CSS output is stale.
+    modal.style.zIndex = '150';
+    state.ui.pendingSerCreation = false;
     state.ui.pendingSerCreationEdit = true;
     modal.classList.remove('hidden');
     setTimeout(() => {
