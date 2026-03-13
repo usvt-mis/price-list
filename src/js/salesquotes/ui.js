@@ -975,9 +975,81 @@ export function clearValidationErrors() {
  * @param {string} quoteNumber - The Quote Number from Business Central
  * @param {string[]|null} serviceOrderNos - Array of Service Order Numbers (optional)
  */
-export function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = null) {
-  const modal = el('quoteCreatedModal');
-  const modalContent = el('quoteCreatedModalContent');
+function updateQuoteCreatedTimestamp() {
+  const timestampEl = el('quoteCreatedTimestamp');
+  if (!timestampEl) return;
+
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+
+  timestampEl.textContent = `Today at ${timeStr}`;
+}
+
+async function ensureQuoteCreatedModalLoaded() {
+  let modal = el('quoteCreatedModal');
+  let modalContent = el('quoteCreatedModalContent');
+
+  if (modal && modalContent) {
+    return { modal, modalContent };
+  }
+
+  console.warn('[QUOTE-CREATED-MODAL] Modal not found in DOM, loading dynamically...');
+
+  try {
+    const { loadModal } = await import('./components/modal-loader.js');
+    await loadModal('quoteCreatedModal');
+  } catch (error) {
+    console.error('[QUOTE-CREATED-MODAL] Failed to load modal dynamically:', error);
+  }
+
+  modal = el('quoteCreatedModal');
+  modalContent = el('quoteCreatedModalContent');
+
+  return { modal, modalContent };
+}
+
+function updateCopyFeedback(copyIconId, copiedIconId) {
+  el(copyIconId)?.classList.add('hidden');
+  el(copiedIconId)?.classList.remove('hidden');
+
+  setTimeout(() => {
+    el(copyIconId)?.classList.remove('hidden');
+    el(copiedIconId)?.classList.add('hidden');
+  }, 2000);
+}
+
+async function copyTextWithFeedback(text, copyIconId, copiedIconId) {
+  const normalizedText = typeof text === 'string' ? text.trim() : '';
+  if (!normalizedText) return;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(normalizedText);
+    } else {
+      const fallbackInput = document.createElement('textarea');
+      fallbackInput.value = normalizedText;
+      fallbackInput.setAttribute('readonly', '');
+      fallbackInput.style.position = 'absolute';
+      fallbackInput.style.left = '-9999px';
+      document.body.appendChild(fallbackInput);
+      fallbackInput.select();
+      document.execCommand('copy');
+      fallbackInput.remove();
+    }
+
+    updateCopyFeedback(copyIconId, copiedIconId);
+  } catch (error) {
+    console.error('Failed to copy text:', error);
+    showError('Failed to copy to clipboard');
+  }
+}
+
+export async function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = null) {
+  const { modal, modalContent } = await ensureQuoteCreatedModalLoaded();
   const quoteNumberDisplay = el('quoteCreatedNumber');
   const serviceOrderNoDisplay = el('serviceOrderCreatedNumber');
   const serviceOrderNoSection = el('serviceOrderNoSection');
@@ -993,10 +1065,10 @@ export function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = null) {
         .filter(soNo => soNo !== '')
       : [];
 
-  if (!modal) {
-    console.error('Quote Created modal not found in DOM');
+  if (!modal || !modalContent) {
+    console.error('[QUOTE-CREATED-MODAL] Modal not available');
     showSuccess('Quote sent to Business Central successfully!');
-    return;
+    return false;
   }
 
   // Set the Quote Number
@@ -1029,17 +1101,25 @@ export function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = null) {
     }
   }
 
+  updateQuoteCreatedTimestamp();
+
+  const modalContainer = document.getElementById('modalContainer');
+  if (modalContainer) {
+    modalContainer.appendChild(modal);
+  }
+
   // Show modal
   modal.classList.remove('hidden');
-  modal.style.zIndex = '120'; // Higher than add line modal
+  modal.style.zIndex = '160'; // Higher than other working modals
+  document.body.style.overflow = 'hidden';
 
   // Trigger animation - scale up for modern effect
   setTimeout(() => {
-    if (modalContent) {
-      modalContent.classList.remove('opacity-0', 'scale-95');
-      modalContent.classList.add('opacity-100', 'scale-100');
-    }
+    modalContent.classList.remove('opacity-0', 'scale-95');
+    modalContent.classList.add('opacity-100', 'scale-100');
   }, 10);
+
+  return true;
 }
 
 /**
@@ -1057,8 +1137,36 @@ export function closeQuoteCreatedModal() {
     // Hide modal after animation completes
     setTimeout(() => {
       modal.classList.add('hidden');
+      document.body.style.overflow = '';
     }, 500);
+  } else if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
   }
+}
+
+export function createNewQuote() {
+  closeQuoteCreatedModal();
+
+  setTimeout(() => {
+    el('customerNoSearch')?.focus();
+  }, 320);
+}
+
+export async function copyQuoteNumber() {
+  await copyTextWithFeedback(
+    el('quoteCreatedNumber')?.textContent,
+    'copyQuoteIcon',
+    'copiedQuoteIcon'
+  );
+}
+
+export async function copyServiceOrderNumber() {
+  await copyTextWithFeedback(
+    el('serviceOrderCreatedNumber')?.textContent,
+    'copySOIcon',
+    'copiedSOIcon'
+  );
 }
 
 // ============================================================
@@ -1290,6 +1398,9 @@ if (typeof window !== 'undefined') {
   window.openInsertLineModal = openInsertLineModal;
   window.closeAddLineModal = closeAddLineModal;
   window.closeQuoteCreatedModal = closeQuoteCreatedModal;
+  window.createNewQuote = createNewQuote;
+  window.copyQuoteNumber = copyQuoteNumber;
+  window.copyServiceOrderNumber = copyServiceOrderNumber;
   window.openFullscreenTable = openFullscreenTable;
   window.closeFullscreenTable = closeFullscreenTable;
   window.showConfirmClearQuoteModal = showConfirmClearQuoteModal;

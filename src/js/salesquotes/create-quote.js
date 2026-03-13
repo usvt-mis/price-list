@@ -1341,7 +1341,7 @@ export async function handleSendQuote() {
 
     // Show success modal with Quote Number and Service Order Nos
     if (quoteNumber) {
-      showQuoteCreatedSuccess(quoteNumber, serviceOrderNos);
+      await showQuoteCreatedSuccess(quoteNumber, serviceOrderNos);
     } else {
       // Fallback to generic success if no Quote Number returned
       console.warn('No Quote Number in response:', response);
