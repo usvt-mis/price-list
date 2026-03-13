@@ -6,7 +6,7 @@
 import { fetchJson, fetchWithAuth, showNotification, el } from '../../core/utils.js';
 import { appState, authState, currentSavedRecord, isDirty, isViewOnly } from '../state.js';
 import { getApiHeaders } from '../../core/config.js';
-import { CALCULATOR_TYPE } from '../config.js';
+import { CALCULATOR_TYPE } from '../../core/config.js';
 import { renderLabor } from '../labor.js';
 import { renderMaterials } from '../materials.js';
 import { calcAll } from '../calculations.js';

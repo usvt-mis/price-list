@@ -3,9 +3,9 @@
  * Handles rendering of auth section in header
  */
 
-import { isLocalDev, AUTH_ENDPOINTS } from '../config.js';
+import { isLocalDev, AUTH_ENDPOINTS } from '../core/config.js';
 import { authState, setCurrentUserRole, isViewOnly } from '../state.js';
-import { extractInitials, setStatus } from '../utils.js';
+import { extractInitials, setStatus } from '../core/utils.js';
 import { initializeModeFromRole } from './mode-detection.js';
 
 /**

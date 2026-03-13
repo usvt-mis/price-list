@@ -3,9 +3,9 @@
  * Handles role-based mode determination (Executive/Sales/NoRole)
  */
 
-import { API, MODE, ROLE } from '../config.js';
+import { API, MODE, ROLE } from '../core/config.js';
 import { authState, setMode, setNoRoleState, isCustomerMode } from '../state.js';
-import { showAwaitingAssignmentScreen } from '../utils.js';
+import { showAwaitingAssignmentScreen } from '../core/utils.js';
 
 /**
  * Initialize view mode based on user's role from the backend

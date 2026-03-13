@@ -3,9 +3,9 @@
  * Handles admin role management UI and API calls
  */
 
-import { el, fetchJson, fetchWithAuth, showNotification } from '../utils.js';
+import { el, fetchJson, fetchWithAuth, showNotification } from '../core/utils.js';
 import { authState } from '../state.js';
-import { API } from '../config.js';
+import { API } from '../core/config.js';
 
 // Admin panel state
 let userRoles = [];

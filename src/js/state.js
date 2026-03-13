@@ -3,7 +3,28 @@
  * Centralized state for the application
  */
 
-import { MODE, ROLE, VIEW, CALCULATOR_TYPE, STORAGE_KEYS } from './config.js';
+import { MODE, ROLE, VIEW } from './core/config.js';
+
+// Calculator type constants (for legacy state.js compatibility)
+export const CALCULATOR_TYPE = {
+  ONSITE: 'onsite',
+  WORKSHOP: 'workshop'
+};
+
+// Storage keys (legacy, kept for compatibility)
+export const STORAGE_KEYS = {
+  MODE: 'pricelist-calculator-mode',
+  CALCULATOR_TYPE: 'pricelist-calculator-type',
+  SCOPE: 'pricelist-scope',
+  PRIORITY_LEVEL: 'pricelist-priority-level',
+  SITE_ACCESS: 'pricelist-site-access',
+  ONSITE_CRANE_ENABLED: 'pricelist-onsite-crane-enabled',
+  ONSITE_CRANE_PRICE: 'pricelist-onsite-crane-price',
+  ONSITE_FOUR_PEOPLE_ENABLED: 'pricelist-onsite-four-people-enabled',
+  ONSITE_FOUR_PEOPLE_PRICE: 'pricelist-onsite-four-people-price',
+  ONSITE_SAFETY_ENABLED: 'pricelist-onsite-safety-enabled',
+  ONSITE_SAFETY_PRICE: 'pricelist-onsite-safety-price'
+};
 
 // ========== Core Application State ==========
 
