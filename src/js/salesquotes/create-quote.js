@@ -2065,6 +2065,10 @@ function closeEditLineModal() {
     const el = document.getElementById(field.id);
     if (el) {
       el.disabled = false;
+      // Reset readOnly attribute for the No field
+      if (field.id === 'editLineObjectNumberSearch') {
+        el.readOnly = false;
+      }
       field.classes.forEach(cls => el.classList.remove(cls));
     }
   });
@@ -2198,8 +2202,9 @@ function updateEditModalFieldStates(type) {
     servItemNo.value = '';
     servItemDesc.value = '';
 
-    // Disable and clear No field
+    // Disable, add readonly, and clear No field
     noField.disabled = true;
+    noField.readOnly = true;
     noField.classList.add('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
     noField.value = '';
 
@@ -2248,6 +2253,7 @@ function updateEditModalFieldStates(type) {
 
     // Enable No field
     noField.disabled = false;
+    noField.readOnly = false;
     noField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
 
     // Enable Quantity
