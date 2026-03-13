@@ -2,125 +2,44 @@
 <div id="quoteCreatedModal" class="quote-created-modal fixed inset-0 hidden z-50 transition-opacity duration-200">
   <div class="quote-created-dialog">
     <div id="quoteCreatedModalContent" class="quote-created-panel transform transition-all duration-300 opacity-0 scale-95 overflow-hidden">
-      <div class="quote-created-hero">
-        <span class="quote-created-badge">Business Central sync complete</span>
-
-        <div class="quote-created-icon">
-          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-            <path class="checkmark-path" stroke-width="3" d="M5 13l4 4L19 7"></path>
-          </svg>
-        </div>
-
-        <h3 class="quote-created-title">Sales Quote Created</h3>
-        <p class="quote-created-subtitle">
-          Your quote has been created successfully and is ready for the next step.
-        </p>
-
-        <div class="quote-created-timestamp">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span id="quoteCreatedTimestamp">Just now</span>
-        </div>
-      </div>
-
-      <div class="quote-created-body">
-        <section class="quote-created-card quote-created-card-primary">
-          <div class="quote-created-card-header quote-created-card-header-with-copy">
-            <div>
-              <p class="quote-created-card-label">Quote Number</p>
-              <p class="quote-created-card-caption">Primary reference for follow-up and search</p>
-            </div>
+      <div class="quote-created-body quote-created-body-compact">
+        <section class="quote-created-card quote-created-card-primary quote-created-card-compact">
+          <p class="quote-created-card-label">Sales Quote Number</p>
+          <div class="quote-created-value-row">
+            <p id="quoteCreatedNumber" class="quote-created-number quote-created-number-compact">SO-12345</p>
+            <button
+              type="button"
+              onclick="window.copyQuoteNumber()"
+              class="quote-created-copy-btn quote-created-copy-btn-light quote-created-copy-btn-inline"
+              title="Copy sales quote number"
+              aria-label="Copy sales quote number"
+            >
+              <svg id="copyQuoteIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              <svg id="copiedQuoteIcon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </button>
           </div>
-
-          <button
-            type="button"
-            onclick="window.copyQuoteNumber()"
-            class="quote-created-copy-btn quote-created-copy-btn-light"
-            title="Copy quote number"
-            aria-label="Copy quote number"
-          >
-            <svg id="copyQuoteIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-            </svg>
-            <svg id="copiedQuoteIcon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </button>
-
-          <p id="quoteCreatedNumber" class="quote-created-number">SO-12345</p>
-          <p class="quote-created-card-note">Copy and share this number with your team or customer.</p>
         </section>
 
-        <section id="serviceOrderNoSection" class="quote-created-card quote-created-card-secondary hidden">
-          <div class="quote-created-card-header quote-created-card-header-with-badge">
-            <div>
-              <p class="quote-created-card-label quote-created-card-label-dark">Service Order No<span id="soCountLabel" class="hidden">s</span></p>
-              <p class="quote-created-card-caption quote-created-card-caption-dark">
-                Generated automatically from grouped service items
-              </p>
-            </div>
-            <span id="serviceOrderCountBadge" class="quote-created-count-badge hidden">1 Service Order</span>
-          </div>
-
-          <div id="serviceOrderCreatedNumber" class="quote-created-order-list"></div>
+        <section id="serviceOrderNoSection" class="quote-created-card quote-created-card-secondary quote-created-card-compact hidden">
+          <p class="quote-created-card-label quote-created-card-label-dark">Service Order Number</p>
+          <div id="serviceOrderCreatedNumber" class="quote-created-order-list quote-created-order-list-compact"></div>
         </section>
-
-        <div class="quote-created-meta-grid">
-          <div class="quote-created-meta-card">
-            <div class="quote-created-meta-icon quote-created-meta-icon-success">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <div>
-              <p class="quote-created-meta-label">Status</p>
-              <p class="quote-created-meta-value">Open</p>
-            </div>
-          </div>
-
-          <div class="quote-created-meta-card">
-            <div class="quote-created-meta-icon quote-created-meta-icon-sync">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-              </svg>
-            </div>
-            <div>
-              <p class="quote-created-meta-label">Sync</p>
-              <p class="quote-created-meta-value">Complete</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="quote-created-note">
-          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 21a9 9 0 100-18 9 9 0 000 18z"></path>
-          </svg>
-          <p>Quote number and service orders can be copied directly from this dialog for quick sharing.</p>
-        </div>
       </div>
 
-      <div class="quote-created-actions">
+      <div class="quote-created-actions quote-created-actions-compact">
         <button
           type="button"
-          class="quote-created-btn quote-created-btn-secondary"
+          class="quote-created-btn quote-created-btn-secondary quote-created-btn-compact"
           onclick="window.closeQuoteCreatedModal()"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
           Close
-        </button>
-
-        <button
-          type="button"
-          class="quote-created-btn quote-created-btn-primary"
-          onclick="window.createNewQuote()"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          Create New Quote
         </button>
       </div>
     </div>

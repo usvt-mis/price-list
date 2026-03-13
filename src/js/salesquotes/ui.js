@@ -975,20 +975,6 @@ export function clearValidationErrors() {
  * @param {string} quoteNumber - The Quote Number from Business Central
  * @param {string[]|null} serviceOrderNos - Array of Service Order Numbers (optional)
  */
-function updateQuoteCreatedTimestamp() {
-  const timestampEl = el('quoteCreatedTimestamp');
-  if (!timestampEl) return;
-
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
-
-  timestampEl.textContent = `Today at ${timeStr}`;
-}
-
 async function ensureQuoteCreatedModalLoaded() {
   let modal = el('quoteCreatedModal');
   let modalContent = el('quoteCreatedModalContent');
@@ -1024,13 +1010,9 @@ function renderServiceOrderList(container, serviceOrderNos) {
 
   const fragment = document.createDocumentFragment();
 
-  serviceOrderNos.forEach((soNo, index) => {
+  serviceOrderNos.forEach(soNo => {
     const item = document.createElement('div');
     item.className = 'quote-created-order-item';
-
-    const orderIndex = document.createElement('span');
-    orderIndex.className = 'quote-created-order-index';
-    orderIndex.textContent = `${index + 1}`;
 
     const value = document.createElement('span');
     value.className = 'quote-created-order-value';
@@ -1056,7 +1038,7 @@ function renderServiceOrderList(container, serviceOrderNos) {
       void copyTextWithFeedback(soNo, copyIcon, copiedIcon);
     });
 
-    item.append(orderIndex, value, copyButton);
+    item.append(value, copyButton);
     fragment.appendChild(item);
   });
 
@@ -1113,8 +1095,6 @@ export async function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = nul
   const quoteNumberDisplay = el('quoteCreatedNumber');
   const serviceOrderNoDisplay = el('serviceOrderCreatedNumber');
   const serviceOrderNoSection = el('serviceOrderNoSection');
-  const serviceOrderCountBadge = el('serviceOrderCountBadge');
-  const soCountLabel = el('soCountLabel');
   const normalizedServiceOrderNos = Array.isArray(serviceOrderNos)
     ? serviceOrderNos
       .map(soNo => typeof soNo === 'string' ? soNo.trim() : '')
@@ -1146,36 +1126,12 @@ export async function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = nul
     if (serviceOrderNoSection) {
       serviceOrderNoSection.classList.remove('hidden');
     }
-
-    if (serviceOrderCountBadge) {
-      serviceOrderCountBadge.textContent = normalizedServiceOrderNos.length === 1
-        ? '1 Service Order'
-        : `${normalizedServiceOrderNos.length} Service Orders`;
-      serviceOrderCountBadge.classList.remove('hidden');
-    }
-
-    // Show plural "(s)" label if multiple Service Orders
-    if (soCountLabel) {
-      if (normalizedServiceOrderNos.length > 1) {
-        soCountLabel.classList.remove('hidden');
-      } else {
-        soCountLabel.classList.add('hidden');
-      }
-    }
   } else {
     renderServiceOrderList(serviceOrderNoDisplay, []);
     if (serviceOrderNoSection) {
       serviceOrderNoSection.classList.add('hidden');
     }
-    if (serviceOrderCountBadge) {
-      serviceOrderCountBadge.classList.add('hidden');
-    }
-    if (soCountLabel) {
-      soCountLabel.classList.add('hidden');
-    }
   }
-
-  updateQuoteCreatedTimestamp();
 
   const modalContainer = document.getElementById('modalContainer');
   if (modalContainer) {
@@ -1217,14 +1173,6 @@ export function closeQuoteCreatedModal() {
     modal.classList.add('hidden');
     document.body.style.overflow = '';
   }
-}
-
-export function createNewQuote() {
-  closeQuoteCreatedModal();
-
-  setTimeout(() => {
-    el('customerNoSearch')?.focus();
-  }, 320);
 }
 
 export async function copyQuoteNumber() {
@@ -1464,7 +1412,6 @@ if (typeof window !== 'undefined') {
   window.openInsertLineModal = openInsertLineModal;
   window.closeAddLineModal = closeAddLineModal;
   window.closeQuoteCreatedModal = closeQuoteCreatedModal;
-  window.createNewQuote = createNewQuote;
   window.copyQuoteNumber = copyQuoteNumber;
   window.openFullscreenTable = openFullscreenTable;
   window.closeFullscreenTable = closeFullscreenTable;

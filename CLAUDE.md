@@ -174,9 +174,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 3. Displays Service Order number(s) in the success modal (as a numbered list with cards for multiple)
 
 **Success Modal Display:**
-- Single Service Order: Shows count badge "1 Service Order" with the order number in a card
-- Multiple Service Orders: Shows count badge "N Service Orders" with each order in a numbered card (scrollable list)
-- All Service Order numbers are displayed as styled cards with index numbers and can be copied to clipboard (one per line)
+- Compact modal layout showing only essential information (Quote Number with copy button, optional Service Orders)
+- Single Service Order: Shows the order number in a card with individual copy button
+- Multiple Service Orders: Shows each order in a card with individual copy buttons (scrollable list)
+- Modal includes only a "Close" button
 - Implementation: `src/js/salesquotes/ui.js` - `showQuoteCreatedSuccess()`, `renderServiceOrderList()`, `src/salesquotes/components/modals/quote-created-modal.html`
 
 **Service Item No Validation:**
