@@ -1026,14 +1026,14 @@ function renderServiceOrderList(container, serviceOrderNos) {
 
   serviceOrderNos.forEach((soNo, index) => {
     const item = document.createElement('div');
-    item.className = 'flex items-center gap-3 rounded-lg bg-white/15 px-3 py-2 shadow-sm ring-1 ring-white/15';
+    item.className = 'quote-created-order-item';
 
     const orderIndex = document.createElement('span');
-    orderIndex.className = 'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-[11px] font-semibold text-white/95';
+    orderIndex.className = 'quote-created-order-index';
     orderIndex.textContent = `${index + 1}`;
 
     const value = document.createElement('span');
-    value.className = 'min-w-0 flex-1 break-all text-sm font-bold text-white tabular-nums';
+    value.className = 'quote-created-order-value';
     value.textContent = soNo;
 
     item.append(orderIndex, value);
