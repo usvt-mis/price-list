@@ -2047,21 +2047,39 @@ function closeEditLineModal() {
 
   // Reset locked state and unlock fields
   state.ui.editLineLocked = false;
-  const typeField = document.getElementById('editLineType');
-  const servItemNoField = document.getElementById('editLineUsvtServiceItemNo');
-  const servItemDescField = document.getElementById('editLineUsvtServiceItemDescription');
 
-  if (typeField) {
-    typeField.disabled = false;
-    typeField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+  // Reset all fields that might be disabled
+  const fieldsToReset = [
+    { id: 'editLineType', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineUsvtServiceItemNo', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineUsvtServiceItemDescription', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineObjectNumberSearch', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineQuantity', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineUnitPrice', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineDiscountPercent', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineDiscountAmount', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] }
+  ];
+
+  fieldsToReset.forEach(field => {
+    const el = document.getElementById(field.id);
+    if (el) {
+      el.disabled = false;
+      field.classes.forEach(cls => el.classList.remove(cls));
+    }
+  });
+
+  // Reset Addition checkbox
+  const additionCheckbox = document.getElementById('editLineUsvtAddition');
+  if (additionCheckbox) {
+    additionCheckbox.disabled = false;
+    additionCheckbox.classList.remove('opacity-50', 'cursor-not-allowed');
   }
-  if (servItemNoField) {
-    servItemNoField.disabled = false;
-    servItemNoField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
-  }
-  if (servItemDescField) {
-    servItemDescField.disabled = false;
-    servItemDescField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+
+  // Reset Ref Sales Quote No field
+  const refSalesQuoteField = document.getElementById('editLineUsvtRefSalesQuoteno');
+  if (refSalesQuoteField) {
+    refSalesQuoteField.disabled = false;
+    refSalesQuoteField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
   }
 
   content.classList.remove('opacity-100', 'translate-y-0');
@@ -2156,6 +2174,12 @@ function updateEditModalFieldStates(type) {
   const servItemDesc = document.getElementById('editLineUsvtServiceItemDescription');
   const newSerButton = document.getElementById('editLineCreateSv');
   const quantityField = document.getElementById('editLineQuantity');
+  const noField = document.getElementById('editLineObjectNumberSearch');
+  const unitPriceField = document.getElementById('editLineUnitPrice');
+  const discountPercentField = document.getElementById('editLineDiscountPercent');
+  const discountAmountField = document.getElementById('editLineDiscountAmount');
+  const additionCheckbox = document.getElementById('editLineUsvtAddition');
+  const refSalesQuoteField = document.getElementById('editLineUsvtRefSalesQuoteno');
 
   // If fields are locked due to existing Service Item, skip state updates
   if (state.ui.editLineLocked) {
@@ -2163,24 +2187,87 @@ function updateEditModalFieldStates(type) {
   }
 
   if (type === 'Comment') {
+    // Disable Service Item fields and clear values
     servItemNo.disabled = true;
     servItemDesc.disabled = true;
     servItemNo.value = '';
     servItemDesc.value = '';
-    // Set Quantity to 0 for Comment type
-    if (quantityField) {
-      quantityField.value = '0';
-    }
+
+    // Disable and clear No field
+    noField.disabled = true;
+    noField.classList.add('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+    noField.value = '';
+
+    // Disable and set Quantity to 0
+    quantityField.disabled = true;
+    quantityField.classList.add('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+    quantityField.value = '0';
+
+    // Disable and set Unit Price to 0
+    unitPriceField.disabled = true;
+    unitPriceField.classList.add('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+    unitPriceField.value = '0';
+
+    // Disable and set Disc % to 0
+    discountPercentField.disabled = true;
+    discountPercentField.classList.add('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+    discountPercentField.value = '0';
+
+    // Disable and set Discount Amt to 0
+    discountAmountField.disabled = true;
+    discountAmountField.classList.add('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+    discountAmountField.value = '0';
+
+    // Uncheck and disable Addition
+    additionCheckbox.disabled = true;
+    additionCheckbox.classList.add('opacity-50', 'cursor-not-allowed');
+    additionCheckbox.checked = false;
+
+    // Disable and clear Ref Sales Quote No
+    refSalesQuoteField.disabled = true;
+    refSalesQuoteField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+    refSalesQuoteField.value = '';
+
     // Disable New SER button for Comment type
     if (newSerButton) {
       newSerButton.disabled = true;
       newSerButton.innerHTML = 'New SER';
     }
+
     // Update line total preview to reflect 0 quantity
     updateEditLineTotal();
   } else {
+    // Enable Service Item fields
     servItemNo.disabled = false;
     servItemDesc.disabled = false;
+
+    // Enable No field
+    noField.disabled = false;
+    noField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+
+    // Enable Quantity
+    quantityField.disabled = false;
+    quantityField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+
+    // Enable Unit Price
+    unitPriceField.disabled = false;
+    unitPriceField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+
+    // Enable Disc %
+    discountPercentField.disabled = false;
+    discountPercentField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+
+    // Enable Discount Amt
+    discountAmountField.disabled = false;
+    discountAmountField.classList.remove('bg-slate-50', 'text-slate-600', 'cursor-not-allowed');
+
+    // Enable Addition
+    additionCheckbox.disabled = false;
+    additionCheckbox.classList.remove('opacity-50', 'cursor-not-allowed');
+
+    // Update Ref Sales Quote No field state based on Addition checkbox
+    updateEditAdditionFieldState();
+
     // Update New SER button state based on Group No when switching to Item type
     updateNewSerButtonStateForEditModal(state.ui.editingLineId);
   }

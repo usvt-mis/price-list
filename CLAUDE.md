@@ -168,6 +168,18 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Includes fallback mechanism to load modal dynamically if preload fails
 - Implementation: `src/js/salesquotes/create-quote.js` - `initializeBranchFields()`, `src/js/salesquotes/ui.js` - `showNoBranchModal()`
 
+**Edit Line Modal - Type Field Behavior:**
+- **Comment Type**: When Type is set to "Comment" (on change or when opening an existing Comment line), the following fields are disabled and cleared:
+  - No (Material No.) - cleared
+  - Qty - set to 0
+  - Unit Price - set to 0
+  - Disc % - set to 0
+  - Discount Amt - set to 0
+  - Addition - unchecked
+  - Ref. SQ No. - cleared
+- **Item Type**: When Type is switched back to "Item", all fields are re-enabled
+- Implementation: `src/js/salesquotes/create-quote.js` - `updateEditModalFieldStates()`, `closeEditLineModal()`
+
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 
 ---
