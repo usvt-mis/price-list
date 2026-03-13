@@ -138,6 +138,10 @@ export function selectCustomerFromLocal(customer) {
   // Update state using the updated setQuoteCustomer function
   setQuoteCustomer(customer);
 
+  // Mark as valid selection from dropdown
+  state.ui.dropdownFields.customerNo.valid = true;
+  state.ui.dropdownFields.customerNo.touched = true;
+
   // Update UI fields
   if (el('customerNoSearch')) {
     el('customerNoSearch').value = customer.CustomerNo;
@@ -227,6 +231,10 @@ export async function handleSalespersonCodeSearch(query) {
 }
 
 export function selectSalesperson(salesperson) {
+  // Mark as valid selection from dropdown
+  state.ui.dropdownFields.salespersonCode.valid = true;
+  state.ui.dropdownFields.salespersonCode.touched = true;
+
   state.quote.salespersonCode = salesperson.SalespersonCode;
   state.quote.salespersonName = salesperson.SalespersonName;
 
@@ -287,6 +295,10 @@ export async function handleAssignedUserIdSearch(query) {
 }
 
 export function selectAssignedUser(user) {
+  // Mark as valid selection from dropdown
+  state.ui.dropdownFields.assignedUserId.valid = true;
+  state.ui.dropdownFields.assignedUserId.touched = true;
+
   state.quote.assignedUserId = user.UserId;
 
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = user.UserId;
@@ -1578,6 +1590,9 @@ export function setupEventListeners() {
   // Customer No. search (Local Database - New) - Direct input (no debounce)
   const customerNoSearch = el('customerNoSearch');
   customerNoSearch?.addEventListener('input', (e) => {
+    // Mark field as touched and reset valid flag when user types
+    state.ui.dropdownFields.customerNo.touched = true;
+    state.ui.dropdownFields.customerNo.valid = false;
     handleCustomerNoSearch(e.target.value);
   });
 
@@ -1586,30 +1601,96 @@ export function setupEventListeners() {
     setTimeout(() => {
       const dropdown = el('customerNoDropdown');
       if (dropdown) dropdown.classList.add('hidden');
+
+      // Only validate if field was touched (user interacted with it)
+      // This prevents clearing valid values when loading from saved state
+      if (state.ui.dropdownFields.customerNo.touched &&
+          !state.ui.dropdownFields.customerNo.valid &&
+          customerNoSearch.value.trim() !== '') {
+        customerNoSearch.value = '';
+        // Clear related fields
+        if (el('customerName')) el('customerName').value = '';
+        if (el('sellToAddress')) el('sellToAddress').value = '';
+        if (el('sellToAddress2')) el('sellToAddress2').value = '';
+        if (el('sellToCity')) el('sellToCity').value = '';
+        if (el('sellToPostCode')) el('sellToPostCode').value = '';
+        if (el('sellToVatRegNo')) el('sellToVatRegNo').value = '';
+        if (el('sellToTaxBranchNo')) el('sellToTaxBranchNo').value = '';
+        if (el('sellToSection')) el('sellToSection').classList.add('hidden');
+        // Clear state
+        state.quote.customerId = null;
+        state.quote.customerNo = null;
+        state.quote.customerName = null;
+        state.quote.sellTo = {
+          address: null,
+          address2: null,
+          city: null,
+          postCode: null,
+          vatRegNo: null,
+          taxBranchNo: null
+        };
+        state.formData.selectedCustomer = null;
+        saveState();
+        // Show error message
+        showError('Please select a customer from the dropdown');
+      }
     }, 200);
   });
 
   // Salesperson Code search - Direct input (no debounce)
   const salespersonCodeSearch = el('salespersonCodeSearch');
   salespersonCodeSearch?.addEventListener('input', (e) => {
+    // Mark field as touched and reset valid flag when user types
+    state.ui.dropdownFields.salespersonCode.touched = true;
+    state.ui.dropdownFields.salespersonCode.valid = false;
     handleSalespersonCodeSearch(e.target.value);
   });
   salespersonCodeSearch?.addEventListener('blur', () => {
     setTimeout(() => {
       const dropdown = el('salespersonCodeDropdown');
       if (dropdown) dropdown.classList.add('hidden');
+
+      // Only validate if field was touched
+      if (state.ui.dropdownFields.salespersonCode.touched &&
+          !state.ui.dropdownFields.salespersonCode.valid &&
+          salespersonCodeSearch.value.trim() !== '') {
+        salespersonCodeSearch.value = '';
+        // Clear related fields
+        if (el('salespersonName')) el('salespersonName').value = '';
+        // Clear state
+        state.quote.salespersonCode = '';
+        state.quote.salespersonName = '';
+        saveState();
+        // Show error message
+        showError('Please select a salesperson from the dropdown');
+      }
     }, 200);
   });
 
   // Assigned User ID search - Direct input (no debounce)
   const assignedUserIdSearch = el('assignedUserIdSearch');
   assignedUserIdSearch?.addEventListener('input', (e) => {
+    // Mark field as touched and reset valid flag when user types
+    state.ui.dropdownFields.assignedUserId.touched = true;
+    state.ui.dropdownFields.assignedUserId.valid = false;
     handleAssignedUserIdSearch(e.target.value);
   });
   assignedUserIdSearch?.addEventListener('blur', () => {
     setTimeout(() => {
       const dropdown = el('assignedUserIdDropdown');
       if (dropdown) dropdown.classList.add('hidden');
+
+      // Only validate if field was touched
+      if (state.ui.dropdownFields.assignedUserId.touched &&
+          !state.ui.dropdownFields.assignedUserId.valid &&
+          assignedUserIdSearch.value.trim() !== '') {
+        assignedUserIdSearch.value = '';
+        // Clear state
+        state.quote.assignedUserId = '';
+        saveState();
+        // Show error message
+        showError('Please select a user from the dropdown');
+      }
     }, 200);
   });
 
