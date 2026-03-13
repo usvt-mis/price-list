@@ -530,13 +530,13 @@ button:disabled:hover {
   display: grid;
   gap: 0.6rem;
   margin-top: 0.7rem;
-  max-height: 9rem;
+  max-height: 15rem;
   overflow-y: auto;
   padding-right: 0.15rem;
 }
 
 .quote-created-order-list-compact {
-  max-height: 8rem;
+  max-height: 18rem;
 }
 
 .quote-created-order-item {
@@ -786,5 +786,10 @@ button:disabled:hover {
 
   .quote-created-actions-compact {
     padding: 0 0.85rem 0.85rem;
+  }
+
+  .quote-created-order-list,
+  .quote-created-order-list-compact {
+    max-height: 13rem;
   }
 }
