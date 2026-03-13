@@ -57,13 +57,24 @@
       <!-- Service Order No Display (hidden by default) -->
       <div id="serviceOrderNoSection" class="px-6 pb-3 hidden">
         <div class="bg-blue-500 rounded-xl p-3 text-center relative group">
-          <div class="flex items-center justify-center gap-2 mb-1">
+          <div class="flex items-center justify-center gap-2 mb-2">
             <svg class="w-3.5 h-3.5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
             </svg>
             <p class="text-xs font-semibold text-white/90 uppercase tracking-wider">Service Order No<span id="soCountLabel" class="hidden">(s)</span></p>
           </div>
-          <p id="serviceOrderCreatedNumber" class="text-base font-bold text-white tracking-wide tabular-nums break-words whitespace-pre-line">SVRY2512-0013</p>
+          <div class="mb-2 flex justify-center">
+            <span
+              id="serviceOrderCountBadge"
+              class="hidden rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold text-white/95"
+            >
+              1 Service Order
+            </span>
+          </div>
+          <div
+            id="serviceOrderCreatedNumber"
+            class="max-h-40 space-y-2 overflow-y-auto pr-1 text-left"
+          ></div>
 
           <!-- Copy button -->
           <button

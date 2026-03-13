@@ -1012,6 +1012,38 @@ async function ensureQuoteCreatedModalLoaded() {
   return { modal, modalContent };
 }
 
+function renderServiceOrderList(container, serviceOrderNos) {
+  if (!container) return;
+
+  container.replaceChildren();
+  delete container.dataset.copyValue;
+
+  if (!Array.isArray(serviceOrderNos) || serviceOrderNos.length === 0) {
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  serviceOrderNos.forEach((soNo, index) => {
+    const item = document.createElement('div');
+    item.className = 'flex items-center gap-3 rounded-lg bg-white/15 px-3 py-2 shadow-sm ring-1 ring-white/15';
+
+    const orderIndex = document.createElement('span');
+    orderIndex.className = 'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-[11px] font-semibold text-white/95';
+    orderIndex.textContent = `${index + 1}`;
+
+    const value = document.createElement('span');
+    value.className = 'min-w-0 flex-1 break-all text-sm font-bold text-white tabular-nums';
+    value.textContent = soNo;
+
+    item.append(orderIndex, value);
+    fragment.appendChild(item);
+  });
+
+  container.appendChild(fragment);
+  container.dataset.copyValue = serviceOrderNos.join('\n');
+}
+
 function updateCopyFeedback(copyIconId, copiedIconId) {
   el(copyIconId)?.classList.add('hidden');
   el(copiedIconId)?.classList.remove('hidden');
@@ -1053,6 +1085,7 @@ export async function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = nul
   const quoteNumberDisplay = el('quoteCreatedNumber');
   const serviceOrderNoDisplay = el('serviceOrderCreatedNumber');
   const serviceOrderNoSection = el('serviceOrderNoSection');
+  const serviceOrderCountBadge = el('serviceOrderCountBadge');
   const soCountLabel = el('soCountLabel');
   const normalizedServiceOrderNos = Array.isArray(serviceOrderNos)
     ? serviceOrderNos
@@ -1081,10 +1114,16 @@ export async function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = nul
   const hasServiceOrders = normalizedServiceOrderNos.length > 0;
 
   if (hasServiceOrders && serviceOrderNoDisplay) {
-    const displayValue = normalizedServiceOrderNos.join('\n');
-    serviceOrderNoDisplay.textContent = displayValue;
+    renderServiceOrderList(serviceOrderNoDisplay, normalizedServiceOrderNos);
     if (serviceOrderNoSection) {
       serviceOrderNoSection.classList.remove('hidden');
+    }
+
+    if (serviceOrderCountBadge) {
+      serviceOrderCountBadge.textContent = normalizedServiceOrderNos.length === 1
+        ? '1 Service Order'
+        : `${normalizedServiceOrderNos.length} Service Orders`;
+      serviceOrderCountBadge.classList.remove('hidden');
     }
 
     // Show plural "(s)" label if multiple Service Orders
@@ -1096,8 +1135,15 @@ export async function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = nul
       }
     }
   } else {
+    renderServiceOrderList(serviceOrderNoDisplay, []);
     if (serviceOrderNoSection) {
       serviceOrderNoSection.classList.add('hidden');
+    }
+    if (serviceOrderCountBadge) {
+      serviceOrderCountBadge.classList.add('hidden');
+    }
+    if (soCountLabel) {
+      soCountLabel.classList.add('hidden');
     }
   }
 
@@ -1162,8 +1208,10 @@ export async function copyQuoteNumber() {
 }
 
 export async function copyServiceOrderNumber() {
+  const serviceOrderNoDisplay = el('serviceOrderCreatedNumber');
+
   await copyTextWithFeedback(
-    el('serviceOrderCreatedNumber')?.textContent,
+    serviceOrderNoDisplay?.dataset.copyValue || serviceOrderNoDisplay?.textContent,
     'copySOIcon',
     'copiedSOIcon'
   );
