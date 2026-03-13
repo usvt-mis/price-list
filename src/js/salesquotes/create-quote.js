@@ -138,16 +138,16 @@ export function selectCustomerFromLocal(customer) {
   // Update state using the updated setQuoteCustomer function
   setQuoteCustomer(customer);
 
-  // Mark as valid selection from dropdown
-  state.ui.dropdownFields.customerNo.valid = true;
-  state.ui.dropdownFields.customerNo.touched = true;
-
   // Update UI fields
   if (el('customerNoSearch')) {
     el('customerNoSearch').value = customer.CustomerNo;
     // Update asterisk after customer selection
     el('customerNoSearch').dispatchEvent(new Event('input'));
   }
+
+  // Mark as valid selection from dropdown (must be AFTER input event to override the input handler)
+  state.ui.dropdownFields.customerNo.touched = true;
+  state.ui.dropdownFields.customerNo.valid = true;
   if (el('customerName')) {
     el('customerName').value = customer.CustomerName;
   }
@@ -231,10 +231,6 @@ export async function handleSalespersonCodeSearch(query) {
 }
 
 export function selectSalesperson(salesperson) {
-  // Mark as valid selection from dropdown
-  state.ui.dropdownFields.salespersonCode.valid = true;
-  state.ui.dropdownFields.salespersonCode.touched = true;
-
   state.quote.salespersonCode = salesperson.SalespersonCode;
   state.quote.salespersonName = salesperson.SalespersonName;
 
@@ -243,6 +239,10 @@ export function selectSalesperson(salesperson) {
 
   // Update asterisk after salesperson selection
   el('salespersonCodeSearch')?.dispatchEvent(new Event('input'));
+
+  // Mark as valid selection from dropdown (must be AFTER input event to override the input handler)
+  state.ui.dropdownFields.salespersonCode.touched = true;
+  state.ui.dropdownFields.salespersonCode.valid = true;
 
   el('salespersonCodeDropdown')?.classList.add('hidden');
   showSuccess(`Selected: ${salesperson.SalespersonName}`);
@@ -295,16 +295,16 @@ export async function handleAssignedUserIdSearch(query) {
 }
 
 export function selectAssignedUser(user) {
-  // Mark as valid selection from dropdown
-  state.ui.dropdownFields.assignedUserId.valid = true;
-  state.ui.dropdownFields.assignedUserId.touched = true;
-
   state.quote.assignedUserId = user.UserId;
 
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = user.UserId;
 
   // Update asterisk after user selection
   el('assignedUserIdSearch')?.dispatchEvent(new Event('input'));
+
+  // Mark as valid selection from dropdown (must be AFTER input event to override the input handler)
+  state.ui.dropdownFields.assignedUserId.touched = true;
+  state.ui.dropdownFields.assignedUserId.valid = true;
 
   el('assignedUserIdDropdown')?.classList.add('hidden');
   showSuccess(`Selected: ${user.UserId}`);
