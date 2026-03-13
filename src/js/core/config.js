@@ -28,6 +28,12 @@ export const VIEW = {
   AWAITING: 'awaiting'
 };
 
+// Calculator type constants
+export const CALCULATOR_TYPE = {
+  ONSITE: 'onsite',
+  WORKSHOP: 'workshop'
+};
+
 // Commission tiers based on Grand Total to SSP ratio
 export const COMMISSION_TIERS = [
   { minRatio: 0, maxRatio: 0.8, percent: 0 },        // [0, 0.8) = 0%
