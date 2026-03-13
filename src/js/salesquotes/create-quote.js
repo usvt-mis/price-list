@@ -2136,9 +2136,9 @@ function saveEditLine() {
   }
 
   // Update line in state
-  const lineIndex = state.lines.findIndex(l => l.id === lineId);
+  const lineIndex = state.quote.lines.findIndex(l => l.id === lineId);
   if (lineIndex !== -1) {
-    state.lines[lineIndex] = { ...state.lines[lineIndex], ...lineData };
+    state.quote.lines[lineIndex] = { ...state.quote.lines[lineIndex], ...lineData };
   }
 
   // Recalculate totals

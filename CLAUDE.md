@@ -200,6 +200,9 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 
 **Important**: All migration scripts must set ANSI options before creating filtered indexes.
 
+**Available Migrations:**
+- `migrate_branch_to_branchid.sql` - Migrate legacy BRANCH text column to BranchId integer (see `README_BRANCH_MIGRATION.md` for details)
+
 ---
 
 ## Detailed Documentation
