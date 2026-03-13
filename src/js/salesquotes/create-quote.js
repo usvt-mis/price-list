@@ -739,8 +739,8 @@ async function showConfirmNewSerModal() {
     state.ui.pendingSerCreation = true;
     modal.classList.remove('hidden');
     setTimeout(() => {
-      modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
-      modalContent.classList.add('opacity-100', 'translate-y-0');
+      modalContent.style.opacity = '1';
+      modalContent.style.transform = 'translateY(0)';
     }, 10);
   }
 }
@@ -753,8 +753,8 @@ function hideConfirmNewSerModal() {
   const modalContent = el('confirmNewSerModalContent');
 
   if (modal && modalContent) {
-    modalContent.classList.remove('opacity-100', 'translate-y-0');
-    modalContent.classList.add('opacity-0', 'translate-y-[-10px]');
+    modalContent.style.opacity = '0';
+    modalContent.style.transform = 'translateY(-10px)';
     setTimeout(() => {
       modal.classList.add('hidden');
       state.ui.pendingSerCreation = false;
@@ -2648,8 +2648,8 @@ async function showConfirmNewSerModalForEdit() {
     state.ui.pendingSerCreationEdit = true;
     modal.classList.remove('hidden');
     setTimeout(() => {
-      modalContent.classList.remove('opacity-0', 'translate-y-[-10px]');
-      modalContent.classList.add('opacity-100', 'translate-y-0');
+      modalContent.style.opacity = '1';
+      modalContent.style.transform = 'translateY(0)';
     }, 10);
   }
 }

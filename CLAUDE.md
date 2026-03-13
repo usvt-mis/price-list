@@ -134,6 +134,14 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - This ensures the modal appears on top regardless of DOM order when dynamically loaded
 - Implementation: See `showConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
 
+### Modal Animation Pattern
+- **Use inline styles for animations**, not Tailwind CSS classes with classList manipulation
+- Tailwind arbitrary value syntax (e.g., `translate-y-[-10px]`) may not work correctly with `classList.remove()`
+- **Initial hidden state** (in HTML): `style="opacity: 0; transform: translateY(-10px);"`
+- **Show animation** (in JS): `modalContent.style.opacity = '1'; modalContent.style.transform = 'translateY(0)';`
+- **Hide animation** (in JS): `modalContent.style.opacity = '0'; modalContent.style.transform = 'translateY(-10px)';`
+- Implementation: See `confirm-new-ser-modal.html` and `showConfirmNewSerModal()` / `hideConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
+
 ---
 
 ## Authentication & Authorization
