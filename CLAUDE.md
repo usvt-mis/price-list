@@ -180,6 +180,14 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Modal includes only a "Close" button
 - Implementation: `src/js/salesquotes/ui.js` - `showQuoteCreatedSuccess()`, `renderServiceOrderList()`, `src/salesquotes/components/modals/quote-created-modal.html`
 
+**Quote Failed Modal Display:**
+- Red-themed modal (opposite of success modal) shown when Business Central rejects a quote
+- Displays normalized error message with HTML stripped and structured error parsing
+- Error message normalization handles: API Error status codes, nested JSON objects, HTML content, and circular references
+- Maximum error message length: 700 characters (truncated with "...")
+- Modal reassures user that quote data is still on page for retry
+- Implementation: `src/js/salesquotes/ui.js` - `showQuoteSendFailure()`, `normalizeQuoteFailureMessage()`, `findFirstErrorString()`, `tryExtractStructuredError()`, `stripHtmlToText()`, `src/salesquotes/components/modals/quote-failed-modal.html`
+
 **Service Item No Validation:**
 - **Policy**: Only one Service Item No is allowed per Group No across all quote lines
 - When adding/editing a line, if the selected Group No already has a Service Item No in another line, the "New SER" button is disabled with a tooltip

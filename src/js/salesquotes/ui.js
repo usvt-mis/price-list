@@ -998,6 +998,154 @@ async function ensureQuoteCreatedModalLoaded() {
   return { modal, modalContent };
 }
 
+async function ensureQuoteFailedModalLoaded() {
+  let modal = el('quoteFailedModal');
+  let modalContent = el('quoteFailedModalContent');
+
+  if (modal && modalContent) {
+    return { modal, modalContent };
+  }
+
+  console.warn('[QUOTE-FAILED-MODAL] Modal not found in DOM, loading dynamically...');
+
+  try {
+    const { loadModal } = await import('./components/modal-loader.js');
+    await loadModal('quoteFailedModal');
+  } catch (error) {
+    console.error('[QUOTE-FAILED-MODAL] Failed to load modal dynamically:', error);
+  }
+
+  modal = el('quoteFailedModal');
+  modalContent = el('quoteFailedModalContent');
+
+  return { modal, modalContent };
+}
+
+function findFirstErrorString(node, seen = new WeakSet()) {
+  if (typeof node === 'string') {
+    const normalized = node.replace(/\s+/g, ' ').trim();
+    return normalized || null;
+  }
+
+  if (!node || typeof node !== 'object') {
+    return null;
+  }
+
+  if (seen.has(node)) {
+    return null;
+  }
+  seen.add(node);
+
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const message = findFirstErrorString(item, seen);
+      if (message) {
+        return message;
+      }
+    }
+    return null;
+  }
+
+  const priorityKeys = [
+    'message',
+    'Message',
+    'error',
+    'Error',
+    'errorMessage',
+    'error_message',
+    'detail',
+    'details',
+    'title',
+    'description',
+    'exceptionMessage'
+  ];
+
+  for (const key of priorityKeys) {
+    if (key in node) {
+      const message = findFirstErrorString(node[key], seen);
+      if (message) {
+        return message;
+      }
+    }
+  }
+
+  for (const value of Object.values(node)) {
+    const message = findFirstErrorString(value, seen);
+    if (message) {
+      return message;
+    }
+  }
+
+  return null;
+}
+
+function tryExtractStructuredError(rawMessage) {
+  const trimmed = typeof rawMessage === 'string' ? rawMessage.trim() : '';
+  if (!trimmed) {
+    return '';
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    return findFirstErrorString(parsed) || trimmed;
+  } catch {
+    return trimmed;
+  }
+}
+
+function stripHtmlToText(rawMessage) {
+  const trimmed = typeof rawMessage === 'string' ? rawMessage.trim() : '';
+  if (!trimmed) {
+    return '';
+  }
+
+  if (!/<[a-z][\s\S]*>/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  const template = document.createElement('template');
+  template.innerHTML = trimmed;
+  const extracted = template.content.textContent?.replace(/\s+/g, ' ').trim();
+  return extracted || trimmed;
+}
+
+function normalizeQuoteFailureMessage(errorOrMessage) {
+  const fallbackMessage = 'Failed to send quote to Business Central. Please review the data and try again.';
+  const rawMessage = errorOrMessage instanceof Error
+    ? errorOrMessage.message
+    : typeof errorOrMessage === 'string'
+      ? errorOrMessage
+      : '';
+
+  if (!rawMessage || rawMessage.trim() === '') {
+    return fallbackMessage;
+  }
+
+  const apiErrorMatch = rawMessage.match(/^API Error\s+(\d+):\s*([\s\S]*)$/i);
+  const statusCode = apiErrorMatch?.[1] || null;
+  const payloadMessage = apiErrorMatch?.[2] || rawMessage;
+
+  let normalizedMessage = tryExtractStructuredError(payloadMessage);
+  normalizedMessage = stripHtmlToText(normalizedMessage)
+    .replace(/^Error:\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalizedMessage) {
+    normalizedMessage = fallbackMessage;
+  }
+
+  if (statusCode && !normalizedMessage.includes(`HTTP ${statusCode}`)) {
+    normalizedMessage = `Business Central returned HTTP ${statusCode}. ${normalizedMessage}`;
+  }
+
+  if (normalizedMessage.length > 700) {
+    normalizedMessage = `${normalizedMessage.slice(0, 697)}...`;
+  }
+
+  return normalizedMessage;
+}
+
 function renderServiceOrderList(container, serviceOrderNos) {
   if (!container) return;
 
@@ -1152,6 +1300,41 @@ export async function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = nul
   return true;
 }
 
+export async function showQuoteSendFailure(errorOrMessage) {
+  const { modal, modalContent } = await ensureQuoteFailedModalLoaded();
+  const messageElement = el('quoteFailedMessage');
+  const normalizedMessage = normalizeQuoteFailureMessage(errorOrMessage);
+
+  state.ui.error = normalizedMessage;
+  console.error('UI Error:', normalizedMessage);
+
+  if (!modal || !modalContent) {
+    console.error('[QUOTE-FAILED-MODAL] Modal not available');
+    showError(normalizedMessage);
+    return false;
+  }
+
+  if (messageElement) {
+    messageElement.textContent = normalizedMessage;
+  }
+
+  const modalContainer = document.getElementById('modalContainer');
+  if (modalContainer) {
+    modalContainer.appendChild(modal);
+  }
+
+  modal.classList.remove('hidden');
+  modal.style.zIndex = '160';
+  document.body.style.overflow = 'hidden';
+
+  setTimeout(() => {
+    modalContent.classList.remove('opacity-0', 'scale-95');
+    modalContent.classList.add('opacity-100', 'scale-100');
+  }, 10);
+
+  return true;
+}
+
 /**
  * Close Quote Created Success modal
  */
@@ -1165,6 +1348,24 @@ export function closeQuoteCreatedModal() {
     modalContent.classList.add('opacity-0', 'scale-95');
 
     // Hide modal after animation completes
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }, 500);
+  } else if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+export function closeQuoteFailedModal() {
+  const modal = el('quoteFailedModal');
+  const modalContent = el('quoteFailedModalContent');
+
+  if (modal && modalContent) {
+    modalContent.classList.remove('opacity-100', 'scale-100');
+    modalContent.classList.add('opacity-0', 'scale-95');
+
     setTimeout(() => {
       modal.classList.add('hidden');
       document.body.style.overflow = '';
@@ -1412,6 +1613,7 @@ if (typeof window !== 'undefined') {
   window.openInsertLineModal = openInsertLineModal;
   window.closeAddLineModal = closeAddLineModal;
   window.closeQuoteCreatedModal = closeQuoteCreatedModal;
+  window.closeQuoteFailedModal = closeQuoteFailedModal;
   window.copyQuoteNumber = copyQuoteNumber;
   window.openFullscreenTable = openFullscreenTable;
   window.closeFullscreenTable = closeFullscreenTable;

@@ -241,11 +241,26 @@ button:disabled:hover {
   overflow: hidden;
 }
 
+.quote-failed-panel {
+  background:
+    radial-gradient(circle at top, rgba(239, 68, 68, 0.11), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #fff7f7 100%);
+}
+
 .quote-created-hero {
   position: relative;
   overflow: hidden;
   padding: 1.6rem 1.6rem 1.4rem;
   background: linear-gradient(135deg, #065f46 0%, #0f766e 48%, #0369a1 100%);
+  color: #ffffff;
+  text-align: center;
+}
+
+.quote-failed-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 1.6rem 1.6rem 1.4rem;
+  background: linear-gradient(135deg, #7f1d1d 0%, #b91c1c 52%, #ea580c 100%);
   color: #ffffff;
   text-align: center;
 }
@@ -272,6 +287,30 @@ button:disabled:hover {
   width: 13rem;
   height: 13rem;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 70%);
+}
+
+.quote-failed-hero::before,
+.quote-failed-hero::after {
+  position: absolute;
+  content: "";
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.quote-failed-hero::before {
+  top: -5rem;
+  right: -3rem;
+  width: 12rem;
+  height: 12rem;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 68%);
+}
+
+.quote-failed-hero::after {
+  bottom: -6rem;
+  left: -3rem;
+  width: 13rem;
+  height: 13rem;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 70%);
 }
 
 .quote-created-badge {
@@ -305,6 +344,11 @@ button:disabled:hover {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 16px 30px rgba(0, 0, 0, 0.18);
+}
+
+.quote-failed-icon {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(254, 226, 226, 0.16));
+  border-color: rgba(255, 255, 255, 0.34);
 }
 
 .quote-created-title {
@@ -381,6 +425,16 @@ button:disabled:hover {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
+.quote-failed-card {
+  border: 1px solid rgba(252, 165, 165, 0.45);
+  background:
+    radial-gradient(circle at top right, rgba(248, 113, 113, 0.14), transparent 32%),
+    linear-gradient(180deg, #fff1f2 0%, #ffffff 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 12px 24px rgba(127, 29, 29, 0.06);
+}
+
 .quote-created-card-header {
   display: flex;
   align-items: flex-start;
@@ -450,6 +504,15 @@ button:disabled:hover {
   color: rgba(226, 232, 240, 0.88);
   font-size: 0.84rem;
   line-height: 1.5;
+}
+
+.quote-failed-message {
+  margin: 0.75rem 0 0;
+  color: #7f1d1d;
+  font-size: 0.94rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .quote-created-count-badge {
@@ -729,6 +792,10 @@ button:disabled:hover {
   }
 
   .quote-created-hero {
+    padding: 1.4rem 1.1rem 1.2rem;
+  }
+
+  .quote-failed-hero {
     padding: 1.4rem 1.1rem 1.2rem;
   }
 

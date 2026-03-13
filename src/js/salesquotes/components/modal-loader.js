@@ -11,6 +11,7 @@ const modalPaths = {
   'addLineModal': '/salesquotes/components/modals/add-line-modal.html',
   'editLineModal': '/salesquotes/components/modals/edit-line-modal.html',
   'quoteCreatedModal': '/salesquotes/components/modals/quote-created-modal.html',
+  'quoteFailedModal': '/salesquotes/components/modals/quote-failed-modal.html',
   'fullscreenTableModal': '/salesquotes/components/modals/fullscreen-table-modal.html',
   'confirmRemoveModal': '/salesquotes/components/modals/confirm-remove-modal.html',
   'confirmClearQuoteModal': '/salesquotes/components/modals/confirm-clear-modal.html',
