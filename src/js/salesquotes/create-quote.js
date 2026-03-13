@@ -546,6 +546,8 @@ export function handleAddQuoteLine() {
     refSalesQuote: el('lineUsvtRefSalesQuoteno')
   };
 
+  const parsedQuantity = parseFloat(fieldRefs.quantity?.value);
+
   const lineData = {
     usvtCreateSv: fieldRefs.createSv?.checked || false,
     lineType: fieldRefs.lineType?.value || 'Item',
@@ -554,7 +556,7 @@ export function handleAddQuoteLine() {
     usvtGroupNo: fieldRefs.groupNo?.value?.trim() || '',
     lineObjectNumber: fieldRefs.no?.value?.trim() || '',
     description: fieldRefs.description?.value?.trim() || '',
-    quantity: parseFloat(fieldRefs.quantity?.value) || 1,
+    quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
     unitPrice: parseFloat(fieldRefs.unitPrice?.value) || 0,
     usvtAddition: fieldRefs.addition?.checked || false,
     usvtRefSalesQuoteno: fieldRefs.refSalesQuote?.value?.trim() || '',
@@ -974,21 +976,25 @@ async function sendQuoteToAzureFunction(quoteData) {
   const discountAmount = parseFloat(invoiceDiscountElement?.value) || 0;
 
   // Transform line items to API format
-  const lineItems = state.quote.lines.map(line => ({
-    lineObjectNumber: line.lineObjectNumber || '',
-    description: line.description || '',
-    quantity: line.quantity || 1,
-    unitPrice: line.unitPrice || 0,
-    lineType: line.lineType || 'Item',
-    discountPercent: line.discountPercent || 0,
-    usvtGroupNo: line.usvtGroupNo || '',
-    usvtServiceItemNo: line.usvtServiceItemNo || '',
-    usvtServiceItemDescription: line.usvtServiceItemDescription || '',
-    usvtCreateSv: line.usvtCreateSv || line.createSv || false,  // Support both new and legacy field names
-    usvtAddition: line.usvtAddition || false,
-    usvtRefSalesQuoteno: line.usvtRefSalesQuoteno || '',
-    discountAmount: line.discountAmount || 0
-  }));
+  const lineItems = state.quote.lines.map(line => {
+    const parsedQuantity = parseFloat(line.quantity);
+
+    return {
+      lineObjectNumber: line.lineObjectNumber || '',
+      description: line.description || '',
+      quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
+      unitPrice: line.unitPrice || 0,
+      lineType: line.lineType || 'Item',
+      discountPercent: line.discountPercent || 0,
+      usvtGroupNo: line.usvtGroupNo || '',
+      usvtServiceItemNo: line.usvtServiceItemNo || '',
+      usvtServiceItemDescription: line.usvtServiceItemDescription || '',
+      usvtCreateSv: line.usvtCreateSv || line.createSv || false,  // Support both new and legacy field names
+      usvtAddition: line.usvtAddition || false,
+      usvtRefSalesQuoteno: line.usvtRefSalesQuoteno || '',
+      discountAmount: line.discountAmount || 0
+    };
+  });
 
   // Prepare request body
   const requestBody = {
@@ -2425,6 +2431,8 @@ function saveEditLine() {
     editMaterialNoField.blur();
   }
 
+  const parsedQuantity = parseFloat(document.getElementById('editLineQuantity').value);
+
   // Get values from modal
   const lineData = {
     lineType: document.getElementById('editLineType').value,
@@ -2433,7 +2441,7 @@ function saveEditLine() {
     usvtServiceItemDescription: document.getElementById('editLineUsvtServiceItemDescription').value,
     lineObjectNumber: document.getElementById('editLineObjectNumberSearch').value,
     description: document.getElementById('editLineDescription').value.trim(),
-    quantity: parseFloat(document.getElementById('editLineQuantity').value),
+    quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
     unitPrice: parseFloat(document.getElementById('editLineUnitPrice').value) || 0,
     discountPercent: parseFloat(document.getElementById('editLineDiscountPercent').value) || 0,
     discountAmount: parseFloat(document.getElementById('editLineDiscountAmount').value) || 0,

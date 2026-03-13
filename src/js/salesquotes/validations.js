@@ -102,10 +102,20 @@ export function validateCustomer(value) {
 /**
  * Validate line item quantity
  */
-export function validateQuantity(value) {
+export function validateQuantity(value, lineType = 'Item') {
   if (!isRequired(value)) {
     return ERROR_MESSAGES.REQUIRED;
   }
+
+  const num = parseFloat(value);
+  if (isNaN(num)) {
+    return ERROR_MESSAGES.INVALID_NUMBER;
+  }
+
+  if (lineType === 'Comment') {
+    return num >= 0 ? null : ERROR_MESSAGES.INVALID_NUMBER;
+  }
+
   if (!isPositiveNumber(value)) {
     return ERROR_MESSAGES.INVALID_QUANTITY;
   }
@@ -161,7 +171,7 @@ export function validateQuoteLine(line) {
   const descriptionError = !isRequired(line.description) ? ERROR_MESSAGES.REQUIRED : null;
   if (descriptionError) errors.description = descriptionError;
 
-  const quantityError = validateQuantity(line.quantity);
+  const quantityError = validateQuantity(line.quantity, line.lineType);
   if (quantityError) errors.quantity = quantityError;
 
   // Unit Price is now optional - no validation required
@@ -287,7 +297,7 @@ export function validateLineItemRealtime(field, value, line) {
     case 'description':
       return isRequired(value) ? null : ERROR_MESSAGES.REQUIRED;
     case 'quantity':
-      return validateQuantity(value);
+      return validateQuantity(value, line?.lineType);
     case 'unitPrice':
       return validateUnitPrice(value);
     case 'discount':
@@ -353,6 +363,7 @@ export function sanitizeQuoteData(quote) {
 export function validateQuoteLineData(line) {
   const errors = {};
   let firstErrorField = null;
+  const isItem = line.lineType === 'Item';
 
   // 1. Description (required)
   if (!line.description || line.description.trim() === '') {
@@ -361,7 +372,6 @@ export function validateQuoteLineData(line) {
   }
 
   // 2. No. / Material No (required when Type is Item)
-  const isItem = line.lineType === 'Item';
   if (isItem && (!line.lineObjectNumber || line.lineObjectNumber.trim() === '')) {
     errors.lineObjectNumber = 'No. (Material No.) is required';
     if (!firstErrorField) firstErrorField = 'lineObjectNumber';
@@ -373,13 +383,14 @@ export function validateQuoteLineData(line) {
     if (!firstErrorField) firstErrorField = 'usvtServiceItemDescription';
   }
 
-  // 3. Quantity (must be > 0)
-  if (!line.quantity || line.quantity <= 0) {
-    errors.quantity = 'Quantity must be greater than 0';
+  // 4. Quantity
+  const quantityError = validateQuantity(line.quantity, line.lineType);
+  if (quantityError) {
+    errors.quantity = quantityError;
     if (!firstErrorField) firstErrorField = 'quantity';
   }
 
-  // 4. Unit Price (cannot be negative)
+  // 5. Unit Price (cannot be negative)
   if (line.unitPrice < 0) {
     errors.unitPrice = 'Unit price cannot be negative';
     if (!firstErrorField) firstErrorField = 'unitPrice';
