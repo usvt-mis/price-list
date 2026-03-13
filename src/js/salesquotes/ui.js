@@ -1036,7 +1036,27 @@ function renderServiceOrderList(container, serviceOrderNos) {
     value.className = 'quote-created-order-value';
     value.textContent = soNo;
 
-    item.append(orderIndex, value);
+    const copyButton = document.createElement('button');
+    copyButton.type = 'button';
+    copyButton.className = 'quote-created-copy-btn quote-created-copy-btn-dark quote-created-copy-btn-inline';
+    copyButton.title = `Copy ${soNo}`;
+    copyButton.setAttribute('aria-label', `Copy service order number ${soNo}`);
+    copyButton.innerHTML = `
+      <svg class="quote-created-copy-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+      </svg>
+      <svg class="quote-created-copied-icon w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+    `;
+
+    copyButton.addEventListener('click', () => {
+      const copyIcon = copyButton.querySelector('.quote-created-copy-icon');
+      const copiedIcon = copyButton.querySelector('.quote-created-copied-icon');
+      void copyTextWithFeedback(soNo, copyIcon, copiedIcon);
+    });
+
+    item.append(orderIndex, value, copyButton);
     fragment.appendChild(item);
   });
 
@@ -1044,17 +1064,25 @@ function renderServiceOrderList(container, serviceOrderNos) {
   container.dataset.copyValue = serviceOrderNos.join('\n');
 }
 
-function updateCopyFeedback(copyIconId, copiedIconId) {
-  el(copyIconId)?.classList.add('hidden');
-  el(copiedIconId)?.classList.remove('hidden');
+function resolveCopyIconElement(iconRef) {
+  if (!iconRef) return null;
+  return typeof iconRef === 'string' ? el(iconRef) : iconRef;
+}
+
+function updateCopyFeedback(copyIconRef, copiedIconRef) {
+  const copyIcon = resolveCopyIconElement(copyIconRef);
+  const copiedIcon = resolveCopyIconElement(copiedIconRef);
+
+  copyIcon?.classList.add('hidden');
+  copiedIcon?.classList.remove('hidden');
 
   setTimeout(() => {
-    el(copyIconId)?.classList.remove('hidden');
-    el(copiedIconId)?.classList.add('hidden');
+    copyIcon?.classList.remove('hidden');
+    copiedIcon?.classList.add('hidden');
   }, 2000);
 }
 
-async function copyTextWithFeedback(text, copyIconId, copiedIconId) {
+async function copyTextWithFeedback(text, copyIconRef, copiedIconRef) {
   const normalizedText = typeof text === 'string' ? text.trim() : '';
   if (!normalizedText) return;
 
@@ -1073,7 +1101,7 @@ async function copyTextWithFeedback(text, copyIconId, copiedIconId) {
       fallbackInput.remove();
     }
 
-    updateCopyFeedback(copyIconId, copiedIconId);
+    updateCopyFeedback(copyIconRef, copiedIconRef);
   } catch (error) {
     console.error('Failed to copy text:', error);
     showError('Failed to copy to clipboard');
@@ -1204,16 +1232,6 @@ export async function copyQuoteNumber() {
     el('quoteCreatedNumber')?.textContent,
     'copyQuoteIcon',
     'copiedQuoteIcon'
-  );
-}
-
-export async function copyServiceOrderNumber() {
-  const serviceOrderNoDisplay = el('serviceOrderCreatedNumber');
-
-  await copyTextWithFeedback(
-    serviceOrderNoDisplay?.dataset.copyValue || serviceOrderNoDisplay?.textContent,
-    'copySOIcon',
-    'copiedSOIcon'
   );
 }
 
@@ -1448,7 +1466,6 @@ if (typeof window !== 'undefined') {
   window.closeQuoteCreatedModal = closeQuoteCreatedModal;
   window.createNewQuote = createNewQuote;
   window.copyQuoteNumber = copyQuoteNumber;
-  window.copyServiceOrderNumber = copyServiceOrderNumber;
   window.openFullscreenTable = openFullscreenTable;
   window.closeFullscreenTable = closeFullscreenTable;
   window.showConfirmClearQuoteModal = showConfirmClearQuoteModal;
