@@ -347,8 +347,18 @@ button:disabled:hover {
 }
 
 .quote-failed-icon {
+  width: 4rem;
+  height: 4rem;
+  margin-top: 0.9rem;
+  margin-bottom: 0.85rem;
+  border-radius: 1.2rem;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(254, 226, 226, 0.16));
   border-color: rgba(255, 255, 255, 0.34);
+}
+
+.quote-failed-icon-svg {
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 .quote-created-title {
