@@ -962,6 +962,143 @@ export function handleSaveDraft() {
   }
 }
 
+// Helpers for normalizing Gateway/Business Central error payloads.
+function isExplicitApiFailure(value) {
+  return value === false || value === 'false';
+}
+
+function parseStructuredApiErrorPayload(value) {
+  if (!value || typeof value !== 'string') {
+    return value && typeof value === 'object' ? value : null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const tryParse = candidate => {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      return null;
+    }
+  };
+
+  const wholePayload = tryParse(trimmed);
+  if (wholePayload) {
+    return wholePayload;
+  }
+
+  const firstObjectIndex = trimmed.indexOf('{');
+  const lastObjectIndex = trimmed.lastIndexOf('}');
+  if (firstObjectIndex !== -1 && lastObjectIndex > firstObjectIndex) {
+    const objectPayload = tryParse(trimmed.slice(firstObjectIndex, lastObjectIndex + 1));
+    if (objectPayload) {
+      return objectPayload;
+    }
+  }
+
+  const firstArrayIndex = trimmed.indexOf('[');
+  const lastArrayIndex = trimmed.lastIndexOf(']');
+  if (firstArrayIndex !== -1 && lastArrayIndex > firstArrayIndex) {
+    return tryParse(trimmed.slice(firstArrayIndex, lastArrayIndex + 1));
+  }
+
+  return null;
+}
+
+function findApiErrorMessage(value, seen = new Set()) {
+  if (!value) {
+    return '';
+  }
+
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+
+  if (typeof value !== 'object') {
+    return '';
+  }
+
+  if (seen.has(value)) {
+    return '';
+  }
+
+  seen.add(value);
+
+  const priorityKeys = [
+    'message',
+    'Message',
+    'error',
+    'Error',
+    'errorMessage',
+    'error_message',
+    'detail',
+    'details',
+    'title',
+    'description',
+    'exceptionMessage'
+  ];
+
+  for (const key of priorityKeys) {
+    if (key in value) {
+      const message = findApiErrorMessage(value[key], seen);
+      if (message) {
+        return message;
+      }
+    }
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const message = findApiErrorMessage(item, seen);
+      if (message) {
+        return message;
+      }
+    }
+    return '';
+  }
+
+  for (const nestedValue of Object.values(value)) {
+    const message = findApiErrorMessage(nestedValue, seen);
+    if (message) {
+      return message;
+    }
+  }
+
+  return '';
+}
+
+function extractQuoteApiFailureMessage(responseData) {
+  const fallbackMessage = 'Failed to send quote to Business Central. Please review the data and try again.';
+  const candidates = [
+    responseData?.message,
+    responseData?.error,
+    responseData?.result?.message,
+    responseData?.result?.error
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    const structuredPayload = parseStructuredApiErrorPayload(candidate);
+    const structuredMessage = findApiErrorMessage(structuredPayload);
+    if (structuredMessage) {
+      return structuredMessage;
+    }
+
+    const directMessage = findApiErrorMessage(candidate);
+    if (directMessage) {
+      return directMessage;
+    }
+  }
+
+  return findApiErrorMessage(responseData) || fallbackMessage;
+}
+
 /**
  * Send quote to Azure Function API
  * @param {Object} quoteData - Sanitized quote form data
@@ -1031,6 +1168,17 @@ async function sendQuoteToAzureFunction(quoteData) {
 
     const responseData = await response.json();
     console.log('Azure Function API response:', responseData);
+
+    const gatewayReportedFailure = [
+      responseData?.success,
+      responseData?.Success,
+      responseData?.result?.success,
+      responseData?.result?.Success
+    ].some(isExplicitApiFailure);
+
+    if (gatewayReportedFailure) {
+      throw new Error(extractQuoteApiFailureMessage(responseData));
+    }
 
     return responseData;
 

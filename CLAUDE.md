@@ -186,7 +186,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Error message normalization handles: API Error status codes, nested JSON objects, HTML content, and circular references
 - Maximum error message length: 700 characters (truncated with "...")
 - Modal reassures user that quote data is still on page for retry
-- Implementation: `src/js/salesquotes/ui.js` - `showQuoteSendFailure()`, `normalizeQuoteFailureMessage()`, `findFirstErrorString()`, `tryExtractStructuredError()`, `stripHtmlToText()`, `src/salesquotes/components/modals/quote-failed-modal.html`
+- Two-layer error handling:
+  - **API Response Layer** (`create-quote.js`): Explicitly checks for gateway-reported failures (`success: false`) and extracts structured error messages from response payloads
+    - Functions: `isExplicitApiFailure()`, `parseStructuredApiErrorPayload()`, `findApiErrorMessage()`, `extractQuoteApiFailureMessage()`
+  - **UI Display Layer** (`ui.js`): Normalizes errors for modal display with HTML stripping and truncation
+    - Functions: `showQuoteSendFailure()`, `normalizeQuoteFailureMessage()`, `findFirstErrorString()`, `tryExtractStructuredError()`, `stripHtmlToText()`
+- Implementation: `src/js/salesquotes/create-quote.js` - API error extraction, `src/js/salesquotes/ui.js` - modal display functions, `src/salesquotes/components/modals/quote-failed-modal.html`
 
 **Service Item No Validation:**
 - **Policy**: Only one Service Item No is allowed per Group No across all quote lines
