@@ -2118,16 +2118,20 @@ function saveEditLine() {
   };
 
   // Validation
-  if (!lineData.lineObjectNumber) {
-    showToast('Material No. is required', 'error');
-    return;
+  // Material No. and quantity are only required for Item type
+  if (lineData.lineType === 'Item') {
+    if (!lineData.lineObjectNumber) {
+      showToast('Material No. is required', 'error');
+      return;
+    }
+    if (lineData.quantity <= 0) {
+      showToast('Quantity must be greater than 0', 'error');
+      return;
+    }
   }
+  // Description is required for both types
   if (!lineData.description) {
     showToast('Description is required', 'error');
-    return;
-  }
-  if (lineData.quantity <= 0) {
-    showToast('Quantity must be greater than 0', 'error');
     return;
   }
 
