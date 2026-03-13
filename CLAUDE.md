@@ -10,7 +10,7 @@ Price List Calculator - Web application for calculating service costs.
 
 **Tech Stack:**
 - **Frontend**: Vanilla JavaScript + Tailwind CSS (single-page HTML apps)
-- **Backend**: Express.js (Primary) + Azure Functions v4 (Legacy)
+- **Backend**: Express.js
 - **Database**: Azure SQL Server
 - **Auth**: Azure Easy Auth (App Service)
 
@@ -28,8 +28,7 @@ Price List Calculator - Web application for calculating service costs.
 
 ```bash
 npm install          # Install dependencies
-npm start            # Start Express.js (primary)
-npm run start:functions  # Start Azure Functions host (legacy)
+npm start            # Start Express.js server
 ```
 
 [QUICKSTART.md](QUICKSTART.md) for detailed setup.
@@ -76,7 +75,9 @@ src/js/
 api/src/
 ├── routes/         # Express.js route modules
 ├── db.js           # Database connection pool
-└── middleware/     # Express middleware
+├── middleware/     # Express middleware
+├── utils/          # Shared utilities (logger, calculator)
+└── jobs/           # Scheduled jobs (node-cron)
 
 src/salesquotes/components/
 ├── styles/         # External CSS
@@ -141,9 +142,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 ---
 
-## Azure Function API (Sales Quotes)
+## Business Central API (Sales Quotes)
 
-**Endpoints:**
+**External Azure Function Endpoints:**
 - `CreateSalesQuoteWithoutNumber` - Create quotes in Business Central
 - `CreateServiceItem` - Create Service Items (New SER button)
 - `CreateServiceOrderFromSQ` - Create Service Orders from Sales Quote (after quote creation)

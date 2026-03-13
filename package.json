@@ -5,9 +5,6 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "start:express": "node server.js",
-    "start:functions": "cd api && func start",
-    "watch": "cd api && func start --watch",
     "dev": "nodemon server.js",
     "predeploy": "echo \"Deploying to Azure App Service...\"",
     "build:css": "tailwindcss -i ./src/css/input.css -o ./src/css/output.css --minify",

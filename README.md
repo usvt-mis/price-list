@@ -167,10 +167,10 @@ The Price List Calculator computes total cost based on four components:
 
 ### Backend
 - **Express.js** (Node.js) for Azure App Service deployment
-- SQL Server database
+- SQL Server database with connection pooling
 - HTTP API endpoints for data access
 - Azure Entra ID (Azure AD) authentication (Easy Auth compatible)
-- Auth middleware with role-based access control support
+- Auth middleware with role-based access control
 - Scheduled jobs via node-cron (log archival at 2 AM UTC)
 
 ## Database Schema
@@ -274,13 +274,13 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/workshop/calculations/{id}` | DELETE | Delete workshop saved record (creator or executive) | Yes |
 | `/api/workshop/shared/{saveId}/share` | POST | Generate share token for workshop record | Yes |
 | `/api/workshop/shared/{token}` | GET | Access shared workshop record (public, no auth required) | No |
-| `/api/saves` | POST | Create new saved calculation (legacy) | Yes |
-| `/api/saves` | GET | List saved records (role-filtered) (legacy) | Yes |
-| `/api/saves/{id}` | GET | Get single saved record (legacy) | Yes |
-| `/api/saves/{id}` | PUT | Update saved record (creator only) (legacy) | Yes |
-| `/api/saves/{id}` | DELETE | Delete saved record (creator or executive) (legacy) | Yes |
-| `/api/saves/{id}/share` | POST | Generate share token for record (legacy) | Yes |
-| `/api/shared/{token}` | GET | Access shared record (public, no auth required) (legacy) | No |
+| `/api/saves` | POST | Create new saved calculation | Yes |
+| `/api/saves` | GET | List saved records (role-filtered) | Yes |
+| `/api/saves/{id}` | GET | Get single saved record | Yes |
+| `/api/saves/{id}` | PUT | Update saved record (creator only) | Yes |
+| `/api/saves/{id}` | DELETE | Delete saved record (creator or executive) | Yes |
+| `/api/saves/{id}/share` | POST | Generate share token for record | Yes |
+| `/api/shared/{token}` | GET | Access shared record (public, no auth required) | No |
 | `/api/adm/roles` | GET | List all role assignments | Executive only |
 | `/api/adm/roles/assign` | POST | Assign Executive or Sales role to user | Executive only |
 | `/api/adm/roles/{email}` | DELETE | Remove role assignment (sets to NoRole) | Executive only |
@@ -313,7 +313,6 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 
 - Node.js
 - SQL Server database
-- (Optional) Azure Functions Core Tools for Functions mode
 
 ### Backend Setup
 
@@ -352,13 +351,6 @@ npm run dev            # Start with auto-reload (nodemon)
 ```
 
 The API will be available at `http://localhost:8080`
-
-**Azure Functions (Legacy):**
-```bash
-npm run start:functions  # Start Functions host
-```
-
-The API will be available at `http://localhost:7071`
 
 Open `src/index.html` in a browser to use the application.
 
@@ -420,11 +412,7 @@ The application uses **Azure Entra ID (Azure AD)** authentication via App Servic
 
 ### Debugging
 
-Use the VS Code configuration in `.vscode/launch.json`:
-1. Run "Attach to Node Functions" in the VS Code debugger
-2. The debugger will start the Functions host and attach to port 9229
-
-**For Express.js mode**: Use VS Code's "Attach to Process" or add a launch configuration to debug `node server.js` directly.
+Use VS Code's "Attach to Process" or add a launch configuration to debug `node server.js` directly.
 
 ## Project Structure
 
@@ -464,8 +452,6 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   ├── middleware/
 │   │   │   ├── authExpress.js          # Express-compatible auth
 │   │   │   ├── twoFactorAuthExpress.js # Express-compatible backoffice auth
-│   │   │   ├── auth.js                 # Azure Functions auth (legacy)
-│   │   │   ├── twoFactorAuth.js        # Azure Functions backoffice auth (legacy)
 │   │   │   ├── correlationId.js
 │   │   │   └── requestLogger.js
 │   │   ├── jobs/
@@ -475,32 +461,8 @@ Use the VS Code configuration in `.vscode/launch.json`:
 │   │   │   ├── logger.js
 │   │   │   ├── performanceTracker.js
 │   │   │   └── circuitBreaker.js
-│   │   ├── functions/                 # Azure Functions (legacy)
-│   │   │   ├── motorTypes.js
-│   │   │   ├── branches.js
-│   │   │   ├── labor.js
-│   │   │   ├── materials.js
-│   │   │   ├── savedCalculations.js
-│   │   │   ├── sharedCalculations.js
-│   │   │   ├── ping.js
-│   │   │   ├── version.js
-│   │   │   ├── admin/
-│   │   │   │   ├── roles.js
-│   │   │   │   ├── diagnostics.js
-│   │   │   │   ├── logs.js
-│   │   │   │   └── health.js
-│   │   │   ├── timers/
-│   │   │   │   └── logPurge.js
-│   │   │   └── backoffice/
-│   │   │       ├── index.js
-│   │   │       ├── login.js
-│   │   │       ├── refresh.js
-│   │   │       ├── logout.js
-│   │   │       └── changePassword.js
 │   │   ├── db.js
-│   │   └── index.js
-│   ├── host.json              # Azure Functions config
-│   └── local.settings.json    # Local env vars
+│   │   └── jobs/                     # Scheduled jobs (node-cron)
 ├── database/
 │   ├── diagnose_backoffice_login.sql
 │   ├── fix_backoffice_issues.sql
