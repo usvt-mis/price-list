@@ -475,6 +475,10 @@ export function openAddLineModal(insertIndex = null) {
     // Reset SER creation flag on modal open
     state.ui.serCreated = false;
 
+    // Reset dropdown validation state for Material No field (new modal, so no valid value)
+    state.ui.dropdownFields.materialNo.valid = false;
+    state.ui.dropdownFields.materialNo.touched = false;
+
     // Update modal title/subtitle based on mode
     const titleEl = el('addLineModalTitle');
     const subtitleEl = el('addLineModalSubtitle');

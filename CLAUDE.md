@@ -182,13 +182,14 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Implementation: `src/js/salesquotes/create-quote.js` - `updateEditModalFieldStates()`, `saveEditLine()`, `closeEditLineModal()`
 
 **Dropdown Search Field Validation:**
-- **Policy**: Search dropdown fields (Customer No., Salesperson Code, Assigned User ID) must only accept values selected from the dropdown, not free-text input
+- **Policy**: Search dropdown fields (Customer No., Salesperson Code, Assigned User ID, Material No.) must only accept values selected from the dropdown, not free-text input
 - **Implementation**: Uses `state.ui.dropdownFields` with `valid` and `touched` flags:
   - `touched`: Set to `true` when user types in the field
   - `valid`: Set to `true` only when an item is selected from the dropdown
   - On `blur`: If `touched=true` but `valid=false` and field has a value, the field is cleared and an error message is shown
 - **Edge Case Handling**: When loading from saved state (draft), fields are not validated until the user actually interacts with them (touched flag prevents clearing valid pre-loaded values)
-- Implementation: `src/js/salesquotes/state.js` - `dropdownFields` state object, `src/js/salesquotes/create-quote.js` - blur event handlers for `customerNoSearch`, `salespersonCodeSearch`, `assignedUserIdSearch`
+- **Modal Material No Fields**: The Material No. field in both Add Line (`materialNo`) and Edit Line (`editMaterialNo`) modals also enforces dropdown-only selection
+- Implementation: `src/js/salesquotes/state.js` - `dropdownFields` state object, `src/js/salesquotes/create-quote.js` - blur event handlers for `customerNoSearch`, `salespersonCodeSearch`, `assignedUserIdSearch`, `lineObjectNumberSearch`, `editLineObjectNumberSearch`
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 

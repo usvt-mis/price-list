@@ -417,6 +417,10 @@ export function selectMaterialFromSearch(material) {
   state.formData.newLine.lineObjectNumber = material.materialCode;
   state.formData.newLine.materialId = material.materialId;
 
+  // Mark as valid selection from dropdown
+  state.ui.dropdownFields.materialNo.valid = true;
+  state.ui.dropdownFields.materialNo.touched = true;
+
   if (el('lineObjectNumberSearch')) {
     el('lineObjectNumberSearch').value = material.materialCode;
     el('lineObjectNumberSearch').dispatchEvent(new Event('input')); // Update asterisk and background
@@ -430,6 +434,83 @@ export function selectMaterialFromSearch(material) {
 
   el('lineMaterialDropdown')?.classList.add('hidden');
   updateLineTotalPreview();
+}
+
+/**
+ * Handle material search for "No." field in Edit Line modal
+ * Searches dbo.materials table by MaterialCode OR MaterialName
+ */
+export async function handleEditMaterialSearch(query) {
+  const dropdown = document.getElementById('editLineMaterialDropdown');
+
+  if (!query || query.length < 2) {
+    dropdown?.classList.add('hidden');
+    return;
+  }
+
+  dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">Searching...</div>';
+  dropdown?.classList.remove('hidden');
+
+  try {
+    const response = await fetch(`/api/materials?query=${encodeURIComponent(query)}`);
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+    const materials = await response.json();
+
+    if (materials.length === 0) {
+      dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">No materials found</div>';
+      return;
+    }
+
+    dropdown.innerHTML = materials.map(m => `
+      <div class="search-dropdown-item p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0"
+           data-material-id="${m.MaterialId}"
+           data-material-code="${m.MaterialCode}"
+           data-material-name="${m.MaterialName}">
+        <div class="font-medium text-gray-900">${m.MaterialCode}</div>
+        <div class="text-sm text-gray-600">${m.MaterialName}</div>
+      </div>
+    `).join('');
+
+    dropdown.querySelectorAll('.search-dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        selectMaterialFromEditSearch({
+          materialId: item.dataset.materialId,
+          materialCode: item.dataset.materialCode,
+          materialName: item.dataset.materialName
+        });
+      });
+    });
+  } catch (err) {
+    console.error('Material search error:', err);
+    dropdown.innerHTML = '<div class="p-3 text-sm text-red-500">Error searching materials</div>';
+  }
+}
+
+/**
+ * Select material from search results in Edit Line modal
+ * Auto-fills Description field only (Unit Price remains manual per user requirement)
+ */
+export function selectMaterialFromEditSearch(material) {
+  // Mark as valid selection from dropdown
+  state.ui.dropdownFields.editMaterialNo.valid = true;
+  state.ui.dropdownFields.editMaterialNo.touched = true;
+
+  const noField = document.getElementById('editLineObjectNumberSearch');
+  if (noField) {
+    noField.value = material.materialCode;
+    noField.dispatchEvent(new Event('input')); // Update asterisk and background
+  }
+
+  // Auto-fill Description only (Unit Price is manual per user requirement)
+  const descField = document.getElementById('editLineDescription');
+  if (descField) {
+    descField.value = material.materialName;
+    descField.dispatchEvent(new Event('input')); // Update asterisk and background
+  }
+
+  document.getElementById('editLineMaterialDropdown')?.classList.add('hidden');
+  updateEditLineTotal();
 }
 
 // ============================================================
@@ -1696,9 +1777,32 @@ export function setupEventListeners() {
 
   // Material search in modal (No. field) - Direct input (no debounce)
   const materialSearch = el('lineObjectNumberSearch');
-  materialSearch?.addEventListener('input', (e) => handleMaterialSearch(e.target.value));
+  materialSearch?.addEventListener('input', (e) => {
+    // Mark field as touched and reset valid flag when user types
+    state.ui.dropdownFields.materialNo.touched = true;
+    state.ui.dropdownFields.materialNo.valid = false;
+    handleMaterialSearch(e.target.value);
+  });
   materialSearch?.addEventListener('blur', () => {
-    setTimeout(() => el('lineMaterialDropdown')?.classList.add('hidden'), 200);
+    setTimeout(() => {
+      const dropdown = el('lineMaterialDropdown');
+      if (dropdown) dropdown.classList.add('hidden');
+
+      // Only validate if field was touched
+      if (state.ui.dropdownFields.materialNo.touched &&
+          !state.ui.dropdownFields.materialNo.valid &&
+          materialSearch.value.trim() !== '') {
+        materialSearch.value = '';
+        // Clear related fields
+        if (el('lineDescription')) el('lineDescription').value = '';
+        if (el('lineUnitPrice')) el('lineUnitPrice').value = '0';
+        // Clear state
+        state.formData.newLine.lineObjectNumber = '';
+        state.formData.newLine.materialId = null;
+        // Show error message
+        showToast('Please select a material from the dropdown', 'error');
+      }
+    }, 200);
   });
 
   // Discount sync in modal (bi-directional)
@@ -2038,6 +2142,12 @@ function openEditLineModal(lineId) {
 
   // Reset SER creation flag for Edit modal
   state.ui.serCreatedEdit = false;
+
+  // Reset dropdown validation state for Edit Material No field
+  // If the line already has a material number, mark as valid but not touched
+  // This prevents clearing valid pre-loaded values unless user interacts
+  state.ui.dropdownFields.editMaterialNo.valid = !!(line.lineObjectNumber && line.lineObjectNumber.trim() !== '');
+  state.ui.dropdownFields.editMaterialNo.touched = false;
 
   // Populate modal fields with line data
   document.getElementById('editLineType').value = line.lineType || 'Item';
@@ -2614,6 +2724,35 @@ function setupEditModalEventListeners() {
     groupNoField.addEventListener('change', () => {
       const editingLineId = state.ui.editingLineId;
       updateNewSerButtonStateForEditModal(editingLineId);
+    });
+  }
+
+  // Material search in edit modal (No. field) - Dropdown validation
+  const editMaterialSearch = document.getElementById('editLineObjectNumberSearch');
+  if (editMaterialSearch) {
+    editMaterialSearch.addEventListener('input', (e) => {
+      // Mark field as touched and reset valid flag when user types
+      state.ui.dropdownFields.editMaterialNo.touched = true;
+      state.ui.dropdownFields.editMaterialNo.valid = false;
+      handleEditMaterialSearch(e.target.value);
+    });
+    editMaterialSearch.addEventListener('blur', () => {
+      setTimeout(() => {
+        const dropdown = document.getElementById('editLineMaterialDropdown');
+        if (dropdown) dropdown.classList.add('hidden');
+
+        // Only validate if field was touched
+        if (state.ui.dropdownFields.editMaterialNo.touched &&
+            !state.ui.dropdownFields.editMaterialNo.valid &&
+            editMaterialSearch.value.trim() !== '') {
+          editMaterialSearch.value = '';
+          // Clear related fields
+          document.getElementById('editLineDescription').value = '';
+          document.getElementById('editLineUnitPrice').value = '0';
+          // Show error message
+          showToast('Please select a material from the dropdown', 'error');
+        }
+      }, 200);
     });
   }
 

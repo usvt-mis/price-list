@@ -92,7 +92,9 @@ export const state = {
     dropdownFields: {
       customerNo: { valid: false, touched: false },
       salespersonCode: { valid: false, touched: false },
-      assignedUserId: { valid: false, touched: false }
+      assignedUserId: { valid: false, touched: false },
+      materialNo: { valid: false, touched: false },      // Add Line modal - No field
+      editMaterialNo: { valid: false, touched: false }   // Edit Line modal - No field
     }
   },
 
