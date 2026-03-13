@@ -72,7 +72,8 @@ input[type="number"] {
   top: 100%;
   left: 0;
   right: 0;
-  max-height: 200px;
+  max-height: min(22rem, calc(100vh - 8rem));
+  max-height: min(22rem, calc(100dvh - 8rem));
   overflow-y: auto;
   background: white;
   border: 1px solid #e2e8f0;
