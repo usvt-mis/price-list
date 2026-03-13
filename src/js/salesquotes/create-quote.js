@@ -731,8 +731,9 @@ async function showConfirmNewSerModal() {
   // Show modal with animation
   if (modal && modalContent) {
     // Move modal to end of container to ensure proper stacking context
+    // This ensures the confirmation modal appears on top of any other open modals
     const modalContainer = document.getElementById('modalContainer');
-    if (modalContainer && modalContainer.lastElementChild !== modal) {
+    if (modalContainer) {
       modalContainer.appendChild(modal);
     }
 
@@ -2640,8 +2641,9 @@ async function showConfirmNewSerModalForEdit() {
   // Show modal with animation
   if (modal && modalContent) {
     // Move modal to end of container to ensure proper stacking context
+    // This ensures the confirmation modal appears on top of any other open modals
     const modalContainer = document.getElementById('modalContainer');
-    if (modalContainer && modalContainer.lastElementChild !== modal) {
+    if (modalContainer) {
       modalContainer.appendChild(modal);
     }
 
