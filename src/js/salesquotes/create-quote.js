@@ -11,6 +11,7 @@ import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showErro
 import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
+import { recordQuoteSubmission } from './records.js';
 
 function normalizeGroupNo(value) {
   if (value === null || value === undefined) {
@@ -1477,6 +1478,19 @@ export async function handleSendQuote() {
       }
     }
 
+    let recordSaveError = null;
+    if (quoteNumber) {
+      try {
+        await recordQuoteSubmission({
+          salesQuoteNumber: quoteNumber,
+          workDescription: sanitizedData.workDescription || ''
+        });
+      } catch (recordError) {
+        recordSaveError = recordError;
+        console.error('Failed to save Sales Quote submission record:', recordError);
+      }
+    }
+
     hideSaving();
 
     // Clear ALL data first (without confirmation)
@@ -1503,6 +1517,10 @@ export async function handleSendQuote() {
       // Fallback to generic success if no Quote Number returned
       console.warn('No Quote Number in response:', response);
       showSuccess('Quote sent to Business Central successfully!');
+    }
+
+    if (recordSaveError) {
+      showToast('Quote was sent successfully, but the record could not be saved to My Records.', 'error');
     }
 
   } catch (error) {

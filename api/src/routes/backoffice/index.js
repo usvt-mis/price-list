@@ -8,6 +8,7 @@ const router = express.Router();
 const { getPool } = require('../../db');
 const { requireBackofficeSession } = require('../../middleware/twoFactorAuthExpress');
 const sql = require('mssql');
+const { ensureSalesQuoteSubmissionRecordsTable } = require('../../utils/salesQuoteSubmissionRecords');
 
 /**
  * Helper to get client IP address for audit logging
@@ -389,56 +390,87 @@ router.get('/audit-log', async (req, res, next) => {
     const offset = (page - 1) * pageSize;
 
     const pool = await getPool();
-
-    // Get total count
-    let countQuery = 'SELECT COUNT(*) as total FROM RoleAssignmentAudit';
-    let countParams = {};
-
-    if (emailFilter) {
-      countQuery += ' WHERE TargetEmail LIKE @email';
-      countParams.email = `%${emailFilter}%`;
-    }
+    await ensureSalesQuoteSubmissionRecordsTable(pool);
 
     const countResult = await pool.request()
-      .input('email', sql.NVarChar, countParams.email || '')
-      .query(countQuery);
+      .input('email', sql.NVarChar, emailFilter ? `%${emailFilter}%` : '')
+      .query(`
+        WITH AuditEntries AS (
+          SELECT TargetEmail
+          FROM RoleAssignmentAudit
+          WHERE @email = '' OR TargetEmail LIKE @email
+
+          UNION ALL
+
+          SELECT SenderEmail
+          FROM SalesQuoteSubmissionRecords
+          WHERE @email = '' OR SenderEmail LIKE @email
+        )
+        SELECT COUNT(*) as total
+        FROM AuditEntries
+      `);
     const total = countResult.recordset[0].total;
 
-    // Get paginated audit entries with branch names
-    let dataQuery = `
-      SELECT
-        a.TargetEmail,
-        a.OldRole,
-        a.NewRole,
-        a.OldBranchId,
-        oldB.BranchName AS OldBranchName,
-        a.NewBranchId,
-        newB.BranchName AS NewBranchName,
-        a.ChangedBy,
-        a.ChangedAt,
-        a.ClientIP,
-        a.Justification
-      FROM RoleAssignmentAudit a
-      LEFT JOIN Branches oldB ON a.OldBranchId = oldB.BranchId
-      LEFT JOIN Branches newB ON a.NewBranchId = newB.BranchId
-    `;
-
-    if (emailFilter) {
-      dataQuery += ' WHERE TargetEmail LIKE @email';
-    }
-
-    dataQuery += ' ORDER BY ChangedAt DESC OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY';
-
     const dataResult = await pool.request()
-      .input('email', sql.NVarChar, `%${emailFilter}%`)
+      .input('email', sql.NVarChar, emailFilter ? `%${emailFilter}%` : '')
       .input('offset', sql.Int, offset)
       .input('pageSize', sql.Int, pageSize)
-      .query(dataQuery);
+      .query(`
+        WITH AuditEntries AS (
+          SELECT
+            CAST('role-assignment' AS NVARCHAR(50)) AS AuditType,
+            a.TargetEmail,
+            CAST('Role/Branch Update' AS NVARCHAR(100)) AS EventLabel,
+            a.OldRole,
+            a.NewRole,
+            a.OldBranchId,
+            oldB.BranchName AS OldBranchName,
+            a.NewBranchId,
+            newB.BranchName AS NewBranchName,
+            a.ChangedBy,
+            a.ChangedAt,
+            a.ClientIP,
+            a.Justification,
+            CAST(NULL AS NVARCHAR(50)) AS SalesQuoteNumber,
+            CAST(NULL AS NVARCHAR(MAX)) AS WorkDescription
+          FROM RoleAssignmentAudit a
+          LEFT JOIN Branches oldB ON a.OldBranchId = oldB.BranchId
+          LEFT JOIN Branches newB ON a.NewBranchId = newB.BranchId
+          WHERE @email = '' OR a.TargetEmail LIKE @email
+
+          UNION ALL
+
+          SELECT
+            CAST('sales-quote-submission' AS NVARCHAR(50)) AS AuditType,
+            r.SenderEmail AS TargetEmail,
+            CAST('Sales Quote Sent' AS NVARCHAR(100)) AS EventLabel,
+            CAST(NULL AS NVARCHAR(50)) AS OldRole,
+            CAST(NULL AS NVARCHAR(50)) AS NewRole,
+            CAST(NULL AS INT) AS OldBranchId,
+            CAST(NULL AS NVARCHAR(255)) AS OldBranchName,
+            CAST(NULL AS INT) AS NewBranchId,
+            CAST(NULL AS NVARCHAR(255)) AS NewBranchName,
+            r.SenderEmail AS ChangedBy,
+            r.SubmittedAt AS ChangedAt,
+            r.ClientIP,
+            CAST(NULL AS NVARCHAR(500)) AS Justification,
+            r.SalesQuoteNumber,
+            r.WorkDescription
+          FROM SalesQuoteSubmissionRecords r
+          WHERE @email = '' OR r.SenderEmail LIKE @email
+        )
+        SELECT *
+        FROM AuditEntries
+        ORDER BY ChangedAt DESC
+        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
+      `);
 
     res.status(200).json({
       entries: dataResult.recordset.map(e => ({
+        auditType: e.AuditType,
+        eventLabel: e.EventLabel,
         targetEmail: e.TargetEmail,
-        oldRole: e.OldRole === null ? 'NoRole' : e.OldRole,
+        oldRole: e.AuditType === 'role-assignment' && e.OldRole === null ? 'NoRole' : e.OldRole,
         newRole: e.NewRole,
         oldBranchId: e.OldBranchId,
         oldBranchName: e.OldBranchName,
@@ -447,7 +479,9 @@ router.get('/audit-log', async (req, res, next) => {
         changedBy: e.ChangedBy,
         changedAt: e.ChangedAt,
         clientIP: e.ClientIP,
-        justification: e.Justification
+        justification: e.Justification,
+        salesQuoteNumber: e.SalesQuoteNumber,
+        workDescription: e.WorkDescription || ''
       })),
       pagination: {
         page,
@@ -757,6 +791,16 @@ router.get('/repair', async (req, res, next) => {
         CREATE INDEX IX_RoleAssignmentAudit_ChangedAt ON RoleAssignmentAudit(ChangedAt);
       `);
       results.tablesCreated.push('RoleAssignmentAudit');
+    }
+
+    // Check and create SalesQuoteSubmissionRecords table
+    results.tablesChecked.push('SalesQuoteSubmissionRecords');
+    const salesQuoteRecordsExists = await pool.request()
+      .query(`SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'SalesQuoteSubmissionRecords'`);
+
+    if (salesQuoteRecordsExists.recordset.length === 0) {
+      await ensureSalesQuoteSubmissionRecordsTable(pool);
+      results.tablesCreated.push('SalesQuoteSubmissionRecords');
     }
 
     // Check and create BackofficeAdmins table (for two-factor auth)

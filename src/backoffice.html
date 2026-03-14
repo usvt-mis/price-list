@@ -305,16 +305,16 @@
             <table class="w-full text-sm">
               <thead class="bg-slate-50 text-slate-600">
                 <tr>
-                  <th class="text-left px-4 py-3 font-medium">Target Email</th>
-                  <th class="text-left px-4 py-3 font-medium">Role Change</th>
-                  <th class="text-left px-4 py-3 font-medium">Branch Change</th>
-                  <th class="text-left px-4 py-3 font-medium">Changed By</th>
-                  <th class="text-left px-4 py-3 font-medium">Changed At</th>
+                  <th class="text-left px-4 py-3 font-medium">User</th>
+                  <th class="text-left px-4 py-3 font-medium">Event</th>
+                  <th class="text-left px-4 py-3 font-medium">Details</th>
+                  <th class="text-left px-4 py-3 font-medium">Performed By</th>
+                  <th class="text-left px-4 py-3 font-medium">At</th>
                 </tr>
               </thead>
               <tbody id="backofficeAuditList" class="divide-y divide-slate-100">
                 <tr>
-                  <td colspan="6" class="px-4 py-8 text-center text-slate-500">Loading audit log...</td>
+                  <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading audit log...</td>
                 </tr>
               </tbody>
             </table>
@@ -458,6 +458,15 @@
   // ========== UTILITY FUNCTIONS ==========
   function el(id) {
     return document.getElementById(id);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function showNotification(message, type = 'success') {
@@ -1044,7 +1053,7 @@
       console.error('Failed to load audit log:', error);
       el('backofficeAuditList').innerHTML = `
         <tr>
-          <td colspan="6" class="px-4 py-8 text-center text-red-500">
+          <td colspan="5" class="px-4 py-8 text-center text-red-500">
             Failed to load audit log. ${error.message}
           </td>
         </tr>
@@ -1058,7 +1067,7 @@
     if (entries.length === 0) {
       container.innerHTML = `
         <tr>
-          <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+          <td colspan="5" class="px-4 py-8 text-center text-slate-500">
             No audit entries found.
           </td>
         </tr>
@@ -1067,14 +1076,39 @@
     }
 
     container.innerHTML = entries.map(entry => {
+      if (entry.auditType === 'sales-quote-submission') {
+        const workDescription = entry.workDescription
+          ? `<div class="max-w-xl whitespace-pre-wrap break-words text-sm text-slate-700">${escapeHtml(entry.workDescription)}</div>`
+          : '<span class="text-xs text-slate-400">No work description</span>';
+
+        return `
+          <tr class="hover:bg-slate-50" title="Client IP: ${escapeHtml(entry.clientIP || 'unknown')}">
+            <td class="px-4 py-3">${escapeHtml(entry.targetEmail)}</td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                ${escapeHtml(entry.eventLabel || 'Sales Quote Sent')}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="space-y-1">
+                <div class="text-sm font-medium text-slate-900">SQ ${escapeHtml(entry.salesQuoteNumber || '-')}</div>
+                ${workDescription}
+              </div>
+            </td>
+            <td class="px-4 py-3 text-slate-600">${escapeHtml(entry.changedBy || '-')}</td>
+            <td class="px-4 py-3 text-slate-600 whitespace-nowrap">${new Date(entry.changedAt).toLocaleString()}</td>
+          </tr>
+        `;
+      }
+
       const roleChanged = entry.oldRole !== entry.newRole;
       const branchChanged = entry.oldBranchId !== entry.newBranchId;
+      const detailParts = [];
 
-      return `
-      <tr class="hover:bg-slate-50" title="Client IP: ${entry.clientIP || 'unknown'}${entry.justification ? '\nJustification: ' + entry.justification : ''}">
-        <td class="px-4 py-3">${entry.targetEmail}</td>
-        <td class="px-4 py-3">
-          ${roleChanged ? `
+      if (roleChanged) {
+        detailParts.push(`
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Role</div>
             <span class="text-xs">
               <span class="px-2 py-1 text-xs font-semibold rounded ${
                 entry.oldRole === 'Executive' ? 'bg-emerald-100 text-emerald-700' :
@@ -1082,7 +1116,7 @@
                 entry.oldRole === 'Customer' ? 'bg-gray-100 text-gray-700' :
                 'bg-slate-100 text-slate-600'
               }">
-                ${entry.oldRole === 'NoRole' ? 'Unassigned' : entry.oldRole || 'Unassigned'}
+                ${entry.oldRole === 'NoRole' ? 'Unassigned' : escapeHtml(entry.oldRole || 'Unassigned')}
               </span>
               <span class="mx-1 text-slate-400">→</span>
               <span class="px-2 py-1 text-xs font-semibold rounded ${
@@ -1091,26 +1125,45 @@
                 entry.newRole === 'Customer' ? 'bg-gray-100 text-gray-700' :
                 'bg-slate-100 text-slate-600'
               }">
-                ${entry.newRole === 'NoRole' ? 'Unassigned' : entry.newRole}
+                ${entry.newRole === 'NoRole' ? 'Unassigned' : escapeHtml(entry.newRole || 'Unassigned')}
               </span>
             </span>
-          ` : '<span class="text-slate-400 text-xs">-</span>'}
-        </td>
-        <td class="px-4 py-3">
-          ${branchChanged ? `
+          </div>
+        `);
+      }
+
+      if (branchChanged) {
+        detailParts.push(`
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Branch</div>
             <span class="text-xs">
               <span class="px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-700">
-                ${entry.oldBranchName || entry.oldBranchId || 'None'}
+                ${escapeHtml(entry.oldBranchName || entry.oldBranchId || 'None')}
               </span>
               <span class="mx-1 text-slate-400">→</span>
               <span class="px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-700">
-                ${entry.newBranchName || entry.newBranchId || 'None'}
+                ${escapeHtml(entry.newBranchName || entry.newBranchId || 'None')}
               </span>
             </span>
-          ` : '<span class="text-slate-400 text-xs">-</span>'}
+          </div>
+        `);
+      }
+
+      if (!detailParts.length) {
+        detailParts.push('<span class="text-xs text-slate-400">No field changes captured</span>');
+      }
+
+      return `
+      <tr class="hover:bg-slate-50" title="Client IP: ${escapeHtml(entry.clientIP || 'unknown')}${entry.justification ? '\nJustification: ' + escapeHtml(entry.justification) : ''}">
+        <td class="px-4 py-3">${escapeHtml(entry.targetEmail)}</td>
+        <td class="px-4 py-3">
+          <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+            ${escapeHtml(entry.eventLabel || 'Role/Branch Update')}
+          </span>
         </td>
-        <td class="px-4 py-3 text-slate-600">${entry.changedBy}</td>
-        <td class="px-4 py-3 text-slate-600">${new Date(entry.changedAt).toLocaleString()}</td>
+        <td class="px-4 py-3"><div class="space-y-2">${detailParts.join('')}</div></td>
+        <td class="px-4 py-3 text-slate-600">${escapeHtml(entry.changedBy || '-')}</td>
+        <td class="px-4 py-3 text-slate-600 whitespace-nowrap">${new Date(entry.changedAt).toLocaleString()}</td>
       </tr>
     `;
     }).join('');

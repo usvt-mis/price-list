@@ -38,6 +38,7 @@ The Price List Calculator computes total cost based on four components:
   - **Bi-directional Discount Sync**: Discount % ↔ Discount Amt. automatically sync using formula: `Discount Amt = (Qty × Unit Price) × Discount% / 100`
   - **Inline Editing**: All text/number fields editable directly in table with real-time validation, Enter to save, Escape to cancel, blue highlight on active row
   - **Features**: Local database customer search (min 2 chars), customer/item search, quote line management (add/insert/remove), automatic calculations
+  - **My Records Tab**: View submitted Sales Quote history with search functionality (Sales Quote Number, Work Description, Submitted At)
   - **Date Picker**: Order Date defaults to today (asterisk hidden), Requested Delivery Date prevents past dates (asterisk visible until selected)
   - **Required Field Indicators**: Dynamic red asterisks for 7 fields (Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, BRANCH) - hide when field has value, show when empty
   - **Customer Search**: Fast local lookups from BCCustomers table, auto-fills customer details and Sell-to address (Address, Address2, City, PostCode, VAT Reg No, Tax Branch No)
@@ -51,7 +52,7 @@ The Price List Calculator computes total cost based on four components:
   - **Inline Add Forms**: Add users directly in each tab with real-time validation
   - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
   - **Count Badges**: User count displayed on each tab
-  - **Audit Log Tab**: View complete role change history
+  - **Audit Log Tab**: View complete audit history including role changes and Sales Quote submissions
   - **Settings Tab**: Displays authentication info
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
   - Separate HTML file with complete UI independence
@@ -62,7 +63,7 @@ The Price List Calculator computes total cost based on four components:
   - **Inline Add Forms**: Add users directly in each tab with real-time validation
   - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
   - **Count Badges**: User count displayed on each tab
-  - **Audit Log Tab**: View complete role change history
+  - **Audit Log Tab**: View complete audit history including role changes and Sales Quote submissions
   - **Settings Tab**: Displays authentication info
 
 ### UI Features
@@ -185,6 +186,7 @@ The application expects these SQL Server tables:
 | `Jobs2MotorType` | Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours) |
 | `Materials` | Material catalog with MaterialCode, MaterialName, UnitCost, IsActive |
 | `BCCustomers` | Local cache of Business Central customer data for fast lookups (CustomerNo, CustomerName, Address, Address2, City, PostCode, VATRegistrationNo, TaxBranchNo, CreatedAt, UpdatedAt) |
+| `SalesQuoteSubmissionRecords` | Sales Quote submission history tracking (SalesQuoteNumber unique, SenderEmail, WorkDescription, ClientIP, SubmittedAt) |
 | `OnsiteSavedCalculations` | Onsite saved calculation records with run numbers (e.g., ONS-2024-001), GrandTotal, Scope, PriorityLevel, SiteAccess, Onsite Options (Crane, 4 People, Safety) |
 | `OnsiteSavedCalculationJobs` | Jobs associated with each onsite saved calculation |
 | `OnsiteSavedCalculationMaterials` | Materials associated with each onsite saved calculation |
@@ -222,6 +224,7 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-
 **Database Schema Scripts** (`api/src/database/schemas/`):
 - `create-bccustomers-table.sql` - Create BCCustomers table for local customer cache
 - `insert-test-customers.sql` - Insert test customer data for development
+- `create-salesquote-submission-records.sql` - Create SalesQuoteSubmissionRecords table for quote submission history (auto-created on first use)
 
 For quick fixes:
 - `database/fix_backoffice_issues.sql` - Unlock accounts, enable disabled accounts, clear expired sessions
@@ -306,6 +309,8 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/business-central/gateway/create-sales-quote-without-number` | POST | Gateway proxy to Azure Function CreateSalesQuoteWithoutNumber | Yes |
 | `/api/business-central/gateway/create-service-item` | POST | Gateway proxy to Azure Function CreateServiceItem | Yes |
 | `/api/business-central/gateway/create-service-order-from-sq` | POST | Gateway proxy to Azure Function CreateServiceOrderFromSQ | Yes |
+| `/api/salesquotes/records` | GET | List current user's Sales Quote submission records (?search={query}) | Yes |
+| `/api/salesquotes/records` | POST | Save a new Sales Quote submission record | Yes |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/api/version` | GET | Application version info | No |
 | `/.auth/me` | GET | Get current user info from App Service Easy Auth | No |
@@ -459,6 +464,7 @@ Use VS Code's "Attach to Process" or add a launch configuration to debug `node s
 │   │   │   └── business-central/
 │   │   │       ├── gateway.js           # Azure Function gateway proxy routes
 │   │   │       └── token.js
+│   │   ├── salesquotes.js               # Sales Quotes records API
 │   │   ├── middleware/
 │   │   │   ├── authExpress.js          # Express-compatible auth
 │   │   │   ├── twoFactorAuthExpress.js # Express-compatible backoffice auth
@@ -470,7 +476,8 @@ Use VS Code's "Attach to Process" or add a launch configuration to debug `node s
 │   │   │   ├── calculator.js         # GrandTotal calculation utility
 │   │   │   ├── logger.js
 │   │   │   ├── performanceTracker.js
-│   │   │   └── circuitBreaker.js
+│   │   │   ├── circuitBreaker.js
+│   │   │   └── salesQuoteSubmissionRecords.js  # Sales Quote submission records table utility
 │   │   ├── db.js
 │   │   └── jobs/                     # Scheduled jobs (node-cron)
 ├── database/
@@ -539,7 +546,8 @@ Use VS Code's "Attach to Process" or add a launch configuration to debug `node s
 │       │   ├── create-quote.js  # Quote creation logic
 │       │   ├── ui.js            # UI components
 │       │   ├── state.js         # State management
-│       │   └── validations.js   # Form validations
+│       │   ├── validations.js   # Form validations
+│       │   └── records.js       # My Records (submission history)
 │       ├── auth/                # Authentication module
 │       │   ├── index.js
 │       │   ├── token-handling.js

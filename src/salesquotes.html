@@ -59,6 +59,12 @@
           </svg>
           Search Quotes
         </button>
+        <button id="tabRecords" class="tab-button" onclick="window.switchTab('records')">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          My Records
+        </button>
       </nav>
     </div>
 
@@ -574,6 +580,68 @@
       <div class="bc-card p-6">
         <h2 class="text-lg font-semibold mb-4">Search Sales Quotes</h2>
         <p class="text-gray-600">Search functionality coming soon...</p>
+      </div>
+    </div>
+
+    <!-- My Records View -->
+    <div id="recordsView" class="view hidden">
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <h2 class="text-lg font-semibold text-slate-900">My Records</h2>
+              <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                <span id="salesQuoteRecordsCount">0</span>&nbsp;records
+              </span>
+            </div>
+            <p class="text-sm text-slate-600">You will only see Sales Quote records created from your own account.</p>
+          </div>
+          <button
+            id="salesQuoteRecordsRefreshBtn"
+            class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Refresh
+          </button>
+        </div>
+
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center mb-4">
+          <div class="flex-1">
+            <input
+              id="salesQuoteRecordsSearch"
+              type="text"
+              placeholder="Search by SQ number or work description..."
+              class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            />
+          </div>
+          <button
+            id="salesQuoteRecordsSearchBtn"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+          >
+            Search
+          </button>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="px-4 py-3 text-left font-medium">Sales Quote No.</th>
+                <th class="px-4 py-3 text-left font-medium">Work Description</th>
+                <th class="px-4 py-3 text-left font-medium">Submitted At</th>
+              </tr>
+            </thead>
+            <tbody id="salesQuoteRecordsList" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="3" class="px-4 py-10 text-center text-slate-500">
+                  Open this tab to load your Sales Quote records.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </main>

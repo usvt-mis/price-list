@@ -9,6 +9,7 @@ import { state, initState, setCurrentView, STORAGE_KEYS } from './state.js';
 import { el, show, hide, showToast } from './ui.js';
 import { loadInitialData, setupEventListeners } from './create-quote.js';
 import { preloadAllModals } from './components/modal-loader.js';
+import { setupQuoteSubmissionRecordEventListeners } from './records.js';
 
 // ============================================================
 // Application Initialization
@@ -49,6 +50,10 @@ async function initApp() {
     // 7. Setup event listeners
     setupEventListeners();
     console.log('Event listeners setup');
+
+    // 8. Setup record view event listeners
+    setupQuoteSubmissionRecordEventListeners();
+    console.log('Record event listeners setup');
 
     // 9. Initialize asterisk state for any default values
     setTimeout(() => {

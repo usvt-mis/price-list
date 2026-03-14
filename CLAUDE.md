@@ -70,13 +70,13 @@ src/js/
 ├── auth/           # Authentication (token-handling, mode-detection, ui)
 ├── onsite/         # Onsite calculator modules
 ├── workshop/       # Workshop calculator modules
-└── salesquotes/    # Sales Quotes modules
+└── salesquotes/    # Sales Quotes modules (includes records.js)
 
 api/src/
-├── routes/         # Express.js route modules
+├── routes/         # Express.js route modules (includes salesquotes.js)
 ├── db.js           # Database connection pool
 ├── middleware/     # Express middleware
-├── utils/          # Shared utilities (logger, calculator)
+├── utils/          # Shared utilities (logger, calculator, salesQuoteSubmissionRecords)
 └── jobs/           # Scheduled jobs (node-cron)
 
 src/salesquotes/components/
@@ -244,6 +244,24 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Edge Case Handling**: When loading from saved state (draft), fields are not validated until the user actually interacts with them (touched flag prevents clearing valid pre-loaded values)
 - **Modal Material No Fields**: The Material No. field in both Add Line (`materialNo`) and Edit Line (`editMaterialNo`) modals also enforces dropdown-only selection
 - Implementation: `src/js/salesquotes/state.js` - `dropdownFields` state object, `src/js/salesquotes/create-quote.js` - blur event handlers and save validation in `handleAddQuoteLine()`, `saveEditLine()` for `customerNoSearch`, `salespersonCodeSearch`, `assignedUserIdSearch`, `lineObjectNumberSearch`, `editLineObjectNumberSearch`
+
+**My Records (Sales Quote Submission History):**
+- **Purpose**: Allows users to view their submitted Sales Quote history with search capability
+- **Features**:
+  - New "My Records" tab in Sales Quotes UI alongside "New Quote" and "Search Quotes"
+  - Records are automatically created when a quote is successfully sent to Business Central
+  - Records include: Sales Quote Number, Work Description, Submitted At timestamp
+  - Search functionality: Filter by SQ number or work description
+  - Refresh button to reload records
+  - Records are user-specific (only shows quotes submitted by the current user)
+- **Table**: `SalesQuoteSubmissionRecords` (auto-created on first use)
+  - Columns: Id, SalesQuoteNumber (unique), SenderEmail, WorkDescription, ClientIP, SubmittedAt
+  - Indexes: SenderEmail (for user filtering), SubmittedAt (for sorting)
+- **API Endpoints**:
+  - `GET /api/salesquotes/records?search={query}` - List current user's records (requires auth)
+  - `POST /api/salesquotes/records` - Save a new submission record (requires auth)
+- **Backoffice Integration**: Sales Quote submissions appear in the audit log with blue badge "Sales Quote Sent" event label
+- Implementation: `src/js/salesquotes/records.js` - frontend records management, `api/src/routes/salesquotes.js` - API endpoints, `api/src/utils/salesQuoteSubmissionRecords.js` - table creation utility
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 

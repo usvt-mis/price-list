@@ -59,6 +59,7 @@ const workshopSharedRouter = require('./api/src/routes/workshop/shared');
 const workshopLaborRouter = require('./api/src/routes/workshop/labor');
 // NEW: Business Central integration routes
 const businessCentralRouter = require('./api/src/routes/business-central');
+const salesQuotesRouter = require('./api/src/routes/salesquotes');
 
 // Import authentication middleware
 const { requireAuth } = require('./api/src/middleware/authExpress');
@@ -191,6 +192,9 @@ app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
 
 // Auth info endpoint (public - auth validation happens inside route)
 app.use('/api/auth', authRouter);
+
+// Sales Quote submission records (requires authentication)
+app.use('/api/salesquotes', requireAuth, salesQuotesRouter);
 
 // Business Central public config endpoint (no auth required - safe values only)
 app.get('/api/business-central/config', (req, res) => {
