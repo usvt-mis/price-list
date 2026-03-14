@@ -16,6 +16,7 @@ import { calcAll, syncFlatFromPercent, syncPercentFromFlat } from './calculation
 import { initFloatingButtons } from '../core/floating-buttons.js';
 import { initializeCollapsibleSections } from '../core/collapsible-sections.js';
 import { COLLAPSIBLE_SECTION_IDS } from './state.js';
+import { getDefaultMotorDriveType, populateMotorTypeOptions, setMotorDriveType, syncMotorDriveTypeToMotorTypeId } from './motor-types.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
 
@@ -110,11 +111,11 @@ async function loadInit() {
     const motorTypeEl = el('motorType');
     const branchEl = el('branch');
 
+    populateMotorTypeOptions(motorTypes, { preserveSelection: false });
+
     if (!motorTypeEl) {
       console.warn('[APP-INIT] motorType element not found in DOM');
     } else {
-      motorTypeEl.innerHTML = `<option value="">Select…</option>` + motorTypes
-        .map(x => `<option value="${x.MotorTypeId}">${x.MotorTypeName}</option>`).join('');
       console.log('[APP-INIT-8] Motor types dropdown populated');
     }
 
@@ -152,11 +153,11 @@ function startNewCalculation() {
 
   // Reset form
   el('branch').value = '';
-  el('motorType').value = '';
   el('salesProfitPct').value = '';
   el('salesProfitFlat').value = '';
   el('travelKm').value = '';
   el('salesQuoteNumber').value = '';
+  setMotorDriveType(getDefaultMotorDriveType(), { preserveSelection: false });
 
   // Reset sales quote dropdown
   resetSalesQuoteDropdown();
@@ -174,7 +175,24 @@ function startNewCalculation() {
 
 function setupEventListeners() {
   // Calculator event listeners
+  document.querySelectorAll('input[name="motorDriveType"]').forEach((input) => {
+    input.addEventListener('change', async (event) => {
+      if (!event.target.checked) {
+        return;
+      }
+
+      const previousMotorTypeId = el('motorType')?.value || '';
+      setMotorDriveType(event.target.value, { preserveSelection: true });
+
+      if ((el('motorType')?.value || '') !== previousMotorTypeId) {
+        await loadLabor();
+        if (globalExports.markDirty) globalExports.markDirty();
+      }
+    });
+  });
+
   el('motorType')?.addEventListener('change', async () => {
+    syncMotorDriveTypeToMotorTypeId(el('motorType')?.value);
     await loadLabor();
     if (globalExports.markDirty) globalExports.markDirty();
   });

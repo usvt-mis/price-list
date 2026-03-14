@@ -158,6 +158,22 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Config endpoint returns `gatewayConfigured: true` when all required environment variables are set
 - Local development uses `.env.local` for gateway configuration; production uses Azure App Settings
 
+### Motor Drive Type Filtering (Workshop Calculator)
+- **Purpose**: Filter motor types by AC/DC drive type in the Workshop calculator
+- **State**: `appState.motorTypes` (array), `appState.motorDriveType` ('AC' or 'DC')
+- **Detection**: Motor type names containing "AC" or "DC" are automatically classified
+- **Default behavior**: Defaults to 'AC' unless only DC motors exist
+- **UI**: Radio button toggle (AC/DC) with filter hint showing visible count
+- **Functions**:
+  - `populateMotorTypeOptions(motorTypes, options)` - Initialize motor types array and render dropdown
+  - `setMotorDriveType(driveType, options)` - Change filter and re-render options
+  - `syncMotorDriveTypeToMotorTypeId(motorTypeId)` - Auto-switch filter based on selected motor
+  - `getMotorDriveTypeForMotorTypeId(motorTypeId)` - Extract drive type from motor type ID
+  - `getDefaultMotorDriveType(motorTypes)` - Determine default based on available motors
+- **State preservation**: When switching filters, attempts to preserve current selection
+- **Saved records**: Deserializes saved motor drive type and restores correct filter state
+- Implementation: `src/js/workshop/motor-types.js`, `src/js/workshop/app.js`, `src/js/workshop/state.js`, `src/workshop.html`
+
 ---
 
 ## Authentication & Authorization

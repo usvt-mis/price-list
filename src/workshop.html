@@ -375,6 +375,70 @@
         max-width: none;
       }
     }
+
+    .motor-drive-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem;
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.92));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .motor-drive-toggle-option {
+      position: relative;
+      display: block;
+      flex: 1 1 0;
+    }
+
+    .motor-drive-toggle-option input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .motor-drive-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 3.1rem;
+      width: 100%;
+      padding: 0.5rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #64748b;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .motor-drive-toggle-option input:checked + .motor-drive-pill {
+      background: linear-gradient(135deg, #0f172a, #2563eb);
+      color: #ffffff;
+      box-shadow: 0 8px 14px rgba(37, 99, 235, 0.18);
+    }
+
+    .motor-drive-toggle-option input:focus-visible + .motor-drive-pill {
+      outline: 2px solid rgba(59, 130, 246, 0.45);
+      outline-offset: 2px;
+    }
+
+    .motor-drive-toggle-option input:disabled + .motor-drive-pill {
+      cursor: not-allowed;
+      opacity: 0.55;
+      box-shadow: none;
+    }
+
+    @media (max-width: 767px) {
+      .motor-drive-toggle {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -517,13 +581,30 @@
 
           <!-- Motor Type Card -->
           <div id="motorTypeDropdown" class="border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition-colors">
-            <label class="block text-sm font-medium text-slate-700 mb-2">
-              <svg class="w-4 h-4 inline mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zM9 9h6a2 2 0 002-2V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
-              </svg>
-              Motor Type
-            </label>
-            <select id="motorType" class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <label for="motorType" class="block text-sm font-medium text-slate-700">
+                  <svg class="w-4 h-4 inline mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zM9 9h6a2 2 0 002-2V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
+                  </svg>
+                  Motor Type
+                </label>
+                <p id="motorTypeFilterHint" class="mt-1 text-xs text-slate-500">Loading motor types...</p>
+              </div>
+
+              <div class="motor-drive-toggle" role="radiogroup" aria-label="Motor current type">
+                <label class="motor-drive-toggle-option">
+                  <input type="radio" name="motorDriveType" value="AC" checked>
+                  <span class="motor-drive-pill">AC</span>
+                </label>
+                <label class="motor-drive-toggle-option">
+                  <input type="radio" name="motorDriveType" value="DC">
+                  <span class="motor-drive-pill">DC</span>
+                </label>
+              </div>
+            </div>
+
+            <select id="motorType" aria-describedby="motorTypeFilterHint" class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">Loading…</option>
             </select>
           </div>

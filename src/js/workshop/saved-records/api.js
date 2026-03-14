@@ -7,6 +7,7 @@ import { fetchJson, fetchWithAuth, showNotification, el } from '../../core/utils
 import { appState, authState, currentSavedRecord, isDirty, isViewOnly } from '../state.js';
 import { getApiHeaders } from '../../core/config.js';
 import { renderLabor } from '../labor.js';
+import { getDefaultMotorDriveType, getMotorDriveTypeForMotorTypeId, getMotorDriveTypeFromName, populateMotorTypeOptions, setMotorDriveType } from '../motor-types.js';
 import { renderMaterials } from '../materials.js';
 
 /**
@@ -100,15 +101,18 @@ export async function deserializeCalculatorState(data, options = {}) {
 
   // IMPORTANT: Ensure motor type dropdown is populated before setting value
   const motorTypeEl = el('motorType');
-  const currentOptions = motorTypeEl.querySelectorAll('option[value]:not([value=""])');
-
-  if (currentOptions.length === 0) {
+  if (!appState.motorTypes || appState.motorTypes.length === 0) {
     const { fetchJson } = await import('../../core/utils.js');
     const motorTypes = await fetchJson('/api/motor-types');
-    motorTypeEl.innerHTML = `<option value="">Select…</option>` + motorTypes
-      .map(x => `<option value="${x.MotorTypeId}">${x.MotorTypeName}</option>`).join('');
+    populateMotorTypeOptions(motorTypes, { preserveSelection: false });
   }
 
+  const savedMotorDriveType =
+    getMotorDriveTypeForMotorTypeId(data.motorTypeId) ||
+    getMotorDriveTypeFromName(data.motorTypeName) ||
+    getDefaultMotorDriveType();
+
+  setMotorDriveType(savedMotorDriveType, { preserveSelection: false });
   motorTypeEl.value = data.motorTypeId;
 
   if (!motorTypeEl.value && data.motorTypeId) {

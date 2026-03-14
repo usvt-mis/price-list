@@ -15,7 +15,9 @@ export const COLLAPSIBLE_SECTION_IDS = ['laborSection', 'materialsSection', 'tra
 export const appState = {
   // Branch and labor data
   branches: [],
+  motorTypes: [],
   labor: [],
+  motorDriveType: 'AC',
 
   // Materials
   materialLines: [], // {materialId, code, name, unitCost, qty, overrideFinalPrice}
@@ -148,6 +150,7 @@ export function resetCalculatorState() {
   isDirty = false;
   isViewOnly = false;
   appState.labor = [];
+  appState.motorDriveType = 'AC';
   appState.materialLines = [];
   appState.commissionPercent = 0;
   // Reset new Sales Profit state
