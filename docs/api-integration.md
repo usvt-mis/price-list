@@ -11,7 +11,9 @@ Sales Quotes module integrates with Business Central through Azure Function APIs
 - **CreateServiceItem** - Create service items (New SER button)
 - **CreateServiceOrderFromSQ** - Create service orders from sales quote (automatic after quote creation)
 
-**Base URL**: `https://func-api-gateway-prod-uat-f7ffhjejehcmbued.southeastasia-01.azurewebsites.net/api`
+Frontend requests now go through Express proxy routes under `/api/business-central/gateway/*`.
+The server reads `GATEWAY_BASE_URL`, `CSQWN_KEY`, `CSI_KEY`, and `CSOFSQ_KEY`
+from `.env.local` during local development and from Azure App Settings in prod/uat.
 
 ---
 
@@ -21,13 +23,12 @@ Create sales quotes in Business Central with line items.
 
 ### Endpoint
 ```
-POST /api/CreateSalesQuoteWithoutNumber
+POST /api/business-central/gateway/create-sales-quote-without-number
 ```
 
 ### Headers
 ```
 Content-Type: application/json
-x-functions-key: <API_KEY>
 ```
 
 ### Request Body
@@ -84,7 +85,7 @@ x-functions-key: <API_KEY>
 **Success Flow:**
 1. Validate all required fields
 2. Sanitize line item data
-3. Send POST request to Azure Function
+3. Send POST request to backend gateway proxy
 4. Extract Quote Number from response
 5. Show custom success modal with Quote Number
 6. Clear all form data
@@ -97,13 +98,12 @@ Create Service Items in Business Central (triggered by "New SER" button).
 
 ### Endpoint
 ```
-POST /api/CreateServiceItem
+POST /api/business-central/gateway/create-service-item
 ```
 
 ### Headers
 ```
 Content-Type: application/json
-x-functions-key: <API_KEY>
 ```
 
 ### Request Body
@@ -153,7 +153,7 @@ x-functions-key: <API_KEY>
 1. User clicks "New SER" button
 2. Validate Service Item Description is not empty
 3. Show confirmation modal with description
-4. User confirms → Call API
+4. User confirms → Call backend gateway proxy
 5. On success: Auto-populate Serv. Item No. field, lock related fields, disable button
 6. On error: Show toast notification, re-enable button
 
@@ -177,13 +177,12 @@ Create Service Orders from a Sales Quote (automatically called after successful 
 
 ### Endpoint
 ```
-POST /api/CreateServiceOrderFromSQ
+POST /api/business-central/gateway/create-service-order-from-sq
 ```
 
 ### Headers
 ```
 Content-Type: application/json
-x-functions-key: <API_KEY>
 ```
 
 ### Request Body
@@ -239,7 +238,7 @@ x-functions-key: <API_KEY>
 1. After `CreateSalesQuoteWithoutNumber` succeeds
 2. Extract unique Group No values from `state.quote.lines` (only groups with at least one Service Item No)
 3. Build payload array (one entry per unique Group No)
-4. Call `CreateServiceOrderFromSQ` API
+4. Call backend gateway proxy for `CreateServiceOrderFromSQ`
 5. Extract Service Order No from response
 6. Display in success modal alongside Quote Number
 

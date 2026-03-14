@@ -9,6 +9,12 @@ import { isLocalDev } from '../core/config.js';
 // BC API Configuration
 // ============================================================
 
+export const GATEWAY_API = {
+  CREATE_SALES_QUOTE_WITHOUT_NUMBER: '/api/business-central/gateway/create-sales-quote-without-number',
+  CREATE_SERVICE_ITEM: '/api/business-central/gateway/create-service-item',
+  CREATE_SERVICE_ORDER_FROM_SQ: '/api/business-central/gateway/create-service-order-from-sq'
+};
+
 export const BC_API_CONFIG = {
   // Config endpoint (backend)
   CONFIG: '/api/business-central/config',

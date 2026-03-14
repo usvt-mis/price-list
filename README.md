@@ -303,6 +303,9 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/business-central/customers/search` | GET | Search customers in local database | Yes |
 | `/api/business-central/salespeople/search` | GET | Search salespeople in local database | Yes |
 | `/api/business-central/assigned-users/search` | GET | Search assigned users in local database | Yes |
+| `/api/business-central/gateway/create-sales-quote-without-number` | POST | Gateway proxy to Azure Function CreateSalesQuoteWithoutNumber | Yes |
+| `/api/business-central/gateway/create-service-item` | POST | Gateway proxy to Azure Function CreateServiceItem | Yes |
+| `/api/business-central/gateway/create-service-order-from-sq` | POST | Gateway proxy to Azure Function CreateServiceOrderFromSQ | Yes |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/api/version` | GET | Application version info | No |
 | `/.auth/me` | GET | Get current user info from App Service Easy Auth | No |
@@ -334,13 +337,19 @@ MOCK_USER_BRANCH_ID=1
 
 # Business Central Integration (Local Database + Gateway)
 # BC integration uses local database for lookups and gateway for quote creation
-# No direct BC OAuth connection required
+# Gateway proxy routes handle Azure Function API calls with server-side key management
 BC_MOCK_ENABLED=true
+
+# Azure Function Gateway Configuration (for real BC integration)
+GATEWAY_BASE_URL="https://func-api-gateway-prod-uat.example.com/api"
+CSQWN_KEY="your-create-sales-quote-function-key"
+CSI_KEY="your-create-service-item-function-key"
+CSOFSQ_KEY="your-create-service-order-from-sq-function-key"
 ```
 
 **Optional**: Set `MOCK_USER_EMAIL` to match existing database records' CreatorEmail values for delete operations in local development. Defaults to `'Dev User'`. Set `MOCK_USER_ROLE` to `PriceListExecutive` to test Executive features in local development. Defaults to `PriceListSales`.
 
-**Business Central Integration**: Configure BC credentials to enable real API integration. If `BC_MOCK_ENABLED=true`, the app uses mock data for local development without requiring BC credentials.
+**Business Central Integration**: Configure BC gateway credentials to enable real API integration. If `BC_MOCK_ENABLED=true`, the app uses mock data for local development without requiring BC credentials. The gateway proxy pattern keeps API keys server-side for security.
 
 ### Running Locally
 
@@ -448,6 +457,7 @@ Use VS Code's "Attach to Process" or add a launch configuration to debug `node s
 │   │   │   │   ├── index.js
 │   │   │   │   └── login.js
 │   │   │   └── business-central/
+│   │   │       ├── gateway.js           # Azure Function gateway proxy routes
 │   │   │       └── token.js
 │   │   ├── middleware/
 │   │   │   ├── authExpress.js          # Express-compatible auth
@@ -524,7 +534,7 @@ Use VS Code's "Attach to Process" or add a launch configuration to debug `node s
 │       │       └── index.js
 │       ├── salesquotes/          # Sales Quotes modules (Business Central integration)
 │       │   ├── app.js           # Main entry point
-│       │   ├── config.js        # BC configuration
+│       │   ├── config.js        # BC configuration (includes GATEWAY_API constants)
 │       │   ├── bc-api-client.js # BC REST API wrapper
 │       │   ├── create-quote.js  # Quote creation logic
 │       │   ├── ui.js            # UI components
@@ -576,8 +586,12 @@ The application is deployed to Azure App Service via manual deployment:
 - `DATABASE_CONNECTION_STRING` - SQL Server connection string
 - `NODE_ENV` - Set to "production"
 - `BC_MOCK_ENABLED` - Set to "false" in production (uses local database + gateway)
+- `GATEWAY_BASE_URL` - Azure Function base URL for Business Central gateway
+- `CSQWN_KEY` - CreateSalesQuoteWithoutNumber function key
+- `CSI_KEY` - CreateServiceItem function key
+- `CSOFSQ_KEY` - CreateServiceOrderFromSQ function key
 
-**Note**: Share link generation automatically uses the App Service hostname. No additional environment variables needed. Business Central integration uses local database for lookups and a gateway service for quote creation.
+**Note**: Share link generation automatically uses the App Service hostname. Business Central integration uses local database for lookups and a gateway proxy service for quote creation (API keys stored server-side for security).
 
 ## License
 

@@ -5,6 +5,7 @@
 
 import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState, calculateTotals } from './state.js';
 import { bcClient } from './bc-api-client.js';
+import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteSendFailure } from './ui.js';
 import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast } from './ui.js';
@@ -1108,13 +1109,12 @@ function extractQuoteApiFailureMessage(responseData) {
 }
 
 /**
- * Send quote to Azure Function API
+ * Send quote to the backend gateway proxy
  * @param {Object} quoteData - Sanitized quote form data
  * @returns {Promise<Object>} API response
  */
 async function sendQuoteToAzureFunction(quoteData) {
-  const API_URL = 'https://func-api-gateway-prod-uat-f7ffhjejehcmbued.southeastasia-01.azurewebsites.net/api/CreateSalesQuoteWithoutNumber';
-  const API_KEY = '***REDACTED_AZURE_FUNCTION_KEY_1***';
+  const API_URL = GATEWAY_API.CREATE_SALES_QUOTE_WITHOUT_NUMBER;
 
   // Get invoice discount from DOM
   const invoiceDiscountElement = document.getElementById('invoiceDiscount');
@@ -1163,8 +1163,7 @@ async function sendQuoteToAzureFunction(quoteData) {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-functions-key': API_KEY
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });
@@ -1197,7 +1196,7 @@ async function sendQuoteToAzureFunction(quoteData) {
 }
 
 /**
- * Create Service Item via Azure Function API
+ * Create Service Item via the backend gateway proxy
  * @param {string} description - Service Item Description
  * @param {string} customerNo - Customer Number
  * @param {string} groupNo - Group Number
@@ -1205,8 +1204,7 @@ async function sendQuoteToAzureFunction(quoteData) {
  * @throws {Error} If API call fails or validation fails
  */
 async function createServiceItem(description, customerNo, groupNo) {
-  const API_URL = 'https://func-api-gateway-prod-uat-f7ffhjejehcmbued.southeastasia-01.azurewebsites.net/api/CreateServiceItem';
-  const API_KEY = '***REDACTED_AZURE_FUNCTION_KEY_3***';
+  const API_URL = GATEWAY_API.CREATE_SERVICE_ITEM;
 
   // Validate required fields
   if (!description || description.trim() === '') {
@@ -1234,8 +1232,7 @@ async function createServiceItem(description, customerNo, groupNo) {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-functions-key': API_KEY
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });
@@ -1285,15 +1282,14 @@ async function createServiceItem(description, customerNo, groupNo) {
 }
 
 /**
- * Create Service Order from Sales Quote via Azure Function API
+ * Create Service Order from Sales Quote via the backend gateway proxy
  * @param {string} salesQuoteId - The Sales Quote number from BC
  * @param {string} branchCode - The branch code
  * @returns {Promise<Object>} Response with service order number
  * @throws {Error} If API call fails
  */
 async function createServiceOrderFromSQ(salesQuoteId, branchCode) {
-  const API_URL = 'https://func-api-gateway-prod-uat-f7ffhjejehcmbued.southeastasia-01.azurewebsites.net/api/CreateServiceOrderFromSQ';
-  const API_KEY = '***REDACTED_AZURE_FUNCTION_KEY_2***';
+  const API_URL = GATEWAY_API.CREATE_SERVICE_ORDER_FROM_SQ;
 
   // Extract unique Group No values - only include groups that have at least one Service Item No
   const groupNosWithServiceItem = new Set();
@@ -1330,8 +1326,7 @@ async function createServiceOrderFromSQ(salesQuoteId, branchCode) {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-functions-key': API_KEY
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });

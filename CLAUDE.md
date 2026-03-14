@@ -144,6 +144,20 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Z-index fallback** (for overlay modals): `modal.style.zIndex = '150';` in JS and `style="z-index: 150;"` in HTML
 - Implementation: See `confirm-new-ser-modal.html` and `showConfirmNewSerModal()` / `hideConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
 
+### Gateway Proxy Pattern (Business Central API)
+- **Purpose**: Keep Azure Function base URL and API keys on server-side for security
+- Frontend requests go through Express proxy routes under `/api/business-central/gateway/*`
+- Server reads gateway configuration from environment variables:
+  - `GATEWAY_BASE_URL` - Azure Function base URL
+  - `CSQWN_KEY` - CreateSalesQuoteWithoutNumber function key
+  - `CSI_KEY` - CreateServiceItem function key
+  - `CSOFSQ_KEY` - CreateServiceOrderFromSQ function key
+- Frontend no longer includes API keys or hardcoded URLs
+- Gateway proxy injects `x-functions-key` header server-side and forwards requests to Azure Functions
+- Implementation: `api/src/routes/business-central/gateway.js`, `src/js/salesquotes/config.js` (GATEWAY_API constants)
+- Config endpoint returns `gatewayConfigured: true` when all required environment variables are set
+- Local development uses `.env.local` for gateway configuration; production uses Azure App Settings
+
 ---
 
 ## Authentication & Authorization
