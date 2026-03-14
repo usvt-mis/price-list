@@ -1519,16 +1519,22 @@ export async function handleSendQuote() {
  * Shows No Branch modal if user has no branch assigned
  */
 export async function initializeBranchFields() {
+  let userEmail = '';
+
   try {
     // Get user info from auth
     const userInfo = await getUserInfo();
+    userEmail = userInfo?.clientPrincipal?.userDetails?.trim?.()
+      || userInfo?.clientPrincipal?.email?.trim?.()
+      || userInfo?.email?.trim?.()
+      || '';
 
     console.log('[BRANCH-INIT] userInfo:', userInfo);
 
     if (!userInfo || !userInfo.clientPrincipal) {
       console.warn('[BRANCH-INIT] No user info available for branch initialization');
       const { showNoBranchModal } = await import('./ui.js');
-      await showNoBranchModal();
+      await showNoBranchModal(userEmail);
       return;
     }
 
@@ -1542,7 +1548,7 @@ export async function initializeBranchFields() {
       console.error('[BRANCH-INIT] No branchId found in user info - showing No Branch modal');
       console.log('[BRANCH-INIT] Full clientPrincipal data for debugging:', JSON.stringify(clientPrincipal));
       const { showNoBranchModal } = await import('./ui.js');
-      await showNoBranchModal();
+      await showNoBranchModal(userEmail);
       return;
     }
 
@@ -1557,7 +1563,7 @@ export async function initializeBranchFields() {
     if (!branchCode) {
       console.error(`[BRANCH-INIT] Invalid branchId: ${branchId} - no matching branch code found`);
       const { showNoBranchModal } = await import('./ui.js');
-      await showNoBranchModal();
+      await showNoBranchModal(userEmail);
       return;
     }
 
@@ -1593,7 +1599,7 @@ export async function initializeBranchFields() {
   } catch (error) {
     console.error('[BRANCH-INIT] Failed to initialize branch fields:', error);
     const { showNoBranchModal } = await import('./ui.js');
-    await showNoBranchModal();
+    await showNoBranchModal(userEmail);
   }
 }
 

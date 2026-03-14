@@ -1541,9 +1541,30 @@ export function hideConfirmClearQuoteModal() {
  * FREEZES the page - user cannot interact with anything until they refresh
  * Includes fallback to load modal on-demand if not already in DOM
  */
-export async function showNoBranchModal() {
+function updateNoBranchModalUserEmail(userEmail = '') {
+  const emailBox = el('noBranchUserEmailBox');
+  const emailText = el('noBranchUserEmail');
+  const normalizedEmail = typeof userEmail === 'string' ? userEmail.trim() : '';
+
+  if (!emailBox || !emailText) {
+    return normalizedEmail;
+  }
+
+  if (normalizedEmail) {
+    emailText.textContent = normalizedEmail;
+    emailBox.classList.remove('hidden');
+  } else {
+    emailText.textContent = '';
+    emailBox.classList.add('hidden');
+  }
+
+  return normalizedEmail;
+}
+
+export async function showNoBranchModal(userEmail = '') {
   let modal = el('noBranchModal');
   let modalContent = el('noBranchModalContent');
+  let resolvedUserEmail = typeof userEmail === 'string' ? userEmail.trim() : '';
 
   // Fallback: if modal not in DOM, load it dynamically
   if (!modal || !modalContent) {
@@ -1557,12 +1578,14 @@ export async function showNoBranchModal() {
     } catch (err) {
       console.error('[NO-BRANCH-MODAL] Failed to load modal:', err);
       // Fallback: use browser alert as last resort
-      alert('คุณยังไม่มี Branch ที่กำหนด\nกรุณาติดต่อผู้ดูแลระบบเพื่อ Assign Branch\n\nYou do not have an assigned Branch.\nPlease contact the administrator.');
+      const emailMessage = resolvedUserEmail ? `\nEmail: ${resolvedUserEmail}` : '';
+      alert(`คุณยังไม่มี Branch ที่กำหนด${emailMessage}\nกรุณาติดต่อผู้ดูแลระบบเพื่อ Assign Branch\n\nYou do not have an assigned Branch.\nPlease contact the administrator.`);
       return;
     }
   }
 
   if (modal && modalContent) {
+    resolvedUserEmail = updateNoBranchModalUserEmail(resolvedUserEmail);
     modal.classList.remove('hidden');
     modal.style.zIndex = '9999'; // Highest priority - above everything
     setTimeout(() => {
@@ -1580,7 +1603,8 @@ export async function showNoBranchModal() {
   } else {
     // Last resort fallback if modal still not available
     console.error('[NO-BRANCH-MODAL] Modal still not available after loading');
-    alert('คุณยังไม่มี Branch ที่กำหนด\nกรุณาติดต่อผู้ดูแลระบบเพื่อ Assign Branch\n\nYou do not have an assigned Branch.\nPlease contact the administrator.');
+    const emailMessage = resolvedUserEmail ? `\nEmail: ${resolvedUserEmail}` : '';
+    alert(`คุณยังไม่มี Branch ที่กำหนด${emailMessage}\nกรุณาติดต่อผู้ดูแลระบบเพื่อ Assign Branch\n\nYou do not have an assigned Branch.\nPlease contact the administrator.`);
   }
 }
 

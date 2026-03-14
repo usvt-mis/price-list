@@ -202,9 +202,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 **Branch Assignment Validation:**
 - **Policy**: Users must have a Branch assigned (via `branchId` in user profile) to access Sales Quotes
 - If no `branchId` is found, a modal is displayed that freezes the page until the user refreshes after being assigned a branch
+- Modal displays the user's email address to help administrators identify who needs branch assignment
 - Modal is preloaded during app initialization to ensure availability before branch validation runs
 - Includes fallback mechanism to load modal dynamically if preload fails
-- Implementation: `src/js/salesquotes/create-quote.js` - `initializeBranchFields()`, `src/js/salesquotes/ui.js` - `showNoBranchModal()`
+- Implementation: `src/js/salesquotes/create-quote.js` - `initializeBranchFields()`, `src/js/salesquotes/ui.js` - `showNoBranchModal()`, `updateNoBranchModalUserEmail()`
 
 **Edit Line Modal - Type Field Behavior:**
 - **Comment Type**: When Type is set to "Comment" (on change or when opening an existing Comment line), the following fields are disabled and cleared:
