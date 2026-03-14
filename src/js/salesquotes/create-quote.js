@@ -21,6 +21,32 @@ function normalizeGroupNo(value) {
   return String(value).trim();
 }
 
+function getGroupServiceItemLockMessage(groupNo) {
+  return `Group No ${groupNo} already has a Service Item No. Only one Service Item is allowed per group.`;
+}
+
+function setServiceItemFieldLockState(field, locked, { clearValue = false, title = '' } = {}) {
+  if (!field) {
+    return;
+  }
+
+  field.disabled = locked;
+  field.classList.toggle('opacity-50', locked);
+  field.classList.toggle('cursor-not-allowed', locked);
+  field.classList.toggle('bg-slate-50', locked);
+  field.classList.toggle('text-slate-600', locked);
+
+  if (clearValue) {
+    field.value = '';
+  }
+
+  if (title) {
+    field.title = title;
+  } else {
+    field.removeAttribute('title');
+  }
+}
+
 // ============================================================
 // Data Loading
 // ============================================================
@@ -573,6 +599,11 @@ export function handleAddQuoteLine() {
     discountPercent: sanitizeDiscountInput(fieldRefs.discountPercent?.value || '0', 1),
     discountAmount: sanitizeDiscountInput(fieldRefs.discountAmount?.value || '0', 2)
   };
+
+  if (hasServiceItemInGroupNo(lineData.usvtGroupNo, null)) {
+    lineData.usvtServiceItemNo = '';
+    lineData.usvtServiceItemDescription = '';
+  }
 
   // Check Material No dropdown validation first (must be selected from dropdown, not free text)
   const isItem = lineData.lineType === 'Item';
@@ -1655,6 +1686,38 @@ function hasServiceItemInGroupNo(groupNo, excludeLineId = null) {
 }
 
 /**
+ * Update Service Item fields in Add Line modal.
+ * Lock fields when Type is Comment, a SER was created, or another line in the same Group No already has a Service Item No.
+ */
+function updateAddServiceItemFieldState() {
+  const serviceItemNoField = el('lineUsvtServiceItemNo');
+  const serviceItemDescField = el('lineUsvtServiceItemDescription');
+  const typeSelect = el('lineType');
+  const groupNoField = el('lineUsvtGroupNo');
+
+  if (!serviceItemNoField || !serviceItemDescField || !typeSelect || !groupNoField) {
+    return;
+  }
+
+  const groupNo = normalizeGroupNo(groupNoField.value);
+  const isComment = typeSelect.value === 'Comment';
+  const isSerCreated = state.ui.serCreated;
+  const hasExistingSerInGroup = hasServiceItemInGroupNo(groupNo, null);
+  const lockReason = hasExistingSerInGroup ? getGroupServiceItemLockMessage(groupNo) : '';
+  const shouldLock = isSerCreated || isComment || hasExistingSerInGroup;
+  const shouldClear = !isSerCreated && (isComment || hasExistingSerInGroup);
+
+  setServiceItemFieldLockState(serviceItemNoField, shouldLock, {
+    clearValue: shouldClear,
+    title: lockReason
+  });
+  setServiceItemFieldLockState(serviceItemDescField, shouldLock, {
+    clearValue: shouldClear,
+    title: lockReason
+  });
+}
+
+/**
  * Update New SER button state in Add Line modal based on Group No
  * Checks if any existing line in the same Group No has a Service Item No
  */
@@ -1669,35 +1732,27 @@ export function updateNewSerButtonStateForAddModal() {
 
   const groupNo = groupNoField.value;
   const isComment = typeSelect.value === 'Comment';
+  const hasExistingSerInGroup = hasServiceItemInGroupNo(groupNo, null);
 
-  // If Type is Comment, button is already disabled
   if (isComment) {
     newSerButton.disabled = true;
     newSerButton.removeAttribute('title');
-    return;
-  }
-
-  // If SER was already created in this modal session, keep it disabled
-  if (state.ui.serCreated) {
+    newSerButton.style.cursor = '';
+  } else if (state.ui.serCreated) {
     newSerButton.disabled = true;
     newSerButton.removeAttribute('title');
-    return;
-  }
-
-  // Check if any existing line in the same Group No has Service Item No
-  const hasExistingSerInGroup = hasServiceItemInGroupNo(groupNo, null);
-
-  if (hasExistingSerInGroup) {
-    // Disable button and show tooltip
+    newSerButton.style.cursor = '';
+  } else if (hasExistingSerInGroup) {
     newSerButton.disabled = true;
-    newSerButton.title = `Group No ${groupNo} already has a Service Item No. Only one Service Item is allowed per group.`;
+    newSerButton.title = getGroupServiceItemLockMessage(groupNo);
     newSerButton.style.cursor = 'not-allowed';
   } else {
-    // Enable button and remove tooltip
     newSerButton.disabled = false;
     newSerButton.removeAttribute('title');
     newSerButton.style.cursor = '';
   }
+
+  updateAddServiceItemFieldState();
 }
 
 /**
@@ -1716,43 +1771,33 @@ function updateNewSerButtonStateForEditModal(excludeLineId) {
 
   const groupNo = groupNoField.value;
   const isComment = typeSelect.value === 'Comment';
+  const line = state.quote.lines.find(l => l.id === excludeLineId);
+  const hasExistingServiceItemOnLine = !!(line?.usvtServiceItemNo && line.usvtServiceItemNo.trim() !== '');
+  const hasExistingSerInGroup = hasServiceItemInGroupNo(groupNo, excludeLineId);
 
-  // If Type is Comment, button is already disabled
   if (isComment) {
     newSerButton.disabled = true;
     newSerButton.removeAttribute('title');
-    return;
-  }
-
-  // If SER was already created for this line in edit mode
-  if (state.ui.serCreatedEdit) {
+    newSerButton.style.cursor = '';
+  } else if (state.ui.serCreatedEdit) {
     newSerButton.disabled = true;
     newSerButton.removeAttribute('title');
-    return;
-  }
-
-  // If line has existing Service Item No (from before opening modal), keep disabled
-  const line = state.quote.lines.find(l => l.id === excludeLineId);
-  if (line && line.usvtServiceItemNo && line.usvtServiceItemNo.trim() !== '') {
+    newSerButton.style.cursor = '';
+  } else if (hasExistingServiceItemOnLine) {
     newSerButton.disabled = true;
     newSerButton.removeAttribute('title');
-    return;
-  }
-
-  // Check if any OTHER line in the same Group No has Service Item No
-  const hasExistingSerInGroup = hasServiceItemInGroupNo(groupNo, excludeLineId);
-
-  if (hasExistingSerInGroup) {
-    // Disable button and show tooltip
+    newSerButton.style.cursor = '';
+  } else if (hasExistingSerInGroup) {
     newSerButton.disabled = true;
-    newSerButton.title = `Group No ${groupNo} already has a Service Item No. Only one Service Item is allowed per group.`;
+    newSerButton.title = getGroupServiceItemLockMessage(groupNo);
     newSerButton.style.cursor = 'not-allowed';
   } else {
-    // Enable button and remove tooltip
     newSerButton.disabled = false;
     newSerButton.removeAttribute('title');
     newSerButton.style.cursor = '';
   }
+
+  updateEditServiceItemFieldState(excludeLineId);
 }
 
 // ============================================================
@@ -1805,9 +1850,6 @@ export function setupLineModalHandlers() {
     const typeValue = typeSelect.value;
     const isComment = typeValue === 'Comment';
 
-    // Update New SER button state based on Group No
-    updateNewSerButtonStateForAddModal();
-
     // Lock Type dropdown if SER was created
     if (state.ui.serCreated) {
       typeSelect.disabled = true;
@@ -1819,12 +1861,13 @@ export function setupLineModalHandlers() {
 
     // Update New SER button state
     if (isComment) {
-      newSerButton.disabled = true;
       newSerButton.innerHTML = 'New SER';
     } else {
-      newSerButton.disabled = false;
       newSerButton.innerHTML = 'New SER';
     }
+
+    // Update New SER button state based on Group No after the button label is reset
+    updateNewSerButtonStateForAddModal();
 
     // Fields to disable when Type is "Comment"
     const itemFields = [
@@ -1900,39 +1943,7 @@ export function setupLineModalHandlers() {
    * When Type is Comment, disable and clear both Service Item fields
    */
   function updateServiceItemFieldState() {
-    const serviceItemNoField = el('lineUsvtServiceItemNo');
-    const serviceItemDescField = el('lineUsvtServiceItemDescription');
-    const typeSelect = el('lineType');
-
-    if (!serviceItemNoField || !serviceItemDescField || !typeSelect) {
-      return;
-    }
-
-    const isComment = typeSelect.value === 'Comment';
-    const isSerCreated = state.ui.serCreated;
-
-    // Lock fields if SER was created OR Type is Comment
-    if (isSerCreated || isComment) {
-      // Disable both fields
-      serviceItemNoField.disabled = true;
-      serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-
-      serviceItemDescField.disabled = true;
-      serviceItemDescField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-
-      // Clear values if switching to Comment (but not if SER was created)
-      if (isComment && !isSerCreated) {
-        serviceItemNoField.value = '';
-        serviceItemDescField.value = '';
-      }
-    } else {
-      // Enable both fields for manual entry
-      serviceItemNoField.disabled = false;
-      serviceItemNoField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-
-      serviceItemDescField.disabled = false;
-      serviceItemDescField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-    }
+    updateAddServiceItemFieldState();
   }
 }
 
@@ -2545,14 +2556,14 @@ function closeEditLineModal() {
 
   // Reset all fields that might be disabled
   const fieldsToReset = [
-    { id: 'editLineType', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
-    { id: 'editLineUsvtServiceItemNo', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
-    { id: 'editLineUsvtServiceItemDescription', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
-    { id: 'editLineObjectNumberSearch', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
-    { id: 'editLineQuantity', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
-    { id: 'editLineUnitPrice', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
-    { id: 'editLineDiscountPercent', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
-    { id: 'editLineDiscountAmount', classes: ['bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] }
+    { id: 'editLineType', classes: ['opacity-50', 'bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineUsvtServiceItemNo', classes: ['opacity-50', 'bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineUsvtServiceItemDescription', classes: ['opacity-50', 'bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineObjectNumberSearch', classes: ['opacity-50', 'bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineQuantity', classes: ['opacity-50', 'bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineUnitPrice', classes: ['opacity-50', 'bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineDiscountPercent', classes: ['opacity-50', 'bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] },
+    { id: 'editLineDiscountAmount', classes: ['opacity-50', 'bg-slate-50', 'text-slate-600', 'cursor-not-allowed'] }
   ];
 
   fieldsToReset.forEach(field => {
@@ -2564,6 +2575,7 @@ function closeEditLineModal() {
         el.readOnly = false;
       }
       field.classes.forEach(cls => el.classList.remove(cls));
+      el.removeAttribute('title');
     }
   });
 
@@ -2623,6 +2635,13 @@ function saveEditLine() {
     usvtAddition: document.getElementById('editLineUsvtAddition').checked,
     usvtRefSalesQuoteno: document.getElementById('editLineUsvtRefSalesQuoteno').value
   };
+
+  const existingLine = state.quote.lines.find(l => l.id === lineId);
+  const existingLineHasServiceItem = !!(existingLine?.usvtServiceItemNo && existingLine.usvtServiceItemNo.trim() !== '');
+  if (!existingLineHasServiceItem && hasServiceItemInGroupNo(lineData.usvtGroupNo, lineId)) {
+    lineData.usvtServiceItemNo = '';
+    lineData.usvtServiceItemDescription = '';
+  }
 
   // Validation
   // Material No. and quantity are only required for Item type
@@ -3009,30 +3028,35 @@ async function createServiceItemAndLockFieldsForEdit() {
 /**
  * Update Service Item fields in Edit modal - lock fields if SER was created OR Type is Comment
  */
-function updateEditServiceItemFieldState() {
+function updateEditServiceItemFieldState(excludeLineId = state.ui.editingLineId) {
   const serviceItemNoField = document.getElementById('editLineUsvtServiceItemNo');
   const serviceItemDescField = document.getElementById('editLineUsvtServiceItemDescription');
   const typeSelect = document.getElementById('editLineType');
+  const groupNoField = document.getElementById('editLineUsvtGroupNo');
 
-  if (!serviceItemNoField || !serviceItemDescField || !typeSelect) {
+  if (!serviceItemNoField || !serviceItemDescField || !typeSelect || !groupNoField) {
     return;
   }
 
+  const line = state.quote.lines.find(l => l.id === excludeLineId);
+  const groupNo = normalizeGroupNo(groupNoField.value);
   const isComment = typeSelect.value === 'Comment';
   const isSerCreated = state.ui.serCreatedEdit;
+  const hasExistingServiceItemOnLine = !!(line?.usvtServiceItemNo && line.usvtServiceItemNo.trim() !== '');
+  const hasExistingSerInGroup = hasServiceItemInGroupNo(groupNo, excludeLineId);
+  const lockedByGroup = !hasExistingServiceItemOnLine && hasExistingSerInGroup;
+  const lockReason = lockedByGroup ? getGroupServiceItemLockMessage(groupNo) : '';
+  const shouldLock = hasExistingServiceItemOnLine || isSerCreated || isComment || lockedByGroup;
+  const shouldClear = !hasExistingServiceItemOnLine && !isSerCreated && (isComment || lockedByGroup);
 
-  // Lock fields if SER was created OR Type is Comment
-  if (isSerCreated || isComment) {
-    serviceItemNoField.disabled = true;
-    serviceItemDescField.disabled = true;
-    serviceItemNoField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-    serviceItemDescField.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-  } else {
-    serviceItemNoField.disabled = false;
-    serviceItemDescField.disabled = false;
-    serviceItemNoField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-    serviceItemDescField.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
-  }
+  setServiceItemFieldLockState(serviceItemNoField, shouldLock, {
+    clearValue: shouldClear,
+    title: lockReason
+  });
+  setServiceItemFieldLockState(serviceItemDescField, shouldLock, {
+    clearValue: shouldClear,
+    title: lockReason
+  });
 }
 
 /**

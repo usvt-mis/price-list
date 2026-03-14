@@ -536,7 +536,8 @@ export function openAddLineModal(insertIndex = null) {
     // Remove any disabled states or visual feedback
     const allInputs = document.querySelectorAll('#addLineModal input, #addLineModal select');
     allInputs.forEach(input => {
-      input.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50');
+      input.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-50', 'text-slate-600');
+      input.removeAttribute('title');
       if (!input.readOnly) {
         input.disabled = false;
       }
