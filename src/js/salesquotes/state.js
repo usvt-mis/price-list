@@ -56,7 +56,7 @@ export const state = {
       lineType: 'Item',             // dropdown: "Comment" | "Item"
       usvtServiceItemNo: '',        // text
       usvtServiceItemDescription: '', // text
-      usvtGroupNo: '',              // number
+      usvtGroupNo: '',              // string
       lineObjectNumber: '',         // materials search
       description: '',              // auto-fill + editable
       quantity: 1,                  // number

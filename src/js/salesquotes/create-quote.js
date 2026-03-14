@@ -11,6 +11,14 @@ import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCust
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 
+function normalizeGroupNo(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  return String(value).trim();
+}
+
 // ============================================================
 // Data Loading
 // ============================================================
@@ -553,7 +561,7 @@ export function handleAddQuoteLine() {
     lineType: fieldRefs.lineType?.value || 'Item',
     usvtServiceItemNo: fieldRefs.serviceItemNo?.value?.trim() || '',
     usvtServiceItemDescription: fieldRefs.serviceItemDesc?.value?.trim() || '',
-    usvtGroupNo: fieldRefs.groupNo?.value?.trim() || '',
+    usvtGroupNo: normalizeGroupNo(fieldRefs.groupNo?.value),
     lineObjectNumber: fieldRefs.no?.value?.trim() || '',
     description: fieldRefs.description?.value?.trim() || '',
     quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
@@ -1123,7 +1131,7 @@ async function sendQuoteToAzureFunction(quoteData) {
       unitPrice: line.unitPrice || 0,
       lineType: line.lineType || 'Item',
       discountPercent: line.discountPercent || 0,
-      usvtGroupNo: line.usvtGroupNo || '',
+      usvtGroupNo: normalizeGroupNo(line.usvtGroupNo),
       usvtServiceItemNo: line.usvtServiceItemNo || '',
       usvtServiceItemDescription: line.usvtServiceItemDescription || '',
       usvtCreateSv: line.usvtCreateSv || line.createSv || false,  // Support both new and legacy field names
@@ -1291,7 +1299,7 @@ async function createServiceOrderFromSQ(salesQuoteId, branchCode) {
   const groupNosWithServiceItem = new Set();
 
   for (const line of state.quote.lines) {
-    const groupNo = line.usvtGroupNo;
+    const groupNo = normalizeGroupNo(line.usvtGroupNo);
     const serviceItemNo = line.usvtServiceItemNo;
 
     // Include this group if it has a Service Item No
@@ -2590,7 +2598,7 @@ function saveEditLine() {
   // Get values from modal
   const lineData = {
     lineType: document.getElementById('editLineType').value,
-    usvtGroupNo: parseInt(document.getElementById('editLineUsvtGroupNo').value) || 0,
+    usvtGroupNo: normalizeGroupNo(document.getElementById('editLineUsvtGroupNo').value),
     usvtServiceItemNo: document.getElementById('editLineUsvtServiceItemNo').value,
     usvtServiceItemDescription: document.getElementById('editLineUsvtServiceItemDescription').value,
     lineObjectNumber: document.getElementById('editLineObjectNumberSearch').value,
