@@ -35,6 +35,118 @@
     .animate-flash-new {
       animation: flashNew 1s ease-out;
     }
+
+    :root {
+      --workshop-sticky-stack-offset: 7rem;
+    }
+
+    html {
+      scroll-padding-top: calc(var(--workshop-sticky-stack-offset) + 1rem);
+    }
+
+    .workshop-sticky-header {
+      top: 0.75rem;
+      z-index: 45;
+      background: transparent;
+      backdrop-filter: none;
+      padding-bottom: 0.75rem;
+    }
+
+    .workshop-sticky-header .sticky-header-shell {
+      border: 1px solid rgba(226, 232, 240, 0.92);
+      border-radius: 1.25rem;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.94));
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(18px);
+      padding: 1rem 1.25rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .workshop-sticky-header.is-sticky .sticky-header-shell {
+      border-color: rgba(148, 163, 184, 0.35);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    }
+
+    .workshop-sticky-header .sticky-header-row {
+      align-items: flex-start;
+    }
+
+    .workshop-sticky-header .sticky-header-brand {
+      flex: 1 1 24rem;
+      min-width: 0;
+    }
+
+    .workshop-sticky-header .sticky-header-copy {
+      min-width: 0;
+    }
+
+    .workshop-sticky-header .sticky-header-title-row {
+      flex-wrap: wrap;
+    }
+
+    .workshop-sticky-header .sticky-header-back {
+      width: 2.75rem;
+      height: 2.75rem;
+      border: 1px solid rgba(226, 232, 240, 0.92);
+      border-radius: 0.875rem;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .workshop-sticky-header .sticky-header-back:hover {
+      border-color: rgba(148, 163, 184, 0.8);
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    .workshop-sticky-header .sticky-header-actions {
+      flex: 1 1 20rem;
+      align-self: center;
+      justify-content: flex-end;
+    }
+
+    .workshop-sticky-header .sticky-header-actions > * {
+      flex-shrink: 0;
+    }
+
+    .workshop-sticky-header #authSection {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    #laborSection thead.sticky {
+      top: var(--workshop-sticky-stack-offset);
+      z-index: 30;
+    }
+
+    @media (max-width: 767px) {
+      .workshop-sticky-header {
+        top: 0.5rem;
+        padding-bottom: 0.5rem;
+      }
+
+      .workshop-sticky-header .sticky-header-shell {
+        padding: 0.875rem 1rem;
+        border-radius: 1rem;
+      }
+
+      .workshop-sticky-header .sticky-header-row {
+        gap: 0.875rem;
+      }
+
+      .workshop-sticky-header .sticky-header-brand,
+      .workshop-sticky-header .sticky-header-actions {
+        flex-basis: 100%;
+      }
+
+      .workshop-sticky-header .sticky-header-actions,
+      .workshop-sticky-header #authSection {
+        justify-content: flex-start;
+      }
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -50,44 +162,46 @@
   </div>
 
   <div class="max-w-6xl mx-auto p-6 space-y-12">
-    <header id="mainHeader" class="sticky-header">
-      <div class="flex items-center justify-between gap-4 flex-wrap">
-        <div class="flex items-center gap-4">
-          <a href="/" class="text-slate-400 hover:text-slate-600 transition-colors">
+    <header id="mainHeader" class="sticky-header workshop-sticky-header">
+      <div class="sticky-header-shell">
+        <div class="sticky-header-row flex items-center justify-between gap-4 flex-wrap">
+          <div class="sticky-header-brand flex items-center gap-4">
+            <a href="/" class="sticky-header-back text-slate-400 hover:text-slate-600 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
-          </a>
-          <div>
-            <div class="flex items-center gap-3">
-              <h1 class="text-3xl font-bold tracking-tight">Workshop Calculator</h1>
-              <span class="px-3 py-2 text-xs font-semibold rounded bg-orange-100 text-orange-800">Workshop</span>
+            </a>
+            <div class="sticky-header-copy">
+              <div class="sticky-header-title-row flex items-center gap-3">
+                <h1 class="text-3xl font-bold tracking-tight">Workshop Calculator</h1>
+                <span class="type-badge px-3 py-2 text-xs font-semibold rounded bg-orange-100 text-orange-800">Workshop</span>
+              </div>
+              <p class="text-sm text-slate-500">For workshop and facility-based service calculations</p>
             </div>
-            <p class="text-sm text-slate-500">For workshop and facility-based service calculations</p>
           </div>
-        </div>
-        <div class="flex items-center gap-3 flex-wrap">
-          <!-- Role Badge Indicator -->
-          <div id="roleBadge" class="hidden px-3 py-2 text-xs font-semibold rounded border">
-            <span id="roleBadgeText"></span>
-          </div>
-          <!-- My Records Button -->
-          <button id="myRecordsBtn" class="hidden px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-            </svg>
-            My Records
-          </button>
-          <!-- Save Button -->
-          <button id="saveBtn" class="hidden px-3 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-            </svg>
-            <span id="saveBtnText">Save</span>
-          </button>
-          <!-- Auth Control Section -->
-          <div id="authSection" class="flex items-center gap-4">
-            <!-- Injected via JavaScript -->
+          <div class="sticky-header-actions flex items-center gap-3 flex-wrap">
+            <!-- Role Badge Indicator -->
+            <div id="roleBadge" class="hidden px-3 py-2 text-xs font-semibold rounded border">
+              <span id="roleBadgeText"></span>
+            </div>
+            <!-- My Records Button -->
+            <button id="myRecordsBtn" class="hidden px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+              </svg>
+              My Records
+            </button>
+            <!-- Save Button -->
+            <button id="saveBtn" class="hidden px-3 py-2 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+              </svg>
+              <span id="saveBtnText">Save</span>
+            </button>
+            <!-- Auth Control Section -->
+            <div id="authSection" class="flex items-center gap-4 flex-wrap">
+              <!-- Injected via JavaScript -->
+            </div>
           </div>
         </div>
       </div>
@@ -969,6 +1083,49 @@
   window.addEventListener('unhandledrejection', (event) => {
     console.error('[UNHANDLED PROMISE REJECTION]', event.reason);
   });
+
+  let stickyHeaderOffsetFrame = null;
+  let stickyHeaderResizeObserver = null;
+
+  const syncWorkshopStickyOffset = () => {
+    const header = document.getElementById('mainHeader');
+    if (!header) return;
+
+    if (stickyHeaderOffsetFrame !== null) {
+      cancelAnimationFrame(stickyHeaderOffsetFrame);
+    }
+
+    stickyHeaderOffsetFrame = requestAnimationFrame(() => {
+      const topOffset = Number.parseFloat(window.getComputedStyle(header).top) || 0;
+      const extraSpacing = window.innerWidth < 768 ? 12 : 16;
+      const stickyOffset = Math.ceil(header.getBoundingClientRect().height + topOffset + extraSpacing);
+      document.documentElement.style.setProperty('--workshop-sticky-stack-offset', `${stickyOffset}px`);
+      stickyHeaderOffsetFrame = null;
+    });
+  };
+
+  syncWorkshopStickyOffset();
+  window.addEventListener('load', syncWorkshopStickyOffset, { once: true });
+  window.addEventListener('resize', syncWorkshopStickyOffset, { passive: true });
+
+  if ('ResizeObserver' in window) {
+    stickyHeaderResizeObserver = new ResizeObserver(() => {
+      syncWorkshopStickyOffset();
+    });
+
+    const header = document.getElementById('mainHeader');
+    if (header) {
+      stickyHeaderResizeObserver.observe(header);
+    }
+  }
+
+  if (document.fonts?.ready) {
+    document.fonts.ready
+      .then(() => {
+        syncWorkshopStickyOffset();
+      })
+      .catch(() => {});
+  }
 
   // Load the workshop app
   import('./js/workshop/app.js');

@@ -16,42 +16,34 @@ export function initFloatingButtons() {
     return;
   }
 
-  // Sticky header observer
-  const headerObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) {
-          mainHeader.classList.add('is-sticky');
-        } else {
-          mainHeader.classList.remove('is-sticky');
-        }
-      });
-    },
-    { threshold: 0, rootMargin: '-1px 0px 0px 0px' }
-  );
-
   // Create sentinel for scroll detection
   const sentinel = document.createElement('div');
+  sentinel.className = 'floating-header-sentinel';
+  sentinel.setAttribute('aria-hidden', 'true');
   sentinel.style.height = '1px';
+  sentinel.style.margin = '0';
+  sentinel.style.pointerEvents = 'none';
   mainHeader.parentNode.insertBefore(sentinel, mainHeader.nextSibling);
 
   const sentinelObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach(entry => {
+        const isSticky = !entry.isIntersecting;
+        mainHeader.classList.toggle('is-sticky', isSticky);
+
         // Show floating buttons when sentinel leaves viewport (header scrolled away)
         const isMobile = window.innerWidth < 768;
-        if (isMobile && !entry.isIntersecting) {
+        if (isMobile && isSticky) {
           floatingActionBar.classList.add('visible');
         } else {
           floatingActionBar.classList.remove('visible');
         }
       });
     },
-    { threshold: 0 }
+    { threshold: 0, rootMargin: '-1px 0px 0px 0px' }
   );
 
   // Initialize observers
-  headerObserver.observe(mainHeader);
   sentinelObserver.observe(sentinel);
 
   // Sync button visibility with auth state
