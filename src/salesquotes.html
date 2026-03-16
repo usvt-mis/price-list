@@ -652,7 +652,13 @@
   <div id="toastContainer"></div>
 
   <!-- Loading Overlay -->
-  <div id="loadingOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[70] flex items-center justify-center">
+  <div
+    id="loadingOverlay"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[70] flex items-center justify-center"
+    role="status"
+    aria-live="polite"
+    aria-busy="true"
+  >
     <div class="bg-white rounded-2xl shadow-2xl p-8 flex items-center gap-4">
       <div class="spinner"></div>
       <div>
@@ -672,6 +678,67 @@
         "./salesquotes/components/": "./js/salesquotes/components/"
       }
     }
+  </script>
+
+  <script>
+    (() => {
+      const INITIAL_LOAD_DELAY_MS = 700;
+      const initialLoadingCopy = {
+        title: 'Opening Sales Quotes',
+        message: 'Internet seems slow. Please wait a moment while the page loads...'
+      };
+      const state = {
+        done: false,
+        timerId: null
+      };
+
+      function setOverlayVisibility(visible, title, message) {
+        const overlay = document.getElementById('loadingOverlay');
+        const titleEl = document.getElementById('loadingTitle');
+        const messageEl = document.getElementById('loadingMessage');
+
+        if (!overlay) {
+          return;
+        }
+
+        if (typeof title === 'string' && titleEl) {
+          titleEl.textContent = title;
+        }
+
+        if (typeof message === 'string' && messageEl) {
+          messageEl.textContent = message;
+        }
+
+        if (visible) {
+          overlay.classList.remove('hidden');
+          overlay.classList.add('flex');
+          overlay.style.zIndex = '150';
+        } else {
+          overlay.classList.add('hidden');
+        }
+      }
+
+      window.__salesQuotesInitialLoading = {
+        finish() {
+          state.done = true;
+
+          if (state.timerId) {
+            window.clearTimeout(state.timerId);
+            state.timerId = null;
+          }
+
+          setOverlayVisibility(false);
+        }
+      };
+
+      state.timerId = window.setTimeout(() => {
+        if (state.done) {
+          return;
+        }
+
+        setOverlayVisibility(true, initialLoadingCopy.title, initialLoadingCopy.message);
+      }, INITIAL_LOAD_DELAY_MS);
+    })();
   </script>
 
   <!-- Flatpickr JS -->

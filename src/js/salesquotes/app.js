@@ -15,6 +15,14 @@ import { setupQuoteSubmissionRecordEventListeners } from './records.js';
 // Application Initialization
 // ============================================================
 
+function finishInitialLoadingNotice() {
+  const controller = window.__salesQuotesInitialLoading;
+
+  if (controller && typeof controller.finish === 'function') {
+    controller.finish();
+  }
+}
+
 /**
  * Initialize the application
  */
@@ -73,9 +81,11 @@ async function initApp() {
     setCurrentView('create');
     console.log('Initial view set');
 
+    finishInitialLoadingNotice();
     console.log('Sales Quotes App - Ready!');
 
   } catch (error) {
+    finishInitialLoadingNotice();
     console.error('Failed to initialize application:', error);
     showToast('Failed to initialize application. Please refresh the page.', 'error');
   }
@@ -89,6 +99,7 @@ async function initApp() {
  * Handle uncaught errors
  */
 window.addEventListener('error', (event) => {
+  finishInitialLoadingNotice();
   console.error('Uncaught error:', event.error);
   showToast('An unexpected error occurred. Please refresh the page.', 'error');
 });
@@ -97,6 +108,7 @@ window.addEventListener('error', (event) => {
  * Handle unhandled promise rejections
  */
 window.addEventListener('unhandledrejection', (event) => {
+  finishInitialLoadingNotice();
   console.error('Unhandled promise rejection:', event.reason);
   showToast('An unexpected error occurred. Please refresh the page.', 'error');
 });

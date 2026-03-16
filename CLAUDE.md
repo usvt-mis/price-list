@@ -144,6 +144,19 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Z-index fallback** (for overlay modals): `modal.style.zIndex = '150';` in JS and `style="z-index: 150;"` in HTML
 - Implementation: See `confirm-new-ser-modal.html` and `showConfirmNewSerModal()` / `hideConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
 
+### Initial Loading Notice Pattern (Sales Quotes)
+- **Purpose**: Show loading overlay with helpful messaging when page load takes longer than expected
+- **Behavior**: Loading overlay appears after a delay (700ms) if app initialization hasn't completed
+- **Graceful dismissal**: Overlay is automatically dismissed in all code paths (success, error, uncaught exceptions)
+- **Accessibility**: Loading overlay includes ARIA attributes (`role="status"`, `aria-live="polite"`, `aria-busy="true"`)
+- **High z-index**: Uses `z-[150]` to ensure overlay appears above other elements
+- **Implementation**:
+  - Inline script in HTML creates `window.__salesQuotesInitialLoading` controller with `finish()` method
+  - `finishInitialLoadingNotice()` function in `app.js` calls the controller's `finish()` method
+  - Called in: `initApp()` success/catch, `window.onerror`, `window.onunhandledrejection`
+- Ensures users see feedback during slow loads while never blocking normal fast loads
+- Implementation: `src/salesquotes.html` (inline script), `src/js/salesquotes/app.js` (finishInitialLoadingNotice)
+
 ### Gateway Proxy Pattern (Business Central API)
 - **Purpose**: Keep Azure Function base URL and API keys on server-side for security
 - Frontend requests go through Express proxy routes under `/api/business-central/gateway/*`
