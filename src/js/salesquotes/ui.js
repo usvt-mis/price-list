@@ -1317,6 +1317,29 @@ export function clearQuoteForm() {
   updateQuoteEditorModeUi();
 }
 
+function setCustomerNoFieldLockState(locked) {
+  const customerNoField = el('customerNoSearch');
+  const customerNoDropdown = el('customerNoDropdown');
+
+  if (!customerNoField) {
+    return;
+  }
+
+  customerNoField.readOnly = locked;
+  customerNoField.classList.toggle('bg-slate-50', locked);
+  customerNoField.classList.toggle('text-slate-600', locked);
+  customerNoField.classList.toggle('cursor-not-allowed', locked);
+
+  if (locked) {
+    customerNoField.setAttribute('aria-readonly', 'true');
+    customerNoField.setAttribute('title', 'Customer Number is locked for searched Sales Quotes');
+    customerNoDropdown?.classList.add('hidden');
+  } else {
+    customerNoField.removeAttribute('aria-readonly');
+    customerNoField.removeAttribute('title');
+  }
+}
+
 /**
  * Update quote editor banner/button state for create vs edit mode
  */
@@ -1327,6 +1350,8 @@ export function updateQuoteEditorModeUi() {
   const meta = el('quoteEditorModeMeta');
   const sendButton = el('sendQuoteBtn');
   const sendButtonText = el('sendQuoteBtnText');
+
+  setCustomerNoFieldLockState(isEditMode);
 
   if (banner) {
     banner.classList.toggle('hidden', !isEditMode);

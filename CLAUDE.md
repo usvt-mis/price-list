@@ -349,6 +349,11 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - "Send to Business Central" button changes to "Update in Business Central"
   - All quote lines are loaded with BC IDs and ETags for optimistic concurrency
   - Updates preserve BC etags for conflict detection
+  - **Customer No field is locked in edit mode** - Prevents changing the customer of an existing quote (data integrity measure)
+    - Field becomes read-only with visual styling (gray background, disabled cursor)
+    - Dropdown is hidden when locked
+    - Input/blur event handlers are guarded to prevent execution when field is read-only
+    - Accessibility attributes (`aria-readonly`, `title`) indicate locked state
 - **Field Mapping Robustness**: The `mapBcLineToEditorLine()` and `buildEditableQuoteFromSearchResponse()` functions support multiple field name variations from Business Central API responses (e.g., `qty`/`quantity`, `lineDiscountAmount`/`discountAmount`, `billToCustomerNo`/`customerNumber`), ensuring compatibility with different API response formats
 - **State Management**:
   - `state.quote.mode` - 'create' or 'edit'
@@ -368,6 +373,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `resetQuoteEditorToCreateMode()` - Reset to create mode (preserves branch defaults)
   - `startNewSalesQuoteFlow()` - Handler for "Start New Quote" button
   - `updateQuoteEditorModeUi()` - Update banner and button text based on mode
+  - `setCustomerNoFieldLockState(locked)` - Lock/unlock Customer No field with visual and accessibility updates
 - **API Endpoints**:
   - `GET /api/business-central/gateway/sales-quotes/from-number?salesQuoteNumber={number}` - Retrieve quote from BC
   - `POST /api/business-central/gateway/update-sales-quote` - Update existing quote in BC
@@ -378,7 +384,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Environment Variables** (new):
   - `GSQFN_KEY` / `GSQFN_PATH` - GetSalesQuotesFromNumber function key and path
   - `USQ_KEY` / `USQ_PATH` - UpdateSalesQuote function key and path
-- Implementation: `src/js/salesquotes/create-quote.js` - search/update logic, `src/js/salesquotes/state.js` - edit mode state, `src/js/salesquotes/ui.js` - mode banner UI, `src/salesquotes.html` - search form, `api/src/routes/business-central/gateway.js` - proxy routes
+- Implementation: `src/js/salesquotes/create-quote.js` - search/update logic with input/blur guards, `src/js/salesquotes/state.js` - edit mode state, `src/js/salesquotes/ui.js` - mode banner UI and `setCustomerNoFieldLockState()`, `src/salesquotes.html` - search form, `api/src/routes/business-central/gateway.js` - proxy routes
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 

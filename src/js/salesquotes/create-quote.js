@@ -2513,6 +2513,10 @@ export function setupEventListeners() {
   // Customer No. search (Local Database - New) - Direct input (no debounce)
   const customerNoSearch = el('customerNoSearch');
   customerNoSearch?.addEventListener('input', (e) => {
+    if (customerNoSearch.readOnly || customerNoSearch.disabled) {
+      return;
+    }
+
     // Mark field as touched and reset valid flag when user types
     state.ui.dropdownFields.customerNo.touched = true;
     state.ui.dropdownFields.customerNo.valid = false;
@@ -2520,6 +2524,10 @@ export function setupEventListeners() {
   });
 
   customerNoSearch?.addEventListener('blur', () => {
+    if (customerNoSearch.readOnly || customerNoSearch.disabled) {
+      return;
+    }
+
     // Delay hiding dropdown to allow click events
     setTimeout(() => {
       const dropdown = el('customerNoDropdown');
