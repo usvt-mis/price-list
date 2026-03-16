@@ -9,6 +9,81 @@ const ASSET_PATHS = {
   aemt: '/salesquotes/components/assets/print/aemt-logo.jpg'
 };
 
+const BRANCH_HEADER_MAP = {
+  USB: {
+    description: 'สาขาสระบุรี',
+    companyName: 'บริษัท ยู-เซอร์วิสเซส (ประเทศไทย) จำกัด',
+    companyAddress: 'เลขที่ 155 หมู่ 10 ต.ตาลเดี่ยว',
+    companyAddress2: 'อ.แก่งคอย จ.สระบุรี 18110',
+    companyNameEng: 'U-SERVICES (THAILAND) CO.,LTD.',
+    companyAddressEng: '155 Moo 10, T.Tan-Dieo,',
+    companyAddressEng2: 'A.Kaeng-Khoi, Saraburi',
+    vatRegistrationNo: '0215560007917',
+    phoneNo: '036-679-609',
+    faxNo: ''
+  },
+  UPB: {
+    description: 'สาขาปราจีนบุรี',
+    companyName: 'บริษัท ยู-เซอร์วิสเซส (ประเทศไทย) จำกัด',
+    companyAddress: 'เลขที่ 229 หมู่ 9 ต.ศรีมหาโพธิ',
+    companyAddress2: 'อ.ศรีมหาโพธิ จ.ปราจีนบุรี 25140',
+    companyNameEng: 'U-SERVICES (THAILAND) CO.,LTD.',
+    companyAddressEng: '229 Moo.9, T.Srimahaphote,',
+    companyAddressEng2: 'A.Srimahaphote, Prachinburi',
+    vatRegistrationNo: '0215560007917',
+    phoneNo: '037-218-989-990',
+    faxNo: ''
+  },
+  UCB: {
+    description: 'สาขาชลบุรี',
+    companyName: 'บริษัท ยู-เซอร์วิสเซส (ประเทศไทย) จำกัด',
+    companyAddress: 'เลขที่ 88/14 หมู่ 7 ต.ทุ่งสุขลา',
+    companyAddress2: 'อ.ศรีราชา จ.ชลบุรี 20230',
+    companyNameEng: 'U-SERVICES (THAILAND) CO.,LTD.',
+    companyAddressEng: '88/14 Moo 7, T.Thungsukla,',
+    companyAddressEng2: 'A.Sriracha, Chonburi',
+    vatRegistrationNo: '0215560007917',
+    phoneNo: '033-135-032',
+    faxNo: ''
+  },
+  USR: {
+    description: 'สาขาสุราษฏร์ธานี',
+    companyName: 'บริษัท ยู-เซอร์วิสเซส (ประเทศไทย) จำกัด',
+    companyAddress: 'เลขที่ 43/9 หมู่ 3 ต.หนองไทร',
+    companyAddress2: 'อ.พุนพิน จ.สุราษฏร์ธานี 84130',
+    companyNameEng: 'U-SERVICES (THAILAND) CO.,LTD.',
+    companyAddressEng: '43/9 Moo.3, T.Nongsai,',
+    companyAddressEng2: 'A.Phunphin, Suratthani',
+    vatRegistrationNo: '0215560007917',
+    phoneNo: '077-310-660',
+    faxNo: ''
+  },
+  UKK: {
+    description: 'สาขาขอนแก่น',
+    companyName: 'บริษัท ยู-เซอร์วิสเซส (ประเทศไทย) จำกัด',
+    companyAddress: 'เลขที่ 301 หมู่ 18 ต.บ้านค้อ',
+    companyAddress2: 'อ.เมืองขอนแก่น จ.ขอนแก่น 40000',
+    companyNameEng: 'U-SERVICES (THAILAND) CO.,LTD.',
+    companyAddressEng: '301 Moo.18, T.Ban kho,',
+    companyAddressEng2: 'A.Muang Khonkaen, Khonkaen 40000',
+    vatRegistrationNo: '0215560007917',
+    phoneNo: '043-423-925',
+    faxNo: '043-423-926'
+  },
+  URY: {
+    description: 'สาขาระยอง',
+    companyName: 'บริษัท ยู-เซอร์วิสเซส (ประเทศไทย) จำกัด',
+    companyAddress: 'เลขที่ 9/9 ซอยคีรี ถ.สุขุมวิท ต.ห้วยโป่ง',
+    companyAddress2: 'อ.เมืองระยอง จ.ระยอง 21150',
+    companyNameEng: 'U-SERVICES (THAILAND) CO.,LTD.',
+    companyAddressEng: '9/9 Soi Kire, Sukhumvit Road,',
+    companyAddressEng2: 'T.Huay-pong, A.Muang, Rayong',
+    vatRegistrationNo: '0215560007917',
+    phoneNo: '033-010-818',
+    faxNo: ''
+  }
+};
+
 const DEFAULT_TITLE = 'ใบเสนอราคา / QUOTATION';
 const DEFAULT_COMPANY_LINES = [
   'บริษัท ยู-เซอร์วิสเซส (ประเทศไทย) จำกัด (สาขาที่ 00005)',
@@ -71,6 +146,11 @@ function formatMoneyOrIncluded(value) {
   return parsed === 0 ? '(Included)' : formatCurrency(parsed);
 }
 
+function formatMisRdlUnitPrice(line) {
+  // Sale Quote Doc - MIS.rdl displays Unit_Price directly; zero renders as "(Included)".
+  return formatMoneyOrIncluded(line.unitPrice);
+}
+
 function normalizeDataUri(value, mimeType = 'image/png') {
   if (!value || typeof value !== 'string') {
     return '';
@@ -98,6 +178,33 @@ function compactLines(values) {
     .flatMap(value => Array.isArray(value) ? value : [value])
     .map(value => String(value || '').trim())
     .filter(Boolean);
+}
+
+function normalizeBranchCode(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function buildBranchHeaderLines(branchCode) {
+  const branchHeader = BRANCH_HEADER_MAP[normalizeBranchCode(branchCode)];
+  if (!branchHeader) {
+    return [];
+  }
+
+  const contactLine = [
+    branchHeader.phoneNo ? `Tel. ${branchHeader.phoneNo}` : '',
+    branchHeader.faxNo ? `Fax ${branchHeader.faxNo}` : '',
+    branchHeader.vatRegistrationNo ? `Tax ID ${branchHeader.vatRegistrationNo}` : ''
+  ].filter(Boolean).join(' ');
+
+  return compactLines([
+    branchHeader.companyName,
+    branchHeader.companyNameEng,
+    branchHeader.companyAddress,
+    branchHeader.companyAddress2,
+    branchHeader.companyAddressEng,
+    branchHeader.companyAddressEng2,
+    contactLine
+  ]);
 }
 
 function joinAddress(parts) {
@@ -211,7 +318,9 @@ function buildModel() {
   const formData = getQuoteFormData();
   const reportContext = formData.reportContext || {};
   const totals = buildTotals(formData);
-  const companyLines = compactLines(reportContext.companyInfoLines);
+  const branchCode = normalizeBranchCode(formData.branch || formData.responsibilityCenter || state.quote.branch);
+  const branchHeaderLines = buildBranchHeaderLines(branchCode);
+  const companyLines = branchHeaderLines.length ? branchHeaderLines : compactLines(reportContext.companyInfoLines);
   const detailNotes = unique(compactLines(reportContext.salesComments));
   const bottomRemark = String(formData.workDescription || '').trim();
 
@@ -300,7 +409,7 @@ function renderLineRows(lines) {
         </td>
         <td class="num-cell">${escapeHtml(formatQty(line.quantity))}</td>
         <td class="unit-cell">${escapeHtml(line.unitOfMeasure)}</td>
-        <td class="num-cell">${escapeHtml(formatMoneyOrIncluded(line.unitPrice))}</td>
+        <td class="num-cell">${escapeHtml(formatMisRdlUnitPrice(line))}</td>
         <td class="num-cell">${escapeHtml(formatCurrency(line.discountAmount))}</td>
         <td class="num-cell">${escapeHtml(formatMoneyOrIncluded(line.lineTotal))}</td>
       </tr>

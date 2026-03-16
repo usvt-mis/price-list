@@ -417,7 +417,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Professional layout with company branding, certification logos, customer details, line items, and signatures
   - Thai/English bilingual company information and disclaimers
 - **Data Sources**:
-  - Company info: Company name, address lines, logo (from BC `companyInfoText*` and `companyInfoPicture`, with fallback to static assets)
+  - Company info: Branch-specific company header (Thai/English names, addresses, phone, fax, VAT ID) from `BRANCH_HEADER_MAP` keyed by branch code; falls back to BC `companyInfoText*` and `companyInfoPicture` if branch not found; logo from static assets
   - Customer info: Name, address, attention contact, phone, tax ID (from BC `customerInfo*` and `sellTo*` fields)
   - Quote metadata: Quote number, dates, payment terms, delivery info (from BC header fields)
   - Line items: Item number, description, quantity, unit price, discount, total (from BC sales quote lines)
@@ -450,6 +450,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Grand Total = (Subtotal - Trade Discount) + VAT Amount
 - **Helper Functions**:
   - `buildModel()` - Assembles print data from form state and BC report context
+  - `buildBranchHeaderLines(branchCode)` - Builds company header lines from branch-specific data using `BRANCH_HEADER_MAP`
   - `buildPrintableLines()` - Filters and enriches line items with print metadata
   - `buildTotals()` - Calculates financial totals
   - `buildCustomerAddressLines()` - Resolves customer address (2 lines max) from form or BC data
@@ -464,6 +465,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `formatDate()` - Date formatting (en-GB locale)
   - `formatQty()` - Quantity formatting with smart decimal handling
   - `formatMoneyOrIncluded()` - Currency formatting with "(Included)" for zero values
+  - `formatMisRdlUnitPrice(line)` - Formats unit price for MIS.rdl display (zero values render as "(Included)")
+  - `normalizeBranchCode(value)` - Normalizes branch code to uppercase trimmed string
   - `normalizeDataUri()` - Base64 image data URI normalization
   - `joinAddress()` - Address part concatenation
   - `unique()` - Removes duplicate values from array
