@@ -106,7 +106,7 @@ export function hideLoading() {
 /**
  * Show saving state
  */
-export function showSaving() {
+export function showSaving(title = 'Sending Quote', message = 'Sending quote to Business Central...') {
   const overlay = el('loadingOverlay');
   const messageEl = el('loadingMessage');
   const titleEl = el('loadingTitle');
@@ -114,8 +114,8 @@ export function showSaving() {
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
   }
-  if (messageEl) messageEl.textContent = 'Sending quote to Business Central...';
-  if (titleEl) titleEl.textContent = 'Sending Quote';
+  if (messageEl) messageEl.textContent = message;
+  if (titleEl) titleEl.textContent = title;
   state.ui.loading = true;
   state.ui.saving = true;
 }
@@ -272,13 +272,36 @@ export function displaySelectedCustomer(customer) {
  */
 export function clearCustomerSelection() {
   const searchInput = el('customerSearch');
+  const customerNoSearch = el('customerNoSearch');
+  const customerName = el('customerName');
   const display = el('selectedCustomerDisplay');
+  const sellToSection = el('sellToSection');
+
+  ['sellToAddress', 'sellToAddress2', 'sellToCity', 'sellToPostCode', 'sellToVatRegNo', 'sellToTaxBranchNo'].forEach(fieldId => {
+    const field = el(fieldId);
+    if (field) {
+      field.value = '';
+    }
+  });
 
   if (searchInput) searchInput.value = '';
+  if (customerNoSearch) customerNoSearch.value = '';
+  if (customerName) customerName.value = '';
   if (display) display.classList.add('hidden');
+  if (sellToSection) sellToSection.classList.add('hidden');
 
   state.quote.customerId = null;
   state.quote.customer = null;
+  state.quote.customerNo = null;
+  state.quote.customerName = null;
+  state.quote.sellTo = {
+    address: null,
+    address2: null,
+    city: null,
+    postCode: null,
+    vatRegNo: null,
+    taxBranchNo: null
+  };
   state.formData.selectedCustomer = null;
 }
 
@@ -1168,7 +1191,14 @@ export function generateLocationCode(branchCode) {
  */
 export function getQuoteFormData() {
   return {
+    quoteId: state.quote.id,
+    quoteNumber: state.quote.number,
+    quoteEtag: state.quote.etag,
+    quoteStatus: state.quote.status,
+    mode: state.quote.mode,
     customerId: state.quote.customerId,
+    customerNo: state.quote.customerNo,
+    customerName: state.quote.customerName,
     customer: state.quote.customer,
     orderDate: el('orderDate')?.value || '',
     requestedDeliveryDate: el('requestedDeliveryDate')?.value || '',
@@ -1191,7 +1221,10 @@ export function getQuoteFormData() {
  * Populate form with quote data
  */
 export function populateQuoteForm(quote) {
+  if (el('customerNoSearch')) el('customerNoSearch').value = quote.customerNo || '';
+  if (el('customerName')) el('customerName').value = quote.customerName || '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = quote.workDescription || '';
+  if (el('invoiceDiscount')) el('invoiceDiscount').value = quote.invoiceDiscount ?? quote.discountAmount ?? 0;
 
   // New fields
   if (el('contact')) el('contact').value = quote.contact || '';
@@ -1206,7 +1239,27 @@ export function populateQuoteForm(quote) {
   if (el('locationCode')) el('locationCode').value = quote.locationCode || '';
   if (el('responsibilityCenter')) el('responsibilityCenter').value = quote.responsibilityCenter || '';
 
-  if (quote.customer) {
+  if (el('sellToAddress')) el('sellToAddress').value = quote.sellTo?.address || '';
+  if (el('sellToAddress2')) el('sellToAddress2').value = quote.sellTo?.address2 || '';
+  if (el('sellToCity')) el('sellToCity').value = quote.sellTo?.city || '';
+  if (el('sellToPostCode')) el('sellToPostCode').value = quote.sellTo?.postCode || '';
+  if (el('sellToVatRegNo')) el('sellToVatRegNo').value = quote.sellTo?.vatRegNo || '';
+  if (el('sellToTaxBranchNo')) el('sellToTaxBranchNo').value = quote.sellTo?.taxBranchNo || '';
+
+  const sellToSection = el('sellToSection');
+  if (sellToSection) {
+    const hasSellToValues = Boolean(
+      quote.sellTo?.address ||
+      quote.sellTo?.address2 ||
+      quote.sellTo?.city ||
+      quote.sellTo?.postCode ||
+      quote.sellTo?.vatRegNo ||
+      quote.sellTo?.taxBranchNo
+    );
+    sellToSection.classList.toggle('hidden', !hasSellToValues);
+  }
+
+  if (quote.customer && quote.customer.name && quote.customer.number) {
     displaySelectedCustomer(quote.customer);
   }
 
@@ -1220,12 +1273,15 @@ export function populateQuoteForm(quote) {
     minDate: 'today',
   });
 
+  renderTotals();
+  updateQuoteEditorModeUi();
+
   // Update asterisks for populated fields
   setTimeout(() => {
-    ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'branch'].forEach(id => {
+    ['customerNoSearch', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType', 'orderDate', 'requestedDeliveryDate', 'branch'].forEach(id => {
       const field = el(id);
       if (field && field.value) {
-        field.dispatchEvent(new Event('input'));
+        updateRequiredAsterisk(id);
       }
     });
   }, 50);
@@ -1237,6 +1293,7 @@ export function populateQuoteForm(quote) {
 export function clearQuoteForm() {
   if (el('customerSearch')) el('customerSearch').value = '';
   if (el('customerNoSearch')) el('customerNoSearch').value = '';
+  if (el('customerName')) el('customerName').value = '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = '';
   if (el('invoiceDiscount')) el('invoiceDiscount').value = '0';
   if (el('invoiceDiscountPercent')) el('invoiceDiscountPercent').value = '0.0';
@@ -1257,6 +1314,48 @@ export function clearQuoteForm() {
 
   // Initialize Flatpickr for date fields
   initDateFields();
+  updateQuoteEditorModeUi();
+}
+
+/**
+ * Update quote editor banner/button state for create vs edit mode
+ */
+export function updateQuoteEditorModeUi() {
+  const isEditMode = state.quote.mode === 'edit' && Boolean(state.quote.number);
+  const banner = el('quoteEditorModeBanner');
+  const title = el('quoteEditorModeTitle');
+  const meta = el('quoteEditorModeMeta');
+  const sendButtonText = el('sendQuoteBtnText');
+
+  if (banner) {
+    banner.classList.toggle('hidden', !isEditMode);
+  }
+
+  if (title) {
+    title.textContent = isEditMode
+      ? `Editing Sales Quote ${state.quote.number}`
+      : 'Create a new Sales Quote';
+  }
+
+  if (meta) {
+    const metaParts = [];
+    if (state.quote.status) {
+      metaParts.push(`Status: ${state.quote.status}`);
+    }
+    if (state.quote.customerName) {
+      metaParts.push(`Customer: ${state.quote.customerName}`);
+    }
+    if (state.quote.branch) {
+      metaParts.push(`Branch: ${state.quote.branch}`);
+    }
+    meta.textContent = metaParts.join(' | ');
+  }
+
+  if (sendButtonText) {
+    sendButtonText.textContent = isEditMode
+      ? 'Update in Business Central'
+      : 'Send to Business Central';
+  }
 }
 
 /**

@@ -12,7 +12,9 @@ import { isLocalDev } from '../core/config.js';
 export const GATEWAY_API = {
   CREATE_SALES_QUOTE_WITHOUT_NUMBER: '/api/business-central/gateway/create-sales-quote-without-number',
   CREATE_SERVICE_ITEM: '/api/business-central/gateway/create-service-item',
-  CREATE_SERVICE_ORDER_FROM_SQ: '/api/business-central/gateway/create-service-order-from-sq'
+  CREATE_SERVICE_ORDER_FROM_SQ: '/api/business-central/gateway/create-service-order-from-sq',
+  GET_SALES_QUOTES_FROM_NUMBER: '/api/business-central/gateway/sales-quotes/from-number',
+  UPDATE_SALES_QUOTE: '/api/business-central/gateway/update-sales-quote'
 };
 
 export const BC_API_CONFIG = {

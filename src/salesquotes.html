@@ -70,6 +70,29 @@
 
     <!-- Create Quote View -->
     <div id="createView" class="view">
+      <div
+        id="quoteEditorModeBanner"
+        class="hidden mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 shadow-sm"
+      >
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p id="quoteEditorModeTitle" class="text-sm font-semibold text-amber-900">Create a new Sales Quote</p>
+            <p id="quoteEditorModeMeta" class="mt-1 text-sm text-amber-800"></p>
+          </div>
+          <button
+            id="resetQuoteEditorBtn"
+            type="button"
+            class="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-100"
+            onclick="window.startNewSalesQuote()"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M5.64 18.36A9 9 0 1120 12"></path>
+            </svg>
+            Start New Quote
+          </button>
+        </div>
+      </div>
+
       <!-- Quote Header Card -->
       <div class="bg-white rounded-2xl shadow-lg hover:shadow-xl border border-blue-100 p-6 mb-6 transition-all duration-300">
         <div class="flex items-center gap-3 mb-6">
@@ -545,7 +568,7 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
           </svg>
-          Send to Business Central
+          <span id="sendQuoteBtnText">Send to Business Central</span>
         </button>
       </div>
 
@@ -576,9 +599,54 @@
 
     <!-- Search Quotes View -->
     <div id="searchView" class="view hidden">
-      <div class="bc-card p-6">
-        <h2 class="text-lg font-semibold mb-4">Search Sales Quotes</h2>
-        <p class="text-gray-600">Search functionality coming soon...</p>
+      <div class="bg-white rounded-2xl shadow-lg border border-amber-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="flex items-center justify-center w-10 h-10 bg-amber-50 rounded-xl">
+            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-slate-900">Search Sales Quotes</h2>
+            <p class="text-sm text-slate-500">Load an existing quote from Business Central into the editor</p>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
+          <div class="flex-1">
+            <label for="searchSalesQuoteNumber" class="block text-sm font-medium text-slate-700 mb-1">Sales Quote No.</label>
+            <input
+              id="searchSalesQuoteNumber"
+              type="text"
+              placeholder="Enter Sales Quote number, e.g. SQRY2603-0040"
+              class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+              autocomplete="off"
+            />
+          </div>
+          <button
+            id="searchSalesQuoteBtn"
+            type="button"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
+            onclick="window.searchSalesQuote()"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            Search Quote
+          </button>
+        </div>
+
+        <p class="mt-3 text-sm text-slate-600">
+          The quote will open in the same editor used for Create New Quote, with the current BC values ready for editing and resubmission.
+        </p>
+
+        <div
+          id="searchSalesQuoteResult"
+          class="hidden mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+        >
+          <p id="searchSalesQuoteResultTitle" class="text-sm font-semibold text-slate-900"></p>
+          <p id="searchSalesQuoteResultMessage" class="mt-1 text-sm text-slate-600"></p>
+        </div>
       </div>
     </div>
 

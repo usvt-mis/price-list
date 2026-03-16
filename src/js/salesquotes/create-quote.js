@@ -3,12 +3,12 @@
  * Handles quote creation, line management, and BC API integration
  */
 
-import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState, calculateTotals } from './state.js';
+import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState, calculateTotals, initNewQuote, resetDropdownValidationState } from './state.js';
 import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteSendFailure } from './ui.js';
-import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 import { recordQuoteSubmission } from './records.js';
@@ -45,6 +45,356 @@ function setServiceItemFieldLockState(field, locked, { clearValue = false, title
   } else {
     field.removeAttribute('title');
   }
+}
+
+function normalizeBcDate(value) {
+  if (!value || typeof value !== 'string') {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.startsWith('0001-01-01')) {
+    return '';
+  }
+
+  return trimmed.slice(0, 10);
+}
+
+function normalizeSalesQuoteNumberInput(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function setSearchSalesQuoteFeedback(type, title, message) {
+  const container = el('searchSalesQuoteResult');
+  const titleEl = el('searchSalesQuoteResultTitle');
+  const messageEl = el('searchSalesQuoteResultMessage');
+
+  if (!container || !titleEl || !messageEl) {
+    return;
+  }
+
+  if (!title && !message) {
+    container.classList.add('hidden');
+    titleEl.textContent = '';
+    messageEl.textContent = '';
+    return;
+  }
+
+  container.classList.remove(
+    'hidden',
+    'border-slate-200',
+    'bg-slate-50',
+    'border-emerald-200',
+    'bg-emerald-50',
+    'border-rose-200',
+    'bg-rose-50',
+    'border-amber-200',
+    'bg-amber-50'
+  );
+  titleEl.classList.remove('text-slate-900', 'text-emerald-900', 'text-rose-900', 'text-amber-900');
+  messageEl.classList.remove('text-slate-600', 'text-emerald-800', 'text-rose-800', 'text-amber-800');
+
+  if (type === 'success') {
+    container.classList.add('border-emerald-200', 'bg-emerald-50');
+    titleEl.classList.add('text-emerald-900');
+    messageEl.classList.add('text-emerald-800');
+  } else if (type === 'error') {
+    container.classList.add('border-rose-200', 'bg-rose-50');
+    titleEl.classList.add('text-rose-900');
+    messageEl.classList.add('text-rose-800');
+  } else if (type === 'loading') {
+    container.classList.add('border-amber-200', 'bg-amber-50');
+    titleEl.classList.add('text-amber-900');
+    messageEl.classList.add('text-amber-800');
+  } else {
+    container.classList.add('border-slate-200', 'bg-slate-50');
+    titleEl.classList.add('text-slate-900');
+    messageEl.classList.add('text-slate-600');
+  }
+
+  titleEl.textContent = title || '';
+  messageEl.textContent = message || '';
+}
+
+function setSearchSalesQuoteLoading(isLoading) {
+  const button = el('searchSalesQuoteBtn');
+  const input = el('searchSalesQuoteNumber');
+
+  state.ui.searchingQuote = isLoading;
+
+  if (button) {
+    if (!button.dataset.defaultHtml) {
+      button.dataset.defaultHtml = button.innerHTML;
+    }
+    button.disabled = isLoading;
+    button.classList.toggle('opacity-70', isLoading);
+    button.classList.toggle('cursor-not-allowed', isLoading);
+    button.innerHTML = isLoading
+      ? '<span class="animate-pulse">Searching...</span>'
+      : button.dataset.defaultHtml;
+  }
+
+  if (input) {
+    input.disabled = isLoading;
+  }
+}
+
+function setDropdownFieldLoadedState(fieldName, value) {
+  const fieldState = state.ui.dropdownFields[fieldName];
+  if (!fieldState) {
+    return;
+  }
+
+  fieldState.touched = false;
+  fieldState.valid = Boolean(value);
+}
+
+function buildCustomerDisplayModel(customerRecord, fallbackCustomerNo, fallbackCustomerName) {
+  return {
+    id: customerRecord?.CustomerNo || fallbackCustomerNo || '',
+    number: customerRecord?.CustomerNo || fallbackCustomerNo || '',
+    name: customerRecord?.CustomerName || fallbackCustomerName || '',
+    address: customerRecord?.Address || '',
+    phone: customerRecord?.Phone || '',
+    email: customerRecord?.Email || ''
+  };
+}
+
+function mapBcLineToEditorLine(line, index) {
+  const existingLineId = line?.id || line?.bcId || null;
+  const normalizedQuantity = parseFloat(line?.quantity);
+  const normalizedUnitPrice = parseFloat(line?.unitPrice);
+  const normalizedDiscountAmount = parseFloat(line?.discountAmount);
+  const normalizedDiscountPercent = parseFloat(line?.discountPercent);
+
+  return {
+    id: existingLineId || `line-${Date.now()}-${index}`,
+    bcId: existingLineId,
+    bcEtag: line?.['@odata.etag'] || line?.bcEtag || null,
+    documentId: line?.documentId || null,
+    sequence: Number(line?.sequence) || index + 1,
+    itemId: line?.itemId || null,
+    accountId: line?.accountId || null,
+    lineType: line?.lineType || 'Item',
+    lineObjectNumber: line?.lineObjectNumber || line?.no || '',
+    description: line?.description || '',
+    description2: line?.description2 || '',
+    unitOfMeasureId: line?.unitOfMeasureId || null,
+    unitOfMeasureCode: line?.unitOfMeasureCode || '',
+    unitPrice: Number.isFinite(normalizedUnitPrice) ? normalizedUnitPrice : 0,
+    quantity: Number.isFinite(normalizedQuantity) ? normalizedQuantity : 0,
+    discountAmount: Number.isFinite(normalizedDiscountAmount) ? normalizedDiscountAmount : 0,
+    discountPercent: Number.isFinite(normalizedDiscountPercent) ? normalizedDiscountPercent : 0,
+    discountAppliedBeforeTax: Boolean(line?.discountAppliedBeforeTax),
+    amountExcludingTax: parseFloat(line?.amountExcludingTax) || 0,
+    taxCode: line?.taxCode || '',
+    taxPercent: parseFloat(line?.taxPercent) || 0,
+    totalTaxAmount: parseFloat(line?.totalTaxAmount) || 0,
+    amountIncludingTax: parseFloat(line?.amountIncludingTax) || 0,
+    netAmount: parseFloat(line?.netAmount) || 0,
+    netTaxAmount: parseFloat(line?.netTaxAmount) || 0,
+    netAmountIncludingTax: parseFloat(line?.netAmountIncludingTax) || 0,
+    itemVariantId: line?.itemVariantId || null,
+    locationId: line?.locationId || null,
+    usvtGroupNo: normalizeGroupNo(line?.usvtGroupNo ?? line?.groupNo ?? ''),
+    usvtServiceItemNo: line?.usvtServiceItemNo || line?.serviceItemNo || '',
+    usvtServiceItemDescription: line?.usvtServiceItemDescription || line?.serviceItemDescription || '',
+    usvtCreateSv: Boolean(line?.usvtCreateSv || line?.createSv || line?.usvtServiceItemNo || line?.serviceItemNo),
+    usvtAddition: Boolean(line?.usvtAddition || line?.addition),
+    usvtRefSalesQuoteno: line?.usvtRefSalesQuoteno || line?.refSalesQuoteno || line?.refSalesQuoteNo || ''
+  };
+}
+
+async function fetchCustomerDetails(customerNo, fallbackCustomerName) {
+  if (!customerNo) {
+    return {
+      CustomerNo: '',
+      CustomerName: fallbackCustomerName || ''
+    };
+  }
+
+  try {
+    const response = await fetch(`/api/business-central/customers/${encodeURIComponent(customerNo)}`);
+    if (!response.ok) {
+      throw new Error(`Customer lookup failed with HTTP ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.warn('Unable to enrich searched quote customer from local database:', error);
+    return {
+      CustomerNo: customerNo,
+      CustomerName: fallbackCustomerName || ''
+    };
+  }
+}
+
+async function fetchSalespersonDisplayName(salespersonCode) {
+  if (!salespersonCode || salespersonCode.trim().length < 2) {
+    return '';
+  }
+
+  try {
+    const response = await fetch(`/api/business-central/salespeople/search?q=${encodeURIComponent(salespersonCode.trim())}&limit=10`);
+    if (!response.ok) {
+      throw new Error(`Salesperson lookup failed with HTTP ${response.status}`);
+    }
+
+    const salespeople = await response.json();
+    const match = salespeople.find(salesperson => salesperson.SalespersonCode === salespersonCode.trim());
+    return match?.SalespersonName || '';
+  } catch (error) {
+    console.warn('Unable to enrich searched quote salesperson from local database:', error);
+    return '';
+  }
+}
+
+function closeOpenQuoteModals() {
+  closeAddLineModal();
+
+  const editModal = document.getElementById('editLineModal');
+  if (editModal && !editModal.classList.contains('hidden')) {
+    closeEditLineModal();
+  }
+
+  hideConfirmClearQuoteModal();
+}
+
+function restoreDefaultBranchFields() {
+  const {
+    branch = '',
+    locationCode = '',
+    responsibilityCenter = ''
+  } = state.ui.branchDefaults || {};
+
+  if (el('branch')) {
+    el('branch').value = branch;
+  }
+  if (el('locationCode')) {
+    el('locationCode').value = locationCode;
+  }
+  if (el('responsibilityCenter')) {
+    el('responsibilityCenter').value = responsibilityCenter;
+  }
+
+  state.quote.branch = branch;
+  state.quote.locationCode = locationCode;
+  state.quote.responsibilityCenter = responsibilityCenter;
+
+  const branchAsterisk = el('branch-asterisk');
+  if (branchAsterisk) {
+    branchAsterisk.classList.toggle('hidden', Boolean(branch));
+  }
+}
+
+function resetQuoteEditorToCreateMode({ showFeedback = true } = {}) {
+  closeOpenQuoteModals();
+  initNewQuote();
+  clearQuoteForm();
+  clearQuoteLines();
+  resetDropdownValidationState();
+  restoreDefaultBranchFields();
+  renderQuoteLines();
+  renderTotals();
+  updateQuoteEditorModeUi();
+  saveState();
+
+  if (showFeedback) {
+    showSuccess('Ready to create a new Sales Quote');
+  }
+}
+
+function startNewSalesQuoteFlow() {
+  resetQuoteEditorToCreateMode();
+  switchTab('create');
+  saveState();
+}
+
+async function buildEditableQuoteFromSearchResponse(payload) {
+  const data = payload?.data || payload?.result?.data || payload?.result;
+  if (!data || typeof data !== 'object') {
+    throw new Error('Business Central did not return Sales Quote data for this number.');
+  }
+
+  const customerNumber = data.customerNumber || '';
+  const salespersonCode = data.salespersonCode || '';
+  const [customerRecord, salespersonName] = await Promise.all([
+    fetchCustomerDetails(customerNumber, data.customerName || ''),
+    fetchSalespersonDisplayName(salespersonCode)
+  ]);
+
+  const branchCode = data.branchCode || data.responsibilityCenter || data.shortcutDimension1Code || state.ui.branchDefaults.branch || '';
+  const responsibilityCenter = data.responsibilityCenter || branchCode;
+  const locationCode = data.locationCode || '';
+  const customerDisplay = buildCustomerDisplayModel(customerRecord, customerNumber, data.customerName || '');
+
+  return {
+    id: data.id || null,
+    number: data.number || payload.salesQuoteNumber || null,
+    etag: data['@odata.etag'] || null,
+    status: data.status || '',
+    mode: 'edit',
+    loadedFromBc: true,
+    processedAt: payload.processedAt || null,
+    customerId: customerNumber || null,
+    customer: customerDisplay,
+    customerNo: customerNumber || null,
+    customerName: data.customerName || customerRecord.CustomerName || '',
+    sellTo: {
+      address: customerRecord.Address || '',
+      address2: customerRecord.Address2 || '',
+      city: customerRecord.City || '',
+      postCode: customerRecord.PostCode || '',
+      vatRegNo: customerRecord.VATRegistrationNo || '',
+      taxBranchNo: customerRecord.TaxBranchNo || ''
+    },
+    orderDate: normalizeBcDate(data.orderDate || data.documentDate),
+    requestedDeliveryDate: normalizeBcDate(data.requestedDeliveryDate),
+    workDescription: data.workDescription || '',
+    contact: data.contactName || data.shipToContact || '',
+    salespersonCode,
+    salespersonName: salespersonName || '',
+    assignedUserId: data.assignedUserId || '',
+    serviceOrderType: data.serviceOrderType || '',
+    division: data.shortcutDimension2Code || 'MS1029',
+    branch: branchCode,
+    locationCode,
+    responsibilityCenter,
+    invoiceDiscount: parseFloat(data.discountAmount) || 0,
+    discountAmount: parseFloat(data.discountAmount) || 0,
+    lines: Array.isArray(data.salesQuoteLines)
+      ? data.salesQuoteLines.map((line, index) => mapBcLineToEditorLine(line, index))
+      : []
+  };
+}
+
+async function applySearchedSalesQuote(payload) {
+  const editableQuote = await buildEditableQuoteFromSearchResponse(payload);
+
+  closeOpenQuoteModals();
+  clearValidationErrors();
+  resetDropdownValidationState();
+  state.quote = editableQuote;
+  populateQuoteForm(editableQuote);
+  renderQuoteLines();
+  renderTotals();
+  setDropdownFieldLoadedState('customerNo', editableQuote.customerNo);
+  setDropdownFieldLoadedState('salespersonCode', editableQuote.salespersonCode);
+  setDropdownFieldLoadedState('assignedUserId', editableQuote.assignedUserId);
+  updateQuoteEditorModeUi();
+  saveState();
+
+  const processedAtText = editableQuote.processedAt
+    ? `BC processed this search at ${new Date(editableQuote.processedAt).toLocaleString('en-GB')}.`
+    : 'The quote is now loaded into the editor.';
+  setSearchSalesQuoteFeedback(
+    'success',
+    `Loaded ${editableQuote.number || payload.salesQuoteNumber || 'Sales Quote'}`,
+    `${processedAtText} You can now edit the quote and submit the update back to Business Central.`
+  );
+
+  switchTab('create');
+  saveState();
 }
 
 // ============================================================
@@ -956,19 +1306,7 @@ export function handleClearQuote() {
  */
 export function confirmClearQuote() {
   hideConfirmClearQuoteModal();
-
-  clearQuoteForm();
-  clearQuoteLines();
-  renderQuoteLines();
-  renderTotals();
-
-  // Reset asterisks to visible state
-  setTimeout(() => {
-    ['customerNoSearch', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType'].forEach(id => {
-      if (el(id)) el(id).dispatchEvent(new Event('input'));
-    });
-  }, 50);
-
+  resetQuoteEditorToCreateMode({ showFeedback: false });
   showSuccess('Quote cleared');
 }
 
@@ -1140,6 +1478,84 @@ function extractQuoteApiFailureMessage(responseData) {
   return findApiErrorMessage(responseData) || fallbackMessage;
 }
 
+function normalizeGatewayHttpErrorMessage(error, fallbackMessage) {
+  const rawMessage = error instanceof Error ? error.message : String(error || '');
+  const apiErrorMatch = rawMessage.match(/^API Error\s+\d+:\s*([\s\S]*)$/i);
+  const payloadMessage = apiErrorMatch?.[1] || rawMessage;
+  const structuredPayload = parseStructuredApiErrorPayload(payloadMessage);
+  return findApiErrorMessage(structuredPayload)
+    || payloadMessage.trim()
+    || fallbackMessage;
+}
+
+async function fetchSalesQuoteByNumber(salesQuoteNumber) {
+  const API_URL = `${GATEWAY_API.GET_SALES_QUOTES_FROM_NUMBER}?salesQuoteNumber=${encodeURIComponent(salesQuoteNumber)}`;
+
+  try {
+    const response = await fetch(API_URL);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error ${response.status}: ${errorText}`);
+    }
+
+    const responseData = await response.json();
+    const gatewayReportedFailure = [
+      responseData?.success,
+      responseData?.Success,
+      responseData?.result?.success,
+      responseData?.result?.Success
+    ].some(isExplicitApiFailure);
+
+    if (gatewayReportedFailure || !(responseData?.data || responseData?.result?.data || responseData?.result)) {
+      throw new Error(extractQuoteApiFailureMessage(responseData));
+    }
+
+    return responseData;
+  } catch (error) {
+    console.error('GetSalesQuotesFromNumber API call failed:', error);
+    throw error;
+  }
+}
+
+export async function handleSearchSalesQuote() {
+  if (state.ui.searchingQuote) {
+    return;
+  }
+
+  const searchInput = el('searchSalesQuoteNumber');
+  const salesQuoteNumber = normalizeSalesQuoteNumberInput(searchInput?.value);
+
+  if (!salesQuoteNumber) {
+    setSearchSalesQuoteFeedback('error', 'Sales Quote number required', 'Please enter a Sales Quote number before searching.');
+    showError('Please enter a Sales Quote number');
+    return;
+  }
+
+  if (searchInput) {
+    searchInput.value = salesQuoteNumber;
+  }
+
+  setSearchSalesQuoteLoading(true);
+  setSearchSalesQuoteFeedback('loading', `Searching ${salesQuoteNumber}`, 'Checking Business Central for the latest quote data...');
+  clearValidationErrors();
+
+  try {
+    const responseData = await fetchSalesQuoteByNumber(salesQuoteNumber);
+    await applySearchedSalesQuote(responseData);
+    showSuccess(`Loaded ${salesQuoteNumber} from Business Central`);
+  } catch (error) {
+    const errorMessage = normalizeGatewayHttpErrorMessage(
+      error,
+      'Unable to load Sales Quote from Business Central.'
+    );
+    setSearchSalesQuoteFeedback('error', `Unable to load ${salesQuoteNumber}`, errorMessage);
+    showError(errorMessage);
+  } finally {
+    setSearchSalesQuoteLoading(false);
+  }
+}
+
 /**
  * Send quote to the backend gateway proxy
  * @param {Object} quoteData - Sanitized quote form data
@@ -1223,6 +1639,104 @@ async function sendQuoteToAzureFunction(quoteData) {
 
   } catch (error) {
     console.error('Azure Function API call failed:', error);
+    throw error;
+  }
+}
+
+async function updateQuoteInAzureFunction(quoteData) {
+  const API_URL = GATEWAY_API.UPDATE_SALES_QUOTE;
+  const invoiceDiscountElement = document.getElementById('invoiceDiscount');
+  const discountAmount = parseFloat(invoiceDiscountElement?.value) || 0;
+  const salesQuoteId = state.quote.id || quoteData.quoteId || '';
+  const salesQuoteNumber = state.quote.number || quoteData.quoteNumber || '';
+  const quoteEtag = state.quote.etag || quoteData.quoteEtag || '';
+
+  if (!salesQuoteId && !salesQuoteNumber) {
+    throw new Error('Sales Quote identifier is missing. Please search for the quote again before updating.');
+  }
+
+  const lineItems = state.quote.lines.map(line => {
+    const parsedQuantity = parseFloat(line.quantity);
+
+    return {
+      id: line.bcId || null,
+      lineId: line.bcId || null,
+      etag: line.bcEtag || null,
+      sequence: line.sequence || 0,
+      lineObjectNumber: line.lineObjectNumber || '',
+      description: line.description || '',
+      quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
+      unitPrice: line.unitPrice || 0,
+      lineType: line.lineType || 'Item',
+      discountPercent: line.discountPercent || 0,
+      usvtGroupNo: normalizeGroupNo(line.usvtGroupNo),
+      usvtServiceItemNo: line.usvtServiceItemNo || '',
+      usvtServiceItemDescription: line.usvtServiceItemDescription || '',
+      usvtCreateSv: line.usvtCreateSv || line.createSv || false,
+      usvtAddition: line.usvtAddition || false,
+      usvtRefSalesQuoteno: line.usvtRefSalesQuoteno || '',
+      discountAmount: line.discountAmount || 0
+    };
+  });
+
+  const requestBody = {
+    id: salesQuoteId,
+    salesQuoteId: salesQuoteId,
+    number: salesQuoteNumber,
+    salesQuoteNumber: salesQuoteNumber,
+    etag: quoteEtag,
+    odataEtag: quoteEtag,
+    status: state.quote.status || quoteData.quoteStatus || '',
+    customerNo: state.quote.customerNo || '',
+    contactName: quoteData.contact || '',
+    salespersonCode: quoteData.salespersonCode || '',
+    assignedUserId: quoteData.assignedUserId || '',
+    serviceOrderType: quoteData.serviceOrderType || '',
+    division: quoteData.division || 'MS1029',
+    shortcutDimension2Code: quoteData.division || 'MS1029',
+    branchCode: quoteData.branch || state.quote.branch || '',
+    shortcutDimension1Code: quoteData.branch || state.quote.branch || '',
+    locationCode: quoteData.locationCode || '',
+    responsibilityCenter: quoteData.responsibilityCenter || '',
+    orderDate: quoteData.orderDate || '',
+    requestedDeliveryDate: quoteData.requestedDeliveryDate || '',
+    workDescription: quoteData.workDescription || '',
+    discountAmount,
+    lineItems,
+    salesQuoteLines: lineItems
+  };
+
+  console.log('Updating quote in Azure Function:', requestBody);
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error ${response.status}: ${errorText}`);
+    }
+
+    const responseData = await response.json();
+    const gatewayReportedFailure = [
+      responseData?.success,
+      responseData?.Success,
+      responseData?.result?.success,
+      responseData?.result?.Success
+    ].some(isExplicitApiFailure);
+
+    if (gatewayReportedFailure) {
+      throw new Error(extractQuoteApiFailureMessage(responseData));
+    }
+
+    return responseData;
+  } catch (error) {
+    console.error('UpdateSalesQuote API call failed:', error);
     throw error;
   }
 }
@@ -1474,6 +1988,44 @@ export async function handleSendQuote() {
   // Sanitize data
   const sanitizedData = sanitizeQuoteData(formData);
 
+  if (state.quote.mode === 'edit' && state.quote.number) {
+    try {
+      showSaving('Updating Quote', 'Updating Sales Quote in Business Central...');
+
+      const response = await updateQuoteInAzureFunction(sanitizedData);
+      hideSaving();
+
+      if (response?.data) {
+        await applySearchedSalesQuote(response);
+      } else {
+        state.quote.etag = response?.etag
+          || response?.odataEtag
+          || response?.result?.etag
+          || state.quote.etag;
+        state.quote.status = response?.status
+          || response?.result?.status
+          || state.quote.status;
+        state.quote.processedAt = response?.processedAt || new Date().toISOString();
+        updateQuoteEditorModeUi();
+        saveState();
+      }
+
+      const updatedQuoteNumber = state.quote.number || sanitizedData.quoteNumber || 'Sales Quote';
+      setSearchSalesQuoteFeedback(
+        'success',
+        `Updated ${updatedQuoteNumber}`,
+        'Business Central accepted the latest changes. The quote remains loaded in the editor if you want to continue editing.'
+      );
+      showSuccess(`${updatedQuoteNumber} updated in Business Central successfully`);
+    } catch (error) {
+      hideSaving();
+      console.error('Failed to update quote:', error);
+      await showQuoteSendFailure(error);
+    }
+
+    return;
+  }
+
   try {
     showSaving();
 
@@ -1524,22 +2076,7 @@ export async function handleSendQuote() {
 
     hideSaving();
 
-    // Clear ALL data first (without confirmation)
-    clearQuoteForm();           // Clear form fields
-    clearQuoteLines();          // Clear all lines
-    state.quote.lines = [];     // Clear state lines
-    renderQuoteLines();         // Update UI (empty table)
-    renderTotals();             // Reset totals to 0.00
-
-    // Re-initialize date fields (Order Date = today)
-    initDateFields();
-
-    // Reset asterisks to visible state
-    setTimeout(() => {
-      ['customerNoSearch', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType'].forEach(id => {
-        if (el(id)) el(id).dispatchEvent(new Event('input'));
-      });
-    }, 50);
+    resetQuoteEditorToCreateMode({ showFeedback: false });
 
     // Show success modal with Quote Number and Service Order Nos
     if (quoteNumber) {
@@ -1637,6 +2174,9 @@ export async function initializeBranchFields() {
     }
 
     // Store in state
+    state.ui.branchDefaults.branch = branchCode;
+    state.ui.branchDefaults.locationCode = locationCode;
+    state.ui.branchDefaults.responsibilityCenter = branchCode;
     state.quote.branch = branchCode;
     state.quote.locationCode = locationCode;
     state.quote.responsibilityCenter = branchCode;
@@ -1647,6 +2187,7 @@ export async function initializeBranchFields() {
       branchAsterisk.classList.add('hidden');
     }
 
+    updateQuoteEditorModeUi();
     console.log(`[BRANCH-INIT] SUCCESS: Branch fields initialized: ${branchCode} -> ${locationCode}`);
   } catch (error) {
     console.error('[BRANCH-INIT] Failed to initialize branch fields:', error);
@@ -1971,6 +2512,19 @@ function debounce(func, delay) {
  * Setup event listeners
  */
 export function setupEventListeners() {
+  const searchSalesQuoteInput = el('searchSalesQuoteNumber');
+  searchSalesQuoteInput?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleSearchSalesQuote();
+    }
+  });
+  searchSalesQuoteInput?.addEventListener('input', () => {
+    if (!state.ui.searchingQuote) {
+      setSearchSalesQuoteFeedback('', '', '');
+    }
+  });
+
   // Customer search (BC API - Legacy) - Direct input (no debounce)
   const customerSearch = el('customerSearch');
   customerSearch?.addEventListener('input', (e) => {
@@ -2226,6 +2780,8 @@ export function setupEventListeners() {
   // Setup event listeners for the edit line modal
   setupEditModalEventListeners();
 
+  updateQuoteEditorModeUi();
+
   console.log('Event listeners setup complete');
 }
 
@@ -2352,6 +2908,8 @@ if (typeof window !== 'undefined') {
   window.clearQuote = handleClearQuote;
   window.saveDraft = handleSaveDraft;
   window.sendQuote = handleSendQuote;
+  window.searchSalesQuote = handleSearchSalesQuote;
+  window.startNewSalesQuote = startNewSalesQuoteFlow;
 
   // Remove confirmation modal
   window.confirmRemoveLine = confirmRemoveLine;
@@ -2407,6 +2965,8 @@ if (typeof window !== 'undefined') {
   window.clearQuote = handleClearQuote;
   window.confirmClearQuote = confirmClearQuote;
   window.cancelClearQuote = cancelClearQuote;
+  window.searchSalesQuote = handleSearchSalesQuote;
+  window.startNewSalesQuote = startNewSalesQuoteFlow;
 }
 
 // Helper function for rendering item dropdown (imported from ui.js)
@@ -3157,6 +3717,8 @@ if (typeof window !== 'undefined') {
   window.openEditLineModal = openEditLineModal;
   window.closeEditLineModal = closeEditLineModal;
   window.saveEditLine = saveEditLine;
+  window.searchSalesQuote = handleSearchSalesQuote;
+  window.startNewSalesQuote = startNewSalesQuoteFlow;
   // New SER confirmation modal handlers
   window.confirmNewSerCreation = confirmNewSerCreation;
   window.cancelNewSerCreation = cancelNewSerCreation;

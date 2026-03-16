@@ -39,6 +39,7 @@ The Price List Calculator computes total cost based on four components:
   - **Inline Editing**: All text/number fields editable directly in table with real-time validation, Enter to save, Escape to cancel, blue highlight on active row
   - **Features**: Local database customer search (min 2 chars), customer/item search, quote line management (add/insert/remove), automatic calculations
   - **My Records Tab**: View submitted Sales Quote history with search functionality (Sales Quote Number, Work Description, Submitted At)
+  - **Search Quotes Tab**: Load existing Sales Quotes from Business Central by quote number for editing and resubmission
   - **Date Picker**: Order Date defaults to today (asterisk hidden), Requested Delivery Date prevents past dates (asterisk visible until selected)
   - **Required Field Indicators**: Dynamic red asterisks for 7 fields (Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, BRANCH) - hide when field has value, show when empty
   - **Customer Search**: Fast local lookups from BCCustomers table, auto-fills customer details and Sell-to address (Address, Address2, City, PostCode, VAT Reg No, Tax Branch No)
@@ -309,6 +310,8 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/business-central/gateway/create-sales-quote-without-number` | POST | Gateway proxy to Azure Function CreateSalesQuoteWithoutNumber | Yes |
 | `/api/business-central/gateway/create-service-item` | POST | Gateway proxy to Azure Function CreateServiceItem | Yes |
 | `/api/business-central/gateway/create-service-order-from-sq` | POST | Gateway proxy to Azure Function CreateServiceOrderFromSQ | Yes |
+| `/api/business-central/gateway/sales-quotes/from-number` | GET | Gateway proxy to Azure Function GetSalesQuotesFromNumber | Yes |
+| `/api/business-central/gateway/update-sales-quote` | POST | Gateway proxy to Azure Function UpdateSalesQuote | Yes |
 | `/api/salesquotes/records` | GET | List current user's Sales Quote submission records (?search={query}) | Yes |
 | `/api/salesquotes/records` | POST | Save a new Sales Quote submission record | Yes |
 | `/api/ping` | GET | Health check endpoint | No |
@@ -350,6 +353,8 @@ GATEWAY_BASE_URL="https://func-api-gateway-prod-uat.example.com/api"
 CSQWN_KEY="your-create-sales-quote-function-key"
 CSI_KEY="your-create-service-item-function-key"
 CSOFSQ_KEY="your-create-service-order-from-sq-function-key"
+GSQFN_KEY="your-get-sales-quotes-from-number-function-key"
+USQ_KEY="your-update-sales-quote-function-key"
 ```
 
 **Optional**: Set `MOCK_USER_EMAIL` to match existing database records' CreatorEmail values for delete operations in local development. Defaults to `'Dev User'`. Set `MOCK_USER_ROLE` to `PriceListExecutive` to test Executive features in local development. Defaults to `PriceListSales`.
@@ -598,6 +603,8 @@ The application is deployed to Azure App Service via manual deployment:
 - `CSQWN_KEY` - CreateSalesQuoteWithoutNumber function key
 - `CSI_KEY` - CreateServiceItem function key
 - `CSOFSQ_KEY` - CreateServiceOrderFromSQ function key
+- `GSQFN_KEY` - GetSalesQuotesFromNumber function key
+- `USQ_KEY` - UpdateSalesQuote function key
 
 **Note**: Share link generation automatically uses the App Service hostname. Business Central integration uses local database for lookups and a gateway proxy service for quote creation (API keys stored server-side for security).
 

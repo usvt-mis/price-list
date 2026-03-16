@@ -162,9 +162,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Frontend requests go through Express proxy routes under `/api/business-central/gateway/*`
 - Server reads gateway configuration from environment variables:
   - `GATEWAY_BASE_URL` - Azure Function base URL
-  - `CSQWN_KEY` - CreateSalesQuoteWithoutNumber function key
-  - `CSI_KEY` - CreateServiceItem function key
-  - `CSOFSQ_KEY` - CreateServiceOrderFromSQ function key
+  - `CSQWN_KEY` / `CSQWN_PATH` - CreateSalesQuoteWithoutNumber function key (and optional path override)
+  - `CSI_KEY` / `CSI_PATH` - CreateServiceItem function key (and optional path override)
+  - `CSOFSQ_KEY` / `CSOFSQ_PATH` - CreateServiceOrderFromSQ function key (and optional path override)
+  - `GSQFN_KEY` / `GSQFN_PATH` - GetSalesQuotesFromNumber function key (and optional path override)
+  - `USQ_KEY` / `USQ_PATH` - UpdateSalesQuote function key (and optional path override)
+- **GET/POST Support**: Gateway proxy supports both GET requests (with query parameters) and POST requests
+- **Fallback Keys**: GetSalesQuotesFromNumber and UpdateSalesQuote can fallback to CSQWN_KEY if their specific keys are not set
 - Frontend no longer includes API keys or hardcoded URLs
 - Gateway proxy injects `x-functions-key` header server-side and forwards requests to Azure Functions
 - Implementation: `api/src/routes/business-central/gateway.js`, `src/js/salesquotes/config.js` (GATEWAY_API constants)
@@ -215,6 +219,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - `CreateSalesQuoteWithoutNumber` - Create quotes in Business Central
 - `CreateServiceItem` - Create Service Items (New SER button)
 - `CreateServiceOrderFromSQ` - Create Service Orders from Sales Quote (after quote creation)
+- `GetSalesQuotesFromNumber` - Retrieve existing quotes from Business Central by quote number
+- `UpdateSalesQuote` - Update existing quotes in Business Central
 
 **Implementation:** `src/js/salesquotes/create-quote.js`
 
@@ -333,6 +339,45 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `handleQuoteLineHeaderDragStart/Over/Drop/End` - Drag-and-drop event handlers
 - **Preference Key**: `quote-line-columns` (stored as array of column IDs)
 - Implementation: `src/js/salesquotes/ui.js` - drag handlers and rendering, `src/js/salesquotes/preferences.js` - persistence, `src/salesquotes/components/styles/salesquotes-styles.css` - drag styles
+
+**Sales Quote Search and Edit:**
+- **Purpose**: Load existing Sales Quotes from Business Central for editing and resubmission
+- **Features**:
+  - Search Sales Quotes by quote number (e.g., SQRY2603-0040) via "Search Quotes" tab
+  - Quote loads into the same editor used for Create New Quote
+  - Mode banner displays when editing: shows quote number, status, customer, and branch
+  - "Send to Business Central" button changes to "Update in Business Central"
+  - All quote lines are loaded with BC IDs and ETags for optimistic concurrency
+  - Updates preserve BC etags for conflict detection
+- **State Management**:
+  - `state.quote.mode` - 'create' or 'edit'
+  - `state.quote.id` - BC quote ID
+  - `state.quote.number` - BC quote number
+  - `state.quote.etag` - BC OData etag for updates
+  - `state.quote.status` - BC quote status
+  - `state.quote.loadedFromBc` - Flag indicating quote was loaded from BC
+  - `state.quote.processedAt` - Timestamp of BC processing
+  - `state.ui.branchDefaults` - Stores default branch values to restore after "Start New Quote"
+- **Functions**:
+  - `handleSearchSalesQuote()` - Search for quote by number
+  - `fetchSalesQuoteByNumber()` - Call gateway proxy to retrieve quote
+  - `buildEditableQuoteFromSearchResponse()` - Transform BC response to editor format
+  - `applySearchedSalesQuote()` - Load quote into editor state
+  - `updateQuoteInAzureFunction()` - Submit updated quote to BC
+  - `resetQuoteEditorToCreateMode()` - Reset to create mode (preserves branch defaults)
+  - `startNewSalesQuoteFlow()` - Handler for "Start New Quote" button
+  - `updateQuoteEditorModeUi()` - Update banner and button text based on mode
+- **API Endpoints**:
+  - `GET /api/business-central/gateway/sales-quotes/from-number?salesQuoteNumber={number}` - Retrieve quote from BC
+  - `POST /api/business-central/gateway/update-sales-quote` - Update existing quote in BC
+- **Gateway Proxy Enhancements**:
+  - Support for GET requests with query parameters
+  - Path environment variable overrides (e.g., `GSQFN_PATH`, `USQ_PATH`)
+  - Fallback function key support (e.g., `GSQFN_KEY` falls back to `CSQWN_KEY`)
+- **Environment Variables** (new):
+  - `GSQFN_KEY` / `GSQFN_PATH` - GetSalesQuotesFromNumber function key and path
+  - `USQ_KEY` / `USQ_PATH` - UpdateSalesQuote function key and path
+- Implementation: `src/js/salesquotes/create-quote.js` - search/update logic, `src/js/salesquotes/state.js` - edit mode state, `src/js/salesquotes/ui.js` - mode banner UI, `src/salesquotes.html` - search form, `api/src/routes/business-central/gateway.js` - proxy routes
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 

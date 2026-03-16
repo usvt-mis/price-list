@@ -6,18 +6,15 @@
 
 import { STORAGE_KEY_PREFIXES } from '../core/config.js';
 
-// ============================================================
-// State Object
-// ============================================================
-
-export const state = {
-  // Current view
-  currentView: 'create', // 'create' | 'search' | 'detail'
-
-  // Quote data
-  quote: {
+function createInitialQuoteState(overrides = {}) {
+  return {
     id: null,
     number: null,
+    etag: null,
+    status: null,
+    mode: 'create',
+    loadedFromBc: false,
+    processedAt: null,
     customerId: null,
     customer: null,
     customerNo: null,
@@ -31,7 +28,6 @@ export const state = {
       taxBranchNo: null
     },
     workDescription: '',
-    // New fields
     contact: '',
     salespersonCode: '',
     salespersonName: '',
@@ -41,8 +37,21 @@ export const state = {
     branch: '',
     locationCode: '',
     responsibilityCenter: '',
-    lines: []
-  },
+    lines: [],
+    ...overrides
+  };
+}
+
+// ============================================================
+// State Object
+// ============================================================
+
+export const state = {
+  // Current view
+  currentView: 'create', // 'create' | 'search' | 'detail'
+
+  // Quote data
+  quote: createInitialQuoteState(),
 
   // Form data
   formData: {
@@ -73,6 +82,7 @@ export const state = {
   ui: {
     loading: false,
     saving: false,
+    searchingQuote: false,
     error: null,
     success: null,
     showCustomerDropdown: false,
@@ -88,6 +98,11 @@ export const state = {
     pendingSerCreationEdit: false,  // Track if SER creation confirmation modal is open (Edit Line)
     editLineLocked: false,  // Track if Edit Line fields are locked (Type, Serv Item No, Serv Item Desc) when Service Item already exists
     quoteLineColumnOrder: [],
+    branchDefaults: {
+      branch: '',
+      locationCode: '',
+      responsibilityCenter: ''
+    },
     // Track valid dropdown selections to prevent free-text input
     // Only validate if field was "touched" (user interacted with it)
     dropdownFields: {
@@ -217,34 +232,11 @@ export function loadDraftQuote() {
  * Initialize new quote
  */
 export function initNewQuote() {
-  state.quote = {
-    id: null,
-    number: null,
-    customerId: null,
-    customer: null,
-    customerNo: null,
-    customerName: null,
-    sellTo: {
-      address: null,
-      address2: null,
-      city: null,
-      postCode: null,
-      vatRegNo: null,
-      taxBranchNo: null
-    },
-    workDescription: '',
-    // New fields
-    contact: '',
-    salespersonCode: '',
-    salespersonName: '',
-    assignedUserId: '',
-    serviceOrderType: '',
-    division: 'MS1029',
-    branch: '',
-    locationCode: '',
-    responsibilityCenter: '',
-    lines: []
-  };
+  state.quote = createInitialQuoteState({
+    branch: state.ui.branchDefaults.branch || '',
+    locationCode: state.ui.branchDefaults.locationCode || '',
+    responsibilityCenter: state.ui.branchDefaults.responsibilityCenter || ''
+  });
   state.formData.selectedCustomer = null;
   console.log('New quote initialized');
 }
@@ -254,6 +246,14 @@ export function initNewQuote() {
  */
 export function setQuoteCustomer(customer) {
   state.quote.customerId = customer.CustomerNo;
+  state.quote.customer = {
+    id: customer.CustomerNo,
+    number: customer.CustomerNo,
+    name: customer.CustomerName,
+    address: customer.Address || '',
+    phone: customer.Phone || '',
+    email: customer.Email || ''
+  };
   state.quote.customerNo = customer.CustomerNo;
   state.quote.customerName = customer.CustomerName;
   state.quote.sellTo = {
@@ -334,6 +334,21 @@ export function removeQuoteLine(index) {
 export function clearQuoteLines() {
   state.quote.lines = [];
   saveState();
+}
+
+/**
+ * Reset dropdown validation flags
+ */
+export function resetDropdownValidationState(fieldNames = Object.keys(state.ui.dropdownFields)) {
+  fieldNames.forEach(fieldName => {
+    const fieldState = state.ui.dropdownFields[fieldName];
+    if (!fieldState) {
+      return;
+    }
+
+    fieldState.valid = false;
+    fieldState.touched = false;
+  });
 }
 
 // ============================================================
