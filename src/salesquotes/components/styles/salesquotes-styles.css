@@ -45,6 +45,59 @@ input[type="number"] {
   white-space: nowrap;
 }
 
+.quote-line-column-header {
+  position: relative;
+  user-select: none;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.quote-line-column-header.is-draggable {
+  cursor: grab;
+}
+
+.quote-line-column-header.is-dragging {
+  opacity: 0.55;
+  background: #e0e7ff;
+}
+
+.quote-line-column-header.drop-before::before,
+.quote-line-column-header.drop-after::after {
+  position: absolute;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #2563eb 0%, #0f766e 100%);
+  content: "";
+  pointer-events: none;
+}
+
+.quote-line-column-header.drop-before::before {
+  left: 0;
+}
+
+.quote-line-column-header.drop-after::after {
+  right: 0;
+}
+
+.quote-line-column-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.quote-line-column-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.quote-line-column-handle {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
 .bc-table td {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid #f1f5f9;

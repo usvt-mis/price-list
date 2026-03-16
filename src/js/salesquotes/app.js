@@ -6,7 +6,7 @@
 
 import { initAuth, renderAuthSection } from '../auth/index.js';
 import { state, initState, setCurrentView, STORAGE_KEYS } from './state.js';
-import { el, show, hide, showToast } from './ui.js';
+import { el, show, hide, showToast, initializeQuoteLinePersonalization } from './ui.js';
 import { loadInitialData, setupEventListeners } from './create-quote.js';
 import { preloadAllModals } from './components/modal-loader.js';
 import { setupQuoteSubmissionRecordEventListeners } from './records.js';
@@ -43,19 +43,23 @@ async function initApp() {
     await preloadAllModals();
     console.log('Modals preloaded');
 
-    // 6. Load initial data from BC (customers, items)
+    // 6. Initialize quote line personalization after modals are ready
+    await initializeQuoteLinePersonalization();
+    console.log('Quote line personalization initialized');
+
+    // 7. Load initial data from BC (customers, items)
     await loadInitialData();
     console.log('Initial data loaded');
 
-    // 7. Setup event listeners
+    // 8. Setup event listeners
     setupEventListeners();
     console.log('Event listeners setup');
 
-    // 8. Setup record view event listeners
+    // 9. Setup record view event listeners
     setupQuoteSubmissionRecordEventListeners();
     console.log('Record event listeners setup');
 
-    // 9. Initialize asterisk state for any default values
+    // 10. Initialize asterisk state for any default values
     setTimeout(() => {
       ['customerNoSearch', 'orderDate', 'requestedDeliveryDate'].forEach(id => {
         const field = el(id);
@@ -65,7 +69,7 @@ async function initApp() {
       });
     }, 100);
 
-    // 10. Set initial view
+    // 11. Set initial view
     setCurrentView('create');
     console.log('Initial view set');
 

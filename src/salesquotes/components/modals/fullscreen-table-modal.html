@@ -15,40 +15,35 @@
             <p class="text-sm text-gray-500">All columns visible - Edit mode available</p>
           </div>
         </div>
-        <button
-          onclick="window.closeFullscreenTable()"
-          class="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 text-slate-700 rounded-lg px-4 py-2 font-medium hover:bg-slate-50 transition-all duration-200 shadow-sm"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-          Close
-        </button>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <button
+            id="resetQuoteLineColumnsBtnFullscreen"
+            class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 transition-all duration-200 hover:bg-slate-50 shadow-sm"
+            type="button"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M5.64 18.36A9 9 0 1120 12"></path>
+            </svg>
+            Reset Columns
+          </button>
+          <button
+            onclick="window.closeFullscreenTable()"
+            class="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 text-slate-700 rounded-lg px-4 py-2 font-medium hover:bg-slate-50 transition-all duration-200 shadow-sm"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Close
+          </button>
+        </div>
       </div>
 
       <!-- Table Container -->
       <div class="flex-1 overflow-auto p-4">
+        <p class="mb-3 text-xs text-slate-500">Drag column headers to rearrange. Your layout syncs with the main table and saves automatically.</p>
         <div class="rounded-xl border border-slate-200">
           <table class="bc-table w-full">
-            <thead>
-              <tr>
-                <th style="width: 40px;">#</th>
-                <th style="width: 80px;">Type</th>
-                <th style="width: 120px;">Serv. Item No.</th>
-                <th style="width: 150px;">Serv. Item Desc.</th>
-                <th style="width: 80px;">Group No.</th>
-                <th style="width: 150px;">No.</th>
-                <th style="width: 350px;">Description</th>
-                <th style="width: 70px;">Qty.</th>
-                <th style="width: 100px;">Unit Price</th>
-                <th style="width: 60px;">Add</th>
-                <th style="width: 130px;">Ref. SQ No.</th>
-                <th style="width: 80px;">Disc. %</th>
-                <th style="width: 90px;">Discount Amt.</th>
-                <th style="width: 100px;">Line Total</th>
-                <th style="width: 100px;">Actions</th>
-              </tr>
-            </thead>
+            <thead id="fullscreenLinesTableHead"></thead>
             <tbody id="fullscreenLinesTableBody" class="divide-y divide-slate-100">
               <!-- Lines will be synced here -->
             </tbody>

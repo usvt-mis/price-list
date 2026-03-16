@@ -5,6 +5,7 @@
 
 import { state } from './state.js';
 import { BC_UI_CONFIG } from './config.js';
+import { SALES_QUOTES_PREFERENCE_KEYS, loadSalesQuotePreference, saveSalesQuotePreference } from './preferences.js';
 
 // ============================================================
 // DOM Element Helpers
@@ -320,64 +321,467 @@ export function hideItemDropdown() {
 // Quote Lines Table
 // ============================================================
 
+const QUOTE_LINE_LAYOUT_HINT_DEFAULT = 'Drag column headers to rearrange. Layout saves automatically for your user.';
+const QUOTE_LINE_DRAG_STATE = {
+  draggedColumnId: null
+};
+
+const QUOTE_LINE_COLUMNS = [
+  {
+    id: 'sequence',
+    label: '#',
+    width: '40px',
+    headerClass: 'text-center',
+    cellClass: 'font-medium text-center',
+    render: (line) => `${line.sequence}`
+  },
+  {
+    id: 'lineType',
+    label: 'Type',
+    width: '80px',
+    cellClass: 'text-sm',
+    render: (line) => line.lineType || '-'
+  },
+  {
+    id: 'usvtServiceItemNo',
+    label: 'Serv. Item No.',
+    width: '120px',
+    cellClass: 'text-sm',
+    render: (line) => line.usvtServiceItemNo || ''
+  },
+  {
+    id: 'usvtServiceItemDescription',
+    label: 'Serv. Item Desc.',
+    width: '150px',
+    cellClass: 'text-sm',
+    render: (line) => line.usvtServiceItemDescription || ''
+  },
+  {
+    id: 'usvtGroupNo',
+    label: 'Group No.',
+    width: '80px',
+    headerClass: 'text-center',
+    cellClass: 'text-sm text-center',
+    render: (line) => line.usvtGroupNo || ''
+  },
+  {
+    id: 'lineObjectNumber',
+    label: 'No.',
+    width: '150px',
+    cellClass: 'text-sm font-medium',
+    render: (line) => line.lineObjectNumber || '-'
+  },
+  {
+    id: 'description',
+    label: 'Description',
+    width: '350px',
+    cellClass: 'text-sm',
+    render: (line) => line.description || ''
+  },
+  {
+    id: 'quantity',
+    label: 'Qty.',
+    width: '70px',
+    headerClass: 'text-center',
+    cellClass: 'text-sm text-center',
+    render: (line) => `${line.quantity}`
+  },
+  {
+    id: 'unitPrice',
+    label: 'Unit Price',
+    width: '100px',
+    headerClass: 'text-right',
+    cellClass: 'text-sm text-right',
+    render: (line) => formatCurrency(parseFloat(line.unitPrice))
+  },
+  {
+    id: 'usvtAddition',
+    label: 'Add',
+    width: '60px',
+    headerClass: 'text-center',
+    cellClass: 'text-center',
+    render: (line) => `
+      <label class="toggle-switch" style="transform: scale(0.85);">
+        <input type="checkbox" ${line.usvtAddition ? 'checked' : ''} disabled>
+        <span class="toggle-slider"></span>
+      </label>
+    `
+  },
+  {
+    id: 'usvtRefSalesQuoteno',
+    label: 'Ref. SQ No.',
+    width: '130px',
+    cellClass: 'text-sm',
+    render: (line) => line.usvtRefSalesQuoteno || ''
+  },
+  {
+    id: 'discountPercent',
+    label: 'Disc. %',
+    width: '80px',
+    headerClass: 'text-right',
+    cellClass: 'text-sm text-right',
+    render: (line) => `${parseFloat(line.discountPercent || 0).toFixed(1)}%`
+  },
+  {
+    id: 'discountAmount',
+    label: 'Discount Amt.',
+    width: '90px',
+    headerClass: 'text-right',
+    cellClass: 'text-sm text-right',
+    render: (line) => formatCurrency(parseFloat(line.discountAmount || 0))
+  },
+  {
+    id: 'lineTotal',
+    label: 'Line Total',
+    width: '100px',
+    headerClass: 'text-right',
+    cellClass: 'font-bold text-gray-900 text-right',
+    render: (line) => formatCurrency(calculateLineTotal(line))
+  },
+  {
+    id: 'actions',
+    label: 'Actions',
+    width: '100px',
+    cellClass: 'whitespace-nowrap',
+    render: (line, index) => `
+      <div class="flex gap-1">
+        <button class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1" onclick="window.openEditLineModal('${line.id}')">Edit</button>
+        <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1" onclick="window.openInsertLineModal(${index})">Insert</button>
+        <button class="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1" onclick="window.removeQuoteLine(${index})">Remove</button>
+      </div>
+    `
+  }
+];
+
+const QUOTE_LINE_COLUMNS_BY_ID = new Map(
+  QUOTE_LINE_COLUMNS.map(column => [column.id, column])
+);
+
+const DEFAULT_QUOTE_LINE_COLUMN_ORDER = QUOTE_LINE_COLUMNS.map(column => column.id);
+
+let quoteLineHintResetTimer = null;
+
+function sanitizeQuoteLineColumnOrder(order) {
+  const requestedOrder = Array.isArray(order) ? order : [];
+  const normalizedOrder = [];
+
+  requestedOrder.forEach(columnId => {
+    if (QUOTE_LINE_COLUMNS_BY_ID.has(columnId) && !normalizedOrder.includes(columnId)) {
+      normalizedOrder.push(columnId);
+    }
+  });
+
+  DEFAULT_QUOTE_LINE_COLUMN_ORDER.forEach(columnId => {
+    if (!normalizedOrder.includes(columnId)) {
+      normalizedOrder.push(columnId);
+    }
+  });
+
+  return normalizedOrder;
+}
+
+function getQuoteLineColumnOrder() {
+  return sanitizeQuoteLineColumnOrder(state.ui.quoteLineColumnOrder);
+}
+
+function setQuoteLineColumnOrder(order) {
+  state.ui.quoteLineColumnOrder = sanitizeQuoteLineColumnOrder(order);
+  updateQuoteLineLayoutControls();
+}
+
+function isDefaultQuoteLineColumnOrder(order = getQuoteLineColumnOrder()) {
+  return DEFAULT_QUOTE_LINE_COLUMN_ORDER.every((columnId, index) => columnId === order[index]);
+}
+
+function setQuoteLineLayoutHint(message = QUOTE_LINE_LAYOUT_HINT_DEFAULT, tone = 'muted') {
+  const hint = el('quoteLineLayoutHint');
+  if (!hint) {
+    return;
+  }
+
+  hint.textContent = message;
+  hint.classList.remove('text-slate-500', 'text-emerald-600', 'text-rose-600');
+
+  if (tone === 'success') {
+    hint.classList.add('text-emerald-600');
+  } else if (tone === 'error') {
+    hint.classList.add('text-rose-600');
+  } else {
+    hint.classList.add('text-slate-500');
+  }
+
+  if (quoteLineHintResetTimer) {
+    clearTimeout(quoteLineHintResetTimer);
+    quoteLineHintResetTimer = null;
+  }
+
+  if (message !== QUOTE_LINE_LAYOUT_HINT_DEFAULT) {
+    quoteLineHintResetTimer = setTimeout(() => {
+      setQuoteLineLayoutHint();
+    }, 2400);
+  }
+}
+
+function updateQuoteLineLayoutControls() {
+  const isDefault = isDefaultQuoteLineColumnOrder();
+
+  ['resetQuoteLineColumnsBtn', 'resetQuoteLineColumnsBtnFullscreen'].forEach(buttonId => {
+    const button = el(buttonId);
+    if (button) {
+      button.disabled = isDefault;
+    }
+  });
+}
+
+function getOrderedQuoteLineColumns() {
+  return getQuoteLineColumnOrder()
+    .map(columnId => QUOTE_LINE_COLUMNS_BY_ID.get(columnId))
+    .filter(Boolean);
+}
+
+function getQuoteLineHeaderMarkup(column) {
+  const headerClass = column.headerClass ? ` ${column.headerClass}` : '';
+
+  return `
+    <th
+      class="quote-line-column-header is-draggable${headerClass}"
+      style="width: ${column.width};"
+      data-column-id="${column.id}"
+      draggable="true"
+      title="Drag to move column"
+    >
+      <div class="quote-line-column-header-content">
+        <span class="quote-line-column-title">
+          <svg class="quote-line-column-handle h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h.01M8 12h.01M8 17h.01M16 7h.01M16 12h.01M16 17h.01"></path>
+          </svg>
+          <span>${column.label}</span>
+        </span>
+      </div>
+    </th>
+  `;
+}
+
+function renderQuoteLineHeaders() {
+  const headerMarkup = `<tr>${getOrderedQuoteLineColumns().map(getQuoteLineHeaderMarkup).join('')}</tr>`;
+
+  ['linesTableHead', 'fullscreenLinesTableHead'].forEach(headerId => {
+    const header = el(headerId);
+    if (!header) {
+      return;
+    }
+
+    header.innerHTML = headerMarkup;
+    attachQuoteLineHeaderDragHandlers(header);
+  });
+}
+
+function renderQuoteLineCell(column, line, index) {
+  const cellClass = column.cellClass ? ` ${column.cellClass}` : '';
+  return `<td class="${cellClass.trim()}">${column.render(line, index)}</td>`;
+}
+
+function renderQuoteLineRow(line, index, rowClass) {
+  const cells = getOrderedQuoteLineColumns()
+    .map(column => renderQuoteLineCell(column, line, index))
+    .join('');
+
+  return `
+    <tr class="${rowClass} row-double-clickable" ondblclick="window.openEditLineModal('${line.id}')">
+      ${cells}
+    </tr>
+  `;
+}
+
+function renderQuoteLineBody(tableBodyId, emptyStateId) {
+  const tbody = el(tableBodyId);
+  const noLinesMessage = el(emptyStateId);
+
+  if (!tbody) {
+    return;
+  }
+
+  if (state.quote.lines.length === 0) {
+    tbody.innerHTML = '';
+    if (noLinesMessage) {
+      noLinesMessage.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (noLinesMessage) {
+    noLinesMessage.classList.add('hidden');
+  }
+
+  tbody.innerHTML = state.quote.lines.map((line, index) => {
+    const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+    return renderQuoteLineRow(line, index, rowClass);
+  }).join('');
+}
+
+async function persistQuoteLineColumnOrder(order = getQuoteLineColumnOrder(), { showSuccessState = true } = {}) {
+  try {
+    setQuoteLineLayoutHint('Saving layout...', 'muted');
+    await saveSalesQuotePreference(SALES_QUOTES_PREFERENCE_KEYS.LINE_COLUMN_ORDER, order);
+
+    if (showSuccessState) {
+      setQuoteLineLayoutHint('Layout saved for your user.', 'success');
+    }
+  } catch (error) {
+    console.error('Failed to save quote line layout:', error);
+    setQuoteLineLayoutHint('Unable to save layout right now.', 'error');
+    showToast('Unable to save your line column layout right now.', 'error');
+  }
+}
+
+function clearQuoteLineHeaderDragState() {
+  QUOTE_LINE_DRAG_STATE.draggedColumnId = null;
+
+  document.querySelectorAll('.quote-line-column-header').forEach(header => {
+    header.classList.remove('is-dragging', 'drop-before', 'drop-after');
+  });
+}
+
+function moveQuoteLineColumn(draggedColumnId, targetColumnId, position) {
+  const nextOrder = getQuoteLineColumnOrder().filter(columnId => columnId !== draggedColumnId);
+  const targetIndex = nextOrder.indexOf(targetColumnId);
+
+  if (targetIndex === -1) {
+    return getQuoteLineColumnOrder();
+  }
+
+  const insertIndex = position === 'after' ? targetIndex + 1 : targetIndex;
+  nextOrder.splice(insertIndex, 0, draggedColumnId);
+
+  return nextOrder;
+}
+
+function getDropPosition(target, event) {
+  const rect = target.getBoundingClientRect();
+  const midpoint = rect.left + (rect.width / 2);
+  return event.clientX >= midpoint ? 'after' : 'before';
+}
+
+function handleQuoteLineHeaderDragStart(event) {
+  const header = event.currentTarget;
+  QUOTE_LINE_DRAG_STATE.draggedColumnId = header.dataset.columnId;
+  header.classList.add('is-dragging');
+
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', QUOTE_LINE_DRAG_STATE.draggedColumnId);
+  }
+}
+
+function handleQuoteLineHeaderDragOver(event) {
+  event.preventDefault();
+
+  const header = event.currentTarget;
+  const targetColumnId = header.dataset.columnId;
+
+  if (!QUOTE_LINE_DRAG_STATE.draggedColumnId || targetColumnId === QUOTE_LINE_DRAG_STATE.draggedColumnId) {
+    header.classList.remove('drop-before', 'drop-after');
+    return;
+  }
+
+  const dropPosition = getDropPosition(header, event);
+
+  header.classList.toggle('drop-before', dropPosition === 'before');
+  header.classList.toggle('drop-after', dropPosition === 'after');
+}
+
+async function handleQuoteLineHeaderDrop(event) {
+  event.preventDefault();
+
+  const header = event.currentTarget;
+  const targetColumnId = header.dataset.columnId;
+  const draggedColumnId = QUOTE_LINE_DRAG_STATE.draggedColumnId;
+
+  if (!draggedColumnId || draggedColumnId === targetColumnId) {
+    clearQuoteLineHeaderDragState();
+    return;
+  }
+
+  const nextOrder = moveQuoteLineColumn(draggedColumnId, targetColumnId, getDropPosition(header, event));
+  const currentOrder = getQuoteLineColumnOrder();
+
+  clearQuoteLineHeaderDragState();
+
+  if (nextOrder.every((columnId, index) => columnId === currentOrder[index])) {
+    return;
+  }
+
+  setQuoteLineColumnOrder(nextOrder);
+  renderQuoteLines();
+  await persistQuoteLineColumnOrder(nextOrder);
+}
+
+function handleQuoteLineHeaderDragEnd() {
+  clearQuoteLineHeaderDragState();
+}
+
+function attachQuoteLineHeaderDragHandlers(headerRoot) {
+  headerRoot.querySelectorAll('.quote-line-column-header').forEach(header => {
+    header.addEventListener('dragstart', handleQuoteLineHeaderDragStart);
+    header.addEventListener('dragover', handleQuoteLineHeaderDragOver);
+    header.addEventListener('drop', handleQuoteLineHeaderDrop);
+    header.addEventListener('dragend', handleQuoteLineHeaderDragEnd);
+    header.addEventListener('dragleave', () => {
+      header.classList.remove('drop-before', 'drop-after');
+    });
+  });
+}
+
+export async function resetQuoteLineColumnOrder() {
+  if (isDefaultQuoteLineColumnOrder()) {
+    return;
+  }
+
+  setQuoteLineColumnOrder(DEFAULT_QUOTE_LINE_COLUMN_ORDER);
+  renderQuoteLines();
+  await persistQuoteLineColumnOrder(DEFAULT_QUOTE_LINE_COLUMN_ORDER, { showSuccessState: false });
+  setQuoteLineLayoutHint('Layout reset to default.', 'success');
+}
+
+export async function initializeQuoteLinePersonalization() {
+  setQuoteLineColumnOrder(DEFAULT_QUOTE_LINE_COLUMN_ORDER);
+  setQuoteLineLayoutHint();
+
+  const resetHandler = () => {
+    resetQuoteLineColumnOrder();
+  };
+
+  const resetButton = el('resetQuoteLineColumnsBtn');
+  if (resetButton) {
+    resetButton.onclick = resetHandler;
+  }
+
+  const fullscreenResetButton = el('resetQuoteLineColumnsBtnFullscreen');
+  if (fullscreenResetButton) {
+    fullscreenResetButton.onclick = resetHandler;
+  }
+
+  renderQuoteLineHeaders();
+  renderQuoteLines();
+
+  try {
+    const response = await loadSalesQuotePreference(SALES_QUOTES_PREFERENCE_KEYS.LINE_COLUMN_ORDER);
+    if (Array.isArray(response?.value)) {
+      setQuoteLineColumnOrder(response.value);
+      renderQuoteLines();
+    }
+  } catch (error) {
+    console.warn('Failed to load saved quote line layout, using default order:', error);
+  }
+}
+
 /**
  * Render quote lines table
  */
 export function renderQuoteLines() {
-  const tbody = el('linesTableBody');
-  const noLinesMessage = el('noLinesMessage');
-
-  if (!tbody) return;
-
-  if (state.quote.lines.length === 0) {
-    tbody.innerHTML = '';
-    if (noLinesMessage) noLinesMessage.classList.remove('hidden');
-    return;
-  }
-
-  if (noLinesMessage) noLinesMessage.classList.add('hidden');
-
-  tbody.innerHTML = state.quote.lines.map((line, index) => {
-    const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-slate-50';
-    return renderViewRow(line, index, rowClass);
-  }).join('');
-
-  // Update fullscreen table if open
-  updateFullscreenTable();
-}
-
-/**
- * Render a view mode row (read-only)
- */
-function renderViewRow(line, index, rowClass) {
-  return `
-    <tr class="${rowClass} row-double-clickable" ondblclick="window.openEditLineModal('${line.id}')">
-      <td class="font-medium text-center">${line.sequence}</td>
-      <td class="text-sm">${line.lineType || '-'}</td>
-      <td class="text-sm">${line.usvtServiceItemNo || ''}</td>
-      <td class="text-sm">${line.usvtServiceItemDescription || ''}</td>
-      <td class="text-sm text-center">${line.usvtGroupNo || ''}</td>
-      <td class="text-sm font-medium">${line.lineObjectNumber || '-'}</td>
-      <td class="text-sm">${line.description || ''}</td>
-      <td class="text-sm text-center">${line.quantity}</td>
-      <td class="text-sm text-right">${formatCurrency(parseFloat(line.unitPrice))}</td>
-      <td class="text-center">
-        <label class="toggle-switch" style="transform: scale(0.85);">
-          <input type="checkbox" ${line.usvtAddition ? 'checked' : ''} disabled>
-          <span class="toggle-slider"></span>
-        </label>
-      </td>
-      <td class="text-sm">${line.usvtRefSalesQuoteno || ''}</td>
-      <td class="text-sm text-right">${parseFloat(line.discountPercent || 0).toFixed(1)}%</td>
-      <td class="text-sm text-right">${formatCurrency(parseFloat(line.discountAmount || 0))}</td>
-      <td class="font-bold text-gray-900 text-right">${formatCurrency(calculateLineTotal(line))}</td>
-      <td class="flex gap-1">
-        <button class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1" onclick="window.openEditLineModal('${line.id}')">Edit</button>
-        <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1" onclick="window.openInsertLineModal(${index})">Insert</button>
-        <button class="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1" onclick="window.removeQuoteLine(${index})">Remove</button>
-      </td>
-    </tr>
-  `;
+  renderQuoteLineHeaders();
+  renderQuoteLineBody('linesTableBody', 'noLinesMessage');
+  renderQuoteLineBody('fullscreenLinesTableBody', 'fullscreenNoLinesMessage');
 }
 
 /**
@@ -1426,7 +1830,7 @@ export function openFullscreenTable() {
   }
 
   // Sync table content
-  syncFullscreenTable();
+  updateFullscreenTable();
 
   // Show modal
   modal.classList.remove('hidden');
@@ -1475,32 +1879,15 @@ function handleFullscreenEsc(event) {
  * Sync fullscreen table with main table
  */
 function syncFullscreenTable() {
-  const fullscreenTbody = el('fullscreenLinesTableBody');
-  const mainTbody = el('linesTableBody');
-  const fullscreenNoLines = el('fullscreenNoLinesMessage');
-
-  if (!fullscreenTbody || !mainTbody) return;
-
-  // Clone the table content
-  fullscreenTbody.innerHTML = mainTbody.innerHTML;
-
-  // Show/hide no lines message
-  if (fullscreenNoLines) {
-    if (state.quote.lines.length === 0) {
-      fullscreenNoLines.classList.remove('hidden');
-    } else {
-      fullscreenNoLines.classList.add('hidden');
-    }
-  }
+  renderQuoteLineHeaders();
+  renderQuoteLineBody('fullscreenLinesTableBody', 'fullscreenNoLinesMessage');
 }
 
 /**
  * Update fullscreen table when lines change
  */
 export function updateFullscreenTable() {
-  if (!el('fullscreenTableModal')?.classList.contains('hidden')) {
-    syncFullscreenTable();
-  }
+  syncFullscreenTable();
 }
 
 // ============================================================
@@ -1642,6 +2029,7 @@ if (typeof window !== 'undefined') {
   window.copyQuoteNumber = copyQuoteNumber;
   window.openFullscreenTable = openFullscreenTable;
   window.closeFullscreenTable = closeFullscreenTable;
+  window.resetQuoteLineColumns = resetQuoteLineColumnOrder;
   window.showConfirmClearQuoteModal = showConfirmClearQuoteModal;
   window.hideConfirmClearQuoteModal = hideConfirmClearQuoteModal;
   window.closeNoBranchModal = hideNoBranchModal;

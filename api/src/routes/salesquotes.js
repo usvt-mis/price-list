@@ -3,8 +3,10 @@ const sql = require('mssql');
 const { getPool } = require('../db');
 const { extractUserEmail } = require('../middleware/authExpress');
 const { ensureSalesQuoteSubmissionRecordsTable } = require('../utils/salesQuoteSubmissionRecords');
+const { ensureSalesQuoteUserPreferencesTable } = require('../utils/salesQuoteUserPreferences');
 
 const router = express.Router();
+const MAX_PREFERENCE_KEY_LENGTH = 100;
 
 function getAuthenticatedEmail(req) {
   const email = extractUserEmail(req.user || {}) || req.user?.userDetails || '';
@@ -26,6 +28,147 @@ function mapSubmissionRecord(record) {
     submittedAt: record.SubmittedAt
   };
 }
+
+function normalizePreferenceKey(key) {
+  return String(key || '').trim().toLowerCase();
+}
+
+function validatePreferenceKey(key) {
+  return key &&
+         key.length <= MAX_PREFERENCE_KEY_LENGTH &&
+         /^[a-z0-9-]+$/.test(key);
+}
+
+function safeParsePreferenceValue(rawValue) {
+  try {
+    return JSON.parse(rawValue);
+  } catch (error) {
+    return null;
+  }
+}
+
+router.get('/preferences/:key', async (req, res, next) => {
+  try {
+    const userEmail = getAuthenticatedEmail(req);
+    if (!userEmail) {
+      return res.status(401).json({ error: 'Unable to determine current user email' });
+    }
+
+    const preferenceKey = normalizePreferenceKey(req.params.key);
+    if (!validatePreferenceKey(preferenceKey)) {
+      return res.status(400).json({ error: 'Invalid preference key' });
+    }
+
+    const pool = await getPool();
+    await ensureSalesQuoteUserPreferencesTable(pool);
+
+    const result = await pool.request()
+      .input('userEmail', sql.NVarChar, userEmail)
+      .input('preferenceKey', sql.NVarChar(MAX_PREFERENCE_KEY_LENGTH), preferenceKey)
+      .query(`
+        SELECT TOP 1
+          PreferenceKey,
+          PreferenceValue,
+          UpdatedAt
+        FROM SalesQuoteUserPreferences
+        WHERE UserEmail = @userEmail
+          AND PreferenceKey = @preferenceKey
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(200).json({
+        preferenceKey,
+        value: null
+      });
+    }
+
+    const record = result.recordset[0];
+    const parsedValue = safeParsePreferenceValue(record.PreferenceValue);
+
+    if (parsedValue === null) {
+      return res.status(200).json({
+        preferenceKey,
+        value: null,
+        updatedAt: record.UpdatedAt
+      });
+    }
+
+    res.status(200).json({
+      preferenceKey,
+      value: parsedValue,
+      updatedAt: record.UpdatedAt
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/preferences/:key', async (req, res, next) => {
+  try {
+    const userEmail = getAuthenticatedEmail(req);
+    if (!userEmail) {
+      return res.status(401).json({ error: 'Unable to determine current user email' });
+    }
+
+    const preferenceKey = normalizePreferenceKey(req.params.key);
+    if (!validatePreferenceKey(preferenceKey)) {
+      return res.status(400).json({ error: 'Invalid preference key' });
+    }
+
+    if (typeof req.body?.value === 'undefined') {
+      return res.status(400).json({ error: 'Preference value is required' });
+    }
+
+    const preferenceValue = JSON.stringify(req.body.value);
+    const pool = await getPool();
+    await ensureSalesQuoteUserPreferencesTable(pool);
+
+    const result = await pool.request()
+      .input('userEmail', sql.NVarChar, userEmail)
+      .input('preferenceKey', sql.NVarChar(MAX_PREFERENCE_KEY_LENGTH), preferenceKey)
+      .input('preferenceValue', sql.NVarChar(sql.MAX), preferenceValue)
+      .query(`
+        UPDATE SalesQuoteUserPreferences
+        SET PreferenceValue = @preferenceValue,
+            UpdatedAt = GETUTCDATE()
+        WHERE UserEmail = @userEmail
+          AND PreferenceKey = @preferenceKey;
+
+        IF @@ROWCOUNT = 0
+        BEGIN
+          INSERT INTO SalesQuoteUserPreferences (
+            UserEmail,
+            PreferenceKey,
+            PreferenceValue
+          )
+          VALUES (
+            @userEmail,
+            @preferenceKey,
+            @preferenceValue
+          );
+        END
+
+        SELECT TOP 1
+          PreferenceKey,
+          PreferenceValue,
+          UpdatedAt
+        FROM SalesQuoteUserPreferences
+        WHERE UserEmail = @userEmail
+          AND PreferenceKey = @preferenceKey;
+      `);
+
+    const record = result.recordset[0];
+
+    res.status(200).json({
+      message: 'Preference saved successfully',
+      preferenceKey: record.PreferenceKey,
+      value: safeParsePreferenceValue(record.PreferenceValue),
+      updatedAt: record.UpdatedAt
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get('/records', async (req, res, next) => {
   try {

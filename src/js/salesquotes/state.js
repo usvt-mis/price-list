@@ -87,6 +87,7 @@ export const state = {
     serCreatedEdit: false,  // Track if SER was successfully created in Edit Line modal
     pendingSerCreationEdit: false,  // Track if SER creation confirmation modal is open (Edit Line)
     editLineLocked: false,  // Track if Edit Line fields are locked (Type, Serv Item No, Serv Item Desc) when Service Item already exists
+    quoteLineColumnOrder: [],
     // Track valid dropdown selections to prevent free-text input
     // Only validate if field was "touched" (user interacted with it)
     dropdownFields: {

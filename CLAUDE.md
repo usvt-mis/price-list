@@ -70,13 +70,13 @@ src/js/
 ├── auth/           # Authentication (token-handling, mode-detection, ui)
 ├── onsite/         # Onsite calculator modules
 ├── workshop/       # Workshop calculator modules
-└── salesquotes/    # Sales Quotes modules (includes records.js)
+└── salesquotes/    # Sales Quotes modules (includes records.js, preferences.js)
 
 api/src/
 ├── routes/         # Express.js route modules (includes salesquotes.js)
 ├── db.js           # Database connection pool
 ├── middleware/     # Express middleware
-├── utils/          # Shared utilities (logger, calculator, salesQuoteSubmissionRecords)
+├── utils/          # Shared utilities (logger, calculator, salesQuoteSubmissionRecords, salesQuoteUserPreferences)
 └── jobs/           # Scheduled jobs (node-cron)
 
 src/salesquotes/components/
@@ -288,6 +288,38 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `POST /api/salesquotes/records` - Save a new submission record (requires auth)
 - **Backoffice Integration**: Sales Quote submissions appear in the audit log with blue badge "Sales Quote Sent" event label
 - Implementation: `src/js/salesquotes/records.js` - frontend records management, `api/src/routes/salesquotes.js` - API endpoints, `api/src/utils/salesQuoteSubmissionRecords.js` - table creation utility
+
+**User Preferences API:**
+- **Purpose**: Store and retrieve user-specific preferences for the Sales Quotes interface
+- **Table**: `SalesQuoteUserPreferences` (auto-created on first use)
+  - Columns: Id, UserEmail, PreferenceKey, PreferenceValue, CreatedAt, UpdatedAt
+  - Unique constraint: (UserEmail, PreferenceKey)
+  - Indexes: UserEmail, UpdatedAt
+- **API Endpoints**:
+  - `GET /api/salesquotes/preferences/:key` - Retrieve a preference value for current user
+  - `PUT /api/salesquotes/preferences/:key` - Save/update a preference value for current user
+- **Preference Keys**: Defined in `SALES_QUOTES_PREFERENCE_KEYS` constant (e.g., `LINE_COLUMN_ORDER`)
+- **Validation**: Preference keys must be lowercase alphanumeric with hyphens, max 100 characters
+- Implementation: `src/js/salesquotes/preferences.js` - frontend API client, `api/src/routes/salesquotes.js` - API endpoints, `api/src/utils/salesQuoteUserPreferences.js` - table creation utility
+
+**Quote Line Column Personalization:**
+- **Purpose**: Allow users to customize the order of columns in the quote lines table via drag-and-drop
+- **Features**:
+  - Draggable column headers with visual feedback (drag state, drop position indicators)
+  - Automatic layout persistence per user (saves to `SalesQuoteUserPreferences` table)
+  - Reset button to restore default column order (disabled when already at default)
+  - Layout hint text with status messages (saving, saved, error)
+  - Syncs with fullscreen table modal
+- **Columns Available**: 15 columns including sequence, type, service item info, material info, pricing, discounts, and actions
+- **State**: `state.ui.quoteLineColumnOrder` stores the current order
+- **Functions**:
+  - `initializeQuoteLinePersonalization()` - Initialize drag handlers and load saved layout
+  - `renderQuoteLines()` - Render table with current column order
+  - `resetQuoteLineColumnOrder()` - Reset to default column order
+  - `persistQuoteLineColumnOrder()` - Save layout to server
+  - `handleQuoteLineHeaderDragStart/Over/Drop/End` - Drag-and-drop event handlers
+- **Preference Key**: `quote-line-columns` (stored as array of column IDs)
+- Implementation: `src/js/salesquotes/ui.js` - drag handlers and rendering, `src/js/salesquotes/preferences.js` - persistence, `src/salesquotes/components/styles/salesquotes-styles.css` - drag styles
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 
