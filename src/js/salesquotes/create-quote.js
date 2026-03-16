@@ -390,7 +390,7 @@ async function applySearchedSalesQuote(payload) {
   setSearchSalesQuoteFeedback(
     'success',
     `Loaded ${editableQuote.number || payload.salesQuoteNumber || 'Sales Quote'}`,
-    `${processedAtText} You can now edit the quote and submit the update back to Business Central.`
+    `${processedAtText} You can now review and edit the quote in the form. Update submission is still disabled for now.`
   );
 
   switchTab('create');
@@ -1973,6 +1973,11 @@ function extractServiceOrderNos(payload) {
  * Send quote to Business Central
  */
 export async function handleSendQuote() {
+  if (state.quote.mode === 'edit' && state.quote.number) {
+    showToast('Update Sales Quote is not enabled yet', 'error');
+    return;
+  }
+
   // Get form data
   const formData = getQuoteFormData();
 
@@ -1987,44 +1992,6 @@ export async function handleSendQuote() {
 
   // Sanitize data
   const sanitizedData = sanitizeQuoteData(formData);
-
-  if (state.quote.mode === 'edit' && state.quote.number) {
-    try {
-      showSaving('Updating Quote', 'Updating Sales Quote in Business Central...');
-
-      const response = await updateQuoteInAzureFunction(sanitizedData);
-      hideSaving();
-
-      if (response?.data) {
-        await applySearchedSalesQuote(response);
-      } else {
-        state.quote.etag = response?.etag
-          || response?.odataEtag
-          || response?.result?.etag
-          || state.quote.etag;
-        state.quote.status = response?.status
-          || response?.result?.status
-          || state.quote.status;
-        state.quote.processedAt = response?.processedAt || new Date().toISOString();
-        updateQuoteEditorModeUi();
-        saveState();
-      }
-
-      const updatedQuoteNumber = state.quote.number || sanitizedData.quoteNumber || 'Sales Quote';
-      setSearchSalesQuoteFeedback(
-        'success',
-        `Updated ${updatedQuoteNumber}`,
-        'Business Central accepted the latest changes. The quote remains loaded in the editor if you want to continue editing.'
-      );
-      showSuccess(`${updatedQuoteNumber} updated in Business Central successfully`);
-    } catch (error) {
-      hideSaving();
-      console.error('Failed to update quote:', error);
-      await showQuoteSendFailure(error);
-    }
-
-    return;
-  }
 
   try {
     showSaving();

@@ -1325,6 +1325,7 @@ export function updateQuoteEditorModeUi() {
   const banner = el('quoteEditorModeBanner');
   const title = el('quoteEditorModeTitle');
   const meta = el('quoteEditorModeMeta');
+  const sendButton = el('sendQuoteBtn');
   const sendButtonText = el('sendQuoteBtnText');
 
   if (banner) {
@@ -1348,12 +1349,26 @@ export function updateQuoteEditorModeUi() {
     if (state.quote.branch) {
       metaParts.push(`Branch: ${state.quote.branch}`);
     }
+    if (isEditMode) {
+      metaParts.push('Update disabled for now');
+    }
     meta.textContent = metaParts.join(' | ');
+  }
+
+  if (sendButton) {
+    sendButton.disabled = isEditMode;
+    sendButton.classList.toggle('opacity-60', isEditMode);
+    sendButton.classList.toggle('cursor-not-allowed', isEditMode);
+    if (isEditMode) {
+      sendButton.setAttribute('title', 'Update Sales Quote is not enabled yet');
+    } else {
+      sendButton.removeAttribute('title');
+    }
   }
 
   if (sendButtonText) {
     sendButtonText.textContent = isEditMode
-      ? 'Update in Business Central'
+      ? 'Update SQ Coming Soon'
       : 'Send to Business Central';
   }
 }
