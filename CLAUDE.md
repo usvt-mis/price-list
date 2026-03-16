@@ -362,7 +362,11 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - Column only visible when editing a quote loaded from BC (not for new quotes)
     - Shows the service order number associated with each quote line
     - Integrated with quote line column personalization (can be reordered via drag-and-drop)
-- **Field Mapping Robustness**: The `mapBcLineToEditorLine()` and `buildEditableQuoteFromSearchResponse()` functions support multiple field name variations from Business Central API responses (e.g., `qty`/`quantity`, `lineDiscountAmount`/`discountAmount`, `billToCustomerNo`/`customerNumber`, `workStatus`/`WorkStatus`), ensuring compatibility with different API response formats
+  - **Print Quote button shown in edit mode** - Allows printing searched Sales Quotes in professional format
+    - Only visible when editing a quote loaded from BC (not for new quotes)
+    - Opens print preview in new window with A4 layout
+    - Includes company info, logo, customer details, line items, totals, and signatures
+- **Field Mapping Robustness**: The `mapBcLineToEditorLine()` and `buildEditableQuoteFromSearchResponse()` functions support multiple field name variations from Business Central API responses (e.g., `qty`/`quantity`/`Qty_SaleLine`, `lineDiscountAmount`/`discountAmount`/`Line_Discount_Amount`, `billToCustomerNo`/`customerNumber`, `workStatus`/`WorkStatus`, `usvtShowInDocument`/`showInDocument`/`USVT_Show_in_Document`, `usvtHeader`/`header`/`USVT_Header`, `usvtFooter`/`footer`/`USVT_Footer`), ensuring compatibility with different API response formats
 - **State Management**:
   - `state.quote.mode` - 'create' or 'edit'
   - `state.quote.id` - BC quote ID
@@ -372,6 +376,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `state.quote.workStatus` - BC quote work status (shown in edit mode only)
   - `state.quote.loadedFromBc` - Flag indicating quote was loaded from BC
   - `state.quote.processedAt` - Timestamp of BC processing
+  - `state.quote.reportContext` - Report context data for printing (company info, customer details, line metadata)
+  - `state.quote.invoiceDiscount` - Trade discount amount
+  - `state.quote.invoiceDiscountPercent` - Trade discount percentage
+  - `state.quote.vatRate` - VAT rate (default 7%)
   - `state.ui.branchDefaults` - Stores default branch values to restore after "Start New Quote"
 - **Functions**:
   - `handleSearchSalesQuote()` - Search for quote by number
@@ -381,8 +389,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `updateQuoteInAzureFunction()` - Submit updated quote to BC
   - `resetQuoteEditorToCreateMode()` - Reset to create mode (preserves branch defaults)
   - `startNewSalesQuoteFlow()` - Handler for "Start New Quote" button
-  - `updateQuoteEditorModeUi()` - Update banner and button text based on mode, show/hide Work Status field
+  - `updateQuoteEditorModeUi()` - Update banner and button text based on mode, show/hide Work Status and Print button
   - `setCustomerNoFieldLockState(locked)` - Lock/unlock Customer No field with visual and accessibility updates
+  - `normalizeBcBoolean(value, defaultValue)` - Normalize boolean values from BC API (handles strings, numbers, null)
+  - `pickSourceValue(source, keys, fallback)` - Pick first non-empty value from multiple possible keys
+  - `collectSequentialSourceValues(source, prefixes, indexes)` - Collect sequential values (e.g., companyInfoText1, companyInfoText2, ...)
+  - `buildSearchQuoteReportContext(data, resolvedSalespersonName)` - Build report context for printing from BC response
 - **API Endpoints**:
   - `GET /api/business-central/gateway/sales-quotes/from-number?salesQuoteNumber={number}` - Retrieve quote from BC
   - `POST /api/business-central/gateway/update-sales-quote` - Update existing quote in BC
@@ -393,7 +405,61 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Environment Variables** (new):
   - `GSQFN_KEY` / `GSQFN_PATH` - GetSalesQuotesFromNumber function key and path
   - `USQ_KEY` / `USQ_PATH` - UpdateSalesQuote function key and path
-- Implementation: `src/js/salesquotes/create-quote.js` - search/update logic with input/blur guards, `src/js/salesquotes/state.js` - edit mode state, `src/js/salesquotes/ui.js` - mode banner UI and `setCustomerNoFieldLockState()`, `src/js/salesquotes/validations.js` - workStatus sanitization, `src/salesquotes.html` - search form and Work Status field, `api/src/routes/business-central/gateway.js` - proxy routes
+- Implementation: `src/js/salesquotes/create-quote.js` - search/update logic with input/blur guards, `src/js/salesquotes/state.js` - edit mode state, `src/js/salesquotes/ui.js` - mode banner UI and `setCustomerNoFieldLockState()`, `src/js/salesquotes/validations.js` - workStatus sanitization, `src/js/salesquotes/print-quote.js` - print functionality, `src/salesquotes.html` - search form and Work Status field, `api/src/routes/business-central/gateway.js` - proxy routes
+
+**Sales Quote Print:**
+- **Purpose**: Generate professional print-ready quotation documents from searched Sales Quotes
+- **Features**:
+  - Print button only appears in edit mode when a quote has been loaded from Business Central
+  - Opens new browser window with A4-optimized print layout
+  - Automatic print dialog triggered on page load
+  - Professional layout with company branding, customer details, line items, and signatures
+- **Data Sources**:
+  - Company info: Company name, address lines, logo (from BC `companyInfoText*` and `companyInfoPicture`)
+  - Customer info: Name, address, attention contact, phone, tax ID (from BC `customerInfo*` and `sellTo*` fields)
+  - Quote metadata: Quote number, dates, payment terms, delivery info (from BC header fields)
+  - Line items: Item number, description, quantity, unit price, discount, total (from BC sales quote lines)
+  - Line print control: `USVT_Show_in_Document`, `USVT_Header`, `USVT_Footer` flags control visibility and formatting
+  - Signatures: Salesperson and approver details with signature images (from BC signature fields)
+- **Print Layout Sections**:
+  1. **Header**: Company logo + info (left), Quote title + metadata (right)
+  2. **Customer Box**: Customer name, address, attention, phone, tax ID
+  3. **Delivery Box**: Delivery address, AR code, our reference, job number, fax
+  4. **Payment Box**: Payment terms, tax branch, due date
+  5. **With By Box**: Salesperson contact info
+  6. **Line Items Table**: Item, description, quantity, unit of measure, unit price, discount, total
+     - Comment lines render as full-width notes (no pricing columns)
+     - Header/footer lines styled as notes (italic gray background)
+  7. **Summary Section**: Remarks + financial summary (subtotal, trade discount, VAT, grand total)
+  8. **Signature Section**: Salesperson and approver signatures with contact details
+- **Calculations**:
+  - Line total = (Quantity × Unit Price) - Discount Amount
+  - Subtotal = Sum of all line totals
+  - VAT Amount = (Subtotal - Trade Discount) × VAT Rate / 100
+  - Grand Total = (Subtotal - Trade Discount) + VAT Amount
+- **Helper Functions**:
+  - `buildModel()` - Assembles print data from form state and BC report context
+  - `buildPrintableLines()` - Filters and enriches line items with print metadata
+  - `buildTotals()` - Calculates financial totals
+  - `buildCustomerAddress()` - Resolves customer address from form or BC data
+  - `renderLineRows()` - Generates HTML table rows with proper formatting
+  - `buildPrintHtml()` - Generates complete print document with inline styles
+  - `printSearchedSalesQuote()` - Opens print window and triggers print dialog
+- **Data Normalization**:
+  - `escapeHtml()` - HTML entity encoding for XSS prevention
+  - `asNumber()` - Safe number parsing with fallback
+  - `formatDate()` - Date formatting (en-GB locale)
+  - `formatQty()` - Quantity formatting with smart decimal handling
+  - `formatMoneyOrIncluded()` - Currency formatting with "(Included)" for zero values
+  - `normalizeDataUri()` - Base64 image data URI normalization
+  - `joinAddress()` - Address part concatenation
+- **Error Handling**:
+  - Validates edit mode and BC-loaded state before printing
+  - Handles popup blocker scenario with user-friendly message
+  - Shows toast notification on successful print preview launch
+- **Accessibility**: Print document uses semantic HTML, proper table structure, and clear visual hierarchy
+- **Browser Compatibility**: Uses window.open() with document.write() for maximum compatibility; auto-triggers print dialog via inline script
+- Implementation: `src/js/salesquotes/print-quote.js` - complete print module, `src/js/salesquotes/create-quote.js` - report context building, `src/js/salesquotes/state.js` - print state properties, `src/js/salesquotes/ui.js` - print button visibility, `src/salesquotes.html` - print button
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 

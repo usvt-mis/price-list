@@ -79,17 +79,30 @@
             <p id="quoteEditorModeTitle" class="text-sm font-semibold text-amber-900">Create a new Sales Quote</p>
             <p id="quoteEditorModeMeta" class="mt-1 text-sm text-amber-800"></p>
           </div>
-          <button
-            id="resetQuoteEditorBtn"
-            type="button"
-            class="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-100"
-            onclick="window.startNewSalesQuote()"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M5.64 18.36A9 9 0 1120 12"></path>
-            </svg>
-            Start New Quote
-          </button>
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              id="printQuoteBtn"
+              type="button"
+              class="hidden inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-100"
+              onclick="window.printSearchedSalesQuote()"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"></path>
+              </svg>
+              Print
+            </button>
+            <button
+              id="resetQuoteEditorBtn"
+              type="button"
+              class="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-100"
+              onclick="window.startNewSalesQuote()"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M5.64 18.36A9 9 0 1120 12"></path>
+              </svg>
+              Start New Quote
+            </button>
+          </div>
         </div>
       </div>
 

@@ -78,6 +78,121 @@ function normalizeBcDate(value) {
   return trimmed.slice(0, 10);
 }
 
+function normalizeBcBoolean(value, defaultValue = false) {
+  if (value === null || value === undefined || value === '') {
+    return defaultValue;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) {
+      return defaultValue;
+    }
+    if (['true', '1', 'yes', 'y'].includes(normalized)) {
+      return true;
+    }
+    if (['false', '0', 'no', 'n'].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return Boolean(value);
+}
+
+function pickSourceValue(source, keys, fallback = '') {
+  for (const key of keys) {
+    const value = source?.[key];
+    if (value === null || value === undefined) {
+      continue;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed || trimmed.startsWith('0001-01-01')) {
+        continue;
+      }
+      return trimmed;
+    }
+
+    return value;
+  }
+
+  return fallback;
+}
+
+function collectSequentialSourceValues(source, prefixes, indexes) {
+  return indexes
+    .map(index => pickSourceValue(source, prefixes.map(prefix => `${prefix}${index}`), ''))
+    .filter(Boolean);
+}
+
+function buildSearchQuoteReportContext(data, resolvedSalespersonName) {
+  const rawLines = Array.isArray(data.salesQuoteLines || data.lines)
+    ? (data.salesQuoteLines || data.lines)
+    : [];
+
+  return {
+    companyInfoLines: collectSequentialSourceValues(data, ['companyInfoText', 'CompanyInfoText'], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+    companyLogo: pickSourceValue(data, ['companyInfoPicture', 'CompanyInfoPicture'], ''),
+    customerInfoLines: collectSequentialSourceValues(data, ['customerInfo', 'CustomerInfo'], [1, 2, 3, 4, 5, 6, 9, 10]),
+    salesComments: collectSequentialSourceValues(data, ['saleComment', 'SaleComment'], [1, 2, 3]),
+    billToCustomerNo: pickSourceValue(data, ['billtoCustomerNo', 'billToCustomerNo', 'BilltoCustomerNo_SalesHeader'], ''),
+    sellToCustomerNo: pickSourceValue(data, ['selltoCustomerNo', 'sellToCustomerNo', 'SelltoCustomerNo_SalesHeader'], ''),
+    vatRegistrationNo: pickSourceValue(data, ['vatRegistrationNo', 'VATRegistrationNo_SalesHeader'], ''),
+    shipToName: pickSourceValue(data, ['shipToName', 'Ship_to_Name'], ''),
+    shipToAddress: pickSourceValue(data, ['shipToAddress', 'Ship_to_Address'], ''),
+    shipToContact: pickSourceValue(data, ['shipToContact', 'Ship_to_Contact'], ''),
+    sellToPhoneNo: pickSourceValue(data, ['sellToPhoneNo', 'Sell_to_Phone_No_'], ''),
+    faxNo: pickSourceValue(data, ['faxNo', 'FaxNo'], ''),
+    documentDate: normalizeBcDate(pickSourceValue(data, ['documentDate', 'DocumentDate_SalesHeader'], '')),
+    dueDate: normalizeBcDate(pickSourceValue(data, ['dueDate', 'DueDate_SalesHeader', 'Due_Date'], '')),
+    quoteValidUntilDate: normalizeBcDate(pickSourceValue(data, ['quoteValidUntilDate', 'quoteValidDate', 'QuoteValidDate_SalesHeader', 'Quote_Valid_Until_Date'], '')),
+    requestedDeliveryDate: normalizeBcDate(pickSourceValue(data, ['requestedDeliveryDate', 'usvtDeliveryDate', 'USVT_Delivery_Date'], '')),
+    paymentTermsCode: pickSourceValue(data, ['paymentTermsCode', 'Payment_Terms_Code'], ''),
+    paymentTermsDescription: pickSourceValue(data, ['paymentTermsDescription', 'descriptionPaymentTerms', 'Description_PaymentTerms'], ''),
+    paymentMethodDescription: pickSourceValue(data, ['paymentMethodDescription', 'descriptionPaymentMethod', 'Description_PaymentMethod'], ''),
+    shipMethodDescription: pickSourceValue(data, ['shipMethodDescription', 'descriptionShipMethod', 'Description_ShipMethod'], ''),
+    externalDocumentNo: pickSourceValue(data, ['externalDocumentNo', 'exDocNo', 'ExDocNo_SalesHeader'], ''),
+    vatText: pickSourceValue(data, ['vatText', 'VATText'], ''),
+    dimensionName: pickSourceValue(data, ['dimensionName', 'DimensionName'], ''),
+    usvtShipTo: pickSourceValue(data, ['usvtShipTo', 'USVT_Ship_To'], ''),
+    billToContact: pickSourceValue(data, ['billToContact', 'Bill_to_Contact'], ''),
+    reportNumber: pickSourceValue(data, ['reportNumber', 'ReportNumber'], ''),
+    salesperson: {
+      name: pickSourceValue(data, ['salespersonName', 'nameSalesperson', 'Name_Salesperson'], resolvedSalespersonName || ''),
+      phone: pickSourceValue(data, ['salespersonPhone', 'phoneNoSalesperson', 'PhoneNo_Salesperson'], ''),
+      email: pickSourceValue(data, ['salespersonEmail', 'emailSalesperson', 'Email_Salesperson'], ''),
+      signature: pickSourceValue(data, ['signatureSalesperson', 'Signature_Salesperson'], '')
+    },
+    approver: {
+      name: pickSourceValue(data, ['approveUserName', 'ApproveUser_Name'], ''),
+      phone: pickSourceValue(data, ['approveSignaturePhoneNo', 'ApproveSignature_PhoneNo'], ''),
+      email: pickSourceValue(data, ['approveSignatureEmail', 'ApproveSignature_Email'], ''),
+      signature: pickSourceValue(data, ['approveSignatureUserSetup', 'ApproveSignature_UserSetup'], '')
+    },
+    rawLines: rawLines.map((line, index) => ({
+      bcId: line?.id || line?.bcId || null,
+      sequence: Number(line?.sequence ?? line?.lineNo ?? line?.LineNo ?? line?.Line_No_) || index + 1,
+      groupNo: normalizeGroupNo(line?.usvtGroupNo ?? line?.groupNo ?? line?.USVT_Group_No_),
+      showInDocument: normalizeBcBoolean(line?.usvtShowInDocument ?? line?.showInDocument ?? line?.USVT_Show_in_Document, true),
+      isHeader: normalizeBcBoolean(line?.usvtHeader ?? line?.header ?? line?.USVT_Header, false),
+      isFooter: normalizeBcBoolean(line?.usvtFooter ?? line?.footer ?? line?.USVT_Footer, false),
+      type: typeof (line?.type ?? line?.Type ?? line?.lineType) === 'string'
+        ? String(line?.type ?? line?.Type ?? line?.lineType).trim()
+        : '',
+      description: pickSourceValue(line, ['description', 'Description_SaleLine'], '')
+    }))
+  };
+}
+
 function normalizeSalesQuoteNumberInput(value) {
   return String(value || '').trim().toUpperCase();
 }
@@ -180,32 +295,36 @@ function buildCustomerDisplayModel(customerRecord, fallbackCustomerNo, fallbackC
 
 function mapBcLineToEditorLine(line, index) {
   const existingLineId = line?.id || line?.bcId || null;
-  const normalizedQuantity = parseFloat(line?.quantity ?? line?.qty);
-  const normalizedUnitPrice = parseFloat(line?.unitPrice);
-  const normalizedDiscountAmount = parseFloat(line?.discountAmount ?? line?.lineDiscountAmount);
+  const normalizedQuantity = parseFloat(line?.quantity ?? line?.Quantity ?? line?.qty ?? line?.Qty_SaleLine);
+  const normalizedUnitPrice = parseFloat(line?.unitPrice ?? line?.Unit_Price);
+  const normalizedDiscountAmount = parseFloat(line?.discountAmount ?? line?.lineDiscountAmount ?? line?.Line_Discount_Amount ?? line?.Discount);
   const normalizedDiscountPercent = parseFloat(line?.discountPercent ?? line?.lineDiscountPercent);
+  const rawType = typeof (line?.type ?? line?.Type ?? line?.lineType) === 'string'
+    ? String(line?.type ?? line?.Type ?? line?.lineType).trim()
+    : '';
 
   return {
     id: existingLineId || `line-${Date.now()}-${index}`,
     bcId: existingLineId,
     bcEtag: line?.['@odata.etag'] || line?.bcEtag || null,
     documentId: line?.documentId || null,
-    documentNo: line?.documentNo || '',
-    sequence: Number(line?.sequence) || index + 1,
+    documentNo: line?.documentNo || line?.documentNumber || line?.Number || '',
+    sequence: Number(line?.sequence ?? line?.lineNo ?? line?.LineNo ?? line?.Line_No_) || index + 1,
     itemId: line?.itemId || null,
     accountId: line?.accountId || null,
-    lineType: normalizeLineType(line?.lineType ?? line?.type),
-    lineObjectNumber: line?.lineObjectNumber || line?.itemNo || line?.no || line?.number || '',
-    description: line?.description || '',
+    lineType: normalizeLineType(line?.lineType ?? line?.type ?? line?.Type),
+    rawType,
+    lineObjectNumber: line?.lineObjectNumber || line?.itemNo || line?.ItemNo_SaleLine || line?.no || line?.No_ || line?.number || '',
+    description: line?.description || line?.Description_SaleLine || '',
     description2: line?.description2 || '',
     unitOfMeasureId: line?.unitOfMeasureId || null,
-    unitOfMeasureCode: line?.unitOfMeasureCode || '',
+    unitOfMeasureCode: line?.unitOfMeasureCode || line?.Unit_of_Measure || '',
     unitPrice: Number.isFinite(normalizedUnitPrice) ? normalizedUnitPrice : 0,
     quantity: Number.isFinite(normalizedQuantity) ? normalizedQuantity : 0,
     discountAmount: Number.isFinite(normalizedDiscountAmount) ? normalizedDiscountAmount : 0,
     discountPercent: Number.isFinite(normalizedDiscountPercent) ? normalizedDiscountPercent : 0,
     discountAppliedBeforeTax: Boolean(line?.discountAppliedBeforeTax),
-    amountExcludingTax: parseFloat(line?.amountExcludingTax ?? line?.lineAmount) || 0,
+    amountExcludingTax: parseFloat(line?.amountExcludingTax ?? line?.lineAmount ?? line?.Line_Amount ?? line?.Total) || 0,
     taxCode: line?.taxCode || '',
     taxPercent: parseFloat(line?.taxPercent) || 0,
     totalTaxAmount: parseFloat(line?.totalTaxAmount) || 0,
@@ -224,7 +343,10 @@ function mapBcLineToEditorLine(line, index) {
     usvtRefServiceOrderNo: line?.usvtRefServiceOrderNo || line?.refServiceOrderNo || '',
     usvtCreateSv: Boolean(line?.usvtCreateSv || line?.createSv || line?.usvtServiceItemNo || line?.serviceItemNo),
     usvtAddition: Boolean(line?.usvtAddition || line?.addition),
-    usvtRefSalesQuoteno: line?.usvtRefSalesQuoteno || line?.usvtRefSalesQuoteNo || line?.refSalesQuoteno || line?.refSalesQuoteNo || ''
+    usvtRefSalesQuoteno: line?.usvtRefSalesQuoteno || line?.usvtRefSalesQuoteNo || line?.refSalesQuoteno || line?.refSalesQuoteNo || '',
+    showInDocument: normalizeBcBoolean(line?.usvtShowInDocument ?? line?.showInDocument ?? line?.USVT_Show_in_Document, true),
+    printHeader: normalizeBcBoolean(line?.usvtHeader ?? line?.header ?? line?.USVT_Header, false),
+    printFooter: normalizeBcBoolean(line?.usvtFooter ?? line?.footer ?? line?.USVT_Footer, false)
   };
 }
 
@@ -351,6 +473,7 @@ async function buildEditableQuoteFromSearchResponse(payload) {
   const locationCode = data.locationCode || '';
   const customerName = data.customerName || data.billToName || customerRecord.CustomerName || '';
   const customerDisplay = buildCustomerDisplayModel(customerRecord, customerNumber, customerName);
+  const reportContext = buildSearchQuoteReportContext(data, salespersonName);
 
   return {
     id: data.id || null,
@@ -387,7 +510,9 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     responsibilityCenter,
     invoiceDiscountPercent: parseFloat(data.paymentDiscountPercent) || 0,
     invoiceDiscount: parseFloat(data.discountAmount) || 0,
+    vatRate: 7,
     discountAmount: parseFloat(data.discountAmount) || 0,
+    reportContext,
     lines: Array.isArray(data.salesQuoteLines || data.lines)
       ? (data.salesQuoteLines || data.lines).map((line, index) => mapBcLineToEditorLine(line, index))
       : []

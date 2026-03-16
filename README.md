@@ -40,6 +40,7 @@ The Price List Calculator computes total cost based on four components:
   - **Features**: Local database customer search (min 2 chars), customer/item search, quote line management (add/insert/remove), automatic calculations
   - **My Records Tab**: View submitted Sales Quote history with search functionality (Sales Quote Number, Work Description, Submitted At)
   - **Search Quotes Tab**: Load existing Sales Quotes from Business Central by quote number for editing and resubmission
+  - **Print Quote**: Generate professional print-ready quotation documents (A4 layout) from searched Sales Quotes with company logo, customer details, line items, totals, and signatures
   - **Date Picker**: Order Date defaults to today (asterisk hidden), Requested Delivery Date prevents past dates (asterisk visible until selected)
   - **Required Field Indicators**: Dynamic red asterisks for 7 fields (Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, BRANCH) - hide when field has value, show when empty
   - **Customer Search**: Fast local lookups from BCCustomers table, auto-fills customer details and Sell-to address (Address, Address2, City, PostCode, VAT Reg No, Tax Branch No)
@@ -552,7 +553,8 @@ Use VS Code's "Attach to Process" or add a launch configuration to debug `node s
 │       │   ├── ui.js            # UI components
 │       │   ├── state.js         # State management
 │       │   ├── validations.js   # Form validations
-│       │   └── records.js       # My Records (submission history)
+│       │   ├── records.js       # My Records (submission history)
+│       │   └── print-quote.js   # Print quotation document generation
 │       ├── auth/                # Authentication module
 │       │   ├── index.js
 │       │   ├── token-handling.js

@@ -38,6 +38,10 @@ function createInitialQuoteState(overrides = {}) {
     branch: '',
     locationCode: '',
     responsibilityCenter: '',
+    invoiceDiscount: 0,
+    invoiceDiscountPercent: 0,
+    vatRate: 7,
+    reportContext: null,
     lines: [],
     ...overrides
   };

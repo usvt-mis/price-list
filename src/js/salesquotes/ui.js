@@ -1237,6 +1237,18 @@ export function getQuoteFormData() {
     branch: el('branch')?.value || '',
     locationCode: el('locationCode')?.value || '',
     responsibilityCenter: el('responsibilityCenter')?.value || '',
+    invoiceDiscount: parseFloat(el('invoiceDiscount')?.value || 0) || 0,
+    invoiceDiscountPercent: parseFloat(el('invoiceDiscountPercent')?.value || 0) || 0,
+    vatRate: parseFloat(el('vatRate')?.value || 7) || 7,
+    sellTo: {
+      address: el('sellToAddress')?.value || state.quote.sellTo?.address || '',
+      address2: el('sellToAddress2')?.value || state.quote.sellTo?.address2 || '',
+      city: el('sellToCity')?.value || state.quote.sellTo?.city || '',
+      postCode: el('sellToPostCode')?.value || state.quote.sellTo?.postCode || '',
+      vatRegNo: el('sellToVatRegNo')?.value || state.quote.sellTo?.vatRegNo || '',
+      taxBranchNo: el('sellToTaxBranchNo')?.value || state.quote.sellTo?.taxBranchNo || ''
+    },
+    reportContext: state.quote.reportContext,
     lines: [...state.quote.lines]
   };
 }
@@ -1377,6 +1389,7 @@ export function updateQuoteEditorModeUi() {
   const meta = el('quoteEditorModeMeta');
   const sendButton = el('sendQuoteBtn');
   const sendButtonText = el('sendQuoteBtnText');
+  const printButton = el('printQuoteBtn');
   const workStatusFieldContainer = el('workStatusFieldContainer');
 
   setCustomerNoFieldLockState(isEditMode);
@@ -1387,6 +1400,10 @@ export function updateQuoteEditorModeUi() {
 
   if (banner) {
     banner.classList.toggle('hidden', !isEditMode);
+  }
+
+  if (printButton) {
+    printButton.classList.toggle('hidden', !isSearchSalesQuoteMode);
   }
 
   if (title) {

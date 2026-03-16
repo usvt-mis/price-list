@@ -10,6 +10,7 @@ import { el, show, hide, showToast, initializeQuoteLinePersonalization } from '.
 import { loadInitialData, setupEventListeners } from './create-quote.js';
 import { preloadAllModals } from './components/modal-loader.js';
 import { setupQuoteSubmissionRecordEventListeners } from './records.js';
+import './print-quote.js';
 
 // ============================================================
 // Application Initialization
