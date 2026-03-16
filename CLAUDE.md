@@ -159,20 +159,27 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Local development uses `.env.local` for gateway configuration; production uses Azure App Settings
 
 ### Motor Drive Type Filtering (Workshop Calculator)
-- **Purpose**: Filter motor types by AC/DC drive type in the Workshop calculator
+- **Purpose**: Filter motor types and jobs by AC/DC drive type in the Workshop calculator
 - **State**: `appState.motorTypes` (array), `appState.motorDriveType` ('AC' or 'DC')
 - **Detection**: Motor type names containing "AC" or "DC" are automatically classified
 - **Default behavior**: Defaults to 'AC' unless only DC motors exist
 - **UI**: Radio button toggle (AC/DC) with filter hint showing visible count
+- **Job filtering**: Jobs are filtered by drive type at the API level:
+  - J007 (AC motor drive service) - only shown when AC drive type is selected
+  - J017 (DC motor drive service) - only shown when DC drive type is selected
+  - All other jobs - shown regardless of drive type
+- **Labor reload**: Labor list automatically reloads when switching drive types to show/hide drive-specific jobs
 - **Functions**:
   - `populateMotorTypeOptions(motorTypes, options)` - Initialize motor types array and render dropdown
   - `setMotorDriveType(driveType, options)` - Change filter and re-render options
   - `syncMotorDriveTypeToMotorTypeId(motorTypeId)` - Auto-switch filter based on selected motor
   - `getMotorDriveTypeForMotorTypeId(motorTypeId)` - Extract drive type from motor type ID
   - `getDefaultMotorDriveType(motorTypes)` - Determine default based on available motors
+  - `loadLabor()` - Fetches jobs with motorDriveType parameter from API
 - **State preservation**: When switching filters, attempts to preserve current selection
 - **Saved records**: Deserializes saved motor drive type and restores correct filter state
-- Implementation: `src/js/workshop/motor-types.js`, `src/js/workshop/app.js`, `src/js/workshop/state.js`, `src/workshop.html`
+- API: `GET /api/workshop/labor?motorTypeId={id}&motorDriveType={AC|DC}`
+- Implementation: `src/js/workshop/motor-types.js`, `src/js/workshop/app.js`, `src/js/workshop/labor.js`, `src/js/workshop/state.js`, `src/workshop.html`, `api/src/routes/workshop/labor.js`
 
 ---
 

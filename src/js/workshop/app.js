@@ -183,8 +183,9 @@ function setupEventListeners() {
 
       const previousMotorTypeId = el('motorType')?.value || '';
       setMotorDriveType(event.target.value, { preserveSelection: true });
+      const currentMotorTypeId = el('motorType')?.value || '';
 
-      if ((el('motorType')?.value || '') !== previousMotorTypeId) {
+      if (previousMotorTypeId || currentMotorTypeId) {
         await loadLabor();
         if (globalExports.markDirty) globalExports.markDirty();
       }

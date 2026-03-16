@@ -13,6 +13,7 @@ import { TRAVEL_RATE, API } from '../core/config.js';
  */
 export async function loadLabor() {
   const motorTypeId = Number(el('motorType').value);
+  const motorDriveType = String(appState.motorDriveType || 'AC').toUpperCase();
   if (!motorTypeId) {
     appState.labor = [];
     // Import calcAll dynamically to avoid circular dependency - calculate FIRST
@@ -23,7 +24,11 @@ export async function loadLabor() {
 
   setStatus('Loading labor (jobs + manhours)...');
   try {
-    const labor = await fetchJson(`${API.WORKSHOP_LABOR}?motorTypeId=${motorTypeId}`);
+    const laborParams = new URLSearchParams({
+      motorTypeId: String(motorTypeId),
+      motorDriveType
+    });
+    const labor = await fetchJson(`${API.WORKSHOP_LABOR}?${laborParams.toString()}`);
     appState.labor = labor;
     setStatus('');
     // Import calcAll dynamically to avoid circular dependency - calculate FIRST

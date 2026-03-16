@@ -8,12 +8,13 @@ const router = express.Router();
 const { sql, getPool } = require('../../db');
 
 /**
- * GET /api/workshop/labor?motorTypeId={id}
+ * GET /api/workshop/labor?motorTypeId={id}&motorDriveType={AC|DC}
  * Get workshop jobs for a specific motor type
  * Requires: Authentication (applied at server level)
  */
 router.get('/', async (req, res, next) => {
   const motorTypeId = Number(req.query.motorTypeId);
+  const motorDriveType = String(req.query.motorDriveType || 'AC').trim().toUpperCase() === 'DC' ? 'DC' : 'AC';
   if (!Number.isInteger(motorTypeId)) {
     return res.status(400).json({ error: 'motorTypeId is required' });
   }
@@ -21,11 +22,12 @@ router.get('/', async (req, res, next) => {
   try {
     // User already attached to req by requireAuth middleware in server.js
     const user = req.user;
-    console.log(`User ${user.userDetails} accessed workshop labor for motorTypeId: ${motorTypeId}`);
+    console.log(`User ${user.userDetails} accessed workshop labor for motorTypeId: ${motorTypeId}, motorDriveType: ${motorDriveType}`);
 
     const pool = await getPool();
     const result = await pool.request()
       .input('motorTypeId', sql.Int, motorTypeId)
+      .input('motorDriveType', sql.VarChar(2), motorDriveType)
       .query(`
         SELECT j.JobId, j.JobCode, j.JobName, j.SortOrder,
                COALESCE(m.Manhours, 0) AS ManHours
@@ -33,6 +35,11 @@ router.get('/', async (req, res, next) => {
         LEFT JOIN dbo.Jobs2MotorType m
           ON m.JobsId = j.JobId AND m.MotorTypeId = @motorTypeId
         WHERE j.CalculatorType IN ('workshop', 'shared')
+          AND (
+            j.JobCode NOT IN ('J007', 'J017')
+            OR (@motorDriveType = 'AC' AND j.JobCode = 'J007')
+            OR (@motorDriveType = 'DC' AND j.JobCode = 'J017')
+          )
         ORDER BY j.SortOrder;
       `);
 
