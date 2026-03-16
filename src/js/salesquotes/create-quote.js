@@ -134,51 +134,162 @@ function collectSequentialSourceValues(source, prefixes, indexes) {
     .filter(Boolean);
 }
 
-function buildSearchQuoteReportContext(data, resolvedSalespersonName) {
-  const rawLines = Array.isArray(data.salesQuoteLines || data.lines)
-    ? (data.salesQuoteLines || data.lines)
-    : [];
+function uniqueObjectReferences(values) {
+  const seen = new Set();
+
+  return values.filter(value => {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    if (seen.has(value)) {
+      return false;
+    }
+
+    seen.add(value);
+    return true;
+  });
+}
+
+function normalizeRecordCollection(value) {
+  if (Array.isArray(value)) {
+    return value.filter(item => item && typeof item === 'object');
+  }
+
+  if (value && typeof value === 'object') {
+    return [value];
+  }
+
+  return [];
+}
+
+function isReportLineSource(line) {
+  return [
+    'description',
+    'Description_SaleLine',
+    'itemNo',
+    'ItemNo_SaleLine',
+    'No_',
+    'Line_No_',
+    'LineNo',
+    'Quantity',
+    'Qty_SaleLine',
+    'Unit_Price',
+    'Type',
+    'USVT_Group_No_',
+    'USVT_Header',
+    'USVT_Footer',
+    'USVT_Show_in_Document'
+  ].some(key => pickSourceValue(line, [key], null) !== null);
+}
+
+function buildReportLookupSources(data) {
+  const reportRoot = data?.NavWordReportXmlPart && typeof data.NavWordReportXmlPart === 'object'
+    ? data.NavWordReportXmlPart
+    : data;
+  const headerSource = reportRoot?.Sales_Header && typeof reportRoot.Sales_Header === 'object'
+    ? reportRoot.Sales_Header
+    : reportRoot;
+  const lineSources = uniqueObjectReferences([
+    ...normalizeRecordCollection(reportRoot?.salesQuoteLines),
+    ...normalizeRecordCollection(reportRoot?.lines),
+    ...normalizeRecordCollection(reportRoot?.Integer),
+    ...normalizeRecordCollection(reportRoot?.integer),
+    ...normalizeRecordCollection(headerSource?.Integer),
+    ...normalizeRecordCollection(headerSource?.integer)
+  ]);
 
   return {
-    companyInfoLines: collectSequentialSourceValues(data, ['companyInfoText', 'CompanyInfoText'], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
-    companyLogo: pickSourceValue(data, ['companyInfoPicture', 'CompanyInfoPicture'], ''),
-    customerInfoLines: collectSequentialSourceValues(data, ['customerInfo', 'CustomerInfo'], [1, 2, 3, 4, 5, 6, 9, 10]),
-    salesComments: collectSequentialSourceValues(data, ['saleComment', 'SaleComment'], [1, 2, 3]),
-    billToCustomerNo: pickSourceValue(data, ['billtoCustomerNo', 'billToCustomerNo', 'BilltoCustomerNo_SalesHeader'], ''),
-    sellToCustomerNo: pickSourceValue(data, ['selltoCustomerNo', 'sellToCustomerNo', 'SelltoCustomerNo_SalesHeader'], ''),
-    vatRegistrationNo: pickSourceValue(data, ['vatRegistrationNo', 'VATRegistrationNo_SalesHeader'], ''),
-    shipToName: pickSourceValue(data, ['shipToName', 'Ship_to_Name'], ''),
-    shipToAddress: pickSourceValue(data, ['shipToAddress', 'Ship_to_Address'], ''),
-    shipToContact: pickSourceValue(data, ['shipToContact', 'Ship_to_Contact'], ''),
-    sellToPhoneNo: pickSourceValue(data, ['sellToPhoneNo', 'Sell_to_Phone_No_'], ''),
-    faxNo: pickSourceValue(data, ['faxNo', 'FaxNo'], ''),
-    documentDate: normalizeBcDate(pickSourceValue(data, ['documentDate', 'DocumentDate_SalesHeader'], '')),
-    dueDate: normalizeBcDate(pickSourceValue(data, ['dueDate', 'DueDate_SalesHeader', 'Due_Date'], '')),
-    quoteValidUntilDate: normalizeBcDate(pickSourceValue(data, ['quoteValidUntilDate', 'quoteValidDate', 'QuoteValidDate_SalesHeader', 'Quote_Valid_Until_Date'], '')),
-    requestedDeliveryDate: normalizeBcDate(pickSourceValue(data, ['requestedDeliveryDate', 'usvtDeliveryDate', 'USVT_Delivery_Date'], '')),
-    paymentTermsCode: pickSourceValue(data, ['paymentTermsCode', 'Payment_Terms_Code'], ''),
-    paymentTermsDescription: pickSourceValue(data, ['paymentTermsDescription', 'descriptionPaymentTerms', 'Description_PaymentTerms'], ''),
-    paymentMethodDescription: pickSourceValue(data, ['paymentMethodDescription', 'descriptionPaymentMethod', 'Description_PaymentMethod'], ''),
-    shipMethodDescription: pickSourceValue(data, ['shipMethodDescription', 'descriptionShipMethod', 'Description_ShipMethod'], ''),
-    externalDocumentNo: pickSourceValue(data, ['externalDocumentNo', 'exDocNo', 'ExDocNo_SalesHeader'], ''),
-    vatText: pickSourceValue(data, ['vatText', 'VATText'], ''),
-    dimensionName: pickSourceValue(data, ['dimensionName', 'DimensionName'], ''),
-    usvtShipTo: pickSourceValue(data, ['usvtShipTo', 'USVT_Ship_To'], ''),
-    billToContact: pickSourceValue(data, ['billToContact', 'Bill_to_Contact'], ''),
-    reportNumber: pickSourceValue(data, ['reportNumber', 'ReportNumber'], ''),
+    headerSources: uniqueObjectReferences([headerSource, reportRoot, data]),
+    lineSources,
+    printableLineSources: lineSources.filter(isReportLineSource),
+    allSources: uniqueObjectReferences([headerSource, reportRoot, data, ...lineSources])
+  };
+}
+
+function pickSourceValueFromSources(sources, keys, fallback = '') {
+  for (const source of sources) {
+    const value = pickSourceValue(source, keys, null);
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return fallback;
+}
+
+function collectSequentialSourceValuesFromSources(sources, prefixes, indexes) {
+  return indexes
+    .map(index => pickSourceValueFromSources(sources, prefixes.map(prefix => `${prefix}${index}`), ''))
+    .filter(Boolean);
+}
+
+function buildSearchQuoteReportContext(data, resolvedSalespersonName, sourceContext = buildReportLookupSources(data)) {
+  const { headerSources, lineSources, printableLineSources, allSources } = sourceContext;
+  const customerInfoLines = collectSequentialSourceValuesFromSources(headerSources, ['customerInfo', 'CustomerInfo'], [1, 2, 3, 4, 5, 6, 9, 10]);
+  const customerName = pickSourceValueFromSources(headerSources, ['customerName', 'billToName'], '')
+    || customerInfoLines[0]
+    || '';
+  const customerAddressLines = customerInfoLines.length > 1 && customerInfoLines[0] === customerName
+    ? customerInfoLines.slice(1)
+    : customerInfoLines;
+
+  return {
+    companyInfoLines: collectSequentialSourceValuesFromSources(headerSources, ['companyInfoText', 'CompanyInfoText'], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+    companyLogo: pickSourceValueFromSources(headerSources, ['companyInfoPicture', 'CompanyInfoPicture'], ''),
+    customerName,
+    customerInfoLines,
+    customerAddressLines,
+    salesComments: collectSequentialSourceValuesFromSources(uniqueObjectReferences([...lineSources, ...headerSources]), ['saleComment', 'SaleComment'], [1, 2, 3]),
+    billToCustomerNo: pickSourceValueFromSources(headerSources, ['billtoCustomerNo', 'billToCustomerNo', 'BilltoCustomerNo_SalesHeader'], ''),
+    sellToCustomerNo: pickSourceValueFromSources(headerSources, ['selltoCustomerNo', 'sellToCustomerNo', 'SelltoCustomerNo_SalesHeader'], ''),
+    vatRegistrationNo: pickSourceValueFromSources(headerSources, ['vatRegistrationNo', 'VATRegistrationNo_SalesHeader'], ''),
+    shipToName: pickSourceValueFromSources(headerSources, ['shipToName', 'Ship_to_Name'], ''),
+    shipToAddress: pickSourceValueFromSources(headerSources, ['shipToAddress', 'Ship_to_Address'], ''),
+    shipToContact: pickSourceValueFromSources(headerSources, ['shipToContact', 'Ship_to_Contact'], ''),
+    sellToPhoneNo: pickSourceValueFromSources(headerSources, ['sellToPhoneNo', 'Sell_to_Phone_No_'], ''),
+    faxNo: pickSourceValueFromSources(headerSources, ['faxNo', 'FaxNo'], ''),
+    documentNo: pickSourceValueFromSources(headerSources, ['documentNo', 'quoteNumber', 'salesQuoteNumber', 'No_', 'DocNo_SaleHeader'], ''),
+    documentDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['documentDate', 'DocumentDate_SalesHeader'], '')),
+    orderDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['orderDate', 'OrderDate_SaleHeader', 'Order_Date', 'documentDate', 'DocumentDate_SalesHeader'], '')),
+    dueDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['dueDate', 'DueDate_SalesHeader', 'Due_Date'], '')),
+    shipmentDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['shipmentDate', 'ShipmentDate_SalesHeader'], '')),
+    quoteValidUntilDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['quoteValidUntilDate', 'quoteValidDate', 'QuoteValidDate_SalesHeader', 'Quote_Valid_Until_Date'], '')),
+    requestedDeliveryDate: normalizeBcDate(pickSourceValueFromSources(uniqueObjectReferences([...lineSources, ...headerSources]), ['requestedDeliveryDate', 'usvtDeliveryDate', 'USVT_Delivery_Date', 'shipmentDate', 'ShipmentDate_SalesHeader'], '')),
+    paymentTermsCode: pickSourceValueFromSources(headerSources, ['paymentTermsCode', 'Payment_Terms_Code'], ''),
+    paymentTermsDescription: pickSourceValueFromSources(headerSources, ['paymentTermsDescription', 'descriptionPaymentTerms', 'Description_PaymentTerms'], ''),
+    paymentMethodDescription: pickSourceValueFromSources(headerSources, ['paymentMethodDescription', 'descriptionPaymentMethod', 'Description_PaymentMethod'], ''),
+    shipMethodDescription: pickSourceValueFromSources(headerSources, ['shipMethodDescription', 'descriptionShipMethod', 'Description_ShipMethod'], ''),
+    externalDocumentNo: pickSourceValueFromSources(headerSources, ['externalDocumentNo', 'exDocNo', 'ExDocNo_SalesHeader'], ''),
+    vatText: pickSourceValueFromSources(uniqueObjectReferences([...lineSources, ...headerSources]), ['vatText', 'VATText'], ''),
+    dimensionName: pickSourceValueFromSources(headerSources, ['dimensionName', 'DimensionName'], ''),
+    usvtShipTo: pickSourceValueFromSources(headerSources, ['usvtShipTo', 'USVT_Ship_To'], ''),
+    billToContact: pickSourceValueFromSources(headerSources, ['billToContact', 'Bill_to_Contact'], ''),
+    reportNumber: pickSourceValueFromSources(headerSources, ['reportNumber', 'ReportNumber'], ''),
+    requestSignatureUserSetup: pickSourceValueFromSources(headerSources, ['requestSignatureUserSetup', 'RequestSignature_UserSetup'], ''),
+    archivedVersionCount: pickSourceValueFromSources(headerSources, ['noArchivedVersions', 'noArchivedVersionsSalesHeader', 'NoArchivedVersions_SalesHeader'], ''),
     salesperson: {
-      name: pickSourceValue(data, ['salespersonName', 'nameSalesperson', 'Name_Salesperson'], resolvedSalespersonName || ''),
-      phone: pickSourceValue(data, ['salespersonPhone', 'phoneNoSalesperson', 'PhoneNo_Salesperson'], ''),
-      email: pickSourceValue(data, ['salespersonEmail', 'emailSalesperson', 'Email_Salesperson'], ''),
-      signature: pickSourceValue(data, ['signatureSalesperson', 'Signature_Salesperson'], '')
+      name: pickSourceValueFromSources(headerSources, ['salespersonName', 'nameSalesperson', 'Name_Salesperson'], resolvedSalespersonName || ''),
+      phone: pickSourceValueFromSources(headerSources, ['salespersonPhone', 'phoneNoSalesperson', 'PhoneNo_Salesperson'], ''),
+      email: pickSourceValueFromSources(headerSources, ['salespersonEmail', 'emailSalesperson', 'Email_Salesperson'], ''),
+      signature: pickSourceValueFromSources(headerSources, ['signatureSalesperson', 'Signature_Salesperson'], '')
     },
     approver: {
-      name: pickSourceValue(data, ['approveUserName', 'ApproveUser_Name'], ''),
-      phone: pickSourceValue(data, ['approveSignaturePhoneNo', 'ApproveSignature_PhoneNo'], ''),
-      email: pickSourceValue(data, ['approveSignatureEmail', 'ApproveSignature_Email'], ''),
-      signature: pickSourceValue(data, ['approveSignatureUserSetup', 'ApproveSignature_UserSetup'], '')
+      name: pickSourceValueFromSources(headerSources, ['approveUserName', 'ApproveUser_Name'], ''),
+      phone: pickSourceValueFromSources(headerSources, ['approveSignaturePhoneNo', 'ApproveSignature_PhoneNo'], ''),
+      email: pickSourceValueFromSources(headerSources, ['approveSignatureEmail', 'ApproveSignature_Email'], ''),
+      signature: pickSourceValueFromSources(headerSources, ['approveSignatureUserSetup', 'ApproveSignature_UserSetup'], '')
     },
-    rawLines: rawLines.map((line, index) => ({
+    reportTotals: {
+      total: pickSourceValueFromSources(allSources, ['total', 'Total'], ''),
+      totalAmt1: pickSourceValueFromSources(allSources, ['totalAmt1', 'TotalAmt1'], ''),
+      totalAmt2: pickSourceValueFromSources(allSources, ['totalAmt2', 'TotalAmt2'], ''),
+      totalAmt3: pickSourceValueFromSources(allSources, ['totalAmt3', 'TotalAmt3'], ''),
+      totalAmt4: pickSourceValueFromSources(allSources, ['totalAmt4', 'TotalAmt4'], ''),
+      totalAmt5: pickSourceValueFromSources(allSources, ['totalAmt5', 'TotalAmt5'], ''),
+      grandTotalText: pickSourceValueFromSources(allSources, ['varGrandTotalAmtTH', 'var_GrandTotalAmtTH'], '')
+    },
+    rawLines: printableLineSources.map((line, index) => ({
       bcId: line?.id || line?.bcId || null,
       sequence: Number(line?.sequence ?? line?.lineNo ?? line?.LineNo ?? line?.Line_No_) || index + 1,
       groupNo: normalizeGroupNo(line?.usvtGroupNo ?? line?.groupNo ?? line?.USVT_Group_No_),
@@ -336,7 +447,7 @@ function mapBcLineToEditorLine(line, index) {
     locationId: line?.locationId || null,
     locationCode: line?.locationCode || '',
     shortcutDimension2Code: line?.shortcutDimension2Code || '',
-    usvtGroupNo: normalizeGroupNo(line?.usvtGroupNo ?? line?.groupNo ?? ''),
+    usvtGroupNo: normalizeGroupNo(line?.usvtGroupNo ?? line?.groupNo ?? line?.USVT_Group_No_),
     usvtServiceItemNo: line?.usvtServiceItemNo || line?.serviceItemNo || '',
     usvtServiceItemDescription: line?.usvtServiceItemDescription || line?.serviceItemDescription || '',
     usvtUServiceStatus: line?.usvtUServiceStatus || line?.uServiceStatus || '',
@@ -461,23 +572,43 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     throw new Error('Business Central did not return Sales Quote data for this number.');
   }
 
-  const customerNumber = data.customerNumber || data.billToCustomerNo || '';
-  const salespersonCode = data.salespersonCode || data.salesPersonCode || '';
+  const sourceContext = buildReportLookupSources(data);
+  const { headerSources, printableLineSources } = sourceContext;
+  const customerNumber = pickSourceValueFromSources(
+    headerSources,
+    ['customerNumber', 'billToCustomerNo', 'billtoCustomerNo', 'BilltoCustomerNo_SalesHeader', 'sellToCustomerNo', 'selltoCustomerNo', 'SelltoCustomerNo_SalesHeader'],
+    ''
+  );
+  const salespersonCode = pickSourceValueFromSources(
+    headerSources,
+    ['salespersonCode', 'salesPersonCode'],
+    ''
+  );
   const [customerRecord, salespersonName] = await Promise.all([
-    fetchCustomerDetails(customerNumber, data.customerName || data.billToName || ''),
+    fetchCustomerDetails(customerNumber, pickSourceValueFromSources(headerSources, ['customerName', 'billToName'], '')),
     fetchSalespersonDisplayName(salespersonCode)
   ]);
 
-  const branchCode = data.branchCode || data.responsibilityCenter || data.shortcutDimension1Code || state.ui.branchDefaults.branch || '';
-  const responsibilityCenter = data.responsibilityCenter || branchCode;
-  const locationCode = data.locationCode || '';
-  const customerName = data.customerName || data.billToName || customerRecord.CustomerName || '';
-  const customerDisplay = buildCustomerDisplayModel(customerRecord, customerNumber, customerName);
-  const reportContext = buildSearchQuoteReportContext(data, salespersonName);
+  const branchCode = pickSourceValueFromSources(headerSources, ['branchCode', 'responsibilityCenter', 'shortcutDimension1Code'], '')
+    || state.ui.branchDefaults.branch
+    || '';
+  const responsibilityCenter = pickSourceValueFromSources(headerSources, ['responsibilityCenter', 'branchCode', 'shortcutDimension1Code'], branchCode);
+  const locationCode = pickSourceValueFromSources(headerSources, ['locationCode'], '');
+  const reportContext = buildSearchQuoteReportContext(data, salespersonName, sourceContext);
+  const customerName = pickSourceValueFromSources(headerSources, ['customerName', 'billToName'], '')
+    || customerRecord.CustomerName
+    || reportContext.customerName
+    || '';
+  const customerDisplay = {
+    ...buildCustomerDisplayModel(customerRecord, customerNumber, customerName),
+    phone: customerRecord?.Phone || reportContext.sellToPhoneNo || '',
+    address: customerRecord?.Address || reportContext.customerAddressLines?.[0] || '',
+    email: customerRecord?.Email || ''
+  };
 
   return {
-    id: data.id || null,
-    number: data.number || payload.salesQuoteNumber || null,
+    id: pickSourceValueFromSources(headerSources, ['id'], null),
+    number: pickSourceValueFromSources(headerSources, ['number', 'quoteNumber', 'salesQuoteNumber', 'No_', 'DocNo_SaleHeader'], payload.salesQuoteNumber || null),
     etag: data['@odata.etag'] || null,
     status: data.status || '',
     workStatus: data.workStatus || data.WorkStatus || data.workstatus || '',
@@ -489,20 +620,20 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     customerNo: customerNumber || null,
     customerName,
     sellTo: {
-      address: customerRecord.Address || '',
-      address2: customerRecord.Address2 || '',
+      address: customerRecord.Address || reportContext.customerAddressLines?.[0] || '',
+      address2: customerRecord.Address2 || reportContext.customerAddressLines?.[1] || '',
       city: customerRecord.City || '',
       postCode: customerRecord.PostCode || '',
-      vatRegNo: customerRecord.VATRegistrationNo || '',
+      vatRegNo: customerRecord.VATRegistrationNo || reportContext.vatRegistrationNo || '',
       taxBranchNo: customerRecord.TaxBranchNo || ''
     },
-    orderDate: normalizeBcDate(data.orderDate || data.documentDate),
-    requestedDeliveryDate: normalizeBcDate(data.requestedDeliveryDate),
+    orderDate: reportContext.orderDate || '',
+    requestedDeliveryDate: reportContext.requestedDeliveryDate || '',
     workDescription: data.workDescription || '',
-    contact: data.contactName || data.shipToContact || '',
+    contact: pickSourceValueFromSources(headerSources, ['contactName', 'shipToContact', 'billToContact', 'Bill_to_Contact'], ''),
     salespersonCode,
-    salespersonName: salespersonName || '',
-    assignedUserId: data.assignedUserId || '',
+    salespersonName: salespersonName || reportContext.salesperson?.name || '',
+    assignedUserId: pickSourceValueFromSources(headerSources, ['assignedUserId'], ''),
     serviceOrderType: data.serviceOrderType || '',
     division: data.shortcutDimension2Code || 'MS1029',
     branch: branchCode,
@@ -513,9 +644,7 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     vatRate: 7,
     discountAmount: parseFloat(data.discountAmount) || 0,
     reportContext,
-    lines: Array.isArray(data.salesQuoteLines || data.lines)
-      ? (data.salesQuoteLines || data.lines).map((line, index) => mapBcLineToEditorLine(line, index))
-      : []
+    lines: printableLineSources.map((line, index) => mapBcLineToEditorLine(line, index))
   };
 }
 

@@ -368,6 +368,20 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - Opens print preview in new window with A4 layout
     - Includes company info, logo, customer details, line items, totals, and signatures
 - **Field Mapping Robustness**: The `mapBcLineToEditorLine()` and `buildEditableQuoteFromSearchResponse()` functions support multiple field name variations from Business Central API responses (e.g., `qty`/`quantity`/`Qty_SaleLine`, `lineDiscountAmount`/`discountAmount`/`Line_Discount_Amount`, `billToCustomerNo`/`customerNumber`, `workStatus`/`WorkStatus`, `usvtShowInDocument`/`showInDocument`/`USVT_Show_in_Document`, `usvtHeader`/`header`/`USVT_Header`, `usvtFooter`/`footer`/`USVT_Footer`), ensuring compatibility with different API response formats
+- **Multi-Source Data Extraction**: Enhanced data extraction system that handles nested API response structures with multiple fallback sources:
+  - `buildReportLookupSources(data)` - Normalizes BC API response into structured source context with header sources, line sources, printable line sources, and all sources
+  - `uniqueObjectReferences(values)` - Removes duplicate object references to prevent circular iteration issues
+  - `normalizeRecordCollection(value)` - Converts data to array format (handles arrays, single objects, null/undefined)
+  - `isReportLineSource(line)` - Identifies valid report line sources based on presence of required fields
+  - `pickSourceValueFromSources(sources, keys, fallback)` - Extracts value from multiple possible sources with key variants
+  - `collectSequentialSourceValuesFromSources(sources, prefixes, indexes)` - Collects sequential values (e.g., companyInfoText1-10) from multiple sources
+- **Report Context Enhancements**: `buildSearchQuoteReportContext()` now includes additional fields for improved print layout:
+  - `customerName` - Extracted customer name with fallback logic
+  - `customerAddressLines` - Normalized customer address (2 lines max, separated from name)
+  - `documentNo` - Document/quote number from multiple possible fields
+  - `orderDate` - Order date with fallback to document date
+  - `shipmentDate` - Shipment/delivery date
+  - `reportTotals` - Financial totals (total, totalAmt1-5, grandTotalText)
 - **State Management**:
   - `state.quote.mode` - 'create' or 'edit'
   - `state.quote.id` - BC quote ID
@@ -377,7 +391,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `state.quote.workStatus` - BC quote work status (shown in edit mode only)
   - `state.quote.loadedFromBc` - Flag indicating quote was loaded from BC
   - `state.quote.processedAt` - Timestamp of BC processing
-  - `state.quote.reportContext` - Report context data for printing (company info, customer details, line metadata)
+  - `state.quote.reportContext` - Report context data for printing (company info, customer details, line metadata, financial totals)
   - `state.quote.invoiceDiscount` - Trade discount amount
   - `state.quote.invoiceDiscountPercent` - Trade discount percentage
   - `state.quote.vatRate` - VAT rate (default 7%)
@@ -395,7 +409,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `normalizeBcBoolean(value, defaultValue)` - Normalize boolean values from BC API (handles strings, numbers, null)
   - `pickSourceValue(source, keys, fallback)` - Pick first non-empty value from multiple possible keys
   - `collectSequentialSourceValues(source, prefixes, indexes)` - Collect sequential values (e.g., companyInfoText1, companyInfoText2, ...)
-  - `buildSearchQuoteReportContext(data, resolvedSalespersonName)` - Build report context for printing from BC response
+  - `buildReportLookupSources(data)` - Build normalized source context from BC API response (header sources, line sources, printable line sources)
+  - `uniqueObjectReferences(values)` - Remove duplicate object references from array
+  - `normalizeRecordCollection(value)` - Convert data to array format (handles arrays, single objects, null/undefined)
+  - `isReportLineSource(line)` - Identify valid report line sources based on required field presence
+  - `pickSourceValueFromSources(sources, keys, fallback)` - Extract value from multiple possible sources with key variants
+  - `collectSequentialSourceValuesFromSources(sources, prefixes, indexes)` - Collect sequential values from multiple sources
+  - `buildSearchQuoteReportContext(data, resolvedSalespersonName, sourceContext)` - Build report context for printing from BC response with multi-source fallback
 - **API Endpoints**:
   - `GET /api/business-central/gateway/sales-quotes/from-number?salesQuoteNumber={number}` - Retrieve quote from BC
   - `POST /api/business-central/gateway/update-sales-quote` - Update existing quote in BC

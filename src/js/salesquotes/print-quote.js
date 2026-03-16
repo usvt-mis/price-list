@@ -290,7 +290,7 @@ function buildCustomerAddressLines(formData, reportContext) {
     return sellToLines;
   }
 
-  return compactLines(reportContext.customerInfoLines);
+  return compactLines(reportContext.customerAddressLines || reportContext.customerInfoLines);
 }
 
 function buildDeliveryAddressLines(formData, reportContext) {
@@ -338,10 +338,10 @@ function buildModel() {
       ASSET_PATHS.aemt
     ],
     arCode: reportContext.billToCustomerNo || reportContext.sellToCustomerNo || formData.customerNo || '',
-    customerName: formData.customerName || '',
+    customerName: formData.customerName || reportContext.customerName || '',
     customerAddressLines: buildCustomerAddressLines(formData, reportContext),
-    ourRef: formData.quoteNumber || reportContext.externalDocumentNo || '',
-    documentDate: formatDate(reportContext.documentDate || formData.orderDate),
+    ourRef: formData.quoteNumber || reportContext.documentNo || reportContext.externalDocumentNo || '',
+    documentDate: formatDate(reportContext.documentDate || reportContext.orderDate || formData.orderDate),
     expiredDate: formatDate(reportContext.quoteValidUntilDate),
     paymentText: reportContext.paymentTermsCode || reportContext.paymentTermsDescription || '',
     deliveryText: reportContext.requestedDeliveryDate || formData.requestedDeliveryDate || '',
