@@ -162,21 +162,22 @@ function buildCustomerDisplayModel(customerRecord, fallbackCustomerNo, fallbackC
 
 function mapBcLineToEditorLine(line, index) {
   const existingLineId = line?.id || line?.bcId || null;
-  const normalizedQuantity = parseFloat(line?.quantity);
+  const normalizedQuantity = parseFloat(line?.quantity ?? line?.qty);
   const normalizedUnitPrice = parseFloat(line?.unitPrice);
-  const normalizedDiscountAmount = parseFloat(line?.discountAmount);
-  const normalizedDiscountPercent = parseFloat(line?.discountPercent);
+  const normalizedDiscountAmount = parseFloat(line?.discountAmount ?? line?.lineDiscountAmount);
+  const normalizedDiscountPercent = parseFloat(line?.discountPercent ?? line?.lineDiscountPercent);
 
   return {
     id: existingLineId || `line-${Date.now()}-${index}`,
     bcId: existingLineId,
     bcEtag: line?.['@odata.etag'] || line?.bcEtag || null,
     documentId: line?.documentId || null,
+    documentNo: line?.documentNo || '',
     sequence: Number(line?.sequence) || index + 1,
     itemId: line?.itemId || null,
     accountId: line?.accountId || null,
-    lineType: line?.lineType || 'Item',
-    lineObjectNumber: line?.lineObjectNumber || line?.no || '',
+    lineType: line?.lineType || line?.type || 'Item',
+    lineObjectNumber: line?.lineObjectNumber || line?.itemNo || line?.no || line?.number || '',
     description: line?.description || '',
     description2: line?.description2 || '',
     unitOfMeasureId: line?.unitOfMeasureId || null,
@@ -186,7 +187,7 @@ function mapBcLineToEditorLine(line, index) {
     discountAmount: Number.isFinite(normalizedDiscountAmount) ? normalizedDiscountAmount : 0,
     discountPercent: Number.isFinite(normalizedDiscountPercent) ? normalizedDiscountPercent : 0,
     discountAppliedBeforeTax: Boolean(line?.discountAppliedBeforeTax),
-    amountExcludingTax: parseFloat(line?.amountExcludingTax) || 0,
+    amountExcludingTax: parseFloat(line?.amountExcludingTax ?? line?.lineAmount) || 0,
     taxCode: line?.taxCode || '',
     taxPercent: parseFloat(line?.taxPercent) || 0,
     totalTaxAmount: parseFloat(line?.totalTaxAmount) || 0,
@@ -196,12 +197,16 @@ function mapBcLineToEditorLine(line, index) {
     netAmountIncludingTax: parseFloat(line?.netAmountIncludingTax) || 0,
     itemVariantId: line?.itemVariantId || null,
     locationId: line?.locationId || null,
+    locationCode: line?.locationCode || '',
+    shortcutDimension2Code: line?.shortcutDimension2Code || '',
     usvtGroupNo: normalizeGroupNo(line?.usvtGroupNo ?? line?.groupNo ?? ''),
     usvtServiceItemNo: line?.usvtServiceItemNo || line?.serviceItemNo || '',
     usvtServiceItemDescription: line?.usvtServiceItemDescription || line?.serviceItemDescription || '',
+    usvtUServiceStatus: line?.usvtUServiceStatus || line?.uServiceStatus || '',
+    usvtRefServiceOrderNo: line?.usvtRefServiceOrderNo || line?.refServiceOrderNo || '',
     usvtCreateSv: Boolean(line?.usvtCreateSv || line?.createSv || line?.usvtServiceItemNo || line?.serviceItemNo),
     usvtAddition: Boolean(line?.usvtAddition || line?.addition),
-    usvtRefSalesQuoteno: line?.usvtRefSalesQuoteno || line?.refSalesQuoteno || line?.refSalesQuoteNo || ''
+    usvtRefSalesQuoteno: line?.usvtRefSalesQuoteno || line?.usvtRefSalesQuoteNo || line?.refSalesQuoteno || line?.refSalesQuoteNo || ''
   };
 }
 
@@ -316,17 +321,18 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     throw new Error('Business Central did not return Sales Quote data for this number.');
   }
 
-  const customerNumber = data.customerNumber || '';
-  const salespersonCode = data.salespersonCode || '';
+  const customerNumber = data.customerNumber || data.billToCustomerNo || '';
+  const salespersonCode = data.salespersonCode || data.salesPersonCode || '';
   const [customerRecord, salespersonName] = await Promise.all([
-    fetchCustomerDetails(customerNumber, data.customerName || ''),
+    fetchCustomerDetails(customerNumber, data.customerName || data.billToName || ''),
     fetchSalespersonDisplayName(salespersonCode)
   ]);
 
   const branchCode = data.branchCode || data.responsibilityCenter || data.shortcutDimension1Code || state.ui.branchDefaults.branch || '';
   const responsibilityCenter = data.responsibilityCenter || branchCode;
   const locationCode = data.locationCode || '';
-  const customerDisplay = buildCustomerDisplayModel(customerRecord, customerNumber, data.customerName || '');
+  const customerName = data.customerName || data.billToName || customerRecord.CustomerName || '';
+  const customerDisplay = buildCustomerDisplayModel(customerRecord, customerNumber, customerName);
 
   return {
     id: data.id || null,
@@ -339,7 +345,7 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     customerId: customerNumber || null,
     customer: customerDisplay,
     customerNo: customerNumber || null,
-    customerName: data.customerName || customerRecord.CustomerName || '',
+    customerName,
     sellTo: {
       address: customerRecord.Address || '',
       address2: customerRecord.Address2 || '',
@@ -360,10 +366,11 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     branch: branchCode,
     locationCode,
     responsibilityCenter,
+    invoiceDiscountPercent: parseFloat(data.paymentDiscountPercent) || 0,
     invoiceDiscount: parseFloat(data.discountAmount) || 0,
     discountAmount: parseFloat(data.discountAmount) || 0,
-    lines: Array.isArray(data.salesQuoteLines)
-      ? data.salesQuoteLines.map((line, index) => mapBcLineToEditorLine(line, index))
+    lines: Array.isArray(data.salesQuoteLines || data.lines)
+      ? (data.salesQuoteLines || data.lines).map((line, index) => mapBcLineToEditorLine(line, index))
       : []
   };
 }

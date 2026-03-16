@@ -349,6 +349,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - "Send to Business Central" button changes to "Update in Business Central"
   - All quote lines are loaded with BC IDs and ETags for optimistic concurrency
   - Updates preserve BC etags for conflict detection
+- **Field Mapping Robustness**: The `mapBcLineToEditorLine()` and `buildEditableQuoteFromSearchResponse()` functions support multiple field name variations from Business Central API responses (e.g., `qty`/`quantity`, `lineDiscountAmount`/`discountAmount`, `billToCustomerNo`/`customerNumber`), ensuring compatibility with different API response formats
 - **State Management**:
   - `state.quote.mode` - 'create' or 'edit'
   - `state.quote.id` - BC quote ID
