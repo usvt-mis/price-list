@@ -23,6 +23,24 @@ const ERROR_MESSAGES = {
   CUSTOMER_REQUIRED: 'Please select a customer'
 };
 
+function normalizeQuoteLineType(lineType) {
+  const normalized = typeof lineType === 'string' ? lineType.trim() : '';
+  if (!normalized) {
+    return 'Item';
+  }
+
+  const canonical = normalized.toLowerCase();
+  if (canonical === 'comment' || canonical === '_x2000_' || canonical === '_x0020_') {
+    return 'Comment';
+  }
+
+  if (canonical === 'item') {
+    return 'Item';
+  }
+
+  return 'Item';
+}
+
 // ============================================================
 // Validation Rules
 // ============================================================
@@ -112,7 +130,7 @@ export function validateQuantity(value, lineType = 'Item') {
     return ERROR_MESSAGES.INVALID_NUMBER;
   }
 
-  if (lineType === 'Comment') {
+  if (normalizeQuoteLineType(lineType) === 'Comment') {
     return num >= 0 ? null : ERROR_MESSAGES.INVALID_NUMBER;
   }
 
@@ -364,7 +382,8 @@ export function sanitizeQuoteData(quote) {
 export function validateQuoteLineData(line) {
   const errors = {};
   let firstErrorField = null;
-  const isItem = line.lineType === 'Item';
+  const normalizedLineType = normalizeQuoteLineType(line.lineType);
+  const isItem = normalizedLineType === 'Item';
 
   // 1. Description (required)
   if (!line.description || line.description.trim() === '') {
@@ -385,7 +404,7 @@ export function validateQuoteLineData(line) {
   }
 
   // 4. Quantity
-  const quantityError = validateQuantity(line.quantity, line.lineType);
+  const quantityError = validateQuantity(line.quantity, normalizedLineType);
   if (quantityError) {
     errors.quantity = quantityError;
     if (!firstErrorField) firstErrorField = 'quantity';

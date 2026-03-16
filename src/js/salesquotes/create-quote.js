@@ -21,6 +21,24 @@ function normalizeGroupNo(value) {
   return String(value).trim();
 }
 
+function normalizeLineType(value) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) {
+    return 'Item';
+  }
+
+  const canonical = normalized.toLowerCase();
+  if (canonical === 'comment' || canonical === '_x2000_' || canonical === '_x0020_') {
+    return 'Comment';
+  }
+
+  if (canonical === 'item') {
+    return 'Item';
+  }
+
+  return 'Item';
+}
+
 function getGroupServiceItemLockMessage(groupNo) {
   return `Group No ${groupNo} already has a Service Item No. Only one Service Item is allowed per group.`;
 }
@@ -176,7 +194,7 @@ function mapBcLineToEditorLine(line, index) {
     sequence: Number(line?.sequence) || index + 1,
     itemId: line?.itemId || null,
     accountId: line?.accountId || null,
-    lineType: line?.lineType || line?.type || 'Item',
+    lineType: normalizeLineType(line?.lineType ?? line?.type),
     lineObjectNumber: line?.lineObjectNumber || line?.itemNo || line?.no || line?.number || '',
     description: line?.description || '',
     description2: line?.description2 || '',
@@ -944,7 +962,7 @@ export function handleAddQuoteLine() {
 
   const lineData = {
     usvtCreateSv: fieldRefs.createSv?.checked || false,
-    lineType: fieldRefs.lineType?.value || 'Item',
+    lineType: normalizeLineType(fieldRefs.lineType?.value),
     usvtServiceItemNo: fieldRefs.serviceItemNo?.value?.trim() || '',
     usvtServiceItemDescription: fieldRefs.serviceItemDesc?.value?.trim() || '',
     usvtGroupNo: normalizeGroupNo(fieldRefs.groupNo?.value),
@@ -1585,7 +1603,7 @@ async function sendQuoteToAzureFunction(quoteData) {
       description: line.description || '',
       quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
       unitPrice: line.unitPrice || 0,
-      lineType: line.lineType || 'Item',
+      lineType: normalizeLineType(line.lineType),
       discountPercent: line.discountPercent || 0,
       usvtGroupNo: normalizeGroupNo(line.usvtGroupNo),
       usvtServiceItemNo: line.usvtServiceItemNo || '',
@@ -1675,7 +1693,7 @@ async function updateQuoteInAzureFunction(quoteData) {
       description: line.description || '',
       quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
       unitPrice: line.unitPrice || 0,
-      lineType: line.lineType || 'Item',
+      lineType: normalizeLineType(line.lineType),
       discountPercent: line.discountPercent || 0,
       usvtGroupNo: normalizeGroupNo(line.usvtGroupNo),
       usvtServiceItemNo: line.usvtServiceItemNo || '',
@@ -2994,6 +3012,8 @@ function openEditLineModal(lineId) {
     return;
   }
 
+  const normalizedLineType = normalizeLineType(line.lineType);
+
   // Store the line ID being edited
   state.ui.editingLineId = lineId;
 
@@ -3007,7 +3027,7 @@ function openEditLineModal(lineId) {
   state.ui.dropdownFields.editMaterialNo.touched = false;
 
   // Populate modal fields with line data
-  document.getElementById('editLineType').value = line.lineType || 'Item';
+  document.getElementById('editLineType').value = normalizedLineType;
   document.getElementById('editLineUsvtGroupNo').value = line.usvtGroupNo || '';
   document.getElementById('editLineUsvtServiceItemNo').value = line.usvtServiceItemNo || '';
   document.getElementById('editLineUsvtServiceItemDescription').value = line.usvtServiceItemDescription || '';
@@ -3027,7 +3047,7 @@ function openEditLineModal(lineId) {
   // Initialize New SER button state based on existing line data
   const newSerButton = document.getElementById('editLineCreateSv');
   if (newSerButton) {
-    const isComment = line.lineType === 'Comment';
+    const isComment = normalizedLineType === 'Comment';
 
     if (hasExistingSer || isComment) {
       newSerButton.disabled = true;
@@ -3066,7 +3086,7 @@ function openEditLineModal(lineId) {
   }
 
   // Update field states based on Type (respects locked state)
-  updateEditModalFieldStates(line.lineType);
+  updateEditModalFieldStates(normalizedLineType);
 
   // Setup required field asterisk handlers for Edit modal
   setupEditModalAsteriskHandlers();
@@ -3165,7 +3185,7 @@ function saveEditLine() {
 
   // Get values from modal
   const lineData = {
-    lineType: document.getElementById('editLineType').value,
+    lineType: normalizeLineType(document.getElementById('editLineType').value),
     usvtGroupNo: normalizeGroupNo(document.getElementById('editLineUsvtGroupNo').value),
     usvtServiceItemNo: document.getElementById('editLineUsvtServiceItemNo').value,
     usvtServiceItemDescription: document.getElementById('editLineUsvtServiceItemDescription').value,
@@ -3249,6 +3269,7 @@ function updateEditLineTotal() {
  * @param {string} type - The line type ('Item' or 'Comment')
  */
 function updateEditModalFieldStates(type) {
+  const normalizedType = normalizeLineType(type);
   const servItemNo = document.getElementById('editLineUsvtServiceItemNo');
   const servItemDesc = document.getElementById('editLineUsvtServiceItemDescription');
   const newSerButton = document.getElementById('editLineCreateSv');
@@ -3265,7 +3286,7 @@ function updateEditModalFieldStates(type) {
     return; // Keep fields in their locked state
   }
 
-  if (type === 'Comment') {
+  if (normalizedType === 'Comment') {
     // Disable Service Item fields and clear values
     servItemNo.disabled = true;
     servItemDesc.disabled = true;

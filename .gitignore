@@ -73,3 +73,7 @@ logging.md
 # Database scripts with sensitive info
 create_app_log.sql
 diagnostic_log.sql
+
+# AI/Agent configuration directories
+.agents/
+.codex/
