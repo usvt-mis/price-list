@@ -358,7 +358,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - Read-only field with gray background styling
     - Only visible when editing a quote loaded from BC (not for new quotes)
     - Supports multiple field name variations from BC API (`workStatus`, `WorkStatus`, `workstatus`)
-  - **Ref. Service Order No. column shown in edit mode** - Displays the USVT Ref. Service Order No. from Business Central for searched quotes
+  - **Ref. SV No. column shown in edit mode** - Displays the USVT Ref. Service Order No. from Business Central for searched quotes
     - Column only visible when editing a quote loaded from BC (not for new quotes)
     - Shows the service order number associated with each quote line
     - Integrated with quote line column personalization (can be reordered via drag-and-drop)

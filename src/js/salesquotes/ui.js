@@ -442,14 +442,6 @@ const QUOTE_LINE_COLUMNS = [
     render: (line) => line.usvtRefSalesQuoteno || ''
   },
   {
-    id: 'usvtRefServiceOrderNo',
-    label: 'Ref. Service Order No.',
-    width: '170px',
-    cellClass: 'text-sm',
-    isVisible: () => isSearchSalesQuoteEditorMode(),
-    render: (line) => line.usvtRefServiceOrderNo || ''
-  },
-  {
     id: 'discountPercent',
     label: 'Disc. %',
     width: '80px',
@@ -472,6 +464,14 @@ const QUOTE_LINE_COLUMNS = [
     headerClass: 'text-right',
     cellClass: 'font-bold text-gray-900 text-right',
     render: (line) => formatCurrency(calculateLineTotal(line))
+  },
+  {
+    id: 'usvtRefServiceOrderNo',
+    label: 'Ref. SV No.',
+    width: '170px',
+    cellClass: 'text-sm',
+    isVisible: () => isSearchSalesQuoteEditorMode(),
+    render: (line) => line.usvtRefServiceOrderNo || ''
   },
   {
     id: 'actions',
@@ -508,7 +508,18 @@ function sanitizeQuoteLineColumnOrder(order) {
 
   DEFAULT_QUOTE_LINE_COLUMN_ORDER.forEach(columnId => {
     if (!normalizedOrder.includes(columnId)) {
-      normalizedOrder.push(columnId);
+      const defaultIndex = DEFAULT_QUOTE_LINE_COLUMN_ORDER.indexOf(columnId);
+      const nextKnownColumnId = DEFAULT_QUOTE_LINE_COLUMN_ORDER
+        .slice(defaultIndex + 1)
+        .find(nextColumnId => normalizedOrder.includes(nextColumnId));
+
+      if (!nextKnownColumnId) {
+        normalizedOrder.push(columnId);
+        return;
+      }
+
+      const insertIndex = normalizedOrder.indexOf(nextKnownColumnId);
+      normalizedOrder.splice(insertIndex, 0, columnId);
     }
   });
 
