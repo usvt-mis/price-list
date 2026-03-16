@@ -339,6 +339,7 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     number: data.number || payload.salesQuoteNumber || null,
     etag: data['@odata.etag'] || null,
     status: data.status || '',
+    workStatus: data.workStatus || data.WorkStatus || data.workstatus || '',
     mode: 'edit',
     loadedFromBc: true,
     processedAt: payload.processedAt || null,

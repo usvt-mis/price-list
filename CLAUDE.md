@@ -354,13 +354,18 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - Dropdown is hidden when locked
     - Input/blur event handlers are guarded to prevent execution when field is read-only
     - Accessibility attributes (`aria-readonly`, `title`) indicate locked state
-- **Field Mapping Robustness**: The `mapBcLineToEditorLine()` and `buildEditableQuoteFromSearchResponse()` functions support multiple field name variations from Business Central API responses (e.g., `qty`/`quantity`, `lineDiscountAmount`/`discountAmount`, `billToCustomerNo`/`customerNumber`), ensuring compatibility with different API response formats
+  - **Work Status field is shown in edit mode** - Displays the Work Status from Business Central for searched quotes
+    - Read-only field with gray background styling
+    - Only visible when editing a quote loaded from BC (not for new quotes)
+    - Supports multiple field name variations from BC API (`workStatus`, `WorkStatus`, `workstatus`)
+- **Field Mapping Robustness**: The `mapBcLineToEditorLine()` and `buildEditableQuoteFromSearchResponse()` functions support multiple field name variations from Business Central API responses (e.g., `qty`/`quantity`, `lineDiscountAmount`/`discountAmount`, `billToCustomerNo`/`customerNumber`, `workStatus`/`WorkStatus`), ensuring compatibility with different API response formats
 - **State Management**:
   - `state.quote.mode` - 'create' or 'edit'
   - `state.quote.id` - BC quote ID
   - `state.quote.number` - BC quote number
   - `state.quote.etag` - BC OData etag for updates
   - `state.quote.status` - BC quote status
+  - `state.quote.workStatus` - BC quote work status (shown in edit mode only)
   - `state.quote.loadedFromBc` - Flag indicating quote was loaded from BC
   - `state.quote.processedAt` - Timestamp of BC processing
   - `state.ui.branchDefaults` - Stores default branch values to restore after "Start New Quote"
@@ -372,7 +377,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `updateQuoteInAzureFunction()` - Submit updated quote to BC
   - `resetQuoteEditorToCreateMode()` - Reset to create mode (preserves branch defaults)
   - `startNewSalesQuoteFlow()` - Handler for "Start New Quote" button
-  - `updateQuoteEditorModeUi()` - Update banner and button text based on mode
+  - `updateQuoteEditorModeUi()` - Update banner and button text based on mode, show/hide Work Status field
   - `setCustomerNoFieldLockState(locked)` - Lock/unlock Customer No field with visual and accessibility updates
 - **API Endpoints**:
   - `GET /api/business-central/gateway/sales-quotes/from-number?salesQuoteNumber={number}` - Retrieve quote from BC
@@ -384,7 +389,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Environment Variables** (new):
   - `GSQFN_KEY` / `GSQFN_PATH` - GetSalesQuotesFromNumber function key and path
   - `USQ_KEY` / `USQ_PATH` - UpdateSalesQuote function key and path
-- Implementation: `src/js/salesquotes/create-quote.js` - search/update logic with input/blur guards, `src/js/salesquotes/state.js` - edit mode state, `src/js/salesquotes/ui.js` - mode banner UI and `setCustomerNoFieldLockState()`, `src/salesquotes.html` - search form, `api/src/routes/business-central/gateway.js` - proxy routes
+- Implementation: `src/js/salesquotes/create-quote.js` - search/update logic with input/blur guards, `src/js/salesquotes/state.js` - edit mode state, `src/js/salesquotes/ui.js` - mode banner UI and `setCustomerNoFieldLockState()`, `src/js/salesquotes/validations.js` - workStatus sanitization, `src/salesquotes.html` - search form and Work Status field, `api/src/routes/business-central/gateway.js` - proxy routes
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 

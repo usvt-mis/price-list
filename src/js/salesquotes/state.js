@@ -12,6 +12,7 @@ function createInitialQuoteState(overrides = {}) {
     number: null,
     etag: null,
     status: null,
+    workStatus: '',
     mode: 'create',
     loadedFromBc: false,
     processedAt: null,

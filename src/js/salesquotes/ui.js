@@ -1195,6 +1195,7 @@ export function getQuoteFormData() {
     quoteNumber: state.quote.number,
     quoteEtag: state.quote.etag,
     quoteStatus: state.quote.status,
+    workStatus: el('workStatus')?.value || state.quote.workStatus || '',
     mode: state.quote.mode,
     customerId: state.quote.customerId,
     customerNo: state.quote.customerNo,
@@ -1223,6 +1224,7 @@ export function getQuoteFormData() {
 export function populateQuoteForm(quote) {
   if (el('customerNoSearch')) el('customerNoSearch').value = quote.customerNo || '';
   if (el('customerName')) el('customerName').value = quote.customerName || '';
+  if (el('workStatus')) el('workStatus').value = quote.workStatus || '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = quote.workDescription || '';
   if (el('invoiceDiscount')) el('invoiceDiscount').value = quote.invoiceDiscount ?? quote.discountAmount ?? 0;
 
@@ -1294,6 +1296,7 @@ export function clearQuoteForm() {
   if (el('customerSearch')) el('customerSearch').value = '';
   if (el('customerNoSearch')) el('customerNoSearch').value = '';
   if (el('customerName')) el('customerName').value = '';
+  if (el('workStatus')) el('workStatus').value = '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = '';
   if (el('invoiceDiscount')) el('invoiceDiscount').value = '0';
   if (el('invoiceDiscountPercent')) el('invoiceDiscountPercent').value = '0.0';
@@ -1345,13 +1348,19 @@ function setCustomerNoFieldLockState(locked) {
  */
 export function updateQuoteEditorModeUi() {
   const isEditMode = state.quote.mode === 'edit' && Boolean(state.quote.number);
+  const isSearchSalesQuoteMode = isEditMode && state.quote.loadedFromBc;
   const banner = el('quoteEditorModeBanner');
   const title = el('quoteEditorModeTitle');
   const meta = el('quoteEditorModeMeta');
   const sendButton = el('sendQuoteBtn');
   const sendButtonText = el('sendQuoteBtnText');
+  const workStatusFieldContainer = el('workStatusFieldContainer');
 
   setCustomerNoFieldLockState(isEditMode);
+
+  if (workStatusFieldContainer) {
+    workStatusFieldContainer.classList.toggle('hidden', !isSearchSalesQuoteMode);
+  }
 
   if (banner) {
     banner.classList.toggle('hidden', !isEditMode);
