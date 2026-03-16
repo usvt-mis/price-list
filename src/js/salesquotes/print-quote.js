@@ -272,6 +272,7 @@ function buildTotals(formData) {
   return {
     subtotal,
     tradeDiscount,
+    afterDiscount,
     vatRate,
     vatAmount,
     grandTotal: afterDiscount + vatAmount
@@ -320,7 +321,8 @@ function buildModel() {
   const totals = buildTotals(formData);
   const branchCode = normalizeBranchCode(formData.branch || formData.responsibilityCenter || state.quote.branch);
   const branchHeaderLines = buildBranchHeaderLines(branchCode);
-  const companyLines = branchHeaderLines.length ? branchHeaderLines : compactLines(reportContext.companyInfoLines);
+  const reportCompanyLines = compactLines(reportContext.companyInfoLines);
+  const companyLines = reportCompanyLines.length ? reportCompanyLines : branchHeaderLines;
   const detailNotes = unique(compactLines(reportContext.salesComments));
   const bottomRemark = String(formData.workDescription || '').trim();
 
@@ -338,7 +340,7 @@ function buildModel() {
     arCode: reportContext.billToCustomerNo || reportContext.sellToCustomerNo || formData.customerNo || '',
     customerName: formData.customerName || '',
     customerAddressLines: buildCustomerAddressLines(formData, reportContext),
-    ourRef: reportContext.externalDocumentNo || formData.quoteNumber || '',
+    ourRef: formData.quoteNumber || reportContext.externalDocumentNo || '',
     documentDate: formatDate(reportContext.documentDate || formData.orderDate),
     expiredDate: formatDate(reportContext.quoteValidUntilDate),
     paymentText: reportContext.paymentTermsCode || reportContext.paymentTermsDescription || '',
@@ -371,7 +373,14 @@ function buildModel() {
 }
 
 function renderAddressLines(lines, expected = 2) {
-  const normalized = [...lines];
+  const normalized = [...lines].map(line => String(line || '').trim()).filter(Boolean);
+
+  if (normalized.length > expected) {
+    const head = normalized.slice(0, expected - 1);
+    const tail = normalized.slice(expected - 1).join(' ');
+    normalized.splice(0, normalized.length, ...head, tail);
+  }
+
   while (normalized.length < expected) {
     normalized.push('');
   }
@@ -420,12 +429,15 @@ function renderLineRows(lines) {
 function buildPrintHtml(model) {
   const customerAddressLines = renderAddressLines(model.customerAddressLines, 2);
   const deliveryAddressLines = renderAddressLines(model.deliveryAddressLines, 2);
-  const companyMarkup = model.companyLines.slice(2).map(line => `<div>${escapeHtml(line)}</div>`).join('');
+  const companyMarkup = model.companyLines.slice(2).map(line => `<div class="company-line">${escapeHtml(line)}</div>`).join('');
   const remarkMarkup = model.bottomRemark
-    ? `<div>${escapeHtml(model.bottomRemark)}</div>`
-    : '&nbsp;';
+    ? escapeHtml(model.bottomRemark)
+    : '';
   const certificationMarkup = model.certificationLogos
     .map(src => `<img src="${escapeHtml(src)}" alt="" class="cert-logo">`)
+    .join('');
+  const detailNotesMarkup = model.detailNotes
+    .map(line => `<div class="note-row-text">${escapeHtml(line)}</div>`)
     .join('');
 
   return `<!DOCTYPE html>
@@ -435,62 +447,114 @@ function buildPrintHtml(model) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(model.ourRef || 'Sales Quote')} Print</title>
   <style>
-    @page { size: A4; margin: 10mm; }
+    @page { size: A4; margin: 8mm 10mm 10mm; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: #fff; color: #111; font-family: Tahoma, Arial, sans-serif; font-size: 11px; line-height: 1.22; }
-    .page { width: 190mm; margin: 0 auto; }
-    .topbar { display: grid; grid-template-columns: 33mm 1fr 18mm; align-items: start; column-gap: 6mm; }
-    .main-logo { width: 33mm; height: auto; object-fit: contain; }
-    .company { padding-top: 1mm; }
-    .company .th-name { font-size: 11px; font-weight: 700; margin-bottom: 1mm; }
-    .company .en-name { font-size: 11px; font-weight: 700; margin-bottom: 2mm; }
-    .company .line { margin-bottom: 0.7mm; }
-    .page-no { text-align: right; font-size: 10px; font-weight: 700; padding-top: 1mm; }
-    .title-row { position: relative; margin: 4mm 0 3mm; text-align: center; }
-    .title { font-size: 13px; font-weight: 700; }
-    .certs { position: absolute; right: 0; bottom: -1mm; display: flex; align-items: center; gap: 1.5mm; }
-    .cert-logo { height: 7mm; width: auto; object-fit: contain; }
-    .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 3mm; }
-    .meta-table td { padding: 1.1mm 0.9mm 1mm 0; vertical-align: top; }
-    .label { width: 19mm; font-weight: 700; white-space: nowrap; }
-    .value { width: 74mm; }
+    html, body { margin: 0; background: #fff; color: #111827; font-family: Tahoma, Arial, sans-serif; font-size: 10px; line-height: 1.28; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page {
+      width: 190mm;
+      min-height: 277mm;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .topbar { display: grid; grid-template-columns: 30mm 1fr 18mm; align-items: start; column-gap: 5mm; }
+    .main-logo { width: 29mm; height: auto; object-fit: contain; margin-top: 0.5mm; }
+    .company { padding-top: 0.4mm; }
+    .company .th-name { font-size: 10.8px; font-weight: 700; margin-bottom: 0.5mm; }
+    .company .en-name { font-size: 10.8px; font-weight: 700; margin-bottom: 1.3mm; }
+    .company-line { margin-bottom: 0.45mm; }
+    .page-no { text-align: right; font-size: 9.8px; font-weight: 700; white-space: nowrap; padding-top: 0.6mm; }
+    .title-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: end;
+      margin: 4.8mm 0 3.6mm;
+      column-gap: 4mm;
+    }
+    .title-row .spacer { min-height: 1px; }
+    .title { font-size: 13.4px; font-weight: 700; white-space: nowrap; }
+    .certs { display: flex; justify-content: flex-end; align-items: center; gap: 1.2mm; min-height: 7mm; }
+    .cert-logo { height: 6.3mm; width: auto; object-fit: contain; }
+    .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 2.8mm; }
+    .meta-table td { padding: 0 0.8mm 1.35mm 0; vertical-align: top; }
+    .label { width: 18mm; font-weight: 700; white-space: nowrap; }
+    .value { width: 80mm; }
     .mid-label { width: 14mm; font-weight: 700; white-space: nowrap; }
-    .mid-value { width: 30mm; }
-    .right-label { width: 20mm; text-align: right; font-weight: 700; white-space: nowrap; }
-    .right-value { width: 28mm; text-align: right; }
-    .line-table { width: 100%; border-collapse: collapse; margin-top: 0.5mm; }
+    .mid-value { width: 31mm; }
+    .right-label { width: 22mm; text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.5mm; }
+    .right-value { width: 25mm; text-align: right; white-space: nowrap; }
+    .line-table { width: 100%; border-collapse: collapse; margin-top: 0.4mm; }
     .line-table thead { display: table-header-group; }
-    .line-table th { background: #d9d9d9; font-size: 10px; font-weight: 700; padding: 1.8mm 1.6mm; text-align: center; }
-    .line-table td { padding: 1.2mm 1.5mm; vertical-align: top; border-bottom: none; }
+    .line-table th {
+      background: #d9d9d9;
+      color: #111827;
+      font-size: 9.8px;
+      font-weight: 700;
+      padding: 1.6mm 1.4mm;
+      text-align: center;
+    }
+    .line-table td {
+      padding: 1.3mm 1.4mm 1mm;
+      vertical-align: top;
+      border-bottom: none;
+      font-size: 9.8px;
+    }
+    .line-table tr { page-break-inside: avoid; }
     .seq-cell { width: 9%; text-align: center; }
-    .desc-cell { width: 43%; }
-    .num-cell { width: 13%; text-align: right; white-space: nowrap; }
-    .unit-cell { width: 8%; text-align: center; white-space: nowrap; }
-    .item-no { font-size: 9px; color: #374151; }
-    .line-meta { font-size: 9px; color: #6b7280; }
-    .note-row td { padding-top: 1.8mm; padding-bottom: 1.2mm; }
-    .underline { margin: 0.8mm 0 1.4mm 22mm; width: 39mm; border-top: 1px solid #666; }
-    .below-lines { margin-left: 22mm; margin-bottom: 12mm; }
-    .below-lines .row { margin-bottom: 2mm; }
-    .footer-band { display: grid; grid-template-columns: 1fr 32mm; column-gap: 10mm; align-items: start; margin-top: 4mm; }
-    .footer-note { font-size: 9px; }
-    .footer-note div { margin-bottom: 1.3mm; }
+    .desc-cell { width: 44%; }
+    .num-cell { width: 12%; text-align: right; white-space: nowrap; }
+    .unit-cell { width: 7%; text-align: center; white-space: nowrap; }
+    .item-no { font-size: 8.8px; color: #374151; margin-bottom: 0.3mm; }
+    .line-meta { font-size: 8.8px; color: #4b5563; margin-top: 0.4mm; }
+    .note-row td { padding-top: 1.6mm; padding-bottom: 1mm; }
+    .notes-block { margin-top: 2.3mm; }
+    .note-row-text { margin-bottom: 1.5mm; }
+    .footer-stack { margin-top: auto; padding-top: 4mm; }
+    .footer-divider { border-top: 1px solid #111827; margin-bottom: 2.2mm; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 40mm; column-gap: 12mm; align-items: start; }
+    .footer-note { font-size: 8.7px; line-height: 1.35; }
+    .footer-note div { margin-bottom: 0.9mm; }
+    .footer-note .thai { font-weight: 700; }
     .totals { width: 100%; border-collapse: collapse; }
-    .totals td { padding: 1mm 0; font-weight: 700; }
-    .totals .amount { text-align: right; }
-    .remark-job { display: grid; grid-template-columns: 1fr 32mm; column-gap: 10mm; margin-top: 3mm; min-height: 16mm; }
-    .remark-box .heading { font-weight: 700; margin-bottom: 2mm; }
-    .remark-box .job { margin-top: 4mm; font-weight: 700; }
-    .signature-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; column-gap: 10mm; margin-top: 4mm; align-items: end; }
-    .signature-col { min-height: 31mm; }
-    .signature-image { display: block; max-width: 34mm; max-height: 13mm; margin: 0 auto 1.5mm; object-fit: contain; }
-    .signer-name { text-align: center; margin-bottom: 1mm; }
-    .signature-line { border-top: 1px solid #333; margin-top: 9mm; padding-top: 2mm; text-align: center; }
-    .signature-title { text-align: center; font-size: 10px; margin-top: 6mm; }
-    .signature-meta { margin-top: 1.8mm; }
-    .signature-meta div { margin-bottom: 1mm; }
-    .signature-center .signature-title { margin-top: 1mm; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4mm; font-size: 9px; }
+    .totals td { padding: 0 0 1.55mm; font-weight: 700; vertical-align: top; }
+    .totals .label-cell { white-space: nowrap; }
+    .totals .amount { text-align: right; padding-left: 4mm; white-space: nowrap; }
+    .remark-section { margin-top: 2.4mm; }
+    .remark-row,
+    .job-row {
+      display: grid;
+      grid-template-columns: 13mm 1fr;
+      column-gap: 2mm;
+      align-items: start;
+    }
+    .remark-row { min-height: 4.6mm; }
+    .remark-label,
+    .job-label { font-weight: 700; }
+    .remark-value { white-space: pre-wrap; word-break: break-word; }
+    .job-row { margin-top: 1.1mm; font-weight: 700; }
+    .signature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      column-gap: 16mm;
+      margin-top: 8mm;
+      align-items: end;
+    }
+    .signature-col {
+      min-height: 34mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 2mm;
+    }
+    .signature-image { display: block; max-width: 34mm; max-height: 12mm; margin: 0 auto 0.8mm; object-fit: contain; }
+    .signer-name { text-align: center; min-height: 4mm; margin-bottom: 0.8mm; }
+    .signature-line { border-top: 1px solid #111827; margin-top: auto; padding-top: 1.8mm; text-align: center; }
+    .signature-title { text-align: center; font-size: 9.8px; margin-top: 2.4mm; }
+    .signature-meta { margin: 1.4mm auto 0; width: 82%; font-size: 8.9px; }
+    .signature-meta div { margin-bottom: 0.9mm; }
+    .signature-customer .signature-meta { width: 72%; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 5.2mm; font-size: 8.9px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
 </head>
@@ -507,6 +571,7 @@ function buildPrintHtml(model) {
     </div>
 
     <div class="title-row">
+      <div class="spacer"></div>
       <div class="title">${escapeHtml(model.title)}</div>
       <div class="certs">${certificationMarkup}</div>
     </div>
@@ -585,67 +650,74 @@ function buildPrintHtml(model) {
       <tbody>${renderLineRows(model.lineItems)}</tbody>
     </table>
 
-    <div class="underline"></div>
-    <div class="below-lines">
-      ${model.detailNotes.map(line => `<div class="row">${escapeHtml(line)}</div>`).join('')}
+    ${detailNotesMarkup ? `
+    <div class="notes-block">
+      ${detailNotesMarkup}
     </div>
+    ` : ''}
 
-    <div class="footer-band">
-      <div class="footer-note">
-        <div>${escapeHtml(DEFAULT_DISCLAIMER_TH)}</div>
-        <div>${escapeHtml(DEFAULT_DISCLAIMER_EN)}</div>
+    <div class="footer-stack">
+      <div class="footer-divider"></div>
+
+      <div class="summary-grid">
+        <div class="footer-note">
+          <div class="thai">${escapeHtml(DEFAULT_DISCLAIMER_TH)}</div>
+          <div>${escapeHtml(DEFAULT_DISCLAIMER_EN)}</div>
+        </div>
+        <table class="totals">
+          <tr><td class="label-cell">Total</td><td class="amount">${escapeHtml(formatCurrency(model.totals.subtotal))}</td></tr>
+          <tr><td class="label-cell">Trade Discount</td><td class="amount">${escapeHtml(formatCurrency(model.totals.tradeDiscount))}</td></tr>
+          <tr><td class="label-cell">Sub Total</td><td class="amount">${escapeHtml(formatCurrency(model.totals.afterDiscount))}</td></tr>
+          <tr><td class="label-cell">${escapeHtml(model.vatLabel)}</td><td class="amount">${escapeHtml(formatCurrency(model.totals.vatAmount))}</td></tr>
+          <tr><td class="label-cell">Grand Total</td><td class="amount">${escapeHtml(formatCurrency(model.totals.grandTotal))}</td></tr>
+        </table>
       </div>
-      <table class="totals">
-        <tr><td>Total</td><td class="amount">${escapeHtml(formatCurrency(model.totals.subtotal))}</td></tr>
-        <tr><td>Trade Discount</td><td class="amount">${escapeHtml(formatCurrency(model.totals.tradeDiscount))}</td></tr>
-        <tr><td>Sub Total</td><td class="amount">${escapeHtml(formatCurrency(model.totals.subtotal))}</td></tr>
-        <tr><td>${escapeHtml(model.vatLabel)}</td><td class="amount">${escapeHtml(formatCurrency(model.totals.vatAmount))}</td></tr>
-        <tr><td>Grand Total</td><td class="amount">${escapeHtml(formatCurrency(model.totals.grandTotal))}</td></tr>
-      </table>
-    </div>
 
-    <div class="remark-job">
-      <div class="remark-box">
-        <div class="heading">Remark</div>
-        <div>${remarkMarkup}</div>
-        <div class="job">JOB NO : ${escapeHtml(model.jobNo)}</div>
-      </div>
-      <div></div>
-    </div>
-
-    <div class="signature-grid">
-      <div class="signature-col">
-        <div class="signature-line"></div>
-        <div class="signature-title">Customer Confirmed</div>
-        <div class="signature-meta">
-          <div>Date_____/_____/_____</div>
+      <div class="remark-section">
+        <div class="remark-row">
+          <div class="remark-label">Remark</div>
+          <div class="remark-value">${remarkMarkup}</div>
+        </div>
+        <div class="job-row">
+          <div class="job-label">JOB NO</div>
+          <div>: ${escapeHtml(model.jobNo)}</div>
         </div>
       </div>
-      <div class="signature-col signature-center">
-        ${model.salesperson.signature ? `<img src="${escapeHtml(model.salesperson.signature)}" alt="With By Signature" class="signature-image">` : ''}
-        <div class="signer-name">${escapeHtml(model.salesperson.name)}</div>
-        <div class="signature-line"></div>
-        <div class="signature-title">With By</div>
-        <div class="signature-meta">
-          <div>Tel&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${escapeHtml(model.salesperson.phone)}</div>
-          <div>Email&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;${escapeHtml(model.salesperson.email)}</div>
-        </div>
-      </div>
-      <div class="signature-col">
-        ${model.approver.signature ? `<img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">` : ''}
-        <div class="signer-name">${escapeHtml(model.approver.name)}</div>
-        <div class="signature-line"></div>
-        <div class="signature-title">Approved</div>
-        <div class="signature-meta">
-          <div>Tel&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${escapeHtml(model.approver.phone)}</div>
-          <div>Email&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;${escapeHtml(model.approver.email)}</div>
-        </div>
-      </div>
-    </div>
 
-    <div class="doc-footer">
-      <div>Effective Date : ${escapeHtml(model.effectiveDate)}</div>
-      <div>${escapeHtml(model.documentCode)}</div>
+      <div class="signature-grid">
+        <div class="signature-col signature-customer">
+          <div class="signature-line"></div>
+          <div class="signature-title">Customer Confirmed</div>
+          <div class="signature-meta">
+            <div>Date__________</div>
+          </div>
+        </div>
+        <div class="signature-col">
+          ${model.salesperson.signature ? `<img src="${escapeHtml(model.salesperson.signature)}" alt="With By Signature" class="signature-image">` : ''}
+          <div class="signer-name">${escapeHtml(model.salesperson.name)}</div>
+          <div class="signature-line"></div>
+          <div class="signature-title">With By</div>
+          <div class="signature-meta">
+            <div>Tel&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${escapeHtml(model.salesperson.phone)}</div>
+            <div>Email&nbsp;:&nbsp;${escapeHtml(model.salesperson.email)}</div>
+          </div>
+        </div>
+        <div class="signature-col">
+          ${model.approver.signature ? `<img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">` : ''}
+          <div class="signer-name">${escapeHtml(model.approver.name)}</div>
+          <div class="signature-line"></div>
+          <div class="signature-title">Approved</div>
+          <div class="signature-meta">
+            <div>Tel&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${escapeHtml(model.approver.phone)}</div>
+            <div>Email&nbsp;:&nbsp;${escapeHtml(model.approver.email)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-footer">
+        <div>Effective Date : ${escapeHtml(model.effectiveDate)}</div>
+        <div>${escapeHtml(model.documentCode)}</div>
+      </div>
     </div>
   </div>
   <script>
