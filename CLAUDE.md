@@ -81,7 +81,8 @@ api/src/
 
 src/salesquotes/components/
 ├── styles/         # External CSS
-└── modals/         # 8 modular HTML modals (lazy-loaded)
+├── modals/         # 8 modular HTML modals (lazy-loaded)
+└── assets/         # Static assets (logos, certifications for print)
 ```
 
 ---
@@ -413,25 +414,35 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Print button only appears in edit mode when a quote has been loaded from Business Central
   - Opens new browser window with A4-optimized print layout
   - Automatic print dialog triggered on page load
-  - Professional layout with company branding, customer details, line items, and signatures
+  - Professional layout with company branding, certification logos, customer details, line items, and signatures
+  - Thai/English bilingual company information and disclaimers
 - **Data Sources**:
-  - Company info: Company name, address lines, logo (from BC `companyInfoText*` and `companyInfoPicture`)
+  - Company info: Company name, address lines, logo (from BC `companyInfoText*` and `companyInfoPicture`, with fallback to static assets)
   - Customer info: Name, address, attention contact, phone, tax ID (from BC `customerInfo*` and `sellTo*` fields)
   - Quote metadata: Quote number, dates, payment terms, delivery info (from BC header fields)
   - Line items: Item number, description, quantity, unit price, discount, total (from BC sales quote lines)
   - Line print control: `USVT_Show_in_Document`, `USVT_Header`, `USVT_Footer` flags control visibility and formatting
   - Signatures: Salesperson and approver details with signature images (from BC signature fields)
+  - Certification logos: EASA, SGS-UKAS, IEC-IECEX, AEMT (static assets)
 - **Print Layout Sections**:
-  1. **Header**: Company logo + info (left), Quote title + metadata (right)
-  2. **Customer Box**: Customer name, address, attention, phone, tax ID
-  3. **Delivery Box**: Delivery address, AR code, our reference, job number, fax
-  4. **Payment Box**: Payment terms, tax branch, due date
-  5. **With By Box**: Salesperson contact info
-  6. **Line Items Table**: Item, description, quantity, unit of measure, unit price, discount, total
+  1. **Top Bar**: Main company logo (33mm), company info (Thai/English names + address), page number label
+  2. **Title Row**: "ใบเสนอราคา / QUOTATION" centered with certification logos (EASA, SGS, IEC, AEMT) on the right
+  3. **Meta Table**: Wide single-table layout with AR Code, Customer, Address (2 lines), Attention, Tel, Tax ID, Delivery Address (2 lines), Our Ref, Date, Expired Date, Payment, Delivery Date
+  4. **Line Items Table**: Item, description, quantity, unit of measure, unit price, discount, total
      - Comment lines render as full-width notes (no pricing columns)
      - Header/footer lines styled as notes (italic gray background)
-  7. **Summary Section**: Remarks + financial summary (subtotal, trade discount, VAT, grand total)
-  8. **Signature Section**: Salesperson and approver signatures with contact details
+  5. **Detail Notes Section**: Sales comments from BC displayed below line items with underline separator
+  6. **Footer Band**: Thai/English disclaimer (left), financial totals table (right)
+  7. **Remark & Job Box**: Remarks section with Job No displayed at bottom
+  8. **Signature Section**: 3-column layout - Customer Confirmed (with date fields), With By (with signature image, name, contact), Approved (with signature image, name, contact)
+  9. **Document Footer**: Effective date (01/04/2023), document code (CS-FM-RY-004 Rev.00)
+- **Asset Paths** (from `ASSET_PATHS` constant):
+  - Main logo: `uservices-logo.png`
+  - Certifications: `easa-logo.jpg`, `sgs-ukas-logo.png`, `iec-iecex-logo.jpg`, `aemt-logo.jpg`
+- **Default Content** (when BC data is unavailable):
+  - Company lines: U-Services (Thailand) Co., Ltd. branch info in Thai/English
+  - Disclaimers: Thai and English 90-day confirmation notices
+  - Document metadata: Effective date 01/04/2023, code CS-FM-RY-004 Rev.00
 - **Calculations**:
   - Line total = (Quantity × Unit Price) - Discount Amount
   - Subtotal = Sum of all line totals
@@ -441,7 +452,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `buildModel()` - Assembles print data from form state and BC report context
   - `buildPrintableLines()` - Filters and enriches line items with print metadata
   - `buildTotals()` - Calculates financial totals
-  - `buildCustomerAddress()` - Resolves customer address from form or BC data
+  - `buildCustomerAddressLines()` - Resolves customer address (2 lines max) from form or BC data
+  - `buildDeliveryAddressLines()` - Resolves delivery address (2 lines max) from form or BC data
+  - `renderAddressLines()` - Normalizes address lines to expected count with empty padding
   - `renderLineRows()` - Generates HTML table rows with proper formatting
   - `buildPrintHtml()` - Generates complete print document with inline styles
   - `printSearchedSalesQuote()` - Opens print window and triggers print dialog
@@ -453,13 +466,15 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `formatMoneyOrIncluded()` - Currency formatting with "(Included)" for zero values
   - `normalizeDataUri()` - Base64 image data URI normalization
   - `joinAddress()` - Address part concatenation
+  - `unique()` - Removes duplicate values from array
+  - `compactLines()` - Flattens nested arrays and removes empty values
 - **Error Handling**:
   - Validates edit mode and BC-loaded state before printing
   - Handles popup blocker scenario with user-friendly message
   - Shows toast notification on successful print preview launch
 - **Accessibility**: Print document uses semantic HTML, proper table structure, and clear visual hierarchy
 - **Browser Compatibility**: Uses window.open() with document.write() for maximum compatibility; auto-triggers print dialog via inline script
-- Implementation: `src/js/salesquotes/print-quote.js` - complete print module, `src/js/salesquotes/create-quote.js` - report context building, `src/js/salesquotes/state.js` - print state properties, `src/js/salesquotes/ui.js` - print button visibility, `src/salesquotes.html` - print button
+- Implementation: `src/js/salesquotes/print-quote.js` - complete print module, `src/salesquotes/create-quote.js` - report context building, `src/js/salesquotes/state.js` - print state properties, `src/js/salesquotes/ui.js` - print button visibility, `src/salesquotes.html` - print button, `src/salesquotes/components/assets/print/` - logo and certification assets
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 
