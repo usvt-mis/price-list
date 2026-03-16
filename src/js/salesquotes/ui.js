@@ -349,6 +349,10 @@ const QUOTE_LINE_DRAG_STATE = {
   draggedColumnId: null
 };
 
+function isSearchSalesQuoteEditorMode() {
+  return state.quote.mode === 'edit' && Boolean(state.quote.number) && state.quote.loadedFromBc;
+}
+
 const QUOTE_LINE_COLUMNS = [
   {
     id: 'sequence',
@@ -436,6 +440,14 @@ const QUOTE_LINE_COLUMNS = [
     width: '130px',
     cellClass: 'text-sm',
     render: (line) => line.usvtRefSalesQuoteno || ''
+  },
+  {
+    id: 'usvtRefServiceOrderNo',
+    label: 'Ref. Service Order No.',
+    width: '170px',
+    cellClass: 'text-sm',
+    isVisible: () => isSearchSalesQuoteEditorMode(),
+    render: (line) => line.usvtRefServiceOrderNo || ''
   },
   {
     id: 'discountPercent',
@@ -559,7 +571,7 @@ function updateQuoteLineLayoutControls() {
 function getOrderedQuoteLineColumns() {
   return getQuoteLineColumnOrder()
     .map(columnId => QUOTE_LINE_COLUMNS_BY_ID.get(columnId))
-    .filter(Boolean);
+    .filter(column => column && (typeof column.isVisible !== 'function' || column.isVisible()));
 }
 
 function getQuoteLineHeaderMarkup(column) {
@@ -1348,7 +1360,7 @@ function setCustomerNoFieldLockState(locked) {
  */
 export function updateQuoteEditorModeUi() {
   const isEditMode = state.quote.mode === 'edit' && Boolean(state.quote.number);
-  const isSearchSalesQuoteMode = isEditMode && state.quote.loadedFromBc;
+  const isSearchSalesQuoteMode = isSearchSalesQuoteEditorMode();
   const banner = el('quoteEditorModeBanner');
   const title = el('quoteEditorModeTitle');
   const meta = el('quoteEditorModeMeta');
