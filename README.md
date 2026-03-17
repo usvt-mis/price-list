@@ -55,18 +55,11 @@ The Price List Calculator computes total cost based on four components:
   - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
   - **Count Badges**: User count displayed on each tab
   - **Audit Log Tab**: View complete audit history including role changes and Sales Quote submissions
-  - **Settings Tab**: Manage global backoffice configuration including Sales Quotes print layout settings (font sizes, logo width, signature margins, etc.)
-- **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
-  - Separate HTML file with complete UI independence
-  - **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`
-  - No password step - Azure AD handles full authentication
-  - No navigation links to main calculator
-  - **3-Tab Role Management**: Executives, Sales, Customers tabs for pre-assigning roles by email
-  - **Inline Add Forms**: Add users directly in each tab with real-time validation
-  - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
-  - **Count Badges**: User count displayed on each tab
-  - **Audit Log Tab**: View complete audit history including role changes and Sales Quote submissions
-  - **Settings Tab**: Displays authentication info
+  - **Settings Tab**: Manage global backoffice configuration including Sales Quotes print layout settings (font sizes, logo width, margins, signature layout)
+    - **Visual Control UI**: Interactive sliders with progress indicators, number inputs, and individual reset buttons for each setting
+    - **Live Print Preview**: Drag-to-adjust functionality on preview elements with real-time visual feedback
+    - Settings organized into groups: Typography, Content, Branding, Signature
+    - Signature layout controls: signatureGridMarginTopMm, signatureColMinHeightMm, signatureSignMinHeightMm
 
 ### UI Features
 - **Collapsible Section Cards**: Labor, Materials, Travel, and Onsite Options sections can be collapsed/expanded

@@ -6,6 +6,607 @@
   <title>Backoffice Admin</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔐</text></svg>"/>
   <link rel="stylesheet" href="/css/output.css">
+  <style>
+    .print-layout-control-groups {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .print-layout-group {
+      border: 1px solid #e2e8f0;
+      border-radius: 1.25rem;
+      padding: 1.25rem;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+    }
+
+    .print-layout-group-header h4 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .print-layout-group-header p {
+      margin: 0.35rem 0 0;
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .print-layout-control-grid {
+      display: grid;
+      gap: 0.875rem;
+      margin-top: 1rem;
+    }
+
+    .print-layout-control {
+      display: block;
+      padding: 1rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 1rem;
+      background: #ffffff;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .print-layout-control:hover {
+      border-color: #a855f7;
+      box-shadow: 0 12px 24px rgba(168, 85, 247, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .print-layout-control.is-customized {
+      border-color: #c084fc;
+      box-shadow: 0 10px 22px rgba(168, 85, 247, 0.12);
+    }
+
+    .print-layout-control.is-active {
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14);
+    }
+
+    .print-layout-control-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .print-layout-control-name {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .print-layout-control-description {
+      margin: 0.25rem 0 0;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: #64748b;
+    }
+
+    .print-layout-control-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      text-align: right;
+    }
+
+    .print-layout-control-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .print-layout-control-pill.value {
+      background: #f3e8ff;
+      color: #7c3aed;
+    }
+
+    .print-layout-control-pill.range {
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    .print-layout-control-reset {
+      border: 0;
+      background: transparent;
+      color: #7c3aed;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .print-layout-control-reset:hover {
+      color: #6d28d9;
+      text-decoration: underline;
+    }
+
+    .print-layout-control-inputs {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 6.5rem;
+      gap: 0.9rem;
+      align-items: center;
+      margin-top: 0.9rem;
+    }
+
+    .print-layout-slider {
+      width: 100%;
+      height: 0.6rem;
+      border-radius: 999px;
+      appearance: none;
+      outline: none;
+      border: 0;
+      background: linear-gradient(
+        90deg,
+        #a855f7 0%,
+        #a855f7 var(--print-layout-progress, 50%),
+        #e2e8f0 var(--print-layout-progress, 50%),
+        #e2e8f0 100%
+      );
+      cursor: pointer;
+    }
+
+    .print-layout-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 999px;
+      border: 2px solid #ffffff;
+      background: #7c3aed;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.24);
+    }
+
+    .print-layout-slider::-moz-range-thumb {
+      width: 1rem;
+      height: 1rem;
+      border-radius: 999px;
+      border: 2px solid #ffffff;
+      background: #7c3aed;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.24);
+      cursor: pointer;
+    }
+
+    .print-layout-number-wrap {
+      position: relative;
+      width: 100%;
+    }
+
+    .print-layout-number {
+      width: 100%;
+      padding: 0.65rem 2rem 0.65rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.85rem;
+      font-size: 0.95rem;
+      color: #0f172a;
+      background: #ffffff;
+    }
+
+    .print-layout-number:focus {
+      outline: none;
+      border-color: #a855f7;
+      box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.14);
+    }
+
+    .print-layout-number-unit {
+      position: absolute;
+      top: 50%;
+      right: 0.75rem;
+      transform: translateY(-50%);
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #64748b;
+      pointer-events: none;
+    }
+
+    .print-layout-preview-card {
+      position: sticky;
+      top: 1.5rem;
+    }
+
+    .print-layout-preview-stage {
+      padding: 1rem;
+      border: 1px solid #dbeafe;
+      border-radius: 1.25rem;
+      background:
+        radial-gradient(circle at top left, rgba(191, 219, 254, 0.6), transparent 32%),
+        linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
+    }
+
+    .print-layout-preview-page {
+      width: 100%;
+      aspect-ratio: 210 / 297;
+      background: #ffffff;
+      border-radius: 1rem;
+      box-shadow: 0 22px 44px rgba(15, 23, 42, 0.12);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      gap: 0.65rem;
+    }
+
+    .print-layout-preview-topbar,
+    .print-layout-preview-title-row,
+    .print-layout-preview-summary,
+    .print-layout-preview-signature-grid,
+    .print-layout-preview-doc-footer {
+      display: flex;
+      gap: 0.7rem;
+    }
+
+    .print-layout-preview-topbar {
+      align-items: flex-start;
+    }
+
+    .print-layout-preview-logo-wrap {
+      width: 6rem;
+      flex: 0 0 auto;
+    }
+
+    .print-layout-preview-logo {
+      height: 2.35rem;
+      border-radius: 0.85rem;
+      background: linear-gradient(135deg, #1d4ed8 0%, #7c3aed 100%);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      font-size: 0.95rem;
+      box-shadow: 0 10px 18px rgba(29, 78, 216, 0.22);
+    }
+
+    .print-layout-preview-company {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .print-layout-preview-company-th,
+    .print-layout-preview-company-en,
+    .print-layout-preview-title {
+      color: #0f172a;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .print-layout-preview-company-line,
+    .print-layout-preview-page-no,
+    .print-layout-preview-doc-footer {
+      color: #475569;
+      line-height: 1.25;
+    }
+
+    .print-layout-preview-page-no {
+      min-width: 2.8rem;
+      text-align: right;
+      font-weight: 700;
+    }
+
+    .print-layout-preview-title-row {
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .print-layout-preview-title {
+      max-width: 70%;
+    }
+
+    .print-layout-preview-certs {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      gap: 0.35rem;
+      padding-top: 1rem;
+    }
+
+    .print-layout-preview-cert {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2rem;
+      height: 1.15rem;
+      padding: 0 0.4rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      background: #f8fafc;
+      font-size: 0.52rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.08em;
+    }
+
+    .print-layout-drag-handle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      transform: translateY(-35%);
+      border: 0;
+      border-radius: 999px;
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 0.6rem;
+      font-weight: 700;
+      padding: 0.28rem 0.55rem;
+      cursor: grab;
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.16);
+      touch-action: none;
+    }
+
+    .print-layout-drag-handle:hover {
+      background: #1e293b;
+    }
+
+    .print-layout-drag-handle:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .print-layout-preview-meta {
+      border: 1px solid #e2e8f0;
+      border-radius: 0.9rem;
+      padding: 0.75rem;
+      background: #f8fafc;
+    }
+
+    .print-layout-preview-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.45rem 0.7rem;
+    }
+
+    .print-layout-preview-meta-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.35);
+      padding-bottom: 0.18rem;
+    }
+
+    .print-layout-preview-meta-item span:first-child {
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .print-layout-preview-table {
+      border: 1px solid #cbd5e1;
+      border-radius: 0.9rem;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .print-layout-preview-table-head,
+    .print-layout-preview-table-row {
+      display: grid;
+      grid-template-columns: 1.1fr 3.1fr 0.95fr 0.8fr 1.55fr 1.1fr 1.4fr;
+      gap: 0.4rem;
+      align-items: center;
+      padding: 0.5rem 0.65rem;
+    }
+
+    .print-layout-preview-table-head {
+      background: #eef2ff;
+      color: #1e1b4b;
+      font-weight: 700;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .print-layout-preview-table-row {
+      color: #334155;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .print-layout-preview-table-row:last-child {
+      border-bottom: 0;
+    }
+
+    .print-layout-preview-table-row span:not(:nth-child(2)),
+    .print-layout-preview-table-head span:not(:nth-child(2)) {
+      text-align: right;
+    }
+
+    .print-layout-preview-table-head span:first-child,
+    .print-layout-preview-table-row span:first-child {
+      text-align: left;
+    }
+
+    .print-layout-preview-table-head span:nth-child(2),
+    .print-layout-preview-table-row span:nth-child(2) {
+      text-align: left;
+    }
+
+    .print-layout-preview-summary {
+      align-items: flex-start;
+    }
+
+    .print-layout-preview-footer-note,
+    .print-layout-preview-totals-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 0.95rem;
+      background: #ffffff;
+      padding: 0.8rem;
+    }
+
+    .print-layout-preview-footer-note {
+      flex: 1 1 auto;
+      color: #334155;
+      line-height: 1.35;
+    }
+
+    .print-layout-preview-footer-note .thai {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .print-layout-preview-totals-card {
+      position: relative;
+      width: 38%;
+      min-width: 11rem;
+    }
+
+    .print-layout-preview-total-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      color: #0f172a;
+      font-weight: 700;
+      padding: 0.14rem 0;
+    }
+
+    .print-layout-preview-total-row span:last-child {
+      text-align: right;
+    }
+
+    .print-layout-preview-total-label {
+      display: inline-block;
+    }
+
+    .print-layout-preview-remark {
+      border: 1px dashed #cbd5e1;
+      border-radius: 0.9rem;
+      padding: 0.7rem 0.8rem;
+      background: #f8fafc;
+      color: #334155;
+      line-height: 1.35;
+    }
+
+    .print-layout-preview-remark-row {
+      display: grid;
+      grid-template-columns: 3.5rem 1fr;
+      gap: 0.6rem;
+    }
+
+    .print-layout-preview-remark-row span:first-child {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .print-layout-preview-signature-block {
+      position: relative;
+    }
+
+    .print-layout-preview-signature-grid {
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .print-layout-preview-signature-col {
+      flex: 1 1 0;
+      min-width: 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.95rem;
+      background: #ffffff;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 0.35rem;
+    }
+
+    .print-layout-preview-signature-sign {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      color: #64748b;
+      background:
+        linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.9));
+      border-radius: 0.7rem;
+    }
+
+    .print-layout-preview-signature-image {
+      width: 75%;
+      height: 1.2rem;
+      border-bottom: 2px solid rgba(124, 58, 237, 0.25);
+      transform: rotate(-4deg);
+    }
+
+    .print-layout-preview-signature-line {
+      border-top: 1px solid #0f172a;
+      margin-top: 0.3rem;
+    }
+
+    .print-layout-preview-signature-caption,
+    .print-layout-preview-signature-detail,
+    .print-layout-preview-doc-footer {
+      color: #334155;
+      line-height: 1.3;
+    }
+
+    .print-layout-preview-signature-caption {
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .print-layout-preview-signature-detail {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.4rem;
+    }
+
+    .print-layout-preview-signature-detail span:first-child {
+      font-weight: 700;
+      color: #0f172a;
+      white-space: nowrap;
+    }
+
+    .print-layout-preview-doc-footer {
+      margin-top: auto;
+      justify-content: space-between;
+      font-weight: 700;
+      padding-top: 0.4rem;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .print-layout-dragging,
+    .print-layout-dragging * {
+      cursor: grabbing !important;
+      user-select: none !important;
+    }
+
+    @media (max-width: 1279px) {
+      .print-layout-preview-card {
+        position: static;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .print-layout-control-inputs {
+        grid-template-columns: 1fr;
+      }
+
+      .print-layout-control-meta {
+        justify-content: flex-start;
+        text-align: left;
+      }
+
+      .print-layout-preview-page {
+        padding: 0.8rem;
+      }
+
+      .print-layout-preview-meta-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .print-layout-preview-summary,
+      .print-layout-preview-signature-grid,
+      .print-layout-preview-doc-footer {
+        flex-direction: column;
+      }
+
+      .print-layout-preview-totals-card {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
   <div class="max-w-6xl mx-auto p-6 space-y-6">
@@ -394,90 +995,7 @@
                 </div>
 
                 <div id="printLayoutSaveMeta" class="mt-4 text-sm text-slate-500">Loading saved layout settings...</div>
-
-                <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Base Font Size (px)</span>
-                    <input id="printLayoutBaseFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Logo Width (mm)</span>
-                    <input id="printLayoutLogoWidthMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Company TH Font (px)</span>
-                    <input id="printLayoutCompanyThaiFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Company EN Font (px)</span>
-                    <input id="printLayoutCompanyEnglishFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Quotation Title Font (px)</span>
-                    <input id="printLayoutTitleFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Meta Table Font (px)</span>
-                    <input id="printLayoutMetaFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Line Table Font (px)</span>
-                    <input id="printLayoutLineTableFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Line Header Font (px)</span>
-                    <input id="printLayoutLineTableHeaderFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Footer Note Font (px)</span>
-                    <input id="printLayoutFooterNoteFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Totals Font (px)</span>
-                    <input id="printLayoutTotalsFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Remark Font (px)</span>
-                    <input id="printLayoutRemarkFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Signature Font (px)</span>
-                    <input id="printLayoutSignatureFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Document Footer Font (px)</span>
-                    <input id="printLayoutDocFooterFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Cert Logos Offset Y (mm)</span>
-                    <input id="printLayoutCertsOffsetYMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Totals Label Offset X (mm)</span>
-                    <input id="printLayoutTotalsOffsetXMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Signature Block Top Margin (mm)</span>
-                    <input id="printLayoutSignatureGridMarginTopMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-                  <label class="block">
-                    <span class="block text-sm font-medium text-slate-700">Signature Column Height (mm)</span>
-                    <input id="printLayoutSignatureColMinHeightMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-
-                  <label class="block md:col-span-2">
-                    <span class="block text-sm font-medium text-slate-700">Signature Sign Area Height (mm)</span>
-                    <input id="printLayoutSignatureSignMinHeightMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                  </label>
-                </div>
+                <div id="printLayoutVisualControls" class="mt-5 print-layout-control-groups"></div>
 
                 <div class="mt-6 flex flex-wrap gap-3">
                   <button id="printLayoutSaveBtn" type="button" class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
@@ -493,6 +1011,147 @@
               </div>
 
               <div class="space-y-6">
+                <div class="print-layout-preview-card p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                  <div>
+                    <h3 class="text-lg font-semibold text-slate-900">Live Preview</h3>
+                    <p class="mt-1 text-sm text-slate-500">Adjust sliders on the left, or drag the badges inside this preview for offset-based settings.</p>
+                  </div>
+
+                  <div class="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                    Drag <strong>cert logos</strong>, <strong>totals label</strong>, and <strong>signature block</strong> directly in the preview to nudge their position before saving.
+                  </div>
+
+                  <div class="print-layout-preview-stage mt-4">
+                    <div id="printLayoutPreviewPage" class="print-layout-preview-page">
+                      <div class="print-layout-preview-topbar">
+                        <div class="print-layout-preview-logo-wrap">
+                          <div id="printLayoutPreviewLogo" class="print-layout-preview-logo">U-ST</div>
+                        </div>
+                        <div class="print-layout-preview-company">
+                          <div id="printLayoutPreviewCompanyThai" class="print-layout-preview-company-th">บริษัท ยู-เซอร์วิสเซส (ประเทศไทย) จำกัด</div>
+                          <div id="printLayoutPreviewCompanyEnglish" class="print-layout-preview-company-en">U-SERVICES (THAILAND) CO., LTD.</div>
+                          <div class="print-layout-preview-company-line">43/9 Moo.3, T.Nongsai, A.Phunphin, Suratthani 84130</div>
+                          <div class="print-layout-preview-company-line">Tel. 077-310-660 Tax ID 0215556000791</div>
+                        </div>
+                        <div id="printLayoutPreviewPageNo" class="print-layout-preview-page-no">1/1</div>
+                      </div>
+
+                      <div class="print-layout-preview-title-row">
+                        <div id="printLayoutPreviewTitle" class="print-layout-preview-title">ใบเสนอราคา / QUOTATION</div>
+                        <div id="printLayoutPreviewCerts" class="print-layout-preview-certs">
+                          <button type="button" class="print-layout-drag-handle" data-print-layout-drag-key="certsOffsetYMm" data-print-layout-drag-axis="y">Drag certs</button>
+                          <span class="print-layout-preview-cert">EASA</span>
+                          <span class="print-layout-preview-cert">SGS</span>
+                          <span class="print-layout-preview-cert">IEC</span>
+                        </div>
+                      </div>
+
+                      <div id="printLayoutPreviewMeta" class="print-layout-preview-meta">
+                        <div class="print-layout-preview-meta-grid">
+                          <div class="print-layout-preview-meta-item"><span>Customer</span><span>SCG Chemicals</span></div>
+                          <div class="print-layout-preview-meta-item"><span>Quote No.</span><span>SQ2603-0142</span></div>
+                          <div class="print-layout-preview-meta-item"><span>Contact</span><span>Mr. Somchai</span></div>
+                          <div class="print-layout-preview-meta-item"><span>Date</span><span>17/03/2026</span></div>
+                        </div>
+                      </div>
+
+                      <div class="print-layout-preview-table">
+                        <div id="printLayoutPreviewTableHead" class="print-layout-preview-table-head">
+                          <span>Item</span>
+                          <span>Description</span>
+                          <span>Qty</span>
+                          <span>@</span>
+                          <span>Unit Price</span>
+                          <span>Disc</span>
+                          <span>Total</span>
+                        </div>
+                        <div id="printLayoutPreviewTableRowA" class="print-layout-preview-table-row">
+                          <span>1</span>
+                          <span>Pump overhaul with seal inspection</span>
+                          <span>1.00</span>
+                          <span>Ea.</span>
+                          <span>8,500</span>
+                          <span>0%</span>
+                          <span>8,500</span>
+                        </div>
+                        <div id="printLayoutPreviewTableRowB" class="print-layout-preview-table-row">
+                          <span>2</span>
+                          <span>Balancing and calibration report</span>
+                          <span>1.00</span>
+                          <span>Ea.</span>
+                          <span>4,000</span>
+                          <span>0%</span>
+                          <span>4,000</span>
+                        </div>
+                      </div>
+
+                      <div class="print-layout-preview-summary">
+                        <div id="printLayoutPreviewFooterNote" class="print-layout-preview-footer-note">
+                          <div class="thai">*หากไม่ยืนยันการซ่อมภายใน 90 วัน ทางบริษัทฯ จะไม่รับผิดชอบสินทรัพย์หรือสินค้าใด ๆ ของท่าน</div>
+                          <div>If not confirmed within 90 days the company is not responsible for your goods or assets.</div>
+                        </div>
+                        <div class="print-layout-preview-totals-card">
+                          <button type="button" class="print-layout-drag-handle" data-print-layout-drag-key="totalsOffsetXMm" data-print-layout-drag-axis="x">Drag totals</button>
+                          <div class="print-layout-preview-total-row">
+                            <span data-print-layout-preview-totals-label class="print-layout-preview-total-label">Sub Total</span>
+                            <span>12,500</span>
+                          </div>
+                          <div class="print-layout-preview-total-row">
+                            <span data-print-layout-preview-totals-label class="print-layout-preview-total-label">VAT 7%</span>
+                            <span>875</span>
+                          </div>
+                          <div class="print-layout-preview-total-row">
+                            <span data-print-layout-preview-totals-label class="print-layout-preview-total-label">Grand Total</span>
+                            <span>13,375</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div id="printLayoutPreviewRemark" class="print-layout-preview-remark">
+                        <div class="print-layout-preview-remark-row">
+                          <span>Remark</span>
+                          <span>Inspection scope, cleaning, and report submission are included in this quotation.</span>
+                        </div>
+                      </div>
+
+                      <div id="printLayoutPreviewSignatureBlock" class="print-layout-preview-signature-block">
+                        <button type="button" class="print-layout-drag-handle" data-print-layout-drag-key="signatureGridMarginTopMm" data-print-layout-drag-axis="y">Drag signatures</button>
+                        <div class="print-layout-preview-signature-grid">
+                          <div class="print-layout-preview-signature-col" data-print-layout-preview-signature-col>
+                            <div class="print-layout-preview-signature-sign" data-print-layout-preview-signature-sign></div>
+                            <div class="print-layout-preview-signature-line"></div>
+                            <div class="print-layout-preview-signature-caption">Customer Confirmed</div>
+                            <div class="print-layout-preview-signature-caption">Date _____ / _____ / _____</div>
+                          </div>
+                          <div class="print-layout-preview-signature-col" data-print-layout-preview-signature-col>
+                            <div class="print-layout-preview-signature-sign" data-print-layout-preview-signature-sign>
+                              <div class="print-layout-preview-signature-image"></div>
+                            </div>
+                            <div class="print-layout-preview-signature-line"></div>
+                            <div class="print-layout-preview-signature-detail"><span>With By</span><span>Thanawat P.</span></div>
+                            <div class="print-layout-preview-signature-detail"><span>Tel</span><span>081-234-5678</span></div>
+                            <div class="print-layout-preview-signature-detail"><span>Email</span><span>sales@uservices-thailand.com</span></div>
+                          </div>
+                          <div class="print-layout-preview-signature-col" data-print-layout-preview-signature-col>
+                            <div class="print-layout-preview-signature-sign" data-print-layout-preview-signature-sign>
+                              <div class="print-layout-preview-signature-image"></div>
+                            </div>
+                            <div class="print-layout-preview-signature-line"></div>
+                            <div class="print-layout-preview-signature-detail"><span>Approved</span><span>Manager</span></div>
+                            <div class="print-layout-preview-signature-detail"><span>Tel</span><span>033-010-818</span></div>
+                            <div class="print-layout-preview-signature-detail"><span>Email</span><span>approver@uservices-thailand.com</span></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div id="printLayoutPreviewDocFooter" class="print-layout-preview-doc-footer">
+                        <span>CS-FM-RY-004 Rev.00</span>
+                        <span>Effective 01/04/2023</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
                   <h3 class="text-lg font-semibold text-slate-900">Authentication</h3>
                   <p class="text-slate-600 mt-3">Backoffice is configured for Azure AD authentication only.</p>
@@ -611,25 +1270,234 @@
   });
 
   const PRINT_LAYOUT_FIELDS = [
-    { key: 'baseFontSize', id: 'printLayoutBaseFontSize', min: 9, max: 16 },
-    { key: 'companyThaiFontSize', id: 'printLayoutCompanyThaiFontSize', min: 11, max: 22 },
-    { key: 'companyEnglishFontSize', id: 'printLayoutCompanyEnglishFontSize', min: 11, max: 22 },
-    { key: 'titleFontSize', id: 'printLayoutTitleFontSize', min: 11, max: 20 },
-    { key: 'metaFontSize', id: 'printLayoutMetaFontSize', min: 8, max: 16 },
-    { key: 'lineTableFontSize', id: 'printLayoutLineTableFontSize', min: 8, max: 16 },
-    { key: 'lineTableHeaderFontSize', id: 'printLayoutLineTableHeaderFontSize', min: 8, max: 18 },
-    { key: 'footerNoteFontSize', id: 'printLayoutFooterNoteFontSize', min: 8, max: 16 },
-    { key: 'totalsFontSize', id: 'printLayoutTotalsFontSize', min: 8, max: 16 },
-    { key: 'remarkFontSize', id: 'printLayoutRemarkFontSize', min: 8, max: 16 },
-    { key: 'signatureFontSize', id: 'printLayoutSignatureFontSize', min: 8, max: 16 },
-    { key: 'docFooterFontSize', id: 'printLayoutDocFooterFontSize', min: 8, max: 16 },
-    { key: 'logoWidthMm', id: 'printLayoutLogoWidthMm', min: 20, max: 45 },
-    { key: 'certsOffsetYMm', id: 'printLayoutCertsOffsetYMm', min: -8, max: 12 },
-    { key: 'totalsOffsetXMm', id: 'printLayoutTotalsOffsetXMm', min: -20, max: 20 },
-    { key: 'signatureGridMarginTopMm', id: 'printLayoutSignatureGridMarginTopMm', min: 0, max: 20 },
-    { key: 'signatureColMinHeightMm', id: 'printLayoutSignatureColMinHeightMm', min: 20, max: 70 },
-    { key: 'signatureSignMinHeightMm', id: 'printLayoutSignatureSignMinHeightMm', min: 5, max: 35 }
+    {
+      key: 'baseFontSize',
+      id: 'printLayoutBaseFontSize',
+      min: 9,
+      max: 16,
+      step: 0.1,
+      unit: 'px',
+      group: 'typography',
+      label: 'Base Font Size',
+      description: 'Main body copy for the whole quotation page.'
+    },
+    {
+      key: 'companyThaiFontSize',
+      id: 'printLayoutCompanyThaiFontSize',
+      min: 11,
+      max: 22,
+      step: 0.1,
+      unit: 'px',
+      group: 'typography',
+      label: 'Company TH Font',
+      description: 'Thai company name in the top header block.'
+    },
+    {
+      key: 'companyEnglishFontSize',
+      id: 'printLayoutCompanyEnglishFontSize',
+      min: 11,
+      max: 22,
+      step: 0.1,
+      unit: 'px',
+      group: 'typography',
+      label: 'Company EN Font',
+      description: 'English company name in the top header block.'
+    },
+    {
+      key: 'titleFontSize',
+      id: 'printLayoutTitleFontSize',
+      min: 11,
+      max: 20,
+      step: 0.1,
+      unit: 'px',
+      group: 'typography',
+      label: 'Quotation Title Font',
+      description: 'Quotation heading next to the certification logos.'
+    },
+    {
+      key: 'metaFontSize',
+      id: 'printLayoutMetaFontSize',
+      min: 8,
+      max: 16,
+      step: 0.1,
+      unit: 'px',
+      group: 'typography',
+      label: 'Meta Table Font',
+      description: 'Customer, date, and quote reference rows below the title.'
+    },
+    {
+      key: 'lineTableFontSize',
+      id: 'printLayoutLineTableFontSize',
+      min: 8,
+      max: 16,
+      step: 0.1,
+      unit: 'px',
+      group: 'content',
+      label: 'Line Table Font',
+      description: 'Service line descriptions and values inside the main table.'
+    },
+    {
+      key: 'lineTableHeaderFontSize',
+      id: 'printLayoutLineTableHeaderFontSize',
+      min: 8,
+      max: 18,
+      step: 0.1,
+      unit: 'px',
+      group: 'content',
+      label: 'Line Header Font',
+      description: 'Column headers for item, description, quantity, and totals.'
+    },
+    {
+      key: 'footerNoteFontSize',
+      id: 'printLayoutFooterNoteFontSize',
+      min: 8,
+      max: 16,
+      step: 0.1,
+      unit: 'px',
+      group: 'content',
+      label: 'Footer Note Font',
+      description: 'Disclaimer text above the totals box.'
+    },
+    {
+      key: 'totalsFontSize',
+      id: 'printLayoutTotalsFontSize',
+      min: 8,
+      max: 16,
+      step: 0.1,
+      unit: 'px',
+      group: 'content',
+      label: 'Totals Font',
+      description: 'Subtotal, VAT, and grand total text on the right.'
+    },
+    {
+      key: 'remarkFontSize',
+      id: 'printLayoutRemarkFontSize',
+      min: 8,
+      max: 16,
+      step: 0.1,
+      unit: 'px',
+      group: 'content',
+      label: 'Remark Font',
+      description: 'Remark and scope text between totals and signatures.'
+    },
+    {
+      key: 'signatureFontSize',
+      id: 'printLayoutSignatureFontSize',
+      min: 8,
+      max: 16,
+      step: 0.1,
+      unit: 'px',
+      group: 'signature',
+      label: 'Signature Font',
+      description: 'Names, phone numbers, and captions inside the signature area.'
+    },
+    {
+      key: 'docFooterFontSize',
+      id: 'printLayoutDocFooterFontSize',
+      min: 8,
+      max: 16,
+      step: 0.1,
+      unit: 'px',
+      group: 'signature',
+      label: 'Document Footer Font',
+      description: 'Revision code and effective date at the bottom of the page.'
+    },
+    {
+      key: 'logoWidthMm',
+      id: 'printLayoutLogoWidthMm',
+      min: 20,
+      max: 45,
+      step: 0.1,
+      unit: 'mm',
+      group: 'branding',
+      label: 'Logo Width',
+      description: 'Controls how wide the main company logo appears in the header.'
+    },
+    {
+      key: 'certsOffsetYMm',
+      id: 'printLayoutCertsOffsetYMm',
+      min: -8,
+      max: 12,
+      step: 0.1,
+      unit: 'mm',
+      group: 'branding',
+      label: 'Cert Logos Offset Y',
+      description: 'Moves the certification logos up or down near the title.'
+    },
+    {
+      key: 'totalsOffsetXMm',
+      id: 'printLayoutTotalsOffsetXMm',
+      min: -20,
+      max: 20,
+      step: 0.1,
+      unit: 'mm',
+      group: 'branding',
+      label: 'Totals Label Offset X',
+      description: 'Shifts the totals labels left or right inside the totals box.'
+    },
+    {
+      key: 'signatureGridMarginTopMm',
+      id: 'printLayoutSignatureGridMarginTopMm',
+      min: 0,
+      max: 20,
+      step: 0.1,
+      unit: 'mm',
+      group: 'signature',
+      label: 'Signature Block Top Margin',
+      description: 'Adds breathing room before the signature section starts.'
+    },
+    {
+      key: 'signatureColMinHeightMm',
+      id: 'printLayoutSignatureColMinHeightMm',
+      min: 20,
+      max: 70,
+      step: 0.1,
+      unit: 'mm',
+      group: 'signature',
+      label: 'Signature Column Height',
+      description: 'Overall height of each signature card in the bottom section.'
+    },
+    {
+      key: 'signatureSignMinHeightMm',
+      id: 'printLayoutSignatureSignMinHeightMm',
+      min: 5,
+      max: 35,
+      step: 0.1,
+      unit: 'mm',
+      group: 'signature',
+      label: 'Signature Sign Area Height',
+      description: 'Reserved height for the actual signature image above the line.'
+    }
   ];
+
+  const PRINT_LAYOUT_GROUPS = [
+    {
+      key: 'typography',
+      title: 'Typography',
+      description: 'Tune the headline and metadata text sizes before you open a real print preview.'
+    },
+    {
+      key: 'content',
+      title: 'Content And Totals',
+      description: 'Control the data table, footer disclaimer, and totals presentation.'
+    },
+    {
+      key: 'branding',
+      title: 'Branding And Positioning',
+      description: 'Logo width plus the main offset values that also support drag in the preview.'
+    },
+    {
+      key: 'signature',
+      title: 'Signature Area',
+      description: 'Adjust spacing and typography in the footer signature section.'
+    }
+  ];
+
+  const PRINT_LAYOUT_FIELD_MAP = Object.fromEntries(
+    PRINT_LAYOUT_FIELDS.map(field => [field.key, field])
+  );
+
+  let printLayoutDragState = null;
 
   // ========== UTILITY FUNCTIONS ==========
   function el(id) {
@@ -707,17 +1575,19 @@
   }
 
   function populatePrintLayoutForm(settings = PRINT_LAYOUT_DEFAULTS) {
-    const normalized = normalizePrintLayoutSettings(settings);
+    ensurePrintLayoutEditorRendered();
 
+    const normalized = normalizePrintLayoutSettings(settings);
     PRINT_LAYOUT_FIELDS.forEach(field => {
-      const input = el(field.id);
-      if (input) {
-        input.value = normalized[field.key];
-      }
+      applyPrintLayoutFieldValue(field, normalized[field.key]);
     });
+
+    updatePrintLayoutPreview(normalized);
   }
 
   function collectPrintLayoutSettingsFromForm() {
+    ensurePrintLayoutEditorRendered();
+
     const collected = {};
 
     PRINT_LAYOUT_FIELDS.forEach(field => {
@@ -731,6 +1601,355 @@
     });
 
     return collected;
+  }
+
+  function formatPrintLayoutFieldValue(value) {
+    return Number(value).toFixed(1);
+  }
+
+  function ensurePrintLayoutEditorRendered() {
+    const container = el('printLayoutVisualControls');
+    if (!container || container.dataset.rendered === 'true') {
+      return;
+    }
+
+    container.innerHTML = PRINT_LAYOUT_GROUPS.map(group => {
+      const fields = PRINT_LAYOUT_FIELDS.filter(field => field.group === group.key);
+
+      return `
+        <section class="print-layout-group">
+          <div class="print-layout-group-header">
+            <h4>${escapeHtml(group.title)}</h4>
+            <p>${escapeHtml(group.description)}</p>
+          </div>
+          <div class="print-layout-control-grid">
+            ${fields.map(field => `
+              <div class="print-layout-control" data-print-layout-control="${escapeHtml(field.key)}">
+                <div class="print-layout-control-head">
+                  <div>
+                    <div class="print-layout-control-name">${escapeHtml(field.label)}</div>
+                    <p class="print-layout-control-description">${escapeHtml(field.description)}</p>
+                  </div>
+                  <div class="print-layout-control-meta">
+                    <span class="print-layout-control-pill value" data-print-layout-value="${escapeHtml(field.key)}">${formatPrintLayoutFieldValue(PRINT_LAYOUT_DEFAULTS[field.key])} ${escapeHtml(field.unit)}</span>
+                    <span class="print-layout-control-pill range">${field.min}-${field.max} ${escapeHtml(field.unit)}</span>
+                    <button type="button" class="print-layout-control-reset" data-print-layout-reset-key="${escapeHtml(field.key)}">Reset</button>
+                  </div>
+                </div>
+                <div class="print-layout-control-inputs">
+                  <input
+                    class="print-layout-slider"
+                    type="range"
+                    min="${field.min}"
+                    max="${field.max}"
+                    step="${field.step}"
+                    value="${PRINT_LAYOUT_DEFAULTS[field.key]}"
+                    aria-label="${escapeHtml(field.label)} slider"
+                    data-print-layout-range="${escapeHtml(field.key)}"
+                  >
+                  <div class="print-layout-number-wrap">
+                    <input
+                      id="${escapeHtml(field.id)}"
+                      class="print-layout-number"
+                      type="number"
+                      min="${field.min}"
+                      max="${field.max}"
+                      step="${field.step}"
+                      value="${PRINT_LAYOUT_DEFAULTS[field.key]}"
+                      aria-label="${escapeHtml(field.label)} number input"
+                      data-print-layout-number="${escapeHtml(field.key)}"
+                    >
+                    <span class="print-layout-number-unit">${escapeHtml(field.unit)}</span>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </section>
+      `;
+    }).join('');
+
+    container.dataset.rendered = 'true';
+    container.addEventListener('input', onPrintLayoutControlInput);
+    container.addEventListener('change', onPrintLayoutControlChange);
+    container.addEventListener('click', onPrintLayoutControlClick);
+
+    document.querySelectorAll('[data-print-layout-drag-key]').forEach(handle => {
+      handle.addEventListener('pointerdown', onPrintLayoutPreviewDragStart);
+    });
+
+    window.addEventListener('resize', refreshPrintLayoutPreviewFromForm);
+  }
+
+  function getPrintLayoutField(key) {
+    return PRINT_LAYOUT_FIELD_MAP[key] || null;
+  }
+
+  function updatePrintLayoutSliderProgress(rangeInput, field, value) {
+    if (!rangeInput || !field) return;
+
+    const range = field.max - field.min || 1;
+    const progress = ((value - field.min) / range) * 100;
+    rangeInput.style.setProperty('--print-layout-progress', `${Math.min(Math.max(progress, 0), 100)}%`);
+  }
+
+  function updatePrintLayoutControlState(field, value) {
+    const control = document.querySelector(`[data-print-layout-control="${field.key}"]`);
+    const valueLabel = document.querySelector(`[data-print-layout-value="${field.key}"]`);
+    const isCustomized = Math.abs(value - PRINT_LAYOUT_DEFAULTS[field.key]) > 0.001;
+
+    if (control) {
+      control.classList.toggle('is-customized', isCustomized);
+    }
+
+    if (valueLabel) {
+      valueLabel.textContent = `${formatPrintLayoutFieldValue(value)} ${field.unit}`;
+    }
+  }
+
+  function applyPrintLayoutFieldValue(field, value) {
+    const normalizedValue = clampPrintLayoutNumber(
+      value,
+      PRINT_LAYOUT_DEFAULTS[field.key],
+      field.min,
+      field.max
+    );
+    const formattedValue = formatPrintLayoutFieldValue(normalizedValue);
+    const numberInput = el(field.id);
+    const rangeInput = document.querySelector(`[data-print-layout-range="${field.key}"]`);
+
+    if (numberInput) {
+      numberInput.value = formattedValue;
+    }
+
+    if (rangeInput) {
+      rangeInput.value = formattedValue;
+      updatePrintLayoutSliderProgress(rangeInput, field, normalizedValue);
+    }
+
+    updatePrintLayoutControlState(field, normalizedValue);
+  }
+
+  function setPrintLayoutControlValue(key, value, { markDirty = false } = {}) {
+    const field = getPrintLayoutField(key);
+    if (!field) return;
+
+    applyPrintLayoutFieldValue(field, value);
+    updatePrintLayoutPreview(collectPrintLayoutSettingsFromForm());
+
+    if (markDirty) {
+      setPrintLayoutSaveMeta('Preview updated locally. Click Save Layout to publish these changes.', 'warning');
+    }
+  }
+
+  function onPrintLayoutControlInput(event) {
+    const key = event.target?.dataset?.printLayoutRange;
+    if (!key) return;
+
+    setPrintLayoutControlValue(key, event.target.value, { markDirty: true });
+  }
+
+  function onPrintLayoutControlChange(event) {
+    const rangeKey = event.target?.dataset?.printLayoutRange;
+    if (rangeKey) {
+      setPrintLayoutControlValue(rangeKey, event.target.value, { markDirty: true });
+      return;
+    }
+
+    const numberKey = event.target?.dataset?.printLayoutNumber;
+    if (numberKey) {
+      setPrintLayoutControlValue(numberKey, event.target.value, { markDirty: true });
+    }
+  }
+
+  function onPrintLayoutControlClick(event) {
+    const resetButton = event.target.closest('[data-print-layout-reset-key]');
+    if (!resetButton) return;
+
+    const key = resetButton.dataset.printLayoutResetKey;
+    setPrintLayoutControlValue(key, PRINT_LAYOUT_DEFAULTS[key], { markDirty: true });
+  }
+
+  function refreshPrintLayoutPreviewFromForm() {
+    updatePrintLayoutPreview(collectPrintLayoutSettingsFromForm());
+  }
+
+  function getPrintLayoutPreviewPxPerMm() {
+    const page = el('printLayoutPreviewPage');
+    const width = page?.getBoundingClientRect().width || 672;
+    return width > 0 ? width / 210 : 672 / 210;
+  }
+
+  function updatePrintLayoutPreview(settings = PRINT_LAYOUT_DEFAULTS) {
+    const normalized = normalizePrintLayoutSettings(settings);
+    const pxPerMm = getPrintLayoutPreviewPxPerMm();
+    const mmToPx = (value) => `${(value * pxPerMm).toFixed(2)}px`;
+    const translateX = (value) => `translateX(${(value * pxPerMm).toFixed(2)}px)`;
+    const translateY = (value) => `translateY(${(value * pxPerMm).toFixed(2)}px)`;
+
+    const logo = el('printLayoutPreviewLogo');
+    if (logo) {
+      logo.style.width = mmToPx(normalized.logoWidthMm);
+    }
+
+    const companyThai = el('printLayoutPreviewCompanyThai');
+    if (companyThai) {
+      companyThai.style.fontSize = `${normalized.companyThaiFontSize}px`;
+    }
+
+    const companyEnglish = el('printLayoutPreviewCompanyEnglish');
+    if (companyEnglish) {
+      companyEnglish.style.fontSize = `${normalized.companyEnglishFontSize}px`;
+    }
+
+    document.querySelectorAll('.print-layout-preview-company-line').forEach(line => {
+      line.style.fontSize = `${Math.max(normalized.baseFontSize - 0.6, 9)}px`;
+    });
+
+    const pageNo = el('printLayoutPreviewPageNo');
+    if (pageNo) {
+      pageNo.style.fontSize = `${Math.max(normalized.baseFontSize - 0.2, 9)}px`;
+    }
+
+    const title = el('printLayoutPreviewTitle');
+    if (title) {
+      title.style.fontSize = `${normalized.titleFontSize}px`;
+    }
+
+    const certs = el('printLayoutPreviewCerts');
+    if (certs) {
+      certs.style.transform = translateY(normalized.certsOffsetYMm);
+    }
+
+    const meta = el('printLayoutPreviewMeta');
+    if (meta) {
+      meta.style.fontSize = `${normalized.metaFontSize}px`;
+    }
+
+    const tableHead = el('printLayoutPreviewTableHead');
+    if (tableHead) {
+      tableHead.style.fontSize = `${normalized.lineTableHeaderFontSize}px`;
+    }
+
+    [el('printLayoutPreviewTableRowA'), el('printLayoutPreviewTableRowB')].forEach(row => {
+      if (row) {
+        row.style.fontSize = `${normalized.lineTableFontSize}px`;
+      }
+    });
+
+    const footerNote = el('printLayoutPreviewFooterNote');
+    if (footerNote) {
+      footerNote.style.fontSize = `${normalized.footerNoteFontSize}px`;
+    }
+
+    document.querySelectorAll('.print-layout-preview-total-row').forEach(row => {
+      row.style.fontSize = `${normalized.totalsFontSize}px`;
+    });
+
+    document.querySelectorAll('[data-print-layout-preview-totals-label]').forEach(label => {
+      label.style.transform = translateX(normalized.totalsOffsetXMm);
+    });
+
+    const remark = el('printLayoutPreviewRemark');
+    if (remark) {
+      remark.style.fontSize = `${normalized.remarkFontSize}px`;
+    }
+
+    const signatureBlock = el('printLayoutPreviewSignatureBlock');
+    if (signatureBlock) {
+      signatureBlock.style.marginTop = mmToPx(normalized.signatureGridMarginTopMm);
+    }
+
+    document.querySelectorAll('[data-print-layout-preview-signature-col]').forEach(column => {
+      column.style.minHeight = mmToPx(normalized.signatureColMinHeightMm);
+    });
+
+    document.querySelectorAll('[data-print-layout-preview-signature-sign]').forEach(signatureArea => {
+      signatureArea.style.minHeight = mmToPx(normalized.signatureSignMinHeightMm);
+    });
+
+    document.querySelectorAll('.print-layout-preview-signature-caption, .print-layout-preview-signature-detail').forEach(text => {
+      text.style.fontSize = `${normalized.signatureFontSize}px`;
+    });
+
+    const docFooter = el('printLayoutPreviewDocFooter');
+    if (docFooter) {
+      docFooter.style.fontSize = `${normalized.docFooterFontSize}px`;
+    }
+  }
+
+  function highlightPrintLayoutControl(key) {
+    document.querySelectorAll('[data-print-layout-control]').forEach(control => {
+      control.classList.toggle('is-active', control.dataset.printLayoutControl === key);
+    });
+  }
+
+  function clearPrintLayoutControlHighlight() {
+    document.querySelectorAll('[data-print-layout-control]').forEach(control => {
+      control.classList.remove('is-active');
+    });
+  }
+
+  function onPrintLayoutPreviewDragStart(event) {
+    const handle = event.currentTarget;
+    const key = handle?.dataset?.printLayoutDragKey;
+    const axis = handle?.dataset?.printLayoutDragAxis || 'x';
+    const field = getPrintLayoutField(key);
+
+    if (!field) return;
+
+    const input = el(field.id);
+    const startValue = clampPrintLayoutNumber(
+      input?.value,
+      PRINT_LAYOUT_DEFAULTS[key],
+      field.min,
+      field.max
+    );
+
+    printLayoutDragState = {
+      key,
+      axis,
+      startPointerX: event.clientX,
+      startPointerY: event.clientY,
+      startValue
+    };
+
+    highlightPrintLayoutControl(key);
+    document.body.classList.add('print-layout-dragging');
+
+    handle.setPointerCapture?.(event.pointerId);
+    window.addEventListener('pointermove', onPrintLayoutPreviewDragMove);
+    window.addEventListener('pointerup', onPrintLayoutPreviewDragEnd);
+    window.addEventListener('pointercancel', onPrintLayoutPreviewDragEnd);
+
+    event.preventDefault();
+  }
+
+  function onPrintLayoutPreviewDragMove(event) {
+    if (!printLayoutDragState) return;
+
+    const deltaPx = printLayoutDragState.axis === 'y'
+      ? event.clientY - printLayoutDragState.startPointerY
+      : event.clientX - printLayoutDragState.startPointerX;
+    const deltaMm = deltaPx / getPrintLayoutPreviewPxPerMm();
+
+    setPrintLayoutControlValue(
+      printLayoutDragState.key,
+      printLayoutDragState.startValue + deltaMm,
+      { markDirty: true }
+    );
+  }
+
+  function onPrintLayoutPreviewDragEnd() {
+    if (!printLayoutDragState) return;
+
+    printLayoutDragState = null;
+    clearPrintLayoutControlHighlight();
+    document.body.classList.remove('print-layout-dragging');
+
+    window.removeEventListener('pointermove', onPrintLayoutPreviewDragMove);
+    window.removeEventListener('pointerup', onPrintLayoutPreviewDragEnd);
+    window.removeEventListener('pointercancel', onPrintLayoutPreviewDragEnd);
   }
 
   function formatPrintLayoutSavedMeta(data) {
@@ -1746,6 +2965,9 @@
   });
 
   // ========== INITIALIZE ==========
+
+  ensurePrintLayoutEditorRendered();
+  populatePrintLayoutForm(PRINT_LAYOUT_DEFAULTS);
 
   initializePage();
 </script>
