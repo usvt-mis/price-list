@@ -460,7 +460,7 @@ function buildPrintHtml(model) {
   <style>
     @page { size: A4; margin: 8mm 10mm 10mm; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; background: #fff; color: #111827; font-family: Tahoma, Arial, sans-serif; font-size: 10px; line-height: 1.24; }
+    html, body { margin: 0; background: #fff; color: #111827; font-family: Tahoma, Arial, sans-serif; font-size: 11px; line-height: 1.28; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .page {
       width: 190mm;
@@ -471,11 +471,11 @@ function buildPrintHtml(model) {
     }
     .topbar { display: grid; grid-template-columns: 30mm 1fr 18mm; align-items: start; column-gap: 4mm; }
     .main-logo { width: 28mm; height: auto; object-fit: contain; margin-top: 0.4mm; }
-    .company { padding-top: 0.3mm; line-height: 1.18; }
-    .company .th-name { font-size: 11.4px; font-weight: 700; margin-bottom: 0.25mm; }
-    .company .en-name { font-size: 11.4px; font-weight: 700; margin-bottom: 1mm; }
-    .company-line { font-size: 9.6px; margin-bottom: 0.35mm; }
-    .page-no { text-align: right; font-size: 9.2px; font-weight: 700; white-space: nowrap; padding-top: 0.5mm; }
+    .company { padding-top: 0.3mm; line-height: 1.2; }
+    .company .th-name { font-size: 16px; font-weight: 700; margin-bottom: 0.35mm; }
+    .company .en-name { font-size: 14.8px; font-weight: 700; margin-bottom: 1.1mm; }
+    .company-line { font-size: 12px; margin-bottom: 0.45mm; }
+    .page-no { text-align: right; font-size: 12px; font-weight: 700; white-space: nowrap; padding-top: 0.5mm; }
     .title-row {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
@@ -484,11 +484,11 @@ function buildPrintHtml(model) {
       column-gap: 3mm;
     }
     .title-row .spacer { min-height: 1px; }
-    .title { font-size: 13.4px; font-weight: 700; white-space: nowrap; }
+    .title { font-size: 14.8px; font-weight: 700; white-space: nowrap; }
     .certs { display: flex; justify-content: flex-end; align-items: center; gap: 0.9mm; min-height: 6mm; }
     .cert-logo { height: 5.4mm; width: auto; object-fit: contain; }
-    .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 2.3mm; font-size: 8.8px; line-height: 1.16; }
-    .meta-table td { padding: 0 0.8mm 1.05mm 0; vertical-align: top; }
+    .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 2.5mm; font-size: 10.8px; line-height: 1.22; }
+    .meta-table td { padding: 0 0.8mm 1.25mm 0; vertical-align: top; }
     .label { width: 18mm; font-weight: 700; white-space: nowrap; }
     .value { width: 86mm; }
     .mid-label { width: 12mm; font-weight: 700; white-space: nowrap; }
@@ -500,38 +500,38 @@ function buildPrintHtml(model) {
     .line-table th {
       background: #d9d9d9;
       color: #111827;
-      font-size: 8.8px;
+      font-size: 12px;
       font-weight: 700;
-      padding: 1.2mm 0.9mm;
+      padding: 1.35mm 0.9mm;
       text-align: center;
     }
     .line-table td {
-      padding: 1.05mm 0.9mm 0.8mm;
+      padding: 1.2mm 0.9mm 0.95mm;
       vertical-align: top;
       border-bottom: none;
-      font-size: 8.8px;
+      font-size: 10.8px;
     }
     .line-table tr { page-break-inside: avoid; }
     .seq-cell { width: 9%; text-align: center; color: transparent; }
     .desc-cell { width: 43%; }
     .num-cell { width: 12%; text-align: right; white-space: nowrap; }
     .unit-cell { width: 7%; text-align: center; white-space: nowrap; }
-    .item-no { font-size: 8.8px; color: #374151; margin-bottom: 0.3mm; }
-    .line-meta { font-size: 8.8px; color: #4b5563; margin-top: 0.4mm; }
+    .item-no { font-size: 10.8px; color: #374151; margin-bottom: 0.3mm; }
+    .line-meta { font-size: 10.8px; color: #4b5563; margin-top: 0.4mm; }
     .note-row td { padding-top: 1.6mm; padding-bottom: 1mm; }
     .notes-block { margin-top: 1.8mm; }
     .note-row-text { margin-bottom: 1.2mm; }
     .footer-stack { margin-top: auto; padding-top: 5.6mm; }
     .footer-divider { border-top: 1px solid #111827; margin-bottom: 1.5mm; }
     .summary-grid { display: grid; grid-template-columns: 1fr 42mm; column-gap: 6mm; align-items: start; }
-    .footer-note { font-size: 7.8px; line-height: 1.22; }
-    .footer-note div { margin-bottom: 0.7mm; }
+    .footer-note { font-size: 10.2px; line-height: 1.28; }
+    .footer-note div { margin-bottom: 0.95mm; }
     .footer-note .thai { font-weight: 700; }
     .totals { width: 100%; border-collapse: collapse; }
-    .totals td { padding: 0 0 1.2mm; font-size: 8.8px; font-weight: 700; vertical-align: top; }
+    .totals td { padding: 0 0 1.4mm; font-size: 10.8px; font-weight: 700; vertical-align: top; }
     .totals .label-cell { white-space: nowrap; }
     .totals .amount { text-align: right; padding-left: 4mm; white-space: nowrap; }
-    .remark-section { margin-top: 1.8mm; font-size: 8.8px; }
+    .remark-section { margin-top: 2mm; font-size: 10.8px; }
     .remark-row,
     .job-row {
       display: grid;
@@ -539,7 +539,7 @@ function buildPrintHtml(model) {
       column-gap: 2mm;
       align-items: start;
     }
-    .remark-row { min-height: 3.8mm; }
+    .remark-row { min-height: 4.4mm; }
     .remark-label,
     .job-label { font-weight: 700; }
     .remark-value { white-space: pre-wrap; word-break: break-word; }
@@ -548,7 +548,7 @@ function buildPrintHtml(model) {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       column-gap: 14mm;
-      margin-top: 6.8mm;
+      margin-top: 5.2mm;
       align-items: stretch;
     }
     .signature-col {
@@ -565,16 +565,16 @@ function buildPrintHtml(model) {
       min-height: 9mm;
     }
     .signature-image { display: block; max-width: 26mm; max-height: 10mm; margin: 0 auto 0.2mm; object-fit: contain; }
-    .signer-name { text-align: center; min-height: 3.4mm; margin-bottom: 0.4mm; font-size: 8.3px; }
+    .signer-name { text-align: center; min-height: 4mm; margin-bottom: 0.6mm; font-size: 10.8px; }
     .signature-line { width: 72%; margin: 0 auto; border-top: 1px solid #111827; padding-top: 1.2mm; text-align: center; }
     .signature-footer { min-height: 12mm; }
-    .signature-title { text-align: center; font-size: 8.5px; margin-top: 1.5mm; }
-    .signature-meta { margin: 0.8mm auto 0; width: 72%; min-height: 6.6mm; font-size: 7.9px; }
-    .signature-meta div { margin-bottom: 0.7mm; min-height: 2.8mm; }
+    .signature-title { text-align: center; font-size: 10.8px; margin-top: 1.5mm; }
+    .signature-meta { margin: 0.8mm auto 0; width: 84%; min-height: 6.6mm; font-size: 10px; }
+    .signature-meta div { margin-bottom: 0.7mm; min-height: 3.2mm; }
     .signature-meta div:last-child { margin-bottom: 0; }
     .signature-meta-spacer { visibility: hidden; }
-    .signature-customer .signature-meta { width: 62%; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 3.8mm; font-size: 7.9px; }
+    .signature-customer .signature-meta { width: 72%; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 3.8mm; font-size: 10px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
 </head>
