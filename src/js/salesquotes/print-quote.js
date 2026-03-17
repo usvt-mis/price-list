@@ -646,7 +646,7 @@ function renderRightMetaContent(content, kind = 'label') {
 
 function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
   const customerRows = customerAddressLines.map((line, index) => `
-    <tr>
+    <tr${index === 0 ? ' class="meta-address-row"' : ''}>
       <td class="label">${index === 0 ? 'Address' : ''}</td>
       <td class="value">${renderLeftMetaValueContent(line)}</td>
       <td class="mid-label"></td>
@@ -897,10 +897,13 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .meta-table td { padding: 0 1mm 0.62mm 0; vertical-align: top; }
     .meta-table .meta-divider td {
       border-bottom: 1px solid #000;
-      padding-bottom: 0.95mm;
+      padding-bottom: 1.5mm;
     }
     .meta-table .meta-customer-row td {
       padding-top: 0.8mm;
+    }
+    .meta-table .meta-address-row td {
+      padding-top: 1.4mm;
     }
     .meta-table td.label { font-weight: 700; white-space: nowrap; }
     .meta-table td.value { word-break: break-word; }
