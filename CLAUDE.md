@@ -448,14 +448,14 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Print Layout Sections**:
   1. **Top Bar**: Main company logo (28mm), company info (Thai/English names + address; English address first, head office labeled), page number label
   2. **Title Row**: "ใบเสนอราคา/QUOTATION" centered with certification logos (EASA, SGS, IEC, AEMT) on the right
-  3. **Meta Table**: Wide single-table layout with AR Code, Customer, Address (2 lines), Attention, Tel, Tax ID, Delivery Address (2 lines), Our Ref, Date, Expired Date, Payment, Delivery Date
+  3. **Meta Table**: Wide single-table layout with AR Code, Customer, Address (2 rows), Attention, Tel, Tax ID, Delivery Address (2 rows), Our Ref, Date, Expired Date, Payment, Delivery Date organized across 6 rows with left/mid/right column structure (empty cells for spacing)
   4. **Line Items Table**: Description, quantity, unit of measure, unit price, discount, total (sequence and item number columns hidden)
      - Comment lines render as full-width notes (no pricing columns)
      - Header/footer lines and comment-note lines are filtered out from display
   5. **Detail Notes Section**: Sales comments from BC displayed below line items with underline separator
   6. **Footer Band**: Thai/English disclaimer (left), financial totals table (right)
   7. **Remark & Job Box**: Remarks section (empty), Job No displayed at bottom
-  8. **Signature Section**: 3-column layout - Customer Confirmed (with date fields), With By (with signature image from requestSignature, name, contact), Approved (with signature image, name, contact)
+  8. **Signature Section**: 3-column layout - Customer Confirmed (with date fields), With By (with signature image from requestSignature, centered name, grid-based contact info), Approved (with signature image, centered name, grid-based contact info)
   9. **Document Footer**: Effective date (01/04/2023), document code (CS-FM-RY-004 Rev.00)
 - **Asset Paths** (from `ASSET_PATHS` constant):
   - Main logo: `uservices-logo.png`

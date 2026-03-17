@@ -498,9 +498,9 @@ function buildPrintHtml(model) {
       padding-bottom: 0.65mm;
     }
     .label { width: 18mm; font-weight: 700; white-space: nowrap; }
-    .value { width: 86mm; }
-    .mid-label { width: 12mm; font-weight: 700; white-space: nowrap; }
-    .mid-value { width: 32mm; }
+    .value { width: 65mm; }
+    .mid-label { width: 16mm; font-weight: 700; white-space: nowrap; text-align: right; padding-right: 1.2mm; }
+    .mid-value { width: 30mm; }
     .right-label { width: 19mm; text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.4mm; }
     .right-value { width: 24mm; text-align: right; white-space: nowrap; }
     .line-table { width: 100%; border-collapse: collapse; margin-top: 0.8mm; table-layout: fixed; }
@@ -531,7 +531,7 @@ function buildPrintHtml(model) {
     .note-row-text { margin-bottom: 1.2mm; }
     .footer-stack { margin-top: auto; padding-top: 5.6mm; }
     .footer-divider { border-top: 1px solid #111827; margin-bottom: 1.5mm; }
-    .summary-grid { display: grid; grid-template-columns: 1fr 42mm; column-gap: 6mm; align-items: start; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 56mm; column-gap: 3mm; align-items: start; }
     .summary-left { min-width: 0; }
     .footer-note { font-size: 10.2px; line-height: 1.28; }
     .footer-note div { margin-bottom: 0.95mm; }
@@ -583,6 +583,50 @@ function buildPrintHtml(model) {
     .signature-meta div:last-child { margin-bottom: 0; }
     .signature-meta-spacer { visibility: hidden; }
     .signature-customer .signature-meta { width: 72%; }
+    .signature-salesperson .signature-preline { align-items: center; }
+    .signature-salesperson .signature-footer {
+      width: 84%;
+      margin: 1.5mm auto 0;
+      min-height: 12mm;
+      font-size: 10px;
+    }
+    .salesperson-title-row,
+    .salesperson-meta-row {
+      display: grid;
+      grid-template-columns: 14mm 1fr;
+      column-gap: 2.2mm;
+      align-items: baseline;
+    }
+    .salesperson-title-row {
+      margin-bottom: 0.8mm;
+      font-size: 10.8px;
+    }
+    .salesperson-meta-row { margin-bottom: 0.7mm; }
+    .salesperson-meta-row:last-child { margin-bottom: 0; }
+    .salesperson-label { white-space: nowrap; }
+    .salesperson-value { white-space: nowrap; }
+    .signature-approver .signature-preline { align-items: center; }
+    .signature-approver .signature-footer {
+      width: 84%;
+      margin: 1.5mm auto 0;
+      min-height: 12mm;
+      font-size: 10px;
+    }
+    .approver-title-row,
+    .approver-meta-row {
+      display: grid;
+      grid-template-columns: 14mm 1fr;
+      column-gap: 2.2mm;
+      align-items: baseline;
+    }
+    .approver-title-row {
+      margin-bottom: 0.8mm;
+      font-size: 10.8px;
+    }
+    .approver-meta-row { margin-bottom: 0.7mm; }
+    .approver-meta-row:last-child { margin-bottom: 0; }
+    .approver-label { white-space: nowrap; }
+    .approver-value { white-space: nowrap; }
     .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 3.8mm; font-size: 10px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
@@ -625,42 +669,50 @@ function buildPrintHtml(model) {
       <tr>
         <td class="label">Address</td>
         <td class="value">${escapeHtml(customerAddressLines[0])}</td>
-        <td class="mid-label">Attention</td>
-        <td class="mid-value">${escapeHtml(model.attention)}</td>
+        <td class="mid-label"></td>
+        <td class="mid-value"></td>
         <td class="right-label">Our Ref.</td>
         <td class="right-value">${escapeHtml(model.ourRef)}</td>
       </tr>
       <tr>
         <td class="label"></td>
         <td class="value">${escapeHtml(customerAddressLines[1])}</td>
-        <td class="mid-label">Tel.</td>
-        <td class="mid-value">${escapeHtml(model.phone)}</td>
+        <td class="mid-label"></td>
+        <td class="mid-value"></td>
         <td class="right-label">Date</td>
         <td class="right-value">${escapeHtml(model.documentDate)}</td>
+      </tr>
+      <tr>
+        <td class="label"></td>
+        <td class="value"></td>
+        <td class="mid-label">Attention</td>
+        <td class="mid-value">${escapeHtml(model.attention)}</td>
+        <td class="right-label">Expired Date</td>
+        <td class="right-value">${escapeHtml(model.expiredDate)}</td>
       </tr>
       <tr>
         <td class="label">Tax ID</td>
         <td class="value">${escapeHtml(model.taxId)}</td>
         <td class="mid-label"></td>
         <td class="mid-value"></td>
-        <td class="right-label">Expired Date</td>
-        <td class="right-value">${escapeHtml(model.expiredDate)}</td>
+        <td class="right-label">Payment</td>
+        <td class="right-value">${escapeHtml(model.paymentText)}</td>
       </tr>
       <tr>
         <td class="label">Delivery Address</td>
         <td class="value">${escapeHtml(deliveryAddressLines[0])}</td>
-        <td class="mid-label"></td>
-        <td class="mid-value"></td>
-        <td class="right-label">Payment</td>
-        <td class="right-value">${escapeHtml(model.paymentText)}</td>
+        <td class="mid-label">Tel.</td>
+        <td class="mid-value">${escapeHtml(model.phone)}</td>
+        <td class="right-label">Delivery Date</td>
+        <td class="right-value">${escapeHtml(model.deliveryText)}</td>
       </tr>
       <tr>
         <td class="label"></td>
         <td class="value">${escapeHtml(deliveryAddressLines[1])}</td>
         <td class="mid-label"></td>
         <td class="mid-value"></td>
-        <td class="right-label">Delivery Date</td>
-        <td class="right-value">${escapeHtml(model.deliveryText)}</td>
+        <td class="right-label"></td>
+        <td class="right-value"></td>
       </tr>
     </table>
 
@@ -726,31 +778,43 @@ function buildPrintHtml(model) {
             </div>
           </div>
         </div>
-        <div class="signature-col">
+        <div class="signature-col signature-salesperson">
           <div class="signature-preline">
             ${model.salesperson.signature ? `<img src="${escapeHtml(model.salesperson.signature)}" alt="With By Signature" class="signature-image">` : ''}
-            <div class="signer-name">${escapeHtml(model.salesperson.name)}</div>
           </div>
           <div class="signature-line"></div>
           <div class="signature-footer">
-            <div class="signature-title">With By</div>
-            <div class="signature-meta">
-              <div>Tel&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${escapeHtml(model.salesperson.phone)}</div>
-              <div>Email&nbsp;:&nbsp;${escapeHtml(model.salesperson.email)}</div>
+            <div class="salesperson-title-row">
+              <div class="salesperson-label">With By</div>
+              <div class="salesperson-value">${escapeHtml(model.salesperson.name)}</div>
+            </div>
+            <div class="salesperson-meta-row">
+              <div class="salesperson-label">Tel</div>
+              <div class="salesperson-value">${escapeHtml(model.salesperson.phone)}</div>
+            </div>
+            <div class="salesperson-meta-row">
+              <div class="salesperson-label">Email :</div>
+              <div class="salesperson-value">${escapeHtml(model.salesperson.email)}</div>
             </div>
           </div>
         </div>
-        <div class="signature-col">
+        <div class="signature-col signature-approver">
           <div class="signature-preline">
             ${model.approver.signature ? `<img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">` : ''}
-            <div class="signer-name">${escapeHtml(model.approver.name)}</div>
           </div>
           <div class="signature-line"></div>
           <div class="signature-footer">
-            <div class="signature-title">Approved</div>
-            <div class="signature-meta">
-              <div>Tel&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${escapeHtml(model.approver.phone)}</div>
-              <div>Email&nbsp;:&nbsp;${escapeHtml(model.approver.email)}</div>
+            <div class="approver-title-row">
+              <div class="approver-label">Approved</div>
+              <div class="approver-value">${escapeHtml(model.approver.name)}</div>
+            </div>
+            <div class="approver-meta-row">
+              <div class="approver-label">Tel</div>
+              <div class="approver-value">${escapeHtml(model.approver.phone)}</div>
+            </div>
+            <div class="approver-meta-row">
+              <div class="approver-label">Email :</div>
+              <div class="approver-value">${escapeHtml(model.approver.email)}</div>
             </div>
           </div>
         </div>
