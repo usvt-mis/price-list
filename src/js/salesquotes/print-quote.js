@@ -626,11 +626,20 @@ function renderMetaOffsetContent(content, kind = 'value', extraClass = '') {
   return `<span class="${className}">${escapeHtml(normalized)}</span>`;
 }
 
+function renderLeftMetaValueContent(content) {
+  const normalized = String(content ?? '').trim();
+  if (!normalized) {
+    return '';
+  }
+
+  return `<span class="left-meta-value">${escapeHtml(normalized)}</span>`;
+}
+
 function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
   const customerRows = customerAddressLines.map((line, index) => `
     <tr>
       <td class="label">${index === 0 ? 'Address' : ''}</td>
-      <td class="value">${escapeHtml(line)}</td>
+      <td class="value">${renderLeftMetaValueContent(line)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
       <td class="right-label">${index === 0 ? 'Our Ref.' : index === 1 ? 'Date' : ''}</td>
@@ -641,7 +650,7 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
   const deliveryRows = deliveryAddressLines.map((line, index) => `
     <tr>
       <td class="label">${index === 0 ? 'Delivery Address' : ''}</td>
-      <td class="value">${escapeHtml(line)}</td>
+      <td class="value">${renderLeftMetaValueContent(line)}</td>
       <td class="mid-label">${index === 0 ? renderMetaOffsetContent('Tel.', 'label') : ''}</td>
       <td class="mid-value">${index === 0 ? renderMetaOffsetContent(model.phone, 'value') : ''}</td>
       <td class="right-label">${index === 0 ? 'Delivery Date' : ''}</td>
@@ -652,7 +661,7 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
   return `
     <tr class="meta-divider">
       <td class="label">AR Code</td>
-      <td class="value">${escapeHtml(model.arCode)}</td>
+      <td class="value">${renderLeftMetaValueContent(model.arCode)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
       <td class="right-label"></td>
@@ -660,7 +669,7 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
     </tr>
     <tr>
       <td class="label">Customer</td>
-      <td class="value">${escapeHtml(model.customerName)}</td>
+      <td class="value">${renderLeftMetaValueContent(model.customerName)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
       <td class="right-label"></td>
@@ -677,7 +686,7 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
     </tr>
     <tr>
       <td class="label">Tax ID</td>
-      <td class="value">${escapeHtml(model.taxId)}</td>
+      <td class="value">${renderLeftMetaValueContent(model.taxId)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
       <td class="right-label">Payment</td>
@@ -881,10 +890,15 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       border-bottom: 1px solid #000;
       padding-bottom: 0.95mm;
     }
-    .label { font-weight: 700; white-space: nowrap; }
-    .value { word-break: break-word; padding-left: ${settings.leftMetaValuePaddingMm}mm; }
-    .mid-label { font-weight: 700; white-space: nowrap; text-align: right; padding-right: 1.2mm; }
-    .mid-value { word-break: break-word; }
+    .meta-table td.label { font-weight: 700; white-space: nowrap; }
+    .meta-table td.value { word-break: break-word; }
+    .meta-table td.mid-label { font-weight: 700; white-space: nowrap; text-align: right; padding-right: 1.2mm; }
+    .meta-table td.mid-value { word-break: break-word; }
+    .left-meta-value {
+      display: block;
+      padding-left: ${settings.leftMetaValuePaddingMm}mm;
+      box-sizing: border-box;
+    }
     .meta-offset-block {
       transform: translate(${settings.attentionTelBlockOffsetXMm}mm, ${settings.attentionTelBlockOffsetYMm}mm);
       transform-origin: top left;
@@ -899,8 +913,8 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       width: ${settings.attentionValueWidthMm}mm;
       max-width: none;
     }
-    .right-label { text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.2mm; }
-    .right-value { text-align: right; white-space: nowrap; }
+    .meta-table td.right-label { text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.2mm; }
+    .meta-table td.right-value { text-align: right; white-space: nowrap; }
     .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; }
     .line-table thead { display: table-header-group; }
     .line-table th {
