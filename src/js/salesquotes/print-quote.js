@@ -84,7 +84,9 @@ const BRANCH_HEADER_MAP = {
   }
 };
 
-const DEFAULT_TITLE = 'ใบเสนอราคา / QUOTATION';
+const HEAD_OFFICE_BRANCH_CODES = new Set(['URY']);
+
+const DEFAULT_TITLE = 'ใบเสนอราคา/QUOTATION';
 const DEFAULT_COMPANY_LINES = [
   'บริษัท ยู-เซอร์วิสเซส (ประเทศไทย) จำกัด (สาขาที่ 00005)',
   'U-SERVICES (THAILAND) CO., LTD. (Branch 00005)',
@@ -132,9 +134,22 @@ function formatQty(value) {
   }
 
   return parsed.toLocaleString('en-US', {
-    minimumFractionDigits: parsed % 1 === 0 ? 0 : 2,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
+}
+
+function formatUnitOfMeasure(value) {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    return '';
+  }
+
+  if (/^EA\.?$/i.test(normalized)) {
+    return 'Ea.';
+  }
+
+  return normalized;
 }
 
 function formatMoneyOrIncluded(value) {
@@ -185,11 +200,15 @@ function normalizeBranchCode(value) {
 }
 
 function buildBranchHeaderLines(branchCode) {
-  const branchHeader = BRANCH_HEADER_MAP[normalizeBranchCode(branchCode)];
+  const normalizedBranchCode = normalizeBranchCode(branchCode);
+  const branchHeader = BRANCH_HEADER_MAP[normalizedBranchCode];
   if (!branchHeader) {
     return [];
   }
 
+  const isHeadOffice = HEAD_OFFICE_BRANCH_CODES.has(normalizedBranchCode);
+  const officeLabelTh = isHeadOffice ? 'สำนักงานใหญ่' : branchHeader.description;
+  const officeLabelEn = isHeadOffice ? 'Head Office' : '';
   const contactLine = [
     branchHeader.phoneNo ? `Tel. ${branchHeader.phoneNo}` : '',
     branchHeader.faxNo ? `Fax ${branchHeader.faxNo}` : '',
@@ -197,12 +216,10 @@ function buildBranchHeaderLines(branchCode) {
   ].filter(Boolean).join(' ');
 
   return compactLines([
-    branchHeader.companyName,
-    branchHeader.companyNameEng,
-    branchHeader.companyAddress,
-    branchHeader.companyAddress2,
-    branchHeader.companyAddressEng,
-    branchHeader.companyAddressEng2,
+    officeLabelTh ? `${branchHeader.companyName} (${officeLabelTh})` : branchHeader.companyName,
+    officeLabelEn ? `${branchHeader.companyNameEng} (${officeLabelEn})` : branchHeader.companyNameEng,
+    compactLines([branchHeader.companyAddressEng, branchHeader.companyAddressEng2]).join(' '),
+    compactLines([branchHeader.companyAddress, branchHeader.companyAddress2]).join(' '),
     contactLine
   ]);
 }
@@ -280,17 +297,18 @@ function buildTotals(formData) {
 }
 
 function buildCustomerAddressLines(formData, reportContext) {
+  const reportLines = compactLines(reportContext.customerAddressLines || reportContext.customerInfoLines);
+  if (reportLines.length) {
+    return reportLines;
+  }
+
   const sellToLines = compactLines([
     formData.sellTo?.address,
     formData.sellTo?.address2,
     joinAddress([formData.sellTo?.city, formData.sellTo?.postCode])
   ]);
 
-  if (sellToLines.length) {
-    return sellToLines;
-  }
-
-  return compactLines(reportContext.customerAddressLines || reportContext.customerInfoLines);
+  return sellToLines;
 }
 
 function buildDeliveryAddressLines(formData, reportContext) {
@@ -308,7 +326,7 @@ function buildDeliveryAddressLines(formData, reportContext) {
     return deliveryLines;
   }
 
-  return buildCustomerAddressLines(formData, reportContext);
+  return [];
 }
 
 function buildModel() {
@@ -324,7 +342,10 @@ function buildModel() {
   const reportCompanyLines = compactLines(reportContext.companyInfoLines);
   const companyLines = reportCompanyLines.length ? reportCompanyLines : branchHeaderLines;
   const detailNotes = unique(compactLines(reportContext.salesComments));
-  const bottomRemark = String(formData.workDescription || '').trim();
+  const documentRef = formData.quoteNumber || reportContext.documentNo || reportContext.externalDocumentNo || '';
+  const requestSignature = reportContext.requestSignature || {};
+  const salespersonSignature = normalizeDataUri(requestSignature.signature) || normalizeDataUri(reportContext.salesperson?.signature);
+  const approverSignature = normalizeDataUri(reportContext.approver?.signature);
 
   return {
     title: DEFAULT_TITLE,
@@ -338,9 +359,9 @@ function buildModel() {
       ASSET_PATHS.aemt
     ],
     arCode: reportContext.billToCustomerNo || reportContext.sellToCustomerNo || formData.customerNo || '',
-    customerName: formData.customerName || reportContext.customerName || '',
+    customerName: reportContext.customerName || formData.customerName || '',
     customerAddressLines: buildCustomerAddressLines(formData, reportContext),
-    ourRef: formData.quoteNumber || reportContext.documentNo || reportContext.externalDocumentNo || '',
+    ourRef: documentRef,
     documentDate: formatDate(reportContext.documentDate || reportContext.orderDate || formData.orderDate),
     expiredDate: formatDate(reportContext.quoteValidUntilDate),
     paymentText: reportContext.paymentTermsCode || reportContext.paymentTermsDescription || '',
@@ -351,21 +372,21 @@ function buildModel() {
     deliveryAddressLines: buildDeliveryAddressLines(formData, reportContext),
     lineItems: buildPrintableLines(formData, reportContext),
     detailNotes,
-    bottomRemark,
-    jobNo: formData.workStatus || reportContext.dimensionName || formData.quoteNumber || '',
+    bottomRemark: '',
+    jobNo: reportContext.dimensionName || formData.workStatus || documentRef || '',
     totals,
     vatLabel: reportContext.vatText || `VAT ${totals.vatRate.toFixed(0)}%`,
     salesperson: {
-      name: formData.salespersonName || reportContext.salesperson?.name || '',
-      phone: reportContext.salesperson?.phone || '',
-      email: reportContext.salesperson?.email || '',
-      signature: normalizeDataUri(reportContext.salesperson?.signature)
+      name: requestSignature.name || reportContext.salesperson?.name || formData.salespersonName || '',
+      phone: requestSignature.phone || reportContext.salesperson?.phone || '',
+      email: requestSignature.email || reportContext.salesperson?.email || '',
+      signature: salespersonSignature
     },
     approver: {
       name: reportContext.approver?.name || '',
       phone: reportContext.approver?.phone || '',
       email: reportContext.approver?.email || '',
-      signature: normalizeDataUri(reportContext.approver?.signature)
+      signature: approverSignature
     },
     effectiveDate: DEFAULT_EFFECTIVE_DATE,
     documentCode: DEFAULT_DOC_CODE
@@ -388,36 +409,26 @@ function renderAddressLines(lines, expected = 2) {
 }
 
 function renderLineRows(lines) {
-  if (!lines.length) {
+  const printableLines = lines.filter(line => {
+    const isCommentLine = line.lineType === 'Comment';
+    return !(line.printHeader
+      || line.printFooter
+      || (isCommentLine && !line.itemNo && line.unitPrice === 0 && line.quantity === 0));
+  });
+
+  if (!printableLines.length) {
     return '<tr><td colspan="7" class="empty-row">No printable lines available.</td></tr>';
   }
 
-  return lines.map(line => {
-    const isCommentLine = line.lineType === 'Comment';
-    const renderAsNote = line.printHeader
-      || line.printFooter
-      || (isCommentLine && !line.itemNo && line.unitPrice === 0 && line.quantity === 0);
-
-    if (renderAsNote) {
-      const prefix = line.groupNo ? `${escapeHtml(line.groupNo)} ` : '';
-      return `
-        <tr class="note-row">
-          <td></td>
-          <td colspan="6">${prefix}${escapeHtml(line.description)}</td>
-        </tr>
-      `;
-    }
-
+  return printableLines.map(line => {
     return `
       <tr>
-        <td class="seq-cell">${escapeHtml(line.sequence)}</td>
+        <td class="seq-cell"></td>
         <td class="desc-cell">
-          ${line.itemNo ? `<div class="item-no">${escapeHtml(line.itemNo)}</div>` : ''}
           <div>${escapeHtml(line.description)}</div>
-          ${line.refSalesQuoteNo ? `<div class="line-meta">Ref. SQ No.: ${escapeHtml(line.refSalesQuoteNo)}</div>` : ''}
         </td>
         <td class="num-cell">${escapeHtml(formatQty(line.quantity))}</td>
-        <td class="unit-cell">${escapeHtml(line.unitOfMeasure)}</td>
+        <td class="unit-cell">${escapeHtml(formatUnitOfMeasure(line.unitOfMeasure))}</td>
         <td class="num-cell">${escapeHtml(formatMisRdlUnitPrice(line))}</td>
         <td class="num-cell">${escapeHtml(formatCurrency(line.discountAmount))}</td>
         <td class="num-cell">${escapeHtml(formatMoneyOrIncluded(line.lineTotal))}</td>
@@ -432,7 +443,7 @@ function buildPrintHtml(model) {
   const companyMarkup = model.companyLines.slice(2).map(line => `<div class="company-line">${escapeHtml(line)}</div>`).join('');
   const remarkMarkup = model.bottomRemark
     ? escapeHtml(model.bottomRemark)
-    : '';
+    : '&nbsp;';
   const certificationMarkup = model.certificationLogos
     .map(src => `<img src="${escapeHtml(src)}" alt="" class="cert-logo">`)
     .join('');
@@ -449,7 +460,7 @@ function buildPrintHtml(model) {
   <style>
     @page { size: A4; margin: 8mm 10mm 10mm; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; background: #fff; color: #111827; font-family: Tahoma, Arial, sans-serif; font-size: 10px; line-height: 1.28; }
+    html, body { margin: 0; background: #fff; color: #111827; font-family: Tahoma, Arial, sans-serif; font-size: 10px; line-height: 1.24; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .page {
       width: 190mm;
@@ -458,112 +469,112 @@ function buildPrintHtml(model) {
       display: flex;
       flex-direction: column;
     }
-    .topbar { display: grid; grid-template-columns: 30mm 1fr 18mm; align-items: start; column-gap: 5mm; }
-    .main-logo { width: 29mm; height: auto; object-fit: contain; margin-top: 0.5mm; }
-    .company { padding-top: 0.4mm; }
-    .company .th-name { font-size: 10.8px; font-weight: 700; margin-bottom: 0.5mm; }
-    .company .en-name { font-size: 10.8px; font-weight: 700; margin-bottom: 1.3mm; }
-    .company-line { margin-bottom: 0.45mm; }
-    .page-no { text-align: right; font-size: 9.8px; font-weight: 700; white-space: nowrap; padding-top: 0.6mm; }
+    .topbar { display: grid; grid-template-columns: 30mm 1fr 18mm; align-items: start; column-gap: 4mm; }
+    .main-logo { width: 28mm; height: auto; object-fit: contain; margin-top: 0.4mm; }
+    .company { padding-top: 0.3mm; line-height: 1.18; }
+    .company .th-name { font-size: 11.4px; font-weight: 700; margin-bottom: 0.25mm; }
+    .company .en-name { font-size: 11.4px; font-weight: 700; margin-bottom: 1mm; }
+    .company-line { font-size: 9.6px; margin-bottom: 0.35mm; }
+    .page-no { text-align: right; font-size: 9.2px; font-weight: 700; white-space: nowrap; padding-top: 0.5mm; }
     .title-row {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: end;
-      margin: 4.8mm 0 3.6mm;
-      column-gap: 4mm;
+      margin: 4.2mm 0 2.7mm;
+      column-gap: 3mm;
     }
     .title-row .spacer { min-height: 1px; }
     .title { font-size: 13.4px; font-weight: 700; white-space: nowrap; }
-    .certs { display: flex; justify-content: flex-end; align-items: center; gap: 1.2mm; min-height: 7mm; }
-    .cert-logo { height: 6.3mm; width: auto; object-fit: contain; }
-    .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 2.8mm; }
-    .meta-table td { padding: 0 0.8mm 1.35mm 0; vertical-align: top; }
+    .certs { display: flex; justify-content: flex-end; align-items: center; gap: 0.9mm; min-height: 6mm; }
+    .cert-logo { height: 5.4mm; width: auto; object-fit: contain; }
+    .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 2.3mm; font-size: 8.8px; line-height: 1.16; }
+    .meta-table td { padding: 0 0.8mm 1.05mm 0; vertical-align: top; }
     .label { width: 18mm; font-weight: 700; white-space: nowrap; }
-    .value { width: 80mm; }
-    .mid-label { width: 14mm; font-weight: 700; white-space: nowrap; }
-    .mid-value { width: 31mm; }
-    .right-label { width: 22mm; text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.5mm; }
-    .right-value { width: 25mm; text-align: right; white-space: nowrap; }
-    .line-table { width: 100%; border-collapse: collapse; margin-top: 0.4mm; }
+    .value { width: 86mm; }
+    .mid-label { width: 12mm; font-weight: 700; white-space: nowrap; }
+    .mid-value { width: 32mm; }
+    .right-label { width: 19mm; text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.4mm; }
+    .right-value { width: 24mm; text-align: right; white-space: nowrap; }
+    .line-table { width: 100%; border-collapse: collapse; margin-top: 0.8mm; table-layout: fixed; }
     .line-table thead { display: table-header-group; }
     .line-table th {
       background: #d9d9d9;
       color: #111827;
-      font-size: 9.8px;
+      font-size: 8.8px;
       font-weight: 700;
-      padding: 1.6mm 1.4mm;
+      padding: 1.2mm 0.9mm;
       text-align: center;
     }
     .line-table td {
-      padding: 1.3mm 1.4mm 1mm;
+      padding: 1.05mm 0.9mm 0.8mm;
       vertical-align: top;
       border-bottom: none;
-      font-size: 9.8px;
+      font-size: 8.8px;
     }
     .line-table tr { page-break-inside: avoid; }
-    .seq-cell { width: 9%; text-align: center; }
-    .desc-cell { width: 44%; }
+    .seq-cell { width: 9%; text-align: center; color: transparent; }
+    .desc-cell { width: 43%; }
     .num-cell { width: 12%; text-align: right; white-space: nowrap; }
     .unit-cell { width: 7%; text-align: center; white-space: nowrap; }
     .item-no { font-size: 8.8px; color: #374151; margin-bottom: 0.3mm; }
     .line-meta { font-size: 8.8px; color: #4b5563; margin-top: 0.4mm; }
     .note-row td { padding-top: 1.6mm; padding-bottom: 1mm; }
-    .notes-block { margin-top: 2.3mm; }
-    .note-row-text { margin-bottom: 1.5mm; }
-    .footer-stack { margin-top: auto; padding-top: 4mm; }
-    .footer-divider { border-top: 1px solid #111827; margin-bottom: 2.2mm; }
-    .summary-grid { display: grid; grid-template-columns: 1fr 40mm; column-gap: 12mm; align-items: start; }
-    .footer-note { font-size: 8.7px; line-height: 1.35; }
-    .footer-note div { margin-bottom: 0.9mm; }
+    .notes-block { margin-top: 1.8mm; }
+    .note-row-text { margin-bottom: 1.2mm; }
+    .footer-stack { margin-top: auto; padding-top: 5.6mm; }
+    .footer-divider { border-top: 1px solid #111827; margin-bottom: 1.5mm; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 42mm; column-gap: 6mm; align-items: start; }
+    .footer-note { font-size: 7.8px; line-height: 1.22; }
+    .footer-note div { margin-bottom: 0.7mm; }
     .footer-note .thai { font-weight: 700; }
     .totals { width: 100%; border-collapse: collapse; }
-    .totals td { padding: 0 0 1.55mm; font-weight: 700; vertical-align: top; }
+    .totals td { padding: 0 0 1.2mm; font-size: 8.8px; font-weight: 700; vertical-align: top; }
     .totals .label-cell { white-space: nowrap; }
     .totals .amount { text-align: right; padding-left: 4mm; white-space: nowrap; }
-    .remark-section { margin-top: 2.4mm; }
+    .remark-section { margin-top: 1.8mm; font-size: 8.8px; }
     .remark-row,
     .job-row {
       display: grid;
-      grid-template-columns: 13mm 1fr;
+      grid-template-columns: 16mm 1fr;
       column-gap: 2mm;
       align-items: start;
     }
-    .remark-row { min-height: 4.6mm; }
+    .remark-row { min-height: 3.8mm; }
     .remark-label,
     .job-label { font-weight: 700; }
     .remark-value { white-space: pre-wrap; word-break: break-word; }
-    .job-row { margin-top: 1.1mm; font-weight: 700; }
+    .job-row { margin-top: 0.8mm; font-weight: 700; }
     .signature-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      column-gap: 16mm;
-      margin-top: 8mm;
+      column-gap: 14mm;
+      margin-top: 6.8mm;
       align-items: stretch;
     }
     .signature-col {
-      min-height: 34mm;
+      min-height: 29mm;
       display: flex;
       flex-direction: column;
-      padding: 0 2mm;
+      padding: 0;
     }
     .signature-preline {
       flex: 1 1 auto;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
-      min-height: 12mm;
+      min-height: 9mm;
     }
-    .signature-image { display: block; max-width: 34mm; max-height: 12mm; margin: 0 auto 0.8mm; object-fit: contain; }
-    .signer-name { text-align: center; min-height: 4mm; margin-bottom: 0.8mm; }
-    .signature-line { border-top: 1px solid #111827; padding-top: 1.8mm; text-align: center; }
-    .signature-footer { min-height: 14mm; }
-    .signature-title { text-align: center; font-size: 9.8px; margin-top: 2.4mm; }
-    .signature-meta { margin: 1.4mm auto 0; width: 82%; min-height: 7.4mm; font-size: 8.9px; }
-    .signature-meta div { margin-bottom: 0.9mm; min-height: 3.2mm; }
+    .signature-image { display: block; max-width: 26mm; max-height: 10mm; margin: 0 auto 0.2mm; object-fit: contain; }
+    .signer-name { text-align: center; min-height: 3.4mm; margin-bottom: 0.4mm; font-size: 8.3px; }
+    .signature-line { width: 72%; margin: 0 auto; border-top: 1px solid #111827; padding-top: 1.2mm; text-align: center; }
+    .signature-footer { min-height: 12mm; }
+    .signature-title { text-align: center; font-size: 8.5px; margin-top: 1.5mm; }
+    .signature-meta { margin: 0.8mm auto 0; width: 72%; min-height: 6.6mm; font-size: 7.9px; }
+    .signature-meta div { margin-bottom: 0.7mm; min-height: 2.8mm; }
     .signature-meta div:last-child { margin-bottom: 0; }
     .signature-meta-spacer { visibility: hidden; }
-    .signature-customer .signature-meta { width: 72%; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 5.2mm; font-size: 8.9px; }
+    .signature-customer .signature-meta { width: 62%; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 3.8mm; font-size: 7.9px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
 </head>
@@ -700,7 +711,7 @@ function buildPrintHtml(model) {
           <div class="signature-footer">
             <div class="signature-title">Customer Confirmed</div>
             <div class="signature-meta">
-              <div>Date__________</div>
+              <div>Date_____/_____/_____</div>
               <div class="signature-meta-spacer">.</div>
             </div>
           </div>

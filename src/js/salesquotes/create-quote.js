@@ -227,8 +227,8 @@ function collectSequentialSourceValuesFromSources(sources, prefixes, indexes) {
 function buildSearchQuoteReportContext(data, resolvedSalespersonName, sourceContext = buildReportLookupSources(data)) {
   const { headerSources, lineSources, printableLineSources, allSources } = sourceContext;
   const customerInfoLines = collectSequentialSourceValuesFromSources(headerSources, ['customerInfo', 'CustomerInfo'], [1, 2, 3, 4, 5, 6, 9, 10]);
-  const customerName = pickSourceValueFromSources(headerSources, ['customerName', 'billToName'], '')
-    || customerInfoLines[0]
+  const customerName = customerInfoLines[0]
+    || pickSourceValueFromSources(headerSources, ['customerName', 'billToName'], '')
     || '';
   const customerAddressLines = customerInfoLines.length > 1 && customerInfoLines[0] === customerName
     ? customerInfoLines.slice(1)
@@ -267,6 +267,12 @@ function buildSearchQuoteReportContext(data, resolvedSalespersonName, sourceCont
     billToContact: pickSourceValueFromSources(headerSources, ['billToContact', 'Bill_to_Contact'], ''),
     reportNumber: pickSourceValueFromSources(headerSources, ['reportNumber', 'ReportNumber'], ''),
     requestSignatureUserSetup: pickSourceValueFromSources(headerSources, ['requestSignatureUserSetup', 'RequestSignature_UserSetup'], ''),
+    requestSignature: {
+      name: pickSourceValueFromSources(headerSources, ['requestSignatureName', 'RequestSignature_Name', 'requestUserName', 'RequestUser_Name', 'requestSignatureUserSetup', 'RequestSignature_UserSetup'], ''),
+      phone: pickSourceValueFromSources(headerSources, ['requestSignaturePhoneNo', 'RequestSignature_PhoneNo'], ''),
+      email: pickSourceValueFromSources(headerSources, ['requestSignatureEmail', 'RequestSignature_Email'], ''),
+      signature: pickSourceValueFromSources(headerSources, ['requestSignaturePicture', 'RequestSignature_Picture', 'requestSignatureSignature', 'RequestSignature_Signature', 'requestSignatureUserSetup', 'RequestSignature_UserSetup'], '')
+    },
     archivedVersionCount: pickSourceValueFromSources(headerSources, ['noArchivedVersions', 'noArchivedVersionsSalesHeader', 'NoArchivedVersions_SalesHeader'], ''),
     salesperson: {
       name: pickSourceValueFromSources(headerSources, ['salespersonName', 'nameSalesperson', 'Name_Salesperson'], resolvedSalespersonName || ''),
@@ -595,9 +601,9 @@ async function buildEditableQuoteFromSearchResponse(payload) {
   const responsibilityCenter = pickSourceValueFromSources(headerSources, ['responsibilityCenter', 'branchCode', 'shortcutDimension1Code'], branchCode);
   const locationCode = pickSourceValueFromSources(headerSources, ['locationCode'], '');
   const reportContext = buildSearchQuoteReportContext(data, salespersonName, sourceContext);
-  const customerName = pickSourceValueFromSources(headerSources, ['customerName', 'billToName'], '')
+  const customerName = reportContext.customerName
+    || pickSourceValueFromSources(headerSources, ['customerName', 'billToName'], '')
     || customerRecord.CustomerName
-    || reportContext.customerName
     || '';
   const customerDisplay = {
     ...buildCustomerDisplayModel(customerRecord, customerNumber, customerName),
