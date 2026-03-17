@@ -76,7 +76,7 @@ api/src/
 ├── routes/         # Express.js route modules (includes salesquotes.js)
 ├── db.js           # Database connection pool
 ├── middleware/     # Express middleware
-├── utils/          # Shared utilities (logger, calculator, salesQuoteSubmissionRecords, salesQuoteUserPreferences)
+├── utils/          # Shared utilities (logger, calculator, salesQuoteSubmissionRecords, salesQuoteUserPreferences, backofficeSettings)
 └── jobs/           # Scheduled jobs (node-cron)
 
 src/salesquotes/components/
@@ -440,6 +440,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Multi-line description support with continuation rows
   - Footer row rendering with "Total" label for summary lines
   - Report context totals integration for accurate financial display
+  - **Backoffice Print Layout Settings**: Administrators can configure print layout settings globally via the backoffice Settings tab
+    - Settings include: base font size, logo width, company name font sizes, quotation title font, meta table font, line table font sizes, footer note font, totals font, remark font, signature font, document footer font, certification logos offset, signature block margins
+    - Settings are stored in the `BackofficeSettings` table with key `salesquote-print-layout`
+    - Print preview fetches settings from API with fallback to defaults
+    - Settings are normalized and clamped to min/max ranges for safety
+    - Backoffice UI includes form validation, save/reload/defaults buttons, and loading status
 - **Data Sources**:
   - Company info: Branch-specific company header (Thai/English names, addresses, phone, fax, VAT ID) from `BRANCH_HEADER_MAP` keyed by branch code; head office branches (URY) display "(สำนักงานใหญ่)" / "(Head Office)" labels; falls back to BC `companyInfoText*` and `companyInfoPicture` if branch not found; logo from static assets
   - Customer info: Name, address, attention contact, phone, tax ID (from BC `customerInfo*` and `sellTo*` fields); prioritizes report context data over form data
@@ -510,7 +516,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Shows toast notification on successful print preview launch
 - **Accessibility**: Print document uses semantic HTML, proper table structure, and clear visual hierarchy
 - **Browser Compatibility**: Uses window.open() with document.write() for maximum compatibility; auto-triggers print dialog via inline script
-- Implementation: `src/js/salesquotes/print-quote.js` - complete print module, `src/salesquotes/create-quote.js` - report context building, `src/js/salesquotes/state.js` - print state properties, `src/js/salesquotes/ui.js` - print button visibility, `src/salesquotes.html` - print button, `src/salesquotes/components/assets/print/` - logo and certification assets
+- **Backoffice Settings API**: `loadPrintLayoutSettings()` fetches settings with promise caching and fallback to defaults; `normalizePrintLayoutSettings()` clamps values to safe ranges
+- Implementation: `src/js/salesquotes/print-quote.js` - complete print module with settings integration, `src/salesquotes/create-quote.js` - report context building, `src/js/salesquotes/state.js` - print state properties, `src/js/salesquotes/ui.js` - print button visibility, `src/salesquotes.html` - print button, `src/salesquotes/components/assets/print/` - logo and certification assets, `api/src/utils/backofficeSettings.js` - settings table utility, `api/src/routes/backoffice/index.js` - settings API endpoints, `api/src/routes/salesquotes.js` - settings read endpoint, `src/backoffice.html` - settings UI
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 

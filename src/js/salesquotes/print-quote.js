@@ -99,6 +99,28 @@ const DEFAULT_DISCLAIMER_EN = 'If not comfirmed within 90 days to repair the com
 const DEFAULT_EFFECTIVE_DATE = '01/04/2023';
 const DEFAULT_DOC_CODE = 'CS-FM-RY-004 Rev.00';
 const DEFAULT_PAGE_LABEL = 'หน้า 1/1';
+const PRINT_LAYOUT_SETTINGS_API = '/api/salesquotes/print-layout-settings';
+const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
+  baseFontSize: 11.4,
+  companyThaiFontSize: 15.5,
+  companyEnglishFontSize: 14.6,
+  titleFontSize: 13.6,
+  metaFontSize: 9.9,
+  lineTableFontSize: 10.2,
+  lineTableHeaderFontSize: 10.9,
+  footerNoteFontSize: 9.5,
+  totalsFontSize: 10.0,
+  remarkFontSize: 10.2,
+  signatureFontSize: 10.1,
+  docFooterFontSize: 10.1,
+  logoWidthMm: 31.0,
+  certsOffsetYMm: 3.2,
+  signatureGridMarginTopMm: 5.4,
+  signatureColMinHeightMm: 41.0,
+  signatureSignMinHeightMm: 16.0
+});
+
+let printLayoutSettingsPromise = null;
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -119,6 +141,65 @@ function asNumber(value, fallback = 0) {
     : value;
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clampNumber(value, fallback, min, max) {
+  const parsed = asNumber(value, NaN);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(parsed, min), max);
+}
+
+function normalizePrintLayoutSettings(value = {}) {
+  return {
+    baseFontSize: clampNumber(value.baseFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.baseFontSize, 9, 16),
+    companyThaiFontSize: clampNumber(value.companyThaiFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.companyThaiFontSize, 11, 22),
+    companyEnglishFontSize: clampNumber(value.companyEnglishFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.companyEnglishFontSize, 11, 22),
+    titleFontSize: clampNumber(value.titleFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.titleFontSize, 11, 20),
+    metaFontSize: clampNumber(value.metaFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.metaFontSize, 8, 16),
+    lineTableFontSize: clampNumber(value.lineTableFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.lineTableFontSize, 8, 16),
+    lineTableHeaderFontSize: clampNumber(value.lineTableHeaderFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.lineTableHeaderFontSize, 8, 18),
+    footerNoteFontSize: clampNumber(value.footerNoteFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.footerNoteFontSize, 8, 16),
+    totalsFontSize: clampNumber(value.totalsFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.totalsFontSize, 8, 16),
+    remarkFontSize: clampNumber(value.remarkFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.remarkFontSize, 8, 16),
+    signatureFontSize: clampNumber(value.signatureFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureFontSize, 8, 16),
+    docFooterFontSize: clampNumber(value.docFooterFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.docFooterFontSize, 8, 16),
+    logoWidthMm: clampNumber(value.logoWidthMm, DEFAULT_PRINT_LAYOUT_SETTINGS.logoWidthMm, 20, 45),
+    certsOffsetYMm: clampNumber(value.certsOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.certsOffsetYMm, -8, 12),
+    signatureGridMarginTopMm: clampNumber(value.signatureGridMarginTopMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureGridMarginTopMm, 0, 20),
+    signatureColMinHeightMm: clampNumber(value.signatureColMinHeightMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureColMinHeightMm, 20, 70),
+    signatureSignMinHeightMm: clampNumber(value.signatureSignMinHeightMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureSignMinHeightMm, 5, 35)
+  };
+}
+
+async function loadPrintLayoutSettings(forceRefresh = false) {
+  if (!forceRefresh && printLayoutSettingsPromise) {
+    return printLayoutSettingsPromise;
+  }
+
+  printLayoutSettingsPromise = (async () => {
+    try {
+      const response = await fetch(PRINT_LAYOUT_SETTINGS_API, {
+        headers: {
+          Accept: 'application/json'
+        }
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to load print layout settings (${response.status})`);
+      }
+
+      return normalizePrintLayoutSettings(data.value || {});
+    } catch (error) {
+      console.warn('Falling back to default Sales Quote print layout settings:', error);
+      return normalizePrintLayoutSettings();
+    }
+  })();
+
+  return printLayoutSettingsPromise;
 }
 
 function formatDate(value) {
@@ -632,7 +713,8 @@ function renderLineRows(lines) {
   }).join('');
 }
 
-function buildPrintHtml(model) {
+function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
+  const settings = normalizePrintLayoutSettings(layoutSettings);
   const customerAddressLines = renderAddressLines(model.customerAddressLines, 2);
   const deliveryAddressLines = renderAddressLines(model.deliveryAddressLines, 1);
   const metaRowsMarkup = renderMetaRows(model, customerAddressLines, deliveryAddressLines);
@@ -643,6 +725,9 @@ function buildPrintHtml(model) {
   const certificationMarkup = model.certificationLogos
     .map(src => `<img src="${escapeHtml(src)}" alt="" class="cert-logo">`)
     .join('');
+  const topbarLogoColumnWidthMm = Math.max(settings.logoWidthMm + 2, 30);
+  const companyLineFontSize = Math.max(settings.baseFontSize - 0.8, 9);
+  const pageNoFontSize = Math.max(settings.baseFontSize - 0.3, 9);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -653,7 +738,7 @@ function buildPrintHtml(model) {
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; background: #fff; color: #000; font-family: Tahoma, Arial, sans-serif; font-size: 11.4px; line-height: 1.22; }
+    html, body { margin: 0; background: #fff; color: #000; font-family: Tahoma, Arial, sans-serif; font-size: ${settings.baseFontSize}px; line-height: 1.22; }
     body {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -666,13 +751,13 @@ function buildPrintHtml(model) {
       display: flex;
       flex-direction: column;
     }
-    .topbar { display: grid; grid-template-columns: 33mm 1fr 23mm; align-items: start; column-gap: 4mm; }
-    .main-logo { width: 31mm; height: auto; object-fit: contain; margin-top: 0.8mm; }
+    .topbar { display: grid; grid-template-columns: ${topbarLogoColumnWidthMm}mm 1fr 23mm; align-items: start; column-gap: 4mm; }
+    .main-logo { width: ${settings.logoWidthMm}mm; height: auto; object-fit: contain; margin-top: 0.8mm; }
     .company { padding-top: 0.5mm; }
-    .company .th-name { font-size: 15.5px; font-weight: 700; line-height: 1.08; margin-bottom: 1mm; }
-    .company .en-name { font-size: 14.6px; font-weight: 700; line-height: 1.08; margin-bottom: 1.6mm; }
-    .company-line { font-size: 10.6px; line-height: 1.24; margin-bottom: 0.48mm; }
-    .page-no { text-align: right; font-size: 11.1px; font-weight: 700; white-space: nowrap; padding-top: 1.2mm; }
+    .company .th-name { font-size: ${settings.companyThaiFontSize}px; font-weight: 700; line-height: 1.08; margin-bottom: 1mm; }
+    .company .en-name { font-size: ${settings.companyEnglishFontSize}px; font-weight: 700; line-height: 1.08; margin-bottom: 1.6mm; }
+    .company-line { font-size: ${companyLineFontSize}px; line-height: 1.24; margin-bottom: 0.48mm; }
+    .page-no { text-align: right; font-size: ${pageNoFontSize}px; font-weight: 700; white-space: nowrap; padding-top: 1.2mm; }
     .title-row {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
@@ -681,10 +766,10 @@ function buildPrintHtml(model) {
       column-gap: 2.8mm;
     }
     .title-row .spacer { min-height: 1px; }
-    .title { font-size: 13.6px; font-weight: 700; white-space: nowrap; }
-    .certs { display: flex; justify-content: flex-end; align-items: flex-end; gap: 1mm; min-height: 7.5mm; }
+    .title { font-size: ${settings.titleFontSize}px; font-weight: 700; white-space: nowrap; }
+    .certs { display: flex; justify-content: flex-end; align-items: flex-end; gap: 1mm; min-height: 7.5mm; transform: translateY(${settings.certsOffsetYMm}mm); }
     .cert-logo { height: 7.1mm; width: auto; object-fit: contain; }
-    .meta-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3.3mm; font-size: 9.9px; line-height: 1.18; }
+    .meta-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3.3mm; font-size: ${settings.metaFontSize}px; line-height: 1.18; }
     .meta-table td { padding: 0 1mm 0.62mm 0; vertical-align: top; }
     .meta-table .meta-divider td {
       border-bottom: 1px solid #000;
@@ -696,12 +781,12 @@ function buildPrintHtml(model) {
     .mid-value { word-break: break-word; }
     .right-label { text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.2mm; }
     .right-value { text-align: right; white-space: nowrap; }
-    .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: 10.2px; }
+    .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; }
     .line-table thead { display: table-header-group; }
     .line-table th {
       background: #d9d9d9;
       color: #000;
-      font-size: 10.9px;
+      font-size: ${settings.lineTableHeaderFontSize}px;
       font-weight: 700;
       padding: 1.45mm 0.85mm;
       text-align: center;
@@ -729,14 +814,14 @@ function buildPrintHtml(model) {
     .footer-divider { border-top: 1px solid #000; margin-bottom: 1.35mm; }
     .summary-grid { display: grid; grid-template-columns: 1fr 63mm; column-gap: 4.5mm; align-items: start; }
     .summary-left { min-width: 0; }
-    .footer-note { font-size: 9.5px; line-height: 1.28; }
+    .footer-note { font-size: ${settings.footerNoteFontSize}px; line-height: 1.28; }
     .footer-note div { margin-bottom: 0.55mm; }
     .footer-note .thai { font-weight: 700; }
     .totals { width: 100%; border-collapse: separate; border-spacing: 0 0.45mm; table-layout: fixed; }
-    .totals td { padding: 0.18mm 0; font-size: 10px; font-weight: 700; vertical-align: top; }
+    .totals td { padding: 0.18mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 700; vertical-align: top; }
     .totals .label-cell { width: 56%; white-space: nowrap; padding-right: 4.5mm; }
     .totals .amount { width: 44%; text-align: right; white-space: nowrap; }
-    .remark-section { margin-top: 3.1mm; font-size: 10.2px; }
+    .remark-section { margin-top: 3.1mm; font-size: ${settings.remarkFontSize}px; }
     .remark-row,
     .job-row {
       display: grid;
@@ -754,36 +839,36 @@ function buildPrintHtml(model) {
       grid-template-columns: 49mm 57mm 53mm;
       justify-content: space-between;
       column-gap: 0;
-      margin-top: 5.4mm;
+      margin-top: ${settings.signatureGridMarginTopMm}mm;
       align-items: end;
     }
     .signature-col {
-      min-height: 41mm;
+      min-height: ${settings.signatureColMinHeightMm}mm;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
     }
     .signature-sign {
-      min-height: 16mm;
+      min-height: ${settings.signatureSignMinHeightMm}mm;
       display: flex;
       align-items: flex-end;
       justify-content: center;
     }
     .signature-image { display: block; max-width: 44mm; max-height: 18mm; object-fit: contain; }
     .signature-line { width: 100%; border-top: 1px solid #000; margin-top: 1.2mm; }
-    .signature-caption { margin-top: 0.8mm; font-size: 10.1px; }
+    .signature-caption { margin-top: 0.8mm; font-size: ${settings.signatureFontSize}px; }
     .signature-caption.centered { text-align: center; }
     .signature-detail {
       display: grid;
       grid-template-columns: 12mm 1fr;
       column-gap: 1.8mm;
       align-items: baseline;
-      font-size: 10.1px;
+      font-size: ${settings.signatureFontSize}px;
     }
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
-    .signature-customer .signature-date { margin-top: 1.4mm; text-align: center; font-size: 10.1px; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.8mm; font-size: 10.1px; }
+    .signature-customer .signature-date { margin-top: 1.4mm; text-align: center; font-size: ${settings.signatureFontSize}px; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.8mm; font-size: ${settings.docFooterFontSize}px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
 </head>
@@ -922,20 +1007,31 @@ function buildPrintHtml(model) {
 </html>`;
 }
 
-export function printSearchedSalesQuote() {
+export async function printSearchedSalesQuote() {
+  let printWindow = null;
+
   try {
     const model = buildModel();
-    const printWindow = window.open('', '_blank');
+    printWindow = window.open('', '_blank');
 
     if (!printWindow) {
       throw new Error('Popup was blocked. Please allow popups for this site and try again.');
     }
 
     printWindow.document.open();
-    printWindow.document.write(buildPrintHtml(model));
+    printWindow.document.write('<!DOCTYPE html><html><head><title>Preparing print preview...</title></head><body style="font-family: Tahoma, Arial, sans-serif; padding: 24px;">Preparing print preview...</body></html>');
+    printWindow.document.close();
+
+    const layoutSettings = await loadPrintLayoutSettings();
+
+    printWindow.document.open();
+    printWindow.document.write(buildPrintHtml(model, layoutSettings));
     printWindow.document.close();
     showToast(`Opening print preview for ${state.quote.number}`, 'success');
   } catch (error) {
+    if (printWindow && !printWindow.closed) {
+      printWindow.close();
+    }
     console.error('Unable to print Sales Quote:', error);
     showError(error.message || 'Unable to print Sales Quote right now.');
   }

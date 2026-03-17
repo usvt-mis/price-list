@@ -40,7 +40,7 @@ The Price List Calculator computes total cost based on four components:
   - **Features**: Local database customer search (min 2 chars), customer/item search, quote line management (add/insert/remove), automatic calculations
   - **My Records Tab**: View submitted Sales Quote history with search functionality (Sales Quote Number, Work Description, Submitted At)
   - **Search Quotes Tab**: Load existing Sales Quotes from Business Central by quote number for editing and resubmission
-  - **Print Quote**: Generate professional print-ready quotation documents (A4 layout) from searched Sales Quotes with company logo, customer details, line items, totals, and signatures
+  - **Print Quote**: Generate professional print-ready quotation documents (A4 layout) from searched Sales Quotes with company logo, customer details, line items, totals, and signatures; print layout can be customized globally via backoffice settings (font sizes, logo width, margins, etc.)
   - **Date Picker**: Order Date defaults to today (asterisk hidden), Requested Delivery Date prevents past dates (asterisk visible until selected)
   - **Required Field Indicators**: Dynamic red asterisks for 7 fields (Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, BRANCH) - hide when field has value, show when empty
   - **Customer Search**: Fast local lookups from BCCustomers table, auto-fills customer details and Sell-to address (Address, Address2, City, PostCode, VAT Reg No, Tax Branch No)
@@ -55,7 +55,7 @@ The Price List Calculator computes total cost based on four components:
   - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
   - **Count Badges**: User count displayed on each tab
   - **Audit Log Tab**: View complete audit history including role changes and Sales Quote submissions
-  - **Settings Tab**: Displays authentication info
+  - **Settings Tab**: Manage global backoffice configuration including Sales Quotes print layout settings (font sizes, logo width, signature margins, etc.)
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
   - Separate HTML file with complete UI independence
   - **Azure AD authentication only**: Access restricted to `it@uservices-thailand.com`
@@ -205,8 +205,10 @@ The application expects these SQL Server tables:
 | `AppLogs` | Application logging (errors, events, performance tracking) |
 | `PerformanceMetrics` | API performance metrics (response times, database latency) |
 | `AppLogs_Archive` | Historical application logs (archived after 30 days) |
+| `BackofficeSettings` | Global backoffice configuration settings (SettingKey, SettingValue, UpdatedBy, CreatedAt, UpdatedAt) |
+| `SalesQuoteUserPreferences` | User-specific preferences for Sales Quotes interface (UserEmail, PreferenceKey, PreferenceValue) |
 
-**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting. Run `database/migrations/calculator_types.sql` to add CalculatorType and type-specific columns. Run `database/migrations/add_scope_column.sql` to add Scope dropdown for Onsite calculator. Run `database/migrations/priority_site_access.sql` to add SiteAccess column for Onsite calculator (PriorityLevel column already exists and is shared with Workshop). Run `database/migrations/add_onsite_cost_per_hour.sql` to add OnsiteCostPerHour column for calculator-specific branch rates. Run `api/src/database/schemas/create-bccustomers-table.sql` to create the BCCustomers table for local customer cache.
+**Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting. Run `database/migrations/calculator_types.sql` to add CalculatorType and type-specific columns. Run `database/migrations/add_scope_column.sql` to add Scope dropdown for Onsite calculator. Run `database/migrations/priority_site_access.sql` to add SiteAccess column for Onsite calculator (PriorityLevel column already exists and is shared with Workshop). Run `database/migrations/add_onsite_cost_per_hour.sql` to add OnsiteCostPerHour column for calculator-specific branch rates. Run `api/src/database/schemas/create-bccustomers-table.sql` to create the BCCustomers table for local customer cache. BackofficeSettings and SalesQuoteUserPreferences tables are auto-created on first use via their respective utility modules.
 
 **Method 3: Run Migration Scripts**
 ```bash
@@ -304,6 +306,8 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/backoffice/audit-log` | GET | View role change audit history (?email=search for filtering) | Backoffice session |
 | `/api/backoffice/repair` | GET | Diagnose and repair backoffice database schema (creates missing UserRoles/RoleAssignmentAudit/BackofficeAdmins tables) | Backoffice session |
 | `/api/backoffice/timezone-check` | GET | Diagnostic endpoint for timezone configuration (returns database and JavaScript timezone info) | Backoffice session |
+| `/api/backoffice/salesquotes/print-layout` | GET | Read Sales Quotes print layout settings | Backoffice session |
+| `/api/backoffice/salesquotes/print-layout` | PUT | Update Sales Quotes print layout settings | Backoffice session |
 | `/api/business-central/config` | GET | Get Business Central configuration status (public, safe values only) | No |
 | `/api/business-central/customers/search` | GET | Search customers in local database | Yes |
 | `/api/business-central/salespeople/search` | GET | Search salespeople in local database | Yes |
@@ -315,6 +319,7 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/business-central/gateway/update-sales-quote` | POST | Gateway proxy to Azure Function UpdateSalesQuote | Yes |
 | `/api/salesquotes/records` | GET | List current user's Sales Quote submission records (?search={query}) | Yes |
 | `/api/salesquotes/records` | POST | Save a new Sales Quote submission record | Yes |
+| `/api/salesquotes/print-layout-settings` | GET | Read Sales Quotes print layout settings (all users) | Yes |
 | `/api/ping` | GET | Health check endpoint | No |
 | `/api/version` | GET | Application version info | No |
 | `/.auth/me` | GET | Get current user info from App Service Easy Auth | No |

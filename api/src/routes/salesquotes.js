@@ -4,9 +4,15 @@ const { getPool } = require('../db');
 const { extractUserEmail } = require('../middleware/authExpress');
 const { ensureSalesQuoteSubmissionRecordsTable } = require('../utils/salesQuoteSubmissionRecords');
 const { ensureSalesQuoteUserPreferencesTable } = require('../utils/salesQuoteUserPreferences');
+const {
+  TABLE_NAME: BACKOFFICE_SETTINGS_TABLE,
+  ensureBackofficeSettingsTable,
+  safeParseSettingValue
+} = require('../utils/backofficeSettings');
 
 const router = express.Router();
 const MAX_PREFERENCE_KEY_LENGTH = 100;
+const SALESQUOTE_PRINT_LAYOUT_KEY = 'salesquote-print-layout';
 
 function getAuthenticatedEmail(req) {
   const email = extractUserEmail(req.user || {}) || req.user?.userDetails || '';
@@ -164,6 +170,43 @@ router.put('/preferences/:key', async (req, res, next) => {
       preferenceKey: record.PreferenceKey,
       value: safeParsePreferenceValue(record.PreferenceValue),
       updatedAt: record.UpdatedAt
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/print-layout-settings', async (req, res, next) => {
+  try {
+    const pool = await getPool();
+    await ensureBackofficeSettingsTable(pool);
+
+    const result = await pool.request()
+      .input('settingKey', sql.NVarChar(100), SALESQUOTE_PRINT_LAYOUT_KEY)
+      .query(`
+        SELECT TOP 1
+          SettingKey,
+          SettingValue,
+          UpdatedAt,
+          UpdatedBy
+        FROM ${BACKOFFICE_SETTINGS_TABLE}
+        WHERE SettingKey = @settingKey
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(200).json({
+        settingKey: SALESQUOTE_PRINT_LAYOUT_KEY,
+        value: null
+      });
+    }
+
+    const record = result.recordset[0];
+
+    res.status(200).json({
+      settingKey: record.SettingKey,
+      value: safeParseSettingValue(record.SettingValue),
+      updatedAt: record.UpdatedAt,
+      updatedBy: record.UpdatedBy || null
     });
   } catch (error) {
     next(error);

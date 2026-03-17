@@ -367,11 +367,139 @@
 
         <!-- Settings Tab -->
         <div id="backofficeSettingsTab" class="hidden">
-          <h2 class="text-xl font-bold text-slate-900 mb-4">Settings</h2>
+          <div class="space-y-6">
+            <div>
+              <h2 class="text-xl font-bold text-slate-900">Settings</h2>
+              <p class="text-sm text-slate-500 mt-1">Manage shared backoffice configuration and saved layout values.</p>
+            </div>
 
-          <div class="p-6 bg-white rounded-lg border border-slate-200">
-            <p class="text-slate-600">Backoffice is configured for Azure AD authentication only.</p>
-            <p class="text-sm text-slate-500 mt-2">Access is restricted to <code>it@uservices-thailand.com</code></p>
+            <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.7fr)] gap-6">
+              <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 class="text-lg font-semibold text-slate-900">Sales Quotes Print Layout</h3>
+                    <p class="text-sm text-slate-500 mt-1">Saved values here apply to the Sales Quotes print preview for all users.</p>
+                  </div>
+                  <button
+                    id="openSalesQuotesBtn"
+                    class="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                    type="button"
+                  >
+                    Open Sales Quotes
+                  </button>
+                </div>
+
+                <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  Use <strong>px</strong> for font sizes and <strong>mm</strong> for spacing/position values. Save after adjusting, then open a print preview to verify.
+                </div>
+
+                <div id="printLayoutSaveMeta" class="mt-4 text-sm text-slate-500">Loading saved layout settings...</div>
+
+                <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Base Font Size (px)</span>
+                    <input id="printLayoutBaseFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Logo Width (mm)</span>
+                    <input id="printLayoutLogoWidthMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Company TH Font (px)</span>
+                    <input id="printLayoutCompanyThaiFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Company EN Font (px)</span>
+                    <input id="printLayoutCompanyEnglishFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Quotation Title Font (px)</span>
+                    <input id="printLayoutTitleFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Meta Table Font (px)</span>
+                    <input id="printLayoutMetaFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Line Table Font (px)</span>
+                    <input id="printLayoutLineTableFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Line Header Font (px)</span>
+                    <input id="printLayoutLineTableHeaderFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Footer Note Font (px)</span>
+                    <input id="printLayoutFooterNoteFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Totals Font (px)</span>
+                    <input id="printLayoutTotalsFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Remark Font (px)</span>
+                    <input id="printLayoutRemarkFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Signature Font (px)</span>
+                    <input id="printLayoutSignatureFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Document Footer Font (px)</span>
+                    <input id="printLayoutDocFooterFontSize" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Cert Logos Offset Y (mm)</span>
+                    <input id="printLayoutCertsOffsetYMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Signature Block Top Margin (mm)</span>
+                    <input id="printLayoutSignatureGridMarginTopMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+                  <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Signature Column Height (mm)</span>
+                    <input id="printLayoutSignatureColMinHeightMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+
+                  <label class="block md:col-span-2">
+                    <span class="block text-sm font-medium text-slate-700">Signature Sign Area Height (mm)</span>
+                    <input id="printLayoutSignatureSignMinHeightMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+                </div>
+
+                <div class="mt-6 flex flex-wrap gap-3">
+                  <button id="printLayoutSaveBtn" type="button" class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
+                    Save Layout
+                  </button>
+                  <button id="printLayoutReloadBtn" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                    Reload Saved
+                  </button>
+                  <button id="printLayoutDefaultsBtn" type="button" class="rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-50 transition-colors">
+                    Use Defaults
+                  </button>
+                </div>
+              </div>
+
+              <div class="space-y-6">
+                <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                  <h3 class="text-lg font-semibold text-slate-900">Authentication</h3>
+                  <p class="text-slate-600 mt-3">Backoffice is configured for Azure AD authentication only.</p>
+                  <p class="text-sm text-slate-500 mt-2">Access is restricted to <code>it@uservices-thailand.com</code></p>
+                </div>
+
+                <div class="p-6 bg-slate-900 rounded-2xl text-white shadow-sm">
+                  <h3 class="text-lg font-semibold">What Saves Here</h3>
+                  <p class="mt-3 text-sm text-slate-200">This panel stores the Sales Quotes print layout as a shared database setting, so future print previews use the same values automatically.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -443,6 +571,7 @@
     pageSize: 50,
     totalPages: 0,
     currentEmail: null,
+    printLayoutLoaded: false,
     tabPages: {
       executives: 1,
       sales: 1,
@@ -454,6 +583,46 @@
       customers: []
     }
   };
+
+  const PRINT_LAYOUT_DEFAULTS = Object.freeze({
+    baseFontSize: 11.4,
+    companyThaiFontSize: 15.5,
+    companyEnglishFontSize: 14.6,
+    titleFontSize: 13.6,
+    metaFontSize: 9.9,
+    lineTableFontSize: 10.2,
+    lineTableHeaderFontSize: 10.9,
+    footerNoteFontSize: 9.5,
+    totalsFontSize: 10.0,
+    remarkFontSize: 10.2,
+    signatureFontSize: 10.1,
+    docFooterFontSize: 10.1,
+    logoWidthMm: 31.0,
+    certsOffsetYMm: 3.2,
+    signatureGridMarginTopMm: 5.4,
+    signatureColMinHeightMm: 41.0,
+    signatureSignMinHeightMm: 16.0
+  });
+
+  const PRINT_LAYOUT_FIELDS = [
+    { key: 'baseFontSize', id: 'printLayoutBaseFontSize', min: 9, max: 16 },
+    { key: 'companyThaiFontSize', id: 'printLayoutCompanyThaiFontSize', min: 11, max: 22 },
+    { key: 'companyEnglishFontSize', id: 'printLayoutCompanyEnglishFontSize', min: 11, max: 22 },
+    { key: 'titleFontSize', id: 'printLayoutTitleFontSize', min: 11, max: 20 },
+    { key: 'metaFontSize', id: 'printLayoutMetaFontSize', min: 8, max: 16 },
+    { key: 'lineTableFontSize', id: 'printLayoutLineTableFontSize', min: 8, max: 16 },
+    { key: 'lineTableHeaderFontSize', id: 'printLayoutLineTableHeaderFontSize', min: 8, max: 18 },
+    { key: 'footerNoteFontSize', id: 'printLayoutFooterNoteFontSize', min: 8, max: 16 },
+    { key: 'totalsFontSize', id: 'printLayoutTotalsFontSize', min: 8, max: 16 },
+    { key: 'remarkFontSize', id: 'printLayoutRemarkFontSize', min: 8, max: 16 },
+    { key: 'signatureFontSize', id: 'printLayoutSignatureFontSize', min: 8, max: 16 },
+    { key: 'docFooterFontSize', id: 'printLayoutDocFooterFontSize', min: 8, max: 16 },
+    { key: 'logoWidthMm', id: 'printLayoutLogoWidthMm', min: 20, max: 45 },
+    { key: 'certsOffsetYMm', id: 'printLayoutCertsOffsetYMm', min: -8, max: 12 },
+    { key: 'signatureGridMarginTopMm', id: 'printLayoutSignatureGridMarginTopMm', min: 0, max: 20 },
+    { key: 'signatureColMinHeightMm', id: 'printLayoutSignatureColMinHeightMm', min: 20, max: 70 },
+    { key: 'signatureSignMinHeightMm', id: 'printLayoutSignatureSignMinHeightMm', min: 5, max: 35 }
+  ];
 
   // ========== UTILITY FUNCTIONS ==========
   function el(id) {
@@ -488,6 +657,154 @@
     setTimeout(() => {
       toast.classList.add('hidden');
     }, 3000);
+  }
+
+  function clampPrintLayoutNumber(value, fallback, min, max) {
+    const parsed = Number.parseFloat(value);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
+    }
+
+    return Math.min(Math.max(parsed, min), max);
+  }
+
+  function normalizePrintLayoutSettings(settings = {}) {
+    const normalized = {};
+
+    PRINT_LAYOUT_FIELDS.forEach(field => {
+      normalized[field.key] = clampPrintLayoutNumber(
+        settings[field.key],
+        PRINT_LAYOUT_DEFAULTS[field.key],
+        field.min,
+        field.max
+      );
+    });
+
+    return normalized;
+  }
+
+  function setPrintLayoutSaveMeta(message, tone = 'default') {
+    const metaEl = el('printLayoutSaveMeta');
+    if (!metaEl) return;
+
+    metaEl.textContent = message;
+    metaEl.className = `mt-4 text-sm ${
+      tone === 'error'
+        ? 'text-red-600'
+        : tone === 'warning'
+        ? 'text-amber-700'
+        : tone === 'success'
+        ? 'text-emerald-700'
+        : 'text-slate-500'
+    }`;
+  }
+
+  function populatePrintLayoutForm(settings = PRINT_LAYOUT_DEFAULTS) {
+    const normalized = normalizePrintLayoutSettings(settings);
+
+    PRINT_LAYOUT_FIELDS.forEach(field => {
+      const input = el(field.id);
+      if (input) {
+        input.value = normalized[field.key];
+      }
+    });
+  }
+
+  function collectPrintLayoutSettingsFromForm() {
+    const collected = {};
+
+    PRINT_LAYOUT_FIELDS.forEach(field => {
+      const input = el(field.id);
+      collected[field.key] = clampPrintLayoutNumber(
+        input?.value,
+        PRINT_LAYOUT_DEFAULTS[field.key],
+        field.min,
+        field.max
+      );
+    });
+
+    return collected;
+  }
+
+  function formatPrintLayoutSavedMeta(data) {
+    if (!data?.updatedAt) {
+      return 'Using default layout values. Save to publish a shared layout.';
+    }
+
+    const savedAt = new Date(data.updatedAt);
+    const formattedDate = Number.isNaN(savedAt.getTime())
+      ? data.updatedAt
+      : savedAt.toLocaleString();
+    const updatedBy = data.updatedBy ? ` by ${data.updatedBy}` : '';
+    return `Last saved ${formattedDate}${updatedBy}`;
+  }
+
+  async function loadBackofficePrintLayoutSettings(forceRefresh = false) {
+    if (backofficeState.printLayoutLoaded && !forceRefresh) {
+      return;
+    }
+
+    setPrintLayoutSaveMeta('Loading saved layout settings...');
+
+    try {
+      const response = await fetchWithAuth('/api/backoffice/salesquotes/print-layout');
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to load print layout settings');
+      }
+
+      const data = await response.json();
+      populatePrintLayoutForm(data.value || PRINT_LAYOUT_DEFAULTS);
+      setPrintLayoutSaveMeta(formatPrintLayoutSavedMeta(data), data.value ? 'success' : 'default');
+      backofficeState.printLayoutLoaded = true;
+    } catch (error) {
+      console.error('Failed to load print layout settings:', error);
+      populatePrintLayoutForm(PRINT_LAYOUT_DEFAULTS);
+      setPrintLayoutSaveMeta('Failed to load saved layout. Showing defaults in the form.', 'error');
+    }
+  }
+
+  async function saveBackofficePrintLayoutSettings() {
+    const saveBtn = el('printLayoutSaveBtn');
+    const originalText = saveBtn?.textContent || 'Save Layout';
+
+    try {
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+      }
+
+      const value = collectPrintLayoutSettingsFromForm();
+      const response = await fetchWithAuth('/api/backoffice/salesquotes/print-layout', {
+        method: 'PUT',
+        body: JSON.stringify({ value })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save print layout settings');
+      }
+
+      const data = await response.json();
+      populatePrintLayoutForm(data.value || value);
+      setPrintLayoutSaveMeta(formatPrintLayoutSavedMeta(data), 'success');
+      backofficeState.printLayoutLoaded = true;
+      showNotification('Sales Quotes print layout saved successfully', 'success');
+    } catch (error) {
+      console.error('Failed to save print layout settings:', error);
+      setPrintLayoutSaveMeta(error.message || 'Failed to save print layout settings', 'error');
+      showNotification(error.message || 'Failed to save print layout settings', 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+    }
+  }
+
+  function applyDefaultPrintLayoutSettings() {
+    populatePrintLayoutForm(PRINT_LAYOUT_DEFAULTS);
+    setPrintLayoutSaveMeta('Default values loaded into the form. Click Save Layout to publish them.', 'warning');
   }
 
   function showView(view) {
@@ -693,6 +1010,7 @@
       if (el('backofficeSettingsTab')) {
         el('backofficeSettingsTab').classList.remove('hidden');
       }
+      loadBackofficePrintLayoutSettings();
     }
   };
 
@@ -936,6 +1254,16 @@
   if (deletionEndDate) {
     deletionEndDate.addEventListener('change', () => loadDeletionAuditLog(true));
   }
+
+  el('printLayoutSaveBtn')?.addEventListener('click', saveBackofficePrintLayoutSettings);
+  el('printLayoutReloadBtn')?.addEventListener('click', () => {
+    backofficeState.printLayoutLoaded = false;
+    loadBackofficePrintLayoutSettings(true);
+  });
+  el('printLayoutDefaultsBtn')?.addEventListener('click', applyDefaultPrintLayoutSettings);
+  el('openSalesQuotesBtn')?.addEventListener('click', () => {
+    window.open('/salesquotes.html', '_blank', 'noopener');
+  });
 
   function validateEmailInput(input, tabSuffix) {
     const email = input.value.trim();

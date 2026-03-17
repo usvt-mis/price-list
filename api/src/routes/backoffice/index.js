@@ -9,6 +9,13 @@ const { getPool } = require('../../db');
 const { requireBackofficeSession } = require('../../middleware/twoFactorAuthExpress');
 const sql = require('mssql');
 const { ensureSalesQuoteSubmissionRecordsTable } = require('../../utils/salesQuoteSubmissionRecords');
+const {
+  TABLE_NAME: BACKOFFICE_SETTINGS_TABLE,
+  ensureBackofficeSettingsTable,
+  safeParseSettingValue
+} = require('../../utils/backofficeSettings');
+
+const SALESQUOTE_PRINT_LAYOUT_KEY = 'salesquote-print-layout';
 
 /**
  * Helper to get client IP address for audit logging
@@ -18,6 +25,110 @@ function getClientIP(req) {
          req.headers['x-client-ip'] ||
          'unknown';
 }
+
+/**
+ * GET /api/backoffice/salesquotes/print-layout
+ * Read the global Sales Quotes print layout settings.
+ */
+router.get('/salesquotes/print-layout', async (req, res, next) => {
+  try {
+    const pool = await getPool();
+    await ensureBackofficeSettingsTable(pool);
+
+    const result = await pool.request()
+      .input('settingKey', sql.NVarChar(100), SALESQUOTE_PRINT_LAYOUT_KEY)
+      .query(`
+        SELECT TOP 1
+          SettingKey,
+          SettingValue,
+          UpdatedAt,
+          UpdatedBy
+        FROM ${BACKOFFICE_SETTINGS_TABLE}
+        WHERE SettingKey = @settingKey
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(200).json({
+        settingKey: SALESQUOTE_PRINT_LAYOUT_KEY,
+        value: null
+      });
+    }
+
+    const record = result.recordset[0];
+
+    res.status(200).json({
+      settingKey: record.SettingKey,
+      value: safeParseSettingValue(record.SettingValue),
+      updatedAt: record.UpdatedAt,
+      updatedBy: record.UpdatedBy || null
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PUT /api/backoffice/salesquotes/print-layout
+ * Save the global Sales Quotes print layout settings.
+ */
+router.put('/salesquotes/print-layout', async (req, res, next) => {
+  try {
+    const session = req.session || {};
+
+    if (typeof req.body?.value === 'undefined') {
+      return res.status(400).json({ error: 'Setting value is required' });
+    }
+
+    const pool = await getPool();
+    await ensureBackofficeSettingsTable(pool);
+
+    const result = await pool.request()
+      .input('settingKey', sql.NVarChar(100), SALESQUOTE_PRINT_LAYOUT_KEY)
+      .input('settingValue', sql.NVarChar(sql.MAX), JSON.stringify(req.body.value))
+      .input('updatedBy', sql.NVarChar(255), session.email || null)
+      .query(`
+        UPDATE ${BACKOFFICE_SETTINGS_TABLE}
+        SET SettingValue = @settingValue,
+            UpdatedBy = @updatedBy,
+            UpdatedAt = GETUTCDATE()
+        WHERE SettingKey = @settingKey;
+
+        IF @@ROWCOUNT = 0
+        BEGIN
+          INSERT INTO ${BACKOFFICE_SETTINGS_TABLE} (
+            SettingKey,
+            SettingValue,
+            UpdatedBy
+          )
+          VALUES (
+            @settingKey,
+            @settingValue,
+            @updatedBy
+          );
+        END
+
+        SELECT TOP 1
+          SettingKey,
+          SettingValue,
+          UpdatedAt,
+          UpdatedBy
+        FROM ${BACKOFFICE_SETTINGS_TABLE}
+        WHERE SettingKey = @settingKey;
+      `);
+
+    const record = result.recordset[0];
+
+    res.status(200).json({
+      message: 'Sales Quotes print layout saved successfully',
+      settingKey: record.SettingKey,
+      value: safeParseSettingValue(record.SettingValue),
+      updatedAt: record.UpdatedAt,
+      updatedBy: record.UpdatedBy || null
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * GET /api/backoffice/branches
