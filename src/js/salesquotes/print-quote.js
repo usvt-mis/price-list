@@ -603,7 +603,7 @@ function buildPrintHtml(model) {
     .mid-value { width: 32mm; }
     .right-label { width: 19mm; text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.4mm; }
     .right-value { width: 24mm; text-align: right; white-space: nowrap; }
-    .line-table { width: 100%; border-collapse: collapse; margin-top: 0.8mm; table-layout: fixed; font-size: 10.4px; }
+    .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 0.8mm; table-layout: fixed; font-size: 10.4px; }
     .line-table thead { display: table-header-group; }
     .line-table th {
       background: #d9d9d9;
@@ -612,25 +612,21 @@ function buildPrintHtml(model) {
       font-weight: 700;
       padding: 1.25mm 0.7mm;
       text-align: center;
-      border: 1px solid #9ca3af;
     }
     .line-table td {
-      padding: 0.85mm 0.8mm;
+      padding: 0.65mm 0.8mm;
       vertical-align: top;
-      border-left: 1px solid #c7c7c7;
-      border-right: 1px solid #c7c7c7;
     }
-    .line-table tbody tr:last-child td { border-bottom: 1px solid #c7c7c7; }
     .line-table tr { page-break-inside: avoid; }
     .seq-cell { text-align: center; white-space: nowrap; }
     .desc-cell { word-break: break-word; }
     .qty-cell,
     .num-cell { text-align: right; white-space: nowrap; }
     .unit-cell { text-align: center; white-space: nowrap; }
-    .line-main-row td { min-height: 6mm; }
-    .line-section-row td { padding-top: 1.2mm; padding-bottom: 0.9mm; font-weight: 700; }
-    .line-comment-row td { padding-top: 0.45mm; padding-bottom: 0.9mm; }
-    .line-footer-row td { padding-top: 0.9mm; padding-bottom: 0.9mm; border-bottom: 1px solid #c7c7c7; }
+    .line-main-row td { min-height: 5.6mm; }
+    .line-section-row td { padding-top: 1.1mm; padding-bottom: 0.85mm; font-weight: 700; }
+    .line-comment-row td { padding-top: 0.2mm; padding-bottom: 0.55mm; }
+    .line-footer-row td { padding-top: 1.05mm; padding-bottom: 0.75mm; }
     .footer-label-cell { font-weight: 700; text-align: left; }
     .footer-stack { margin-top: auto; padding-top: 5.6mm; }
     .footer-divider { border-top: 1px solid #111827; margin-bottom: 1.3mm; }
@@ -639,9 +635,9 @@ function buildPrintHtml(model) {
     .footer-note { font-size: 9.8px; line-height: 1.26; }
     .footer-note div { margin-bottom: 0.65mm; }
     .footer-note .thai { font-weight: 700; }
-    .totals { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .totals td { border: 1px solid #9ca3af; padding: 0.9mm 1.1mm; font-size: 10.4px; font-weight: 700; vertical-align: top; }
-    .totals .label-cell { width: 58%; white-space: nowrap; }
+    .totals { width: 100%; border-collapse: separate; border-spacing: 0 0.45mm; table-layout: fixed; }
+    .totals td { padding: 0.2mm 0; font-size: 10.4px; font-weight: 700; vertical-align: top; }
+    .totals .label-cell { width: 58%; white-space: nowrap; padding-right: 4mm; }
     .totals .amount { width: 42%; text-align: right; white-space: nowrap; }
     .remark-section { margin-top: 3mm; font-size: 10.4px; }
     .remark-row,
@@ -691,7 +687,7 @@ function buildPrintHtml(model) {
     .signature-detail .detail-value { min-width: 0; }
     .signature-customer .signature-date { margin-top: 0.8mm; text-align: center; font-size: 10px; }
     .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 3.5mm; font-size: 10px; }
-    .empty-row { text-align: center; color: #666; padding: 6mm 0; border: 1px solid #c7c7c7; }
+    .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
 </head>
 <body>
