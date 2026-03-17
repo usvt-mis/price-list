@@ -653,7 +653,7 @@ function buildPrintHtml(model) {
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; background: #fff; color: #000; font-family: Tahoma, Arial, sans-serif; font-size: 11px; line-height: 1.22; }
+    html, body { margin: 0; background: #fff; color: #000; font-family: Tahoma, Arial, sans-serif; font-size: 11.4px; line-height: 1.22; }
     body {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -666,13 +666,13 @@ function buildPrintHtml(model) {
       display: flex;
       flex-direction: column;
     }
-    .topbar { display: grid; grid-template-columns: 30mm 1fr 23mm; align-items: start; column-gap: 4.2mm; }
-    .main-logo { width: 28mm; height: auto; object-fit: contain; margin-top: 1.1mm; }
+    .topbar { display: grid; grid-template-columns: 33mm 1fr 23mm; align-items: start; column-gap: 4mm; }
+    .main-logo { width: 31mm; height: auto; object-fit: contain; margin-top: 0.8mm; }
     .company { padding-top: 0.5mm; }
-    .company .th-name { font-size: 15px; font-weight: 700; line-height: 1.08; margin-bottom: 1mm; }
-    .company .en-name { font-size: 14px; font-weight: 700; line-height: 1.08; margin-bottom: 1.6mm; }
-    .company-line { font-size: 10.2px; line-height: 1.24; margin-bottom: 0.48mm; }
-    .page-no { text-align: right; font-size: 10.8px; font-weight: 700; white-space: nowrap; padding-top: 1.2mm; }
+    .company .th-name { font-size: 15.5px; font-weight: 700; line-height: 1.08; margin-bottom: 1mm; }
+    .company .en-name { font-size: 14.6px; font-weight: 700; line-height: 1.08; margin-bottom: 1.6mm; }
+    .company-line { font-size: 10.6px; line-height: 1.24; margin-bottom: 0.48mm; }
+    .page-no { text-align: right; font-size: 11.1px; font-weight: 700; white-space: nowrap; padding-top: 1.2mm; }
     .title-row {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
@@ -681,10 +681,10 @@ function buildPrintHtml(model) {
       column-gap: 2.8mm;
     }
     .title-row .spacer { min-height: 1px; }
-    .title { font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .title { font-size: 13.6px; font-weight: 700; white-space: nowrap; }
     .certs { display: flex; justify-content: flex-end; align-items: flex-end; gap: 1mm; min-height: 7.5mm; }
     .cert-logo { height: 7.1mm; width: auto; object-fit: contain; }
-    .meta-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3.3mm; font-size: 9.5px; line-height: 1.18; }
+    .meta-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3.3mm; font-size: 9.9px; line-height: 1.18; }
     .meta-table td { padding: 0 1mm 0.62mm 0; vertical-align: top; }
     .meta-table .meta-divider td {
       border-bottom: 1px solid #000;
@@ -696,12 +696,12 @@ function buildPrintHtml(model) {
     .mid-value { word-break: break-word; }
     .right-label { text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.2mm; }
     .right-value { text-align: right; white-space: nowrap; }
-    .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: 9.9px; }
+    .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: 10.2px; }
     .line-table thead { display: table-header-group; }
     .line-table th {
       background: #d9d9d9;
       color: #000;
-      font-size: 10.6px;
+      font-size: 10.9px;
       font-weight: 700;
       padding: 1.45mm 0.85mm;
       text-align: center;
@@ -729,14 +729,14 @@ function buildPrintHtml(model) {
     .footer-divider { border-top: 1px solid #000; margin-bottom: 1.35mm; }
     .summary-grid { display: grid; grid-template-columns: 1fr 63mm; column-gap: 4.5mm; align-items: start; }
     .summary-left { min-width: 0; }
-    .footer-note { font-size: 9.1px; line-height: 1.28; }
+    .footer-note { font-size: 9.5px; line-height: 1.28; }
     .footer-note div { margin-bottom: 0.55mm; }
     .footer-note .thai { font-weight: 700; }
     .totals { width: 100%; border-collapse: separate; border-spacing: 0 0.45mm; table-layout: fixed; }
-    .totals td { padding: 0.18mm 0; font-size: 9.6px; font-weight: 700; vertical-align: top; }
+    .totals td { padding: 0.18mm 0; font-size: 10px; font-weight: 700; vertical-align: top; }
     .totals .label-cell { width: 56%; white-space: nowrap; padding-right: 4.5mm; }
     .totals .amount { width: 44%; text-align: right; white-space: nowrap; }
-    .remark-section { margin-top: 3.1mm; font-size: 9.9px; }
+    .remark-section { margin-top: 3.1mm; font-size: 10.2px; }
     .remark-row,
     .job-row {
       display: grid;
@@ -754,36 +754,36 @@ function buildPrintHtml(model) {
       grid-template-columns: 49mm 57mm 53mm;
       justify-content: space-between;
       column-gap: 0;
-      margin-top: 7.2mm;
+      margin-top: 5.4mm;
       align-items: end;
     }
     .signature-col {
-      min-height: 47mm;
+      min-height: 41mm;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
     }
     .signature-sign {
-      min-height: 19mm;
+      min-height: 16mm;
       display: flex;
       align-items: flex-end;
       justify-content: center;
     }
     .signature-image { display: block; max-width: 44mm; max-height: 18mm; object-fit: contain; }
     .signature-line { width: 100%; border-top: 1px solid #000; margin-top: 1.2mm; }
-    .signature-caption { margin-top: 0.8mm; font-size: 9.8px; }
+    .signature-caption { margin-top: 0.8mm; font-size: 10.1px; }
     .signature-caption.centered { text-align: center; }
     .signature-detail {
       display: grid;
       grid-template-columns: 12mm 1fr;
       column-gap: 1.8mm;
       align-items: baseline;
-      font-size: 9.8px;
+      font-size: 10.1px;
     }
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
-    .signature-customer .signature-date { margin-top: 1.4mm; text-align: center; font-size: 9.8px; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.8mm; font-size: 9.8px; }
+    .signature-customer .signature-date { margin-top: 1.4mm; text-align: center; font-size: 10.1px; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.8mm; font-size: 10.1px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
 </head>
