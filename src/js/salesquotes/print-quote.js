@@ -799,7 +799,7 @@ function renderLineRows(lines) {
 
     return `
       <tr class="line-main-row">
-        <td class="item-cell">${escapeHtml(line.itemNo)}</td>
+        <td class="item-cell">&nbsp;</td>
         <td class="desc-cell">${escapeHtml(primaryDescription)}</td>
         <td class="qty-cell">${escapeHtml(formatQty(line.quantity))}</td>
         <td class="unit-cell">${escapeHtml(formatUnitOfMeasure(line.unitOfMeasure))}</td>
@@ -880,7 +880,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       padding-bottom: 0.95mm;
     }
     .label { font-weight: 700; white-space: nowrap; }
-    .value { word-break: break-word; }
+    .value { word-break: break-word; padding-left: 1.2mm; }
     .mid-label { font-weight: 700; white-space: nowrap; text-align: right; padding-right: 1.2mm; }
     .mid-value { word-break: break-word; }
     .meta-offset-block {
