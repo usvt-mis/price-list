@@ -823,7 +823,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .totals td { padding: 0.18mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 700; vertical-align: top; }
     .totals .label-cell { width: 56%; white-space: nowrap; padding-right: 4.5mm; }
     .totals .amount { width: 44%; text-align: right; white-space: nowrap; }
-    .totals-panel { transform: translateX(${settings.totalsOffsetXMm}mm); }
+    .totals-label-text { display: inline-block; transform: translateX(${settings.totalsOffsetXMm}mm); }
     .remark-section { margin-top: 3.1mm; font-size: ${settings.remarkFontSize}px; }
     .remark-row,
     .job-row {
@@ -942,11 +942,11 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
         </div>
         <div class="totals-panel">
           <table class="totals">
-            <tr><td class="label-cell">Total</td><td class="amount">${escapeHtml(formatCurrency(model.totals.subtotal))}</td></tr>
-            <tr><td class="label-cell">Trade Discount</td><td class="amount">${escapeHtml(formatCurrency(model.totals.tradeDiscount))}</td></tr>
-            <tr><td class="label-cell">Sub Total</td><td class="amount">${escapeHtml(formatCurrency(model.totals.afterDiscount))}</td></tr>
-            <tr><td class="label-cell">${escapeHtml(model.vatLabel)}</td><td class="amount">${escapeHtml(formatCurrency(model.totals.vatAmount))}</td></tr>
-            <tr><td class="label-cell">Grand Total</td><td class="amount">${escapeHtml(formatCurrency(model.totals.grandTotal))}</td></tr>
+            <tr><td class="label-cell"><span class="totals-label-text">Total</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.subtotal))}</td></tr>
+            <tr><td class="label-cell"><span class="totals-label-text">Trade Discount</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.tradeDiscount))}</td></tr>
+            <tr><td class="label-cell"><span class="totals-label-text">Sub Total</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.afterDiscount))}</td></tr>
+            <tr><td class="label-cell"><span class="totals-label-text">${escapeHtml(model.vatLabel)}</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.vatAmount))}</td></tr>
+            <tr><td class="label-cell"><span class="totals-label-text">Grand Total</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.grandTotal))}</td></tr>
           </table>
         </div>
       </div>
