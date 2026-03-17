@@ -718,6 +718,7 @@
     companyEnglishFontSize: 14.6,
     titleFontSize: 13.6,
     metaFontSize: 9.9,
+    addressColumnWidthMm: 77,
     lineTableFontSize: 10.2,
     lineTableHeaderFontSize: 10.9,
     footerNoteFontSize: 9.5,
@@ -790,6 +791,17 @@
       group: 'typography',
       label: 'Meta Table Font',
       description: 'Customer, date, and quote reference rows below the title.'
+    },
+    {
+      key: 'addressColumnWidthMm',
+      id: 'printLayoutAddressColumnWidthMm',
+      min: 55,
+      max: 90,
+      step: 0.1,
+      unit: 'mm',
+      group: 'branding',
+      label: 'Address Area Width',
+      description: 'Controls the width of the Address text area in the print header details table.'
     },
     {
       key: 'lineTableFontSize',

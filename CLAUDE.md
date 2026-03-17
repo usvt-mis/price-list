@@ -441,7 +441,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Footer row rendering with "Total" label for summary lines
   - Report context totals integration for accurate financial display
   - **Backoffice Print Layout Settings**: Administrators can configure print layout settings globally via the backoffice Settings tab
-    - Settings include: base font size, logo width, company name font sizes, quotation title font, meta table font, line table font sizes, footer note font, totals font, remark font, signature font, document footer font, certification logos offset, company block offset (horizontal/vertical positioning), totals offset (horizontal positioning), signature block margins
+    - Settings include: base font size, logo width, company name font sizes, quotation title font, meta table font, address column width, line table font sizes, footer note font, totals font, remark font, signature font, document footer font, certification logos offset, company block offset (horizontal/vertical positioning), totals offset (horizontal positioning), signature block margins
     - **Signature Layout Controls** (NEW): signatureGridMarginTopMm, signatureColMinHeightMm, signatureSignMinHeightMm for precise signature section positioning
     - Settings are organized into groups: Typography, Content, Branding, Signature
     - **Visual Control UI**: Each setting has an interactive slider with progress indicator, number input, and individual reset button

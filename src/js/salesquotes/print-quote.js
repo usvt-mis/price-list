@@ -106,6 +106,7 @@ const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   companyEnglishFontSize: 14.6,
   titleFontSize: 13.6,
   metaFontSize: 9.9,
+  addressColumnWidthMm: 77,
   lineTableFontSize: 10.2,
   lineTableHeaderFontSize: 10.9,
   footerNoteFontSize: 9.5,
@@ -162,6 +163,7 @@ function normalizePrintLayoutSettings(value = {}) {
     companyEnglishFontSize: clampNumber(value.companyEnglishFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.companyEnglishFontSize, 11, 22),
     titleFontSize: clampNumber(value.titleFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.titleFontSize, 11, 20),
     metaFontSize: clampNumber(value.metaFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.metaFontSize, 8, 16),
+    addressColumnWidthMm: clampNumber(value.addressColumnWidthMm, DEFAULT_PRINT_LAYOUT_SETTINGS.addressColumnWidthMm, 55, 90),
     lineTableFontSize: clampNumber(value.lineTableFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.lineTableFontSize, 8, 16),
     lineTableHeaderFontSize: clampNumber(value.lineTableHeaderFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.lineTableHeaderFontSize, 8, 18),
     footerNoteFontSize: clampNumber(value.footerNoteFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.footerNoteFontSize, 8, 16),
@@ -732,6 +734,8 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .map(src => `<img src="${escapeHtml(src)}" alt="" class="cert-logo">`)
     .join('');
   const topbarLogoColumnWidthMm = Math.max(settings.logoWidthMm + 2, 30);
+  const metaAddressColumnWidthMm = settings.addressColumnWidthMm;
+  const metaMidValueColumnWidthMm = 111 - metaAddressColumnWidthMm;
   const companyLineFontSize = Math.max(settings.baseFontSize - 0.8, 9);
   const pageNoFontSize = Math.max(settings.baseFontSize - 0.3, 9);
 
@@ -904,9 +908,9 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     <table class="meta-table">
       <colgroup>
         <col style="width: 18mm;">
-        <col style="width: 77mm;">
+        <col style="width: ${metaAddressColumnWidthMm}mm;">
         <col style="width: 18mm;">
-        <col style="width: 34mm;">
+        <col style="width: ${metaMidValueColumnWidthMm}mm;">
         <col style="width: 19mm;">
         <col style="width: 26mm;">
       </colgroup>
