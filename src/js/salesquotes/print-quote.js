@@ -117,6 +117,8 @@ const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   signatureFontSize: 10.1,
   docFooterFontSize: 10.1,
   logoWidthMm: 31.0,
+  logoOffsetXMm: 0,
+  logoOffsetYMm: 0,
   companyBlockOffsetXMm: 0,
   companyBlockOffsetYMm: 0,
   attentionTelBlockOffsetXMm: 0,
@@ -204,6 +206,8 @@ function normalizePrintLayoutSettings(value = {}) {
     signatureFontSize: clampNumber(value.signatureFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureFontSize, 8, 16),
     docFooterFontSize: clampNumber(value.docFooterFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.docFooterFontSize, 8, 16),
     logoWidthMm: clampNumber(value.logoWidthMm, DEFAULT_PRINT_LAYOUT_SETTINGS.logoWidthMm, 20, 45),
+    logoOffsetXMm: clampNumber(value.logoOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.logoOffsetXMm, -20, 20),
+    logoOffsetYMm: clampNumber(value.logoOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.logoOffsetYMm, -10, 16),
     companyBlockOffsetXMm: clampNumber(value.companyBlockOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.companyBlockOffsetXMm, -20, 20),
     companyBlockOffsetYMm: clampNumber(value.companyBlockOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.companyBlockOffsetYMm, -10, 16),
     attentionTelBlockOffsetXMm: clampNumber(value.attentionTelBlockOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.attentionTelBlockOffsetXMm, -40, 20),
@@ -844,7 +848,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
   const certificationMarkup = model.certificationLogos
     .map(src => `<img src="${escapeHtml(src)}" alt="" class="cert-logo">`)
     .join('');
-  const topbarLogoColumnWidthMm = Math.max(settings.logoWidthMm + 2, 30);
+  const topbarLogoColumnWidthMm = Math.max(settings.logoWidthMm + 2 + Math.max(settings.logoOffsetXMm, 0), 30);
   const metaColumnWidths = resolveMetaTableColumnWidths(settings);
   const companyLineFontSize = Math.max(settings.baseFontSize - 0.8, 9);
   const pageNoFontSize = Math.max(settings.baseFontSize - 0.3, 9);
@@ -872,7 +876,14 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       flex-direction: column;
     }
     .topbar { display: grid; grid-template-columns: ${topbarLogoColumnWidthMm}mm 1fr 23mm; align-items: start; column-gap: 4mm; }
-    .main-logo { width: ${settings.logoWidthMm}mm; height: auto; object-fit: contain; margin-top: 0.8mm; }
+    .main-logo {
+      width: ${settings.logoWidthMm}mm;
+      height: auto;
+      object-fit: contain;
+      margin-top: 0.8mm;
+      transform: translate(${settings.logoOffsetXMm}mm, ${settings.logoOffsetYMm}mm);
+      transform-origin: top left;
+    }
     .company {
       padding-top: 0.5mm;
       transform: translate(${settings.companyBlockOffsetXMm}mm, ${settings.companyBlockOffsetYMm}mm);
@@ -894,7 +905,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .certs { display: flex; justify-content: flex-end; align-items: flex-end; gap: 1mm; min-height: 7.5mm; transform: translateY(${settings.certsOffsetYMm}mm); }
     .cert-logo { height: 7.1mm; width: auto; object-fit: contain; }
     .meta-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3.3mm; font-size: ${settings.metaFontSize}px; line-height: 1.18; }
-    .meta-table td { padding: 0 1mm 0.62mm 0; vertical-align: top; }
+    .meta-table td { padding: 0 1mm 0.95mm 0; vertical-align: top; }
     .meta-table .meta-divider td {
       border-bottom: 1px solid #000;
       padding-bottom: 1.5mm;
