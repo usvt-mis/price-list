@@ -373,7 +373,7 @@ function buildModel() {
     lineItems: buildPrintableLines(formData, reportContext),
     detailNotes,
     bottomRemark: '',
-    jobNo: reportContext.dimensionName || formData.workStatus || documentRef || '',
+    jobNo: documentRef,
     totals,
     vatLabel: reportContext.vatText || `VAT ${totals.vatRate.toFixed(0)}%`,
     salesperson: {
@@ -532,6 +532,7 @@ function buildPrintHtml(model) {
     .footer-stack { margin-top: auto; padding-top: 5.6mm; }
     .footer-divider { border-top: 1px solid #111827; margin-bottom: 1.5mm; }
     .summary-grid { display: grid; grid-template-columns: 1fr 42mm; column-gap: 6mm; align-items: start; }
+    .summary-left { min-width: 0; }
     .footer-note { font-size: 10.2px; line-height: 1.28; }
     .footer-note div { margin-bottom: 0.95mm; }
     .footer-note .thai { font-weight: 700; }
@@ -539,7 +540,7 @@ function buildPrintHtml(model) {
     .totals td { padding: 0 0 1.4mm; font-size: 10.8px; font-weight: 700; vertical-align: top; }
     .totals .label-cell { white-space: nowrap; }
     .totals .amount { text-align: right; padding-left: 4mm; white-space: nowrap; }
-    .remark-section { margin-top: 2mm; font-size: 10.8px; }
+    .remark-section { margin-top: 4mm; font-size: 10.8px; }
     .remark-row,
     .job-row {
       display: grid;
@@ -688,9 +689,21 @@ function buildPrintHtml(model) {
       <div class="footer-divider"></div>
 
       <div class="summary-grid">
-        <div class="footer-note">
-          <div class="thai">${escapeHtml(DEFAULT_DISCLAIMER_TH)}</div>
-          <div>${escapeHtml(DEFAULT_DISCLAIMER_EN)}</div>
+        <div class="summary-left">
+          <div class="footer-note">
+            <div class="thai">${escapeHtml(DEFAULT_DISCLAIMER_TH)}</div>
+            <div>${escapeHtml(DEFAULT_DISCLAIMER_EN)}</div>
+          </div>
+          <div class="remark-section">
+            <div class="remark-row">
+              <div class="remark-label">Remark</div>
+              <div class="remark-value">${remarkMarkup}</div>
+            </div>
+            <div class="job-row">
+              <div class="job-label">JOB NO</div>
+              <div>: ${escapeHtml(model.jobNo)}</div>
+            </div>
+          </div>
         </div>
         <table class="totals">
           <tr><td class="label-cell">Total</td><td class="amount">${escapeHtml(formatCurrency(model.totals.subtotal))}</td></tr>
@@ -699,17 +712,6 @@ function buildPrintHtml(model) {
           <tr><td class="label-cell">${escapeHtml(model.vatLabel)}</td><td class="amount">${escapeHtml(formatCurrency(model.totals.vatAmount))}</td></tr>
           <tr><td class="label-cell">Grand Total</td><td class="amount">${escapeHtml(formatCurrency(model.totals.grandTotal))}</td></tr>
         </table>
-      </div>
-
-      <div class="remark-section">
-        <div class="remark-row">
-          <div class="remark-label">Remark</div>
-          <div class="remark-value">${remarkMarkup}</div>
-        </div>
-        <div class="job-row">
-          <div class="job-label">JOB NO</div>
-          <div>: ${escapeHtml(model.jobNo)}</div>
-        </div>
       </div>
 
       <div class="signature-grid">
