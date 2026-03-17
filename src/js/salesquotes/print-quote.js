@@ -114,6 +114,8 @@ const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   signatureFontSize: 10.1,
   docFooterFontSize: 10.1,
   logoWidthMm: 31.0,
+  companyBlockOffsetXMm: 0,
+  companyBlockOffsetYMm: 0,
   certsOffsetYMm: 3.2,
   totalsOffsetXMm: 0,
   signatureGridMarginTopMm: 5.4,
@@ -168,6 +170,8 @@ function normalizePrintLayoutSettings(value = {}) {
     signatureFontSize: clampNumber(value.signatureFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureFontSize, 8, 16),
     docFooterFontSize: clampNumber(value.docFooterFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.docFooterFontSize, 8, 16),
     logoWidthMm: clampNumber(value.logoWidthMm, DEFAULT_PRINT_LAYOUT_SETTINGS.logoWidthMm, 20, 45),
+    companyBlockOffsetXMm: clampNumber(value.companyBlockOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.companyBlockOffsetXMm, -20, 20),
+    companyBlockOffsetYMm: clampNumber(value.companyBlockOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.companyBlockOffsetYMm, -10, 16),
     certsOffsetYMm: clampNumber(value.certsOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.certsOffsetYMm, -8, 12),
     totalsOffsetXMm: clampNumber(value.totalsOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.totalsOffsetXMm, -20, 20),
     signatureGridMarginTopMm: clampNumber(value.signatureGridMarginTopMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureGridMarginTopMm, 0, 20),
@@ -755,7 +759,11 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     }
     .topbar { display: grid; grid-template-columns: ${topbarLogoColumnWidthMm}mm 1fr 23mm; align-items: start; column-gap: 4mm; }
     .main-logo { width: ${settings.logoWidthMm}mm; height: auto; object-fit: contain; margin-top: 0.8mm; }
-    .company { padding-top: 0.5mm; }
+    .company {
+      padding-top: 0.5mm;
+      transform: translate(${settings.companyBlockOffsetXMm}mm, ${settings.companyBlockOffsetYMm}mm);
+      transform-origin: top left;
+    }
     .company .th-name { font-size: ${settings.companyThaiFontSize}px; font-weight: 700; line-height: 1.08; margin-bottom: 1mm; }
     .company .en-name { font-size: ${settings.companyEnglishFontSize}px; font-weight: 700; line-height: 1.08; margin-bottom: 1.6mm; }
     .company-line { font-size: ${companyLineFontSize}px; line-height: 1.24; margin-bottom: 0.48mm; }
