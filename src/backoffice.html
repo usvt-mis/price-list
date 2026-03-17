@@ -460,6 +460,11 @@
                   </label>
 
                   <label class="block">
+                    <span class="block text-sm font-medium text-slate-700">Totals Offset X (mm)</span>
+                    <input id="printLayoutTotalsOffsetXMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  </label>
+
+                  <label class="block">
                     <span class="block text-sm font-medium text-slate-700">Signature Block Top Margin (mm)</span>
                     <input id="printLayoutSignatureGridMarginTopMm" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                   </label>
@@ -599,6 +604,7 @@
     docFooterFontSize: 10.1,
     logoWidthMm: 31.0,
     certsOffsetYMm: 3.2,
+    totalsOffsetXMm: 0,
     signatureGridMarginTopMm: 5.4,
     signatureColMinHeightMm: 41.0,
     signatureSignMinHeightMm: 16.0
@@ -619,6 +625,7 @@
     { key: 'docFooterFontSize', id: 'printLayoutDocFooterFontSize', min: 8, max: 16 },
     { key: 'logoWidthMm', id: 'printLayoutLogoWidthMm', min: 20, max: 45 },
     { key: 'certsOffsetYMm', id: 'printLayoutCertsOffsetYMm', min: -8, max: 12 },
+    { key: 'totalsOffsetXMm', id: 'printLayoutTotalsOffsetXMm', min: -20, max: 20 },
     { key: 'signatureGridMarginTopMm', id: 'printLayoutSignatureGridMarginTopMm', min: 0, max: 20 },
     { key: 'signatureColMinHeightMm', id: 'printLayoutSignatureColMinHeightMm', min: 20, max: 70 },
     { key: 'signatureSignMinHeightMm', id: 'printLayoutSignatureSignMinHeightMm', min: 5, max: 35 }
