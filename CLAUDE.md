@@ -437,26 +437,31 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Automatic print dialog triggered on page load
   - Professional layout with company branding, certification logos, customer details, line items, and signatures
   - Thai/English bilingual company information and disclaimers
+  - Multi-line description support with continuation rows
+  - Footer row rendering with "Total" label for summary lines
+  - Report context totals integration for accurate financial display
 - **Data Sources**:
   - Company info: Branch-specific company header (Thai/English names, addresses, phone, fax, VAT ID) from `BRANCH_HEADER_MAP` keyed by branch code; head office branches (URY) display "(สำนักงานใหญ่)" / "(Head Office)" labels; falls back to BC `companyInfoText*` and `companyInfoPicture` if branch not found; logo from static assets
   - Customer info: Name, address, attention contact, phone, tax ID (from BC `customerInfo*` and `sellTo*` fields); prioritizes report context data over form data
   - Quote metadata: Quote number, dates, payment terms, delivery info (from BC header fields)
-  - Line items: Item number, description, quantity, unit price, discount, total (from BC sales quote lines); sequence column and item numbers are hidden in print output
-  - Line print control: `USVT_Show_in_Document`, `USVT_Header`, `USVT_Footer` flags control visibility and formatting; header/footer/comment-note lines are filtered out
+  - Line items: Item number, description, description2, quantity, unit price, discount, total (from BC sales quote lines); sequence column now visible in print output
+  - Line print control: `USVT_Show_in_Document`, `USVT_Header`, `USVT_Footer` flags control visibility and formatting; comment-note lines are filtered out
   - Signatures: Salesperson (from `requestSignature` with fallback to `salesperson`), and approver details with signature images (from BC signature fields)
   - Certification logos: EASA, SGS-UKAS, IEC-IECEX, AEMT (static assets)
 - **Print Layout Sections**:
-  1. **Top Bar**: Main company logo (28mm), company info (Thai/English names + address; English address first, head office labeled), page number label
+  1. **Top Bar**: Main company logo (29mm), company info (Thai/English names + address; English address first, head office labeled), page number label
   2. **Title Row**: "ใบเสนอราคา/QUOTATION" centered with certification logos (EASA, SGS, IEC, AEMT) on the right
   3. **Meta Table**: Wide single-table layout with AR Code, Customer, Address (2 rows), Attention, Tel, Tax ID, Delivery Address (2 rows), Our Ref, Date, Expired Date, Payment, Delivery Date organized across 6 rows with left/mid/right column structure (empty cells for spacing)
-  4. **Line Items Table**: Description, quantity, unit of measure, unit price, discount, total (sequence and item number columns hidden)
+  4. **Line Items Table**: Item (sequence), Description (with multi-line support), Qty, unit of measure, unit price, discount, total
+     - Multi-line descriptions render as continuation rows (empty pricing columns)
+     - `description2` field renders as additional continuation rows
+     - Footer rows display with "Total" label in discount column
+     - Section header rows render as bold text without pricing columns
      - Comment lines render as full-width notes (no pricing columns)
-     - Header/footer lines and comment-note lines are filtered out from display
-  5. **Detail Notes Section**: Sales comments from BC displayed below line items with underline separator
-  6. **Footer Band**: Thai/English disclaimer (left), financial totals table (right)
-  7. **Remark & Job Box**: Remarks section (empty), Job No displayed at bottom
-  8. **Signature Section**: 3-column layout - Customer Confirmed (with date fields), With By (with signature image from requestSignature, centered name, grid-based contact info), Approved (with signature image, centered name, grid-based contact info)
-  9. **Document Footer**: Effective date (01/04/2023), document code (CS-FM-RY-004 Rev.00)
+  5. **Footer Band**: Thai/English disclaimer (left), financial totals table (right) with borders
+  6. **Remark & Job Box**: Remarks section, Job No displayed at bottom
+  7. **Signature Section**: 3-column grid layout - Customer Confirmed (with date fields), With By (with signature image, grid-based contact info), Approved (with signature image, grid-based contact info)
+  8. **Document Footer**: Effective date (01/04/2023), document code (CS-FM-RY-004 Rev.00)
 - **Asset Paths** (from `ASSET_PATHS` constant):
   - Main logo: `uservices-logo.png`
   - Certifications: `easa-logo.jpg`, `sgs-ukas-logo.png`, `iec-iecex-logo.jpg`, `aemt-logo.jpg`
@@ -465,24 +470,27 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Disclaimers: Thai and English 90-day confirmation notices
   - Document metadata: Effective date 01/04/2023, code CS-FM-RY-004 Rev.00
 - **Calculations**:
-  - Line total = (Quantity × Unit Price) - Discount Amount
-  - Subtotal = Sum of all line totals
-  - VAT Amount = (Subtotal - Trade Discount) × VAT Rate / 100
-  - Grand Total = (Subtotal - Trade Discount) + VAT Amount
+  - Line total = (Quantity × Unit Price) - Discount Amount (with multi-source fallback via `resolveLineAmount()`)
+  - Subtotal = Report context totalAmt1 or calculated sum of line totals
+  - Trade Discount = Report context totalAmt2 or invoice discount
+  - After Discount = Report context totalAmt3 or calculated
+  - VAT Amount = Report context totalAmt4 or (Subtotal - Trade Discount) × VAT Rate / 100
+  - Grand Total = Report context totalAmt5 or (After Discount + VAT Amount)
 - **Helper Functions**:
   - `buildModel()` - Assembles print data from form state and BC report context; uses requestSignature for salesperson signature fields
   - `buildBranchHeaderLines(branchCode)` - Builds company header lines from branch-specific data using `BRANCH_HEADER_MAP`; adds head office labels for URY branch
-  - `buildPrintableLines()` - Filters and enriches line items with print metadata
-  - `buildTotals()` - Calculates financial totals
+  - `buildPrintableLines()` - Filters and enriches line items with print metadata; adds description2, rawType, amountExcludingTax fields
+  - `buildTotals(formData, reportContext)` - Calculates financial totals with report context integration and fallback
   - `buildCustomerAddressLines()` - Resolves customer address (2 lines max); prioritizes report context data over form data
   - `buildDeliveryAddressLines()` - Resolves delivery address (2 lines max); returns empty array if not available
   - `renderAddressLines()` - Normalizes address lines to expected count with empty padding
-  - `renderLineRows()` - Generates HTML table rows; filters out header/footer/comment-note lines; hides sequence and item number
+  - `renderLineRows()` - Generates HTML table rows with multi-line description support, footer rows, section headers, and comment handling
   - `buildPrintHtml()` - Generates complete print document with inline styles
   - `printSearchedSalesQuote()` - Opens print window and triggers print dialog
 - **Data Normalization**:
   - `escapeHtml()` - HTML entity encoding for XSS prevention
-  - `asNumber()` - Safe number parsing with fallback
+  - `asNumber(value, fallback)` - Safe number parsing with comma removal, null/empty handling, and fallback; supports comma-separated number strings (e.g., "1,234.56")
+  - `resolveLineAmount(line, fallback)` - Extracts line total from multiple possible field names (amountExcludingTax, lineAmount, amount, total, lineTotal) with fallback
   - `formatDate()` - Date formatting (en-GB locale)
   - `formatQty()` - Quantity formatting with fixed 2 decimal places
   - `formatUnitOfMeasure()` - Unit of measure normalization; converts "EA"/"Ea." variations to "Ea."
