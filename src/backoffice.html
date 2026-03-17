@@ -720,6 +720,7 @@
     metaFontSize: 9.9,
     addressColumnWidthMm: 77,
     attentionValueWidthMm: 34,
+    leftMetaValuePaddingMm: 1.2,
     lineTableFontSize: 10.2,
     lineTableHeaderFontSize: 10.9,
     footerNoteFontSize: 9.5,
@@ -826,6 +827,17 @@
       group: 'branding',
       label: 'Attention Width',
       description: 'Controls the width of the Attention value text box in the print header details table.'
+    },
+    {
+      key: 'leftMetaValuePaddingMm',
+      id: 'printLayoutLeftMetaValuePaddingMm',
+      min: 0,
+      max: 6,
+      step: 0.1,
+      unit: 'mm',
+      group: 'branding',
+      label: 'Left Meta Value Gap',
+      description: 'Controls the spacing between the left-side labels and values like AR Code, Customer, Address, and Tax ID.'
     },
     {
       key: 'lineTableFontSize',

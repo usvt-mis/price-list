@@ -108,6 +108,7 @@ const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   metaFontSize: 9.9,
   addressColumnWidthMm: 77,
   attentionValueWidthMm: 34,
+  leftMetaValuePaddingMm: 1.2,
   lineTableFontSize: 10.2,
   lineTableHeaderFontSize: 10.9,
   footerNoteFontSize: 9.5,
@@ -194,6 +195,7 @@ function normalizePrintLayoutSettings(value = {}) {
     metaFontSize: clampNumber(value.metaFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.metaFontSize, 8, 16),
     addressColumnWidthMm,
     attentionValueWidthMm: clampNumber(value.attentionValueWidthMm, derivedMetaColumnWidths.midValue, 10, 120),
+    leftMetaValuePaddingMm: clampNumber(value.leftMetaValuePaddingMm, DEFAULT_PRINT_LAYOUT_SETTINGS.leftMetaValuePaddingMm, 0, 6),
     lineTableFontSize: clampNumber(value.lineTableFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.lineTableFontSize, 8, 16),
     lineTableHeaderFontSize: clampNumber(value.lineTableHeaderFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.lineTableHeaderFontSize, 8, 18),
     footerNoteFontSize: clampNumber(value.footerNoteFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.footerNoteFontSize, 8, 16),
@@ -880,7 +882,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       padding-bottom: 0.95mm;
     }
     .label { font-weight: 700; white-space: nowrap; }
-    .value { word-break: break-word; padding-left: 1.2mm; }
+    .value { word-break: break-word; padding-left: ${settings.leftMetaValuePaddingMm}mm; }
     .mid-label { font-weight: 700; white-space: nowrap; text-align: right; padding-right: 1.2mm; }
     .mid-value { word-break: break-word; }
     .meta-offset-block {
