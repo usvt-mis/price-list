@@ -443,7 +443,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - **Backoffice Print Layout Settings**: Administrators can configure print layout settings globally via the backoffice Settings tab
     - Settings include: base font size, logo width, company name font sizes, quotation title font, meta table font, address column width (55-120mm with dynamic column adjustment), line table font sizes, footer note font, totals font, remark font, signature font, document footer font, certification logos offset, company block offset (horizontal/vertical positioning), attention/tel block offset (horizontal/vertical positioning), totals offset (horizontal positioning), signature block margins
     - **Dynamic Meta Table Column Adjustment**: When address column width increases beyond base (77mm), other columns proportionally shrink (label: 18→14mm, midLabel: 18→15mm, midValue: 34→10mm, rightLabel: 19→14mm, rightValue: 26→19mm) to maintain 183mm total width
-    - **Attention/Tel Block Positioning** (NEW): attentionTelBlockOffsetXMm (±20mm horizontal), attentionTelBlockOffsetYMm (±10mm vertical) for precise Attention and Tel field positioning inside the meta table
+    - **Attention/Tel Block Positioning**: attentionTelBlockOffsetXMm (-40 to +20mm horizontal), attentionTelBlockOffsetYMm (±10mm vertical) for precise Attention and Tel field positioning inside the meta table
     - **Signature Layout Controls**: signatureGridMarginTopMm, signatureColMinHeightMm, signatureSignMinHeightMm for precise signature section positioning
     - Settings are organized into groups: Typography, Content, Branding, Signature
     - **Visual Control UI**: Each setting has an interactive slider with progress indicator, number input, and individual reset button
