@@ -635,6 +635,15 @@ function renderLeftMetaValueContent(content) {
   return `<span class="left-meta-value">${escapeHtml(normalized)}</span>`;
 }
 
+function renderRightMetaContent(content, kind = 'label') {
+  const normalized = String(content ?? '').trim();
+  if (!normalized) {
+    return '';
+  }
+
+  return `<span class="right-meta-${kind}">${escapeHtml(normalized)}</span>`;
+}
+
 function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
   const customerRows = customerAddressLines.map((line, index) => `
     <tr>
@@ -642,8 +651,8 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value">${renderLeftMetaValueContent(line)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
-      <td class="right-label">${index === 0 ? 'Our Ref.' : index === 1 ? 'Date' : ''}</td>
-      <td class="right-value">${index === 0 ? escapeHtml(model.ourRef) : index === 1 ? escapeHtml(model.documentDate) : ''}</td>
+      <td class="right-label">${index === 0 ? renderRightMetaContent('Our Ref.', 'label') : index === 1 ? renderRightMetaContent('Date', 'label') : ''}</td>
+      <td class="right-value">${index === 0 ? renderRightMetaContent(model.ourRef, 'value') : index === 1 ? renderRightMetaContent(model.documentDate, 'value') : ''}</td>
     </tr>
   `).join('');
 
@@ -653,8 +662,8 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value">${renderLeftMetaValueContent(line)}</td>
       <td class="mid-label">${index === 0 ? renderMetaOffsetContent('Tel.', 'label') : ''}</td>
       <td class="mid-value">${index === 0 ? renderMetaOffsetContent(model.phone, 'value') : ''}</td>
-      <td class="right-label">${index === 0 ? 'Delivery Date' : ''}</td>
-      <td class="right-value">${index === 0 ? escapeHtml(model.deliveryText) : ''}</td>
+      <td class="right-label">${index === 0 ? renderRightMetaContent('Delivery Date', 'label') : ''}</td>
+      <td class="right-value">${index === 0 ? renderRightMetaContent(model.deliveryText, 'value') : ''}</td>
     </tr>
   `).join('');
 
@@ -681,16 +690,16 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value"></td>
       <td class="mid-label">${renderMetaOffsetContent('Attention', 'label')}</td>
       <td class="mid-value">${renderMetaOffsetContent(model.attention, 'value', 'meta-attention-value')}</td>
-      <td class="right-label">Expired Date</td>
-      <td class="right-value">${escapeHtml(model.expiredDate)}</td>
+      <td class="right-label">${renderRightMetaContent('Expired Date', 'label')}</td>
+      <td class="right-value">${renderRightMetaContent(model.expiredDate, 'value')}</td>
     </tr>
     <tr>
       <td class="label">Tax ID</td>
       <td class="value">${renderLeftMetaValueContent(model.taxId)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
-      <td class="right-label">Payment</td>
-      <td class="right-value">${escapeHtml(model.paymentText)}</td>
+      <td class="right-label">${renderRightMetaContent('Payment', 'label')}</td>
+      <td class="right-value">${renderRightMetaContent(model.paymentText, 'value')}</td>
     </tr>
     ${deliveryRows}
   `;
@@ -913,8 +922,19 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       width: ${settings.attentionValueWidthMm}mm;
       max-width: none;
     }
-    .meta-table td.right-label { text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.2mm; }
-    .meta-table td.right-value { text-align: right; white-space: nowrap; }
+    .meta-table td.right-label { font-weight: 700; white-space: nowrap; }
+    .meta-table td.right-value { white-space: nowrap; }
+    .right-meta-label,
+    .right-meta-value {
+      display: block;
+      width: 100%;
+      text-align: right;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
+    .right-meta-label {
+      padding-right: 1.2mm;
+    }
     .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; }
     .line-table thead { display: table-header-group; }
     .line-table th {
