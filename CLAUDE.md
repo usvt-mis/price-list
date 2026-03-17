@@ -441,7 +441,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Footer row rendering with "Total" label for summary lines
   - Report context totals integration for accurate financial display
   - **Backoffice Print Layout Settings**: Administrators can configure print layout settings globally via the backoffice Settings tab
-    - Settings include: base font size, logo width, company name font sizes, quotation title font, meta table font, address column width, line table font sizes, footer note font, totals font, remark font, signature font, document footer font, certification logos offset, company block offset (horizontal/vertical positioning), totals offset (horizontal positioning), signature block margins
+    - Settings include: base font size, logo width, company name font sizes, quotation title font, meta table font, address column width (55-120mm with dynamic column adjustment), line table font sizes, footer note font, totals font, remark font, signature font, document footer font, certification logos offset, company block offset (horizontal/vertical positioning), totals offset (horizontal positioning), signature block margins
+    - **Dynamic Meta Table Column Adjustment**: When address column width increases beyond base (77mm), other columns proportionally shrink (label: 18→14mm, midLabel: 18→15mm, midValue: 34→10mm, rightLabel: 19→14mm, rightValue: 26→19mm) to maintain 183mm total width
     - **Signature Layout Controls** (NEW): signatureGridMarginTopMm, signatureColMinHeightMm, signatureSignMinHeightMm for precise signature section positioning
     - Settings are organized into groups: Typography, Content, Branding, Signature
     - **Visual Control UI**: Each setting has an interactive slider with progress indicator, number input, and individual reset button
@@ -479,6 +480,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Company lines: U-Services (Thailand) Co., Ltd. branch info in Thai/English
   - Disclaimers: Thai and English 90-day confirmation notices
   - Document metadata: Effective date 01/04/2023, code CS-FM-RY-004 Rev.00
+- **Constants**:
+  - `META_TABLE_BASE_WIDTHS_MM` - Base column widths in mm for meta table (label: 18, address: 77, midLabel: 18, midValue: 34, rightLabel: 19, rightValue: 26)
+  - `META_TABLE_MIN_WIDTHS_MM` - Minimum column widths in mm for meta table when address column is maximized (label: 14, address: 55, midLabel: 15, midValue: 10, rightLabel: 14, rightValue: 19)
 - **Calculations**:
   - Line total = (Quantity × Unit Price) - Discount Amount (with multi-source fallback via `resolveLineAmount()`)
   - Subtotal = Report context totalAmt1 or calculated sum of line totals
@@ -491,7 +495,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `buildBranchHeaderLines(branchCode)` - Builds company header lines from branch-specific data using `BRANCH_HEADER_MAP`; adds head office labels for URY branch
   - `buildPrintableLines()` - Filters and enriches line items with print metadata; adds description2, rawType, amountExcludingTax fields
   - `buildTotals(formData, reportContext)` - Calculates financial totals with report context integration and fallback
-  - `buildCustomerAddressLines()` - Resolves customer address (2 lines max); prioritizes report context data over form data
+  - `buildCustomerAddressLines()` - Resolves customer address (2 lines max); prioritizes report context data over form data; handles >2 line addresses by joining overflow lines inline
   - `buildDeliveryAddressLines()` - Resolves delivery address (compares with customer address to avoid duplicates); returns empty array if not available or same as customer
   - `renderMetaRows()` - Generates dynamic meta table rows based on actual address data
   - `renderAddressLines()` - Normalizes address lines to expected count with empty padding
@@ -509,7 +513,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `formatMisRdlUnitPrice(line)` - Formats unit price for MIS.rdl display (zero values render as "(Included)")
   - `normalizeBranchCode(value)` - Normalizes branch code to uppercase trimmed string
   - `normalizeDataUri()` - Base64 image data URI normalization
-  - `joinAddress()` - Address part concatenation
+  - `joinAddress()` - Address part concatenation with comma separator
+  - `joinInlineAddress()` - Address part concatenation with space separator for inline display
+  - `resolveMetaTableColumnWidths(layoutSettings)` - Calculates dynamic meta table column widths based on address column width; proportionally adjusts other columns when address width exceeds base value (77mm) to maintain 183mm total width
   - `unique()` - Removes duplicate values from array
   - `compactLines()` - Flattens nested arrays and removes empty values
   - `normalizeComparableText()` - Normalizes text for comparison (removes spaces, punctuation, converts to lowercase)

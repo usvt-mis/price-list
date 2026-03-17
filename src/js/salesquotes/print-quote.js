@@ -124,6 +124,24 @@ const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   signatureSignMinHeightMm: 16.0
 });
 
+const META_TABLE_BASE_WIDTHS_MM = Object.freeze({
+  label: 18,
+  address: 77,
+  midLabel: 18,
+  midValue: 34,
+  rightLabel: 19,
+  rightValue: 26
+});
+
+const META_TABLE_MIN_WIDTHS_MM = Object.freeze({
+  label: 14,
+  address: 55,
+  midLabel: 15,
+  midValue: 10,
+  rightLabel: 14,
+  rightValue: 19
+});
+
 let printLayoutSettingsPromise = null;
 
 function escapeHtml(value) {
@@ -163,7 +181,7 @@ function normalizePrintLayoutSettings(value = {}) {
     companyEnglishFontSize: clampNumber(value.companyEnglishFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.companyEnglishFontSize, 11, 22),
     titleFontSize: clampNumber(value.titleFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.titleFontSize, 11, 20),
     metaFontSize: clampNumber(value.metaFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.metaFontSize, 8, 16),
-    addressColumnWidthMm: clampNumber(value.addressColumnWidthMm, DEFAULT_PRINT_LAYOUT_SETTINGS.addressColumnWidthMm, 55, 90),
+    addressColumnWidthMm: clampNumber(value.addressColumnWidthMm, DEFAULT_PRINT_LAYOUT_SETTINGS.addressColumnWidthMm, 55, 120),
     lineTableFontSize: clampNumber(value.lineTableFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.lineTableFontSize, 8, 16),
     lineTableHeaderFontSize: clampNumber(value.lineTableHeaderFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.lineTableHeaderFontSize, 8, 18),
     footerNoteFontSize: clampNumber(value.footerNoteFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.footerNoteFontSize, 8, 16),
@@ -346,6 +364,10 @@ function joinAddress(parts) {
     .join(', ');
 }
 
+function joinInlineAddress(parts) {
+  return compactLines(parts).join(' ');
+}
+
 function normalizeComparableText(value) {
   return String(value || '')
     .replace(/\s+/g, ' ')
@@ -444,13 +466,23 @@ function buildTotals(formData, reportContext = {}) {
 function buildCustomerAddressLines(formData, reportContext) {
   const reportLines = compactLines(reportContext.customerAddressLines || reportContext.customerInfoLines);
   if (reportLines.length) {
-    return reportLines;
+    if (reportLines.length <= 2) {
+      return reportLines;
+    }
+
+    return compactLines([
+      reportLines[0],
+      joinInlineAddress(reportLines.slice(1))
+    ]);
   }
 
   const sellToLines = compactLines([
     formData.sellTo?.address,
-    formData.sellTo?.address2,
-    joinAddress([formData.sellTo?.city, formData.sellTo?.postCode])
+    joinInlineAddress([
+      formData.sellTo?.address2,
+      formData.sellTo?.city,
+      formData.sellTo?.postCode
+    ])
   ]);
 
   return sellToLines;
@@ -626,6 +658,38 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
   `;
 }
 
+function resolveMetaTableColumnWidths(layoutSettings) {
+  const addressWidth = clampNumber(
+    layoutSettings.addressColumnWidthMm,
+    DEFAULT_PRINT_LAYOUT_SETTINGS.addressColumnWidthMm,
+    META_TABLE_MIN_WIDTHS_MM.address,
+    120
+  );
+
+  if (addressWidth <= META_TABLE_BASE_WIDTHS_MM.address) {
+    return {
+      label: META_TABLE_BASE_WIDTHS_MM.label,
+      address: addressWidth,
+      midLabel: META_TABLE_BASE_WIDTHS_MM.midLabel,
+      midValue: META_TABLE_BASE_WIDTHS_MM.midValue + (META_TABLE_BASE_WIDTHS_MM.address - addressWidth),
+      rightLabel: META_TABLE_BASE_WIDTHS_MM.rightLabel,
+      rightValue: META_TABLE_BASE_WIDTHS_MM.rightValue
+    };
+  }
+
+  const progress = (addressWidth - META_TABLE_BASE_WIDTHS_MM.address) / (120 - META_TABLE_BASE_WIDTHS_MM.address);
+  const interpolateWidth = (base, min) => base - ((base - min) * progress);
+
+  return {
+    label: interpolateWidth(META_TABLE_BASE_WIDTHS_MM.label, META_TABLE_MIN_WIDTHS_MM.label),
+    address: addressWidth,
+    midLabel: interpolateWidth(META_TABLE_BASE_WIDTHS_MM.midLabel, META_TABLE_MIN_WIDTHS_MM.midLabel),
+    midValue: interpolateWidth(META_TABLE_BASE_WIDTHS_MM.midValue, META_TABLE_MIN_WIDTHS_MM.midValue),
+    rightLabel: interpolateWidth(META_TABLE_BASE_WIDTHS_MM.rightLabel, META_TABLE_MIN_WIDTHS_MM.rightLabel),
+    rightValue: interpolateWidth(META_TABLE_BASE_WIDTHS_MM.rightValue, META_TABLE_MIN_WIDTHS_MM.rightValue)
+  };
+}
+
 function renderLineRows(lines) {
   const printableLines = lines.filter(line => line.showInDocument !== false);
 
@@ -734,8 +798,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .map(src => `<img src="${escapeHtml(src)}" alt="" class="cert-logo">`)
     .join('');
   const topbarLogoColumnWidthMm = Math.max(settings.logoWidthMm + 2, 30);
-  const metaAddressColumnWidthMm = settings.addressColumnWidthMm;
-  const metaMidValueColumnWidthMm = 111 - metaAddressColumnWidthMm;
+  const metaColumnWidths = resolveMetaTableColumnWidths(settings);
   const companyLineFontSize = Math.max(settings.baseFontSize - 0.8, 9);
   const pageNoFontSize = Math.max(settings.baseFontSize - 0.3, 9);
 
@@ -907,12 +970,12 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
 
     <table class="meta-table">
       <colgroup>
-        <col style="width: 18mm;">
-        <col style="width: ${metaAddressColumnWidthMm}mm;">
-        <col style="width: 18mm;">
-        <col style="width: ${metaMidValueColumnWidthMm}mm;">
-        <col style="width: 19mm;">
-        <col style="width: 26mm;">
+        <col style="width: ${metaColumnWidths.label}mm;">
+        <col style="width: ${metaColumnWidths.address}mm;">
+        <col style="width: ${metaColumnWidths.midLabel}mm;">
+        <col style="width: ${metaColumnWidths.midValue}mm;">
+        <col style="width: ${metaColumnWidths.rightLabel}mm;">
+        <col style="width: ${metaColumnWidths.rightValue}mm;">
       </colgroup>
       ${metaRowsMarkup}
     </table>
