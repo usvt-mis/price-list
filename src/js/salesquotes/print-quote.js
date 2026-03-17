@@ -913,8 +913,8 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       width: ${settings.attentionValueWidthMm}mm;
       max-width: none;
     }
-    .meta-table td.right-label { text-align: left; font-weight: 700; white-space: nowrap; padding-left: 1.2mm; padding-right: 0; }
-    .meta-table td.right-value { text-align: left; white-space: nowrap; }
+    .meta-table td.right-label { text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.2mm; }
+    .meta-table td.right-value { text-align: right; white-space: nowrap; }
     .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; }
     .line-table thead { display: table-header-group; }
     .line-table th {
