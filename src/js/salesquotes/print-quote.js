@@ -107,6 +107,7 @@ const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   titleFontSize: 13.6,
   metaFontSize: 9.9,
   addressColumnWidthMm: 77,
+  attentionValueWidthMm: 34,
   lineTableFontSize: 10.2,
   lineTableHeaderFontSize: 10.9,
   footerNoteFontSize: 9.5,
@@ -177,13 +178,22 @@ function clampNumber(value, fallback, min, max) {
 }
 
 function normalizePrintLayoutSettings(value = {}) {
+  const addressColumnWidthMm = clampNumber(
+    value.addressColumnWidthMm,
+    DEFAULT_PRINT_LAYOUT_SETTINGS.addressColumnWidthMm,
+    55,
+    120
+  );
+  const derivedMetaColumnWidths = resolveMetaTableColumnWidths({ addressColumnWidthMm });
+
   return {
     baseFontSize: clampNumber(value.baseFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.baseFontSize, 9, 16),
     companyThaiFontSize: clampNumber(value.companyThaiFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.companyThaiFontSize, 11, 22),
     companyEnglishFontSize: clampNumber(value.companyEnglishFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.companyEnglishFontSize, 11, 22),
     titleFontSize: clampNumber(value.titleFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.titleFontSize, 11, 20),
     metaFontSize: clampNumber(value.metaFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.metaFontSize, 8, 16),
-    addressColumnWidthMm: clampNumber(value.addressColumnWidthMm, DEFAULT_PRINT_LAYOUT_SETTINGS.addressColumnWidthMm, 55, 120),
+    addressColumnWidthMm,
+    attentionValueWidthMm: clampNumber(value.attentionValueWidthMm, derivedMetaColumnWidths.midValue, 10, 120),
     lineTableFontSize: clampNumber(value.lineTableFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.lineTableFontSize, 8, 16),
     lineTableHeaderFontSize: clampNumber(value.lineTableHeaderFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.lineTableHeaderFontSize, 8, 18),
     footerNoteFontSize: clampNumber(value.footerNoteFontSize, DEFAULT_PRINT_LAYOUT_SETTINGS.footerNoteFontSize, 8, 16),
@@ -601,13 +611,17 @@ function renderAddressLines(lines, expected = 2) {
   return normalized;
 }
 
-function renderMetaOffsetContent(content, kind = 'value') {
+function renderMetaOffsetContent(content, kind = 'value', extraClass = '') {
   const normalized = String(content ?? '').trim();
   if (!normalized) {
     return '';
   }
 
-  return `<span class="meta-offset-block meta-offset-block-${kind}">${escapeHtml(normalized)}</span>`;
+  const className = ['meta-offset-block', `meta-offset-block-${kind}`, extraClass]
+    .filter(Boolean)
+    .join(' ');
+
+  return `<span class="${className}">${escapeHtml(normalized)}</span>`;
 }
 
 function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
@@ -655,7 +669,7 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="label"></td>
       <td class="value"></td>
       <td class="mid-label">${renderMetaOffsetContent('Attention', 'label')}</td>
-      <td class="mid-value">${renderMetaOffsetContent(model.attention, 'value')}</td>
+      <td class="mid-value">${renderMetaOffsetContent(model.attention, 'value', 'meta-attention-value')}</td>
       <td class="right-label">Expired Date</td>
       <td class="right-value">${escapeHtml(model.expiredDate)}</td>
     </tr>
@@ -878,6 +892,10 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     }
     .meta-offset-block-value {
       display: block;
+    }
+    .meta-attention-value {
+      width: ${settings.attentionValueWidthMm}mm;
+      max-width: none;
     }
     .right-label { text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.2mm; }
     .right-value { text-align: right; white-space: nowrap; }

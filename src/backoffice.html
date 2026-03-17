@@ -719,6 +719,7 @@
     titleFontSize: 13.6,
     metaFontSize: 9.9,
     addressColumnWidthMm: 77,
+    attentionValueWidthMm: 34,
     lineTableFontSize: 10.2,
     lineTableHeaderFontSize: 10.9,
     footerNoteFontSize: 9.5,
@@ -736,6 +737,16 @@
     signatureGridMarginTopMm: 5.4,
     signatureColMinHeightMm: 41.0,
     signatureSignMinHeightMm: 16.0
+  });
+
+  const PRINT_LAYOUT_META_TABLE_BASE_WIDTHS = Object.freeze({
+    address: 77,
+    midValue: 34
+  });
+
+  const PRINT_LAYOUT_META_TABLE_MIN_WIDTHS = Object.freeze({
+    address: 55,
+    midValue: 10
   });
 
   const PRINT_LAYOUT_FIELDS = [
@@ -804,6 +815,17 @@
       group: 'branding',
       label: 'Address Area Width',
       description: 'Controls the width of the Address text area in the print header details table.'
+    },
+    {
+      key: 'attentionValueWidthMm',
+      id: 'printLayoutAttentionValueWidthMm',
+      min: 10,
+      max: 120,
+      step: 0.1,
+      unit: 'mm',
+      group: 'branding',
+      label: 'Attention Width',
+      description: 'Controls the width of the Attention value text box in the print header details table.'
     },
     {
       key: 'lineTableFontSize',
@@ -1067,11 +1089,30 @@
 
   function normalizePrintLayoutSettings(settings = {}) {
     const normalized = {};
+    const addressField = PRINT_LAYOUT_FIELD_MAP.addressColumnWidthMm;
+    const addressColumnWidthMm = clampPrintLayoutNumber(
+      settings.addressColumnWidthMm,
+      PRINT_LAYOUT_DEFAULTS.addressColumnWidthMm,
+      addressField.min,
+      addressField.max
+    );
+    const derivedAttentionWidthMm = addressColumnWidthMm <= PRINT_LAYOUT_META_TABLE_BASE_WIDTHS.address
+      ? PRINT_LAYOUT_META_TABLE_BASE_WIDTHS.midValue + (PRINT_LAYOUT_META_TABLE_BASE_WIDTHS.address - addressColumnWidthMm)
+      : PRINT_LAYOUT_META_TABLE_BASE_WIDTHS.midValue - (
+        (PRINT_LAYOUT_META_TABLE_BASE_WIDTHS.midValue - PRINT_LAYOUT_META_TABLE_MIN_WIDTHS.midValue)
+        * ((addressColumnWidthMm - PRINT_LAYOUT_META_TABLE_BASE_WIDTHS.address) / (addressField.max - PRINT_LAYOUT_META_TABLE_BASE_WIDTHS.address))
+      );
 
     PRINT_LAYOUT_FIELDS.forEach(field => {
+      const fallback = field.key === 'addressColumnWidthMm'
+        ? addressColumnWidthMm
+        : field.key === 'attentionValueWidthMm'
+        ? derivedAttentionWidthMm
+        : PRINT_LAYOUT_DEFAULTS[field.key];
+
       normalized[field.key] = clampPrintLayoutNumber(
         settings[field.key],
-        PRINT_LAYOUT_DEFAULTS[field.key],
+        fallback,
         field.min,
         field.max
       );
