@@ -493,7 +493,7 @@ function buildPrintHtml(model) {
     .cert-logo { height: 5.4mm; width: auto; object-fit: contain; }
     .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 2.5mm; font-size: 10.8px; line-height: 1.22; }
     .meta-table td { padding: 0 0.8mm 1.25mm 0; vertical-align: top; }
-    .meta-table .lined-value {
+    .meta-table .meta-divider td {
       border-bottom: 1px solid #111827;
       padding-bottom: 0.65mm;
     }
@@ -605,61 +605,61 @@ function buildPrintHtml(model) {
     </div>
 
     <table class="meta-table">
-      <tr>
+      <tr class="meta-divider">
         <td class="label">AR Code</td>
-        <td class="value lined-value">${escapeHtml(model.arCode)}</td>
+        <td class="value">${escapeHtml(model.arCode)}</td>
         <td class="mid-label"></td>
         <td class="mid-value"></td>
-        <td class="right-label">Our Ref.</td>
-        <td class="right-value">${escapeHtml(model.ourRef)}</td>
+        <td class="right-label"></td>
+        <td class="right-value"></td>
       </tr>
       <tr>
         <td class="label">Customer</td>
         <td class="value">${escapeHtml(model.customerName)}</td>
         <td class="mid-label"></td>
         <td class="mid-value"></td>
-        <td class="right-label">Date</td>
-        <td class="right-value">${escapeHtml(model.documentDate)}</td>
+        <td class="right-label"></td>
+        <td class="right-value"></td>
       </tr>
       <tr>
         <td class="label">Address</td>
         <td class="value">${escapeHtml(customerAddressLines[0])}</td>
         <td class="mid-label">Attention</td>
         <td class="mid-value">${escapeHtml(model.attention)}</td>
-        <td class="right-label">Expired Date</td>
-        <td class="right-value">${escapeHtml(model.expiredDate)}</td>
+        <td class="right-label">Our Ref.</td>
+        <td class="right-value">${escapeHtml(model.ourRef)}</td>
       </tr>
       <tr>
         <td class="label"></td>
         <td class="value">${escapeHtml(customerAddressLines[1])}</td>
         <td class="mid-label">Tel.</td>
         <td class="mid-value">${escapeHtml(model.phone)}</td>
-        <td class="right-label">Payment</td>
-        <td class="right-value">${escapeHtml(model.paymentText)}</td>
+        <td class="right-label">Date</td>
+        <td class="right-value">${escapeHtml(model.documentDate)}</td>
       </tr>
       <tr>
         <td class="label">Tax ID</td>
         <td class="value">${escapeHtml(model.taxId)}</td>
         <td class="mid-label"></td>
         <td class="mid-value"></td>
-        <td class="right-label">Delivery Date</td>
-        <td class="right-value">${escapeHtml(model.deliveryText)}</td>
+        <td class="right-label">Expired Date</td>
+        <td class="right-value">${escapeHtml(model.expiredDate)}</td>
       </tr>
       <tr>
         <td class="label">Delivery Address</td>
         <td class="value">${escapeHtml(deliveryAddressLines[0])}</td>
         <td class="mid-label"></td>
         <td class="mid-value"></td>
-        <td class="right-label"></td>
-        <td class="right-value"></td>
+        <td class="right-label">Payment</td>
+        <td class="right-value">${escapeHtml(model.paymentText)}</td>
       </tr>
       <tr>
         <td class="label"></td>
         <td class="value">${escapeHtml(deliveryAddressLines[1])}</td>
         <td class="mid-label"></td>
         <td class="mid-value"></td>
-        <td class="right-label"></td>
-        <td class="right-value"></td>
+        <td class="right-label">Delivery Date</td>
+        <td class="right-value">${escapeHtml(model.deliveryText)}</td>
       </tr>
     </table>
 
