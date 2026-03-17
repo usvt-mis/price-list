@@ -444,15 +444,15 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Company info: Branch-specific company header (Thai/English names, addresses, phone, fax, VAT ID) from `BRANCH_HEADER_MAP` keyed by branch code; head office branches (URY) display "(สำนักงานใหญ่)" / "(Head Office)" labels; falls back to BC `companyInfoText*` and `companyInfoPicture` if branch not found; logo from static assets
   - Customer info: Name, address, attention contact, phone, tax ID (from BC `customerInfo*` and `sellTo*` fields); prioritizes report context data over form data
   - Quote metadata: Quote number, dates, payment terms, delivery info (from BC header fields)
-  - Line items: Item number, description, description2, quantity, unit price, discount, total (from BC sales quote lines); sequence column now visible in print output
+  - Line items: Item number, description, description2, quantity, unit price, discount, total (from BC sales quote lines)
   - Line print control: `USVT_Show_in_Document`, `USVT_Header`, `USVT_Footer` flags control visibility and formatting; comment-note lines are filtered out
   - Signatures: Salesperson (from `requestSignature` with fallback to `salesperson`), and approver details with signature images (from BC signature fields)
   - Certification logos: EASA, SGS-UKAS, IEC-IECEX, AEMT (static assets)
 - **Print Layout Sections**:
   1. **Top Bar**: Main company logo (29mm), company info (Thai/English names + address; English address first, head office labeled), page number label
   2. **Title Row**: "ใบเสนอราคา/QUOTATION" centered with certification logos (EASA, SGS, IEC, AEMT) on the right
-  3. **Meta Table**: Wide single-table layout with AR Code, Customer, Address (2 rows), Attention, Tel, Tax ID, Delivery Address (2 rows), Our Ref, Date, Expired Date, Payment, Delivery Date organized across 6 rows with left/mid/right column structure (empty cells for spacing)
-  4. **Line Items Table**: Item (sequence), Description (with multi-line support), Qty, unit of measure, unit price, discount, total
+  3. **Meta Table**: Dynamic row layout with AR Code, Customer, Address (2 rows), Attention, Tel, Tax ID, Delivery Address (1 row, hidden if same as customer), Our Ref, Date, Expired Date, Payment, Delivery Date; rows are generated based on actual address data to avoid duplication
+  4. **Line Items Table**: Item (itemNo), Description (with multi-line support), Qty, unit of measure, unit price, discount, total
      - Multi-line descriptions render as continuation rows (empty pricing columns)
      - `description2` field renders as additional continuation rows
      - Footer rows display with "Total" label in discount column
@@ -482,7 +482,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `buildPrintableLines()` - Filters and enriches line items with print metadata; adds description2, rawType, amountExcludingTax fields
   - `buildTotals(formData, reportContext)` - Calculates financial totals with report context integration and fallback
   - `buildCustomerAddressLines()` - Resolves customer address (2 lines max); prioritizes report context data over form data
-  - `buildDeliveryAddressLines()` - Resolves delivery address (2 lines max); returns empty array if not available
+  - `buildDeliveryAddressLines()` - Resolves delivery address (compares with customer address to avoid duplicates); returns empty array if not available or same as customer
+  - `renderMetaRows()` - Generates dynamic meta table rows based on actual address data
   - `renderAddressLines()` - Normalizes address lines to expected count with empty padding
   - `renderLineRows()` - Generates HTML table rows with multi-line description support, footer rows, section headers, and comment handling
   - `buildPrintHtml()` - Generates complete print document with inline styles
@@ -501,6 +502,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `joinAddress()` - Address part concatenation
   - `unique()` - Removes duplicate values from array
   - `compactLines()` - Flattens nested arrays and removes empty values
+  - `normalizeComparableText()` - Normalizes text for comparison (removes spaces, punctuation, converts to lowercase)
+  - `comparableLineSetsMatch()` - Compares two sets of address lines to check if they match (ignoring formatting differences)
 - **Error Handling**:
   - Validates edit mode and BC-loaded state before printing
   - Handles popup blocker scenario with user-friendly message

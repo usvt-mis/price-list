@@ -257,6 +257,25 @@ function joinAddress(parts) {
     .join(', ');
 }
 
+function normalizeComparableText(value) {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .replace(/[,:;.-]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+function comparableLineSetsMatch(leftLines, rightLines) {
+  const left = compactLines(leftLines).map(normalizeComparableText).filter(Boolean);
+  const right = compactLines(rightLines).map(normalizeComparableText).filter(Boolean);
+
+  if (!left.length || !right.length || left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((line, index) => line === right[index]);
+}
+
 function calculateLineTotal(line) {
   return (asNumber(line.quantity) * asNumber(line.unitPrice)) - asNumber(line.discountAmount);
 }
@@ -348,22 +367,36 @@ function buildCustomerAddressLines(formData, reportContext) {
   return sellToLines;
 }
 
-function buildDeliveryAddressLines(formData, reportContext) {
-  if (reportContext.usvtShipTo) {
-    return compactLines([reportContext.usvtShipTo]);
+function buildDeliveryAddressLines(formData, reportContext, customerName = '', customerAddressLines = []) {
+  const deliveryLines = reportContext.usvtShipTo
+    ? compactLines([reportContext.usvtShipTo])
+    : compactLines([
+      reportContext.shipToName,
+      reportContext.shipToAddress,
+      reportContext.shipToContact
+    ]);
+
+  if (!deliveryLines.length) {
+    return [];
   }
 
-  const deliveryLines = compactLines([
-    reportContext.shipToName,
-    reportContext.shipToAddress,
-    reportContext.shipToContact
-  ]);
+  const normalizedCustomerName = normalizeComparableText(customerName);
+  const normalizedDeliveryLines = deliveryLines.map(normalizeComparableText).filter(Boolean);
+  const normalizedCustomerLines = compactLines([
+    customerName,
+    ...customerAddressLines
+  ]).map(normalizeComparableText).filter(Boolean);
 
-  if (deliveryLines.length) {
-    return deliveryLines;
+  if (
+    (normalizedDeliveryLines.length === 1 && normalizedDeliveryLines[0] === normalizedCustomerName)
+    || comparableLineSetsMatch(deliveryLines, customerAddressLines)
+    || comparableLineSetsMatch(deliveryLines, [customerName, ...customerAddressLines])
+    || comparableLineSetsMatch(normalizedDeliveryLines, normalizedCustomerLines)
+  ) {
+    return [];
   }
 
-  return [];
+  return deliveryLines;
 }
 
 function buildModel() {
@@ -383,6 +416,9 @@ function buildModel() {
   const requestSignature = reportContext.requestSignature || {};
   const salespersonSignature = normalizeDataUri(requestSignature.signature) || normalizeDataUri(reportContext.salesperson?.signature);
   const approverSignature = normalizeDataUri(reportContext.approver?.signature);
+  const customerName = reportContext.customerName || formData.customerName || '';
+  const customerAddressLines = buildCustomerAddressLines(formData, reportContext);
+  const deliveryAddressLines = buildDeliveryAddressLines(formData, reportContext, customerName, customerAddressLines);
 
   return {
     title: DEFAULT_TITLE,
@@ -396,17 +432,17 @@ function buildModel() {
       ASSET_PATHS.aemt
     ],
     arCode: reportContext.billToCustomerNo || reportContext.sellToCustomerNo || formData.customerNo || '',
-    customerName: reportContext.customerName || formData.customerName || '',
-    customerAddressLines: buildCustomerAddressLines(formData, reportContext),
+    customerName,
+    customerAddressLines,
     ourRef: documentRef,
     documentDate: formatDate(reportContext.documentDate || reportContext.orderDate || formData.orderDate),
     expiredDate: formatDate(reportContext.quoteValidUntilDate),
     paymentText: reportContext.paymentTermsCode || reportContext.paymentTermsDescription || '',
-    deliveryText: reportContext.requestedDeliveryDate || formData.requestedDeliveryDate || '',
+    deliveryText: formatDate(reportContext.requestedDeliveryDate || formData.requestedDeliveryDate),
     attention: formData.contact || reportContext.billToContact || '',
     phone: state.quote.customer?.phone || reportContext.sellToPhoneNo || '',
     taxId: formData.sellTo?.vatRegNo || reportContext.vatRegistrationNo || '',
-    deliveryAddressLines: buildDeliveryAddressLines(formData, reportContext),
+    deliveryAddressLines,
     lineItems: buildPrintableLines(formData, reportContext),
     detailNotes: [],
     bottomRemark: detailNotes.join(' '),
@@ -431,18 +467,74 @@ function buildModel() {
 }
 
 function renderAddressLines(lines, expected = 2) {
-  const normalized = [...lines].map(line => String(line || '').trim()).filter(Boolean);
-
-  if (normalized.length > expected) {
-    const head = normalized.slice(0, expected - 1);
-    const tail = normalized.slice(expected - 1).join(' ');
-    normalized.splice(0, normalized.length, ...head, tail);
-  }
+  const normalized = compactLines(lines);
 
   while (normalized.length < expected) {
     normalized.push('');
   }
+
   return normalized;
+}
+
+function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
+  const customerRows = customerAddressLines.map((line, index) => `
+    <tr>
+      <td class="label">${index === 0 ? 'Address' : ''}</td>
+      <td class="value">${escapeHtml(line)}</td>
+      <td class="mid-label"></td>
+      <td class="mid-value"></td>
+      <td class="right-label">${index === 0 ? 'Our Ref.' : index === 1 ? 'Date' : ''}</td>
+      <td class="right-value">${index === 0 ? escapeHtml(model.ourRef) : index === 1 ? escapeHtml(model.documentDate) : ''}</td>
+    </tr>
+  `).join('');
+
+  const deliveryRows = deliveryAddressLines.map((line, index) => `
+    <tr>
+      <td class="label">${index === 0 ? 'Delivery Address' : ''}</td>
+      <td class="value">${escapeHtml(line)}</td>
+      <td class="mid-label">${index === 0 ? 'Tel.' : ''}</td>
+      <td class="mid-value">${index === 0 ? escapeHtml(model.phone) : ''}</td>
+      <td class="right-label">${index === 0 ? 'Delivery Date' : ''}</td>
+      <td class="right-value">${index === 0 ? escapeHtml(model.deliveryText) : ''}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <tr class="meta-divider">
+      <td class="label">AR Code</td>
+      <td class="value">${escapeHtml(model.arCode)}</td>
+      <td class="mid-label"></td>
+      <td class="mid-value"></td>
+      <td class="right-label"></td>
+      <td class="right-value"></td>
+    </tr>
+    <tr>
+      <td class="label">Customer</td>
+      <td class="value">${escapeHtml(model.customerName)}</td>
+      <td class="mid-label"></td>
+      <td class="mid-value"></td>
+      <td class="right-label"></td>
+      <td class="right-value"></td>
+    </tr>
+    ${customerRows}
+    <tr>
+      <td class="label"></td>
+      <td class="value"></td>
+      <td class="mid-label">Attention</td>
+      <td class="mid-value">${escapeHtml(model.attention)}</td>
+      <td class="right-label">Expired Date</td>
+      <td class="right-value">${escapeHtml(model.expiredDate)}</td>
+    </tr>
+    <tr>
+      <td class="label">Tax ID</td>
+      <td class="value">${escapeHtml(model.taxId)}</td>
+      <td class="mid-label"></td>
+      <td class="mid-value"></td>
+      <td class="right-label">Payment</td>
+      <td class="right-value">${escapeHtml(model.paymentText)}</td>
+    </tr>
+    ${deliveryRows}
+  `;
 }
 
 function renderLineRows(lines) {
@@ -460,7 +552,7 @@ function renderLineRows(lines) {
     )
       .map(text => `
         <tr class="line-comment-row">
-          <td class="seq-cell"></td>
+          <td class="item-cell"></td>
           <td class="desc-cell">${escapeHtml(text)}</td>
           <td class="qty-cell"></td>
           <td class="unit-cell"></td>
@@ -491,7 +583,7 @@ function renderLineRows(lines) {
     if (line.printFooter) {
       return `
         <tr class="line-footer-row">
-          <td class="seq-cell"></td>
+          <td class="item-cell"></td>
           <td class="desc-cell">${primaryDescription ? escapeHtml(primaryDescription) : '&nbsp;'}</td>
           <td class="qty-cell"></td>
           <td class="unit-cell"></td>
@@ -505,7 +597,7 @@ function renderLineRows(lines) {
     if (line.printHeader && !hasLineAmounts) {
       return `
         <tr class="line-section-row">
-          <td class="seq-cell"></td>
+          <td class="item-cell"></td>
           <td class="desc-cell">${escapeHtml(primaryDescription)}</td>
           <td class="qty-cell"></td>
           <td class="unit-cell"></td>
@@ -527,7 +619,7 @@ function renderLineRows(lines) {
 
     return `
       <tr class="line-main-row">
-        <td class="seq-cell">${escapeHtml(line.sequence)}</td>
+        <td class="item-cell">${escapeHtml(line.itemNo)}</td>
         <td class="desc-cell">${escapeHtml(primaryDescription)}</td>
         <td class="qty-cell">${escapeHtml(formatQty(line.quantity))}</td>
         <td class="unit-cell">${escapeHtml(formatUnitOfMeasure(line.unitOfMeasure))}</td>
@@ -542,7 +634,8 @@ function renderLineRows(lines) {
 
 function buildPrintHtml(model) {
   const customerAddressLines = renderAddressLines(model.customerAddressLines, 2);
-  const deliveryAddressLines = renderAddressLines(model.deliveryAddressLines, 2);
+  const deliveryAddressLines = renderAddressLines(model.deliveryAddressLines, 1);
+  const metaRowsMarkup = renderMetaRows(model, customerAddressLines, deliveryAddressLines);
   const companyMarkup = model.companyLines.slice(2).map(line => `<div class="company-line">${escapeHtml(line)}</div>`).join('');
   const remarkMarkup = model.bottomRemark
     ? escapeHtml(model.bottomRemark)
@@ -560,90 +653,94 @@ function buildPrintHtml(model) {
   <style>
     @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; background: #fff; color: #111827; font-family: Tahoma, Arial, sans-serif; font-size: 11px; line-height: 1.22; }
+    html, body { margin: 0; background: #fff; color: #000; font-family: Tahoma, Arial, sans-serif; font-size: 11px; line-height: 1.22; }
     body {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
-      padding: 10mm;
+      padding: 8.5mm 9mm 8mm;
     }
     .page {
-      width: 190mm;
-      min-height: 277mm;
+      width: 192mm;
+      min-height: 279mm;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
     }
-    .topbar { display: grid; grid-template-columns: 30mm 1fr 30mm; align-items: start; column-gap: 3mm; }
-    .main-logo { width: 29mm; height: auto; object-fit: contain; margin-top: 0.5mm; }
-    .company { padding-top: 0.3mm; }
-    .company .th-name { font-size: 15.5px; font-weight: 700; line-height: 1.12; margin-bottom: 0.9mm; }
-    .company .en-name { font-size: 15px; font-weight: 700; line-height: 1.12; margin-bottom: 1.3mm; }
-    .company-line { font-size: 11px; line-height: 1.22; margin-bottom: 0.45mm; }
-    .page-no { text-align: right; font-size: 11.2px; font-weight: 700; white-space: nowrap; padding-top: 0.5mm; }
+    .topbar { display: grid; grid-template-columns: 30mm 1fr 23mm; align-items: start; column-gap: 4.2mm; }
+    .main-logo { width: 28mm; height: auto; object-fit: contain; margin-top: 1.1mm; }
+    .company { padding-top: 0.5mm; }
+    .company .th-name { font-size: 15px; font-weight: 700; line-height: 1.08; margin-bottom: 1mm; }
+    .company .en-name { font-size: 14px; font-weight: 700; line-height: 1.08; margin-bottom: 1.6mm; }
+    .company-line { font-size: 10.2px; line-height: 1.24; margin-bottom: 0.48mm; }
+    .page-no { text-align: right; font-size: 10.8px; font-weight: 700; white-space: nowrap; padding-top: 1.2mm; }
     .title-row {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: end;
-      margin: 4.8mm 0 2.6mm;
-      column-gap: 3mm;
+      margin: 7mm 0 3.1mm;
+      column-gap: 2.8mm;
     }
     .title-row .spacer { min-height: 1px; }
-    .title { font-size: 14px; font-weight: 700; white-space: nowrap; }
-    .certs { display: flex; justify-content: flex-end; align-items: flex-end; gap: 1mm; min-height: 7mm; }
-    .cert-logo { height: 5.8mm; width: auto; object-fit: contain; }
-    .meta-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 2.6mm; font-size: 10.5px; line-height: 1.18; }
-    .meta-table td { padding: 0 0.8mm 0.8mm 0; vertical-align: top; }
+    .title { font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .certs { display: flex; justify-content: flex-end; align-items: flex-end; gap: 1mm; min-height: 7.5mm; }
+    .cert-logo { height: 7.1mm; width: auto; object-fit: contain; }
+    .meta-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3.3mm; font-size: 9.5px; line-height: 1.18; }
+    .meta-table td { padding: 0 1mm 0.62mm 0; vertical-align: top; }
     .meta-table .meta-divider td {
-      border-bottom: 1px solid #111827;
-      padding-bottom: 0.9mm;
+      border-bottom: 1px solid #000;
+      padding-bottom: 0.95mm;
     }
-    .label { width: 18mm; font-weight: 700; white-space: nowrap; }
-    .value { width: 70mm; }
-    .mid-label { width: 16mm; font-weight: 700; white-space: nowrap; text-align: right; padding-right: 1.1mm; }
-    .mid-value { width: 32mm; }
-    .right-label { width: 19mm; text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.4mm; }
-    .right-value { width: 24mm; text-align: right; white-space: nowrap; }
-    .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 0.8mm; table-layout: fixed; font-size: 10.4px; }
+    .label { font-weight: 700; white-space: nowrap; }
+    .value { word-break: break-word; }
+    .mid-label { font-weight: 700; white-space: nowrap; text-align: right; padding-right: 1.2mm; }
+    .mid-value { word-break: break-word; }
+    .right-label { text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.2mm; }
+    .right-value { text-align: right; white-space: nowrap; }
+    .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: 9.9px; }
     .line-table thead { display: table-header-group; }
     .line-table th {
       background: #d9d9d9;
-      color: #111827;
-      font-size: 11.3px;
+      color: #000;
+      font-size: 10.6px;
       font-weight: 700;
-      padding: 1.25mm 0.7mm;
+      padding: 1.45mm 0.85mm;
       text-align: center;
     }
+    .line-table th:first-child,
+    .line-table th:nth-child(2) { text-align: left; }
     .line-table td {
-      padding: 0.65mm 0.8mm;
+      padding: 0.7mm 0.85mm;
       vertical-align: top;
     }
     .line-table tr { page-break-inside: avoid; }
-    .seq-cell { text-align: center; white-space: nowrap; }
-    .desc-cell { word-break: break-word; }
+    .item-cell { white-space: nowrap; text-align: left; }
+    .desc-cell { word-break: break-word; padding-left: 0.5mm; }
     .qty-cell,
     .num-cell { text-align: right; white-space: nowrap; }
     .unit-cell { text-align: center; white-space: nowrap; }
-    .line-main-row td { min-height: 5.6mm; }
-    .line-section-row td { padding-top: 1.1mm; padding-bottom: 0.85mm; font-weight: 700; }
-    .line-comment-row td { padding-top: 0.2mm; padding-bottom: 0.55mm; }
-    .line-footer-row td { padding-top: 1.05mm; padding-bottom: 0.75mm; }
+    .line-main-row td { min-height: 5.8mm; }
+    .line-section-row td { padding-top: 0.95mm; padding-bottom: 0.55mm; font-weight: 400; }
+    .line-section-row .desc-cell { padding-left: 4mm; }
+    .line-comment-row td { padding-top: 0.12mm; padding-bottom: 0.45mm; }
+    .line-comment-row .desc-cell { padding-left: 4mm; }
+    .line-footer-row td { padding-top: 1.1mm; padding-bottom: 0.75mm; }
     .footer-label-cell { font-weight: 700; text-align: left; }
-    .footer-stack { margin-top: auto; padding-top: 5.6mm; }
-    .footer-divider { border-top: 1px solid #111827; margin-bottom: 1.3mm; }
-    .summary-grid { display: grid; grid-template-columns: 1fr 57mm; column-gap: 3.5mm; align-items: start; }
+    .footer-stack { margin-top: auto; padding-top: 6.6mm; }
+    .footer-divider { border-top: 1px solid #000; margin-bottom: 1.35mm; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 63mm; column-gap: 4.5mm; align-items: start; }
     .summary-left { min-width: 0; }
-    .footer-note { font-size: 9.8px; line-height: 1.26; }
-    .footer-note div { margin-bottom: 0.65mm; }
+    .footer-note { font-size: 9.1px; line-height: 1.28; }
+    .footer-note div { margin-bottom: 0.55mm; }
     .footer-note .thai { font-weight: 700; }
     .totals { width: 100%; border-collapse: separate; border-spacing: 0 0.45mm; table-layout: fixed; }
-    .totals td { padding: 0.2mm 0; font-size: 10.4px; font-weight: 700; vertical-align: top; }
-    .totals .label-cell { width: 58%; white-space: nowrap; padding-right: 4mm; }
-    .totals .amount { width: 42%; text-align: right; white-space: nowrap; }
-    .remark-section { margin-top: 3mm; font-size: 10.4px; }
+    .totals td { padding: 0.18mm 0; font-size: 9.6px; font-weight: 700; vertical-align: top; }
+    .totals .label-cell { width: 56%; white-space: nowrap; padding-right: 4.5mm; }
+    .totals .amount { width: 44%; text-align: right; white-space: nowrap; }
+    .remark-section { margin-top: 3.1mm; font-size: 9.9px; }
     .remark-row,
     .job-row {
       display: grid;
-      grid-template-columns: 16mm 1fr;
+      grid-template-columns: 15mm 1fr;
       column-gap: 2mm;
       align-items: start;
     }
@@ -651,42 +748,42 @@ function buildPrintHtml(model) {
     .remark-label,
     .job-label { font-weight: 700; }
     .remark-value { white-space: pre-wrap; word-break: break-word; }
-    .job-row { margin-top: 0.7mm; font-weight: 700; }
+    .job-row { margin-top: 1.2mm; font-weight: 700; }
     .signature-grid {
       display: grid;
-      grid-template-columns: 37mm 48mm 51mm;
+      grid-template-columns: 49mm 57mm 53mm;
       justify-content: space-between;
       column-gap: 0;
-      margin-top: 5.5mm;
+      margin-top: 7.2mm;
       align-items: end;
     }
     .signature-col {
-      min-height: 40mm;
+      min-height: 47mm;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
     }
     .signature-sign {
-      min-height: 18mm;
+      min-height: 19mm;
       display: flex;
       align-items: flex-end;
       justify-content: center;
     }
-    .signature-image { display: block; max-width: 41mm; max-height: 17mm; object-fit: contain; }
-    .signature-line { width: 100%; border-top: 1px solid #111827; margin-top: 1.1mm; }
-    .signature-caption { margin-top: 0.7mm; font-size: 10px; }
+    .signature-image { display: block; max-width: 44mm; max-height: 18mm; object-fit: contain; }
+    .signature-line { width: 100%; border-top: 1px solid #000; margin-top: 1.2mm; }
+    .signature-caption { margin-top: 0.8mm; font-size: 9.8px; }
     .signature-caption.centered { text-align: center; }
     .signature-detail {
       display: grid;
       grid-template-columns: 12mm 1fr;
       column-gap: 1.8mm;
       align-items: baseline;
-      font-size: 10px;
+      font-size: 9.8px;
     }
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
-    .signature-customer .signature-date { margin-top: 0.8mm; text-align: center; font-size: 10px; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 3.5mm; font-size: 10px; }
+    .signature-customer .signature-date { margin-top: 1.4mm; text-align: center; font-size: 9.8px; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.8mm; font-size: 9.8px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
 </head>
@@ -709,82 +806,27 @@ function buildPrintHtml(model) {
     </div>
 
     <table class="meta-table">
-      <tr class="meta-divider">
-        <td class="label">AR Code</td>
-        <td class="value">${escapeHtml(model.arCode)}</td>
-        <td class="mid-label"></td>
-        <td class="mid-value"></td>
-        <td class="right-label"></td>
-        <td class="right-value"></td>
-      </tr>
-      <tr>
-        <td class="label">Customer</td>
-        <td class="value">${escapeHtml(model.customerName)}</td>
-        <td class="mid-label"></td>
-        <td class="mid-value"></td>
-        <td class="right-label"></td>
-        <td class="right-value"></td>
-      </tr>
-      <tr>
-        <td class="label">Address</td>
-        <td class="value">${escapeHtml(customerAddressLines[0])}</td>
-        <td class="mid-label"></td>
-        <td class="mid-value"></td>
-        <td class="right-label">Our Ref.</td>
-        <td class="right-value">${escapeHtml(model.ourRef)}</td>
-      </tr>
-      <tr>
-        <td class="label"></td>
-        <td class="value">${escapeHtml(customerAddressLines[1])}</td>
-        <td class="mid-label"></td>
-        <td class="mid-value"></td>
-        <td class="right-label">Date</td>
-        <td class="right-value">${escapeHtml(model.documentDate)}</td>
-      </tr>
-      <tr>
-        <td class="label"></td>
-        <td class="value"></td>
-        <td class="mid-label">Attention</td>
-        <td class="mid-value">${escapeHtml(model.attention)}</td>
-        <td class="right-label">Expired Date</td>
-        <td class="right-value">${escapeHtml(model.expiredDate)}</td>
-      </tr>
-      <tr>
-        <td class="label">Tax ID</td>
-        <td class="value">${escapeHtml(model.taxId)}</td>
-        <td class="mid-label"></td>
-        <td class="mid-value"></td>
-        <td class="right-label">Payment</td>
-        <td class="right-value">${escapeHtml(model.paymentText)}</td>
-      </tr>
-      <tr>
-        <td class="label">Delivery Address</td>
-        <td class="value">${escapeHtml(deliveryAddressLines[0])}</td>
-        <td class="mid-label">Tel.</td>
-        <td class="mid-value">${escapeHtml(model.phone)}</td>
-        <td class="right-label">Delivery Date</td>
-        <td class="right-value">${escapeHtml(model.deliveryText)}</td>
-      </tr>
-      <tr>
-        <td class="label"></td>
-        <td class="value">${escapeHtml(deliveryAddressLines[1])}</td>
-        <td class="mid-label"></td>
-        <td class="mid-value"></td>
-        <td class="right-label"></td>
-        <td class="right-value"></td>
-      </tr>
+      <colgroup>
+        <col style="width: 18mm;">
+        <col style="width: 77mm;">
+        <col style="width: 18mm;">
+        <col style="width: 34mm;">
+        <col style="width: 19mm;">
+        <col style="width: 26mm;">
+      </colgroup>
+      ${metaRowsMarkup}
     </table>
 
     <table class="line-table">
       <thead>
         <tr>
-          <th style="width: 5%;">Item</th>
-          <th style="width: 39.5%;">Description</th>
-          <th style="width: 9.5%;">Qty</th>
-          <th style="width: 6.8%;">@</th>
-          <th style="width: 13.1%;">Unit/Price</th>
-          <th style="width: 13.1%;">Discount</th>
-          <th style="width: 13.1%;">Total</th>
+          <th style="width: 11%;">Item</th>
+          <th style="width: 39%;">Description</th>
+          <th style="width: 8.5%;">Qty</th>
+          <th style="width: 6%;">@</th>
+          <th style="width: 15.5%;">Unit/Price</th>
+          <th style="width: 10.5%;">Discount</th>
+          <th style="width: 14.5%;">Total</th>
         </tr>
       </thead>
       <tbody>${renderLineRows(model.lineItems)}</tbody>
