@@ -983,7 +983,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .footer-label-cell { font-weight: 700; text-align: left; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
     .footer-divider { border-top: 1px solid #000; margin-bottom: 1.35mm; }
-    .summary-grid { display: grid; grid-template-columns: 1fr 63mm; column-gap: 4.5mm; align-items: start; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 58mm; column-gap: 1mm; align-items: start; }
     .summary-left { min-width: 0; }
     .footer-note { font-size: ${settings.footerNoteFontSize}px; line-height: 1.28; }
     .footer-note div { margin-bottom: 0.55mm; }
