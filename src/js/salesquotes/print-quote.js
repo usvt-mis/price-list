@@ -676,7 +676,7 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="right-label"></td>
       <td class="right-value"></td>
     </tr>
-    <tr>
+    <tr class="meta-customer-row">
       <td class="label">Customer</td>
       <td class="value">${renderLeftMetaValueContent(model.customerName)}</td>
       <td class="mid-label"></td>
@@ -898,6 +898,9 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .meta-table .meta-divider td {
       border-bottom: 1px solid #000;
       padding-bottom: 0.95mm;
+    }
+    .meta-table .meta-customer-row td {
+      padding-top: 0.8mm;
     }
     .meta-table td.label { font-weight: 700; white-space: nowrap; }
     .meta-table td.value { word-break: break-word; }
