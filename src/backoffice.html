@@ -729,6 +729,8 @@
     logoWidthMm: 31.0,
     companyBlockOffsetXMm: 0,
     companyBlockOffsetYMm: 0,
+    attentionTelBlockOffsetXMm: 0,
+    attentionTelBlockOffsetYMm: 0,
     certsOffsetYMm: 3.2,
     totalsOffsetXMm: 0,
     signatureGridMarginTopMm: 5.4,
@@ -912,6 +914,28 @@
       group: 'branding',
       label: 'Company Block Offset Y',
       description: 'Moves the Company TH/EN header block up or down in the print header.'
+    },
+    {
+      key: 'attentionTelBlockOffsetXMm',
+      id: 'printLayoutAttentionTelBlockOffsetXMm',
+      min: -20,
+      max: 20,
+      step: 0.1,
+      unit: 'mm',
+      group: 'branding',
+      label: 'Attention/Tel Offset X',
+      description: 'Moves the Attention and Tel block left or right inside the print header details table.'
+    },
+    {
+      key: 'attentionTelBlockOffsetYMm',
+      id: 'printLayoutAttentionTelBlockOffsetYMm',
+      min: -10,
+      max: 16,
+      step: 0.1,
+      unit: 'mm',
+      group: 'branding',
+      label: 'Attention/Tel Offset Y',
+      description: 'Moves the Attention and Tel block up or down inside the print header details table.'
     },
     {
       key: 'certsOffsetYMm',

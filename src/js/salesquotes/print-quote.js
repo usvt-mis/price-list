@@ -117,6 +117,8 @@ const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   logoWidthMm: 31.0,
   companyBlockOffsetXMm: 0,
   companyBlockOffsetYMm: 0,
+  attentionTelBlockOffsetXMm: 0,
+  attentionTelBlockOffsetYMm: 0,
   certsOffsetYMm: 3.2,
   totalsOffsetXMm: 0,
   signatureGridMarginTopMm: 5.4,
@@ -192,6 +194,8 @@ function normalizePrintLayoutSettings(value = {}) {
     logoWidthMm: clampNumber(value.logoWidthMm, DEFAULT_PRINT_LAYOUT_SETTINGS.logoWidthMm, 20, 45),
     companyBlockOffsetXMm: clampNumber(value.companyBlockOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.companyBlockOffsetXMm, -20, 20),
     companyBlockOffsetYMm: clampNumber(value.companyBlockOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.companyBlockOffsetYMm, -10, 16),
+    attentionTelBlockOffsetXMm: clampNumber(value.attentionTelBlockOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.attentionTelBlockOffsetXMm, -20, 20),
+    attentionTelBlockOffsetYMm: clampNumber(value.attentionTelBlockOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.attentionTelBlockOffsetYMm, -10, 16),
     certsOffsetYMm: clampNumber(value.certsOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.certsOffsetYMm, -8, 12),
     totalsOffsetXMm: clampNumber(value.totalsOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.totalsOffsetXMm, -20, 20),
     signatureGridMarginTopMm: clampNumber(value.signatureGridMarginTopMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureGridMarginTopMm, 0, 20),
@@ -597,6 +601,15 @@ function renderAddressLines(lines, expected = 2) {
   return normalized;
 }
 
+function renderMetaOffsetContent(content, kind = 'value') {
+  const normalized = String(content ?? '').trim();
+  if (!normalized) {
+    return '';
+  }
+
+  return `<span class="meta-offset-block meta-offset-block-${kind}">${escapeHtml(normalized)}</span>`;
+}
+
 function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
   const customerRows = customerAddressLines.map((line, index) => `
     <tr>
@@ -613,8 +626,8 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
     <tr>
       <td class="label">${index === 0 ? 'Delivery Address' : ''}</td>
       <td class="value">${escapeHtml(line)}</td>
-      <td class="mid-label">${index === 0 ? 'Tel.' : ''}</td>
-      <td class="mid-value">${index === 0 ? escapeHtml(model.phone) : ''}</td>
+      <td class="mid-label">${index === 0 ? renderMetaOffsetContent('Tel.', 'label') : ''}</td>
+      <td class="mid-value">${index === 0 ? renderMetaOffsetContent(model.phone, 'value') : ''}</td>
       <td class="right-label">${index === 0 ? 'Delivery Date' : ''}</td>
       <td class="right-value">${index === 0 ? escapeHtml(model.deliveryText) : ''}</td>
     </tr>
@@ -641,8 +654,8 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
     <tr>
       <td class="label"></td>
       <td class="value"></td>
-      <td class="mid-label">Attention</td>
-      <td class="mid-value">${escapeHtml(model.attention)}</td>
+      <td class="mid-label">${renderMetaOffsetContent('Attention', 'label')}</td>
+      <td class="mid-value">${renderMetaOffsetContent(model.attention, 'value')}</td>
       <td class="right-label">Expired Date</td>
       <td class="right-value">${escapeHtml(model.expiredDate)}</td>
     </tr>
@@ -856,6 +869,16 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .value { word-break: break-word; }
     .mid-label { font-weight: 700; white-space: nowrap; text-align: right; padding-right: 1.2mm; }
     .mid-value { word-break: break-word; }
+    .meta-offset-block {
+      transform: translate(${settings.attentionTelBlockOffsetXMm}mm, ${settings.attentionTelBlockOffsetYMm}mm);
+      transform-origin: top left;
+    }
+    .meta-offset-block-label {
+      display: inline-block;
+    }
+    .meta-offset-block-value {
+      display: block;
+    }
     .right-label { text-align: right; font-weight: 700; white-space: nowrap; padding-right: 1.2mm; }
     .right-value { text-align: right; white-space: nowrap; }
     .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; }
