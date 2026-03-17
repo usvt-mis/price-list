@@ -458,13 +458,17 @@ function buildPrintHtml(model) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(model.ourRef || 'Sales Quote')} Print</title>
   <style>
-    @page { size: A4; margin: 8mm 10mm 10mm; }
+    @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; background: #fff; color: #111827; font-family: Tahoma, Arial, sans-serif; font-size: 11px; line-height: 1.28; }
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 8mm 10mm 10mm;
+    }
     .page {
       width: 190mm;
-      min-height: 277mm;
+      min-height: 279mm;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -489,6 +493,10 @@ function buildPrintHtml(model) {
     .cert-logo { height: 5.4mm; width: auto; object-fit: contain; }
     .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 2.5mm; font-size: 10.8px; line-height: 1.22; }
     .meta-table td { padding: 0 0.8mm 1.25mm 0; vertical-align: top; }
+    .meta-table .lined-value {
+      border-bottom: 1px solid #111827;
+      padding-bottom: 0.65mm;
+    }
     .label { width: 18mm; font-weight: 700; white-space: nowrap; }
     .value { width: 86mm; }
     .mid-label { width: 12mm; font-weight: 700; white-space: nowrap; }
@@ -599,7 +607,7 @@ function buildPrintHtml(model) {
     <table class="meta-table">
       <tr>
         <td class="label">AR Code</td>
-        <td class="value">${escapeHtml(model.arCode)}</td>
+        <td class="value lined-value">${escapeHtml(model.arCode)}</td>
         <td class="mid-label"></td>
         <td class="mid-value"></td>
         <td class="right-label">Our Ref.</td>
