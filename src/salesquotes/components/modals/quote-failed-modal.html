@@ -1,18 +1,18 @@
 <!-- Quote Failed Modal -->
 <div id="quoteFailedModal" class="quote-created-modal fixed inset-0 hidden z-50 transition-opacity duration-200">
   <div class="quote-created-dialog">
-    <div id="quoteFailedModalContent" class="quote-created-panel quote-failed-panel transform transition-all duration-300 opacity-0 scale-95 overflow-hidden">
-      <div class="quote-failed-hero">
-        <span class="quote-created-badge">Send Failed</span>
-        <h2 class="quote-created-title quote-failed-title">Unable to send Sales Quote</h2>
-        <p class="quote-created-subtitle">
-          Business Central did not accept this request. Your current quote is still on the page so you can review and try again.
+    <div id="quoteFailedModalContent" class="quote-created-panel quote-failed-panel overflow-hidden" style="opacity: 0; transform: translateY(-8px);">
+      <div class="quote-created-header quote-created-header-danger">
+        <p class="quote-created-status quote-created-status-danger">Send failed</p>
+        <h2 class="quote-created-title">Unable to send Sales Quote</h2>
+        <p class="quote-created-subtitle quote-created-subtitle-muted">
+          Business Central did not accept the request. The quote remains on this page so you can review and try again.
         </p>
       </div>
 
       <div class="quote-created-body">
         <section class="quote-created-card quote-failed-card">
-          <p class="quote-created-card-label quote-created-card-label-dark">Error Details</p>
+          <p class="quote-created-card-label quote-created-card-label-danger">Error Details</p>
           <p id="quoteFailedMessage" class="quote-failed-message">
             Failed to send quote to Business Central. Please review the data and try again.
           </p>

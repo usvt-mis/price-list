@@ -1837,6 +1837,39 @@ async function copyTextWithFeedback(text, copyIconRef, copiedIconRef) {
   }
 }
 
+function openQuoteResponseModal(modal, modalContent) {
+  if (!modal || !modalContent) {
+    return;
+  }
+
+  modal.classList.remove('hidden');
+  modal.style.zIndex = '160';
+  document.body.style.overflow = 'hidden';
+
+  requestAnimationFrame(() => {
+    modalContent.style.opacity = '1';
+    modalContent.style.transform = 'translateY(0)';
+  });
+}
+
+function closeQuoteResponseModal(modal, modalContent) {
+  if (!modal || !modalContent) {
+    if (modal) {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+    return;
+  }
+
+  modalContent.style.opacity = '0';
+  modalContent.style.transform = 'translateY(-8px)';
+
+  setTimeout(() => {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }, 220);
+}
+
 export async function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = null) {
   const { modal, modalContent } = await ensureQuoteCreatedModalLoaded();
   const quoteNumberDisplay = el('quoteCreatedNumber');
@@ -1885,16 +1918,7 @@ export async function showQuoteCreatedSuccess(quoteNumber, serviceOrderNos = nul
     modalContainer.appendChild(modal);
   }
 
-  // Show modal
-  modal.classList.remove('hidden');
-  modal.style.zIndex = '160'; // Higher than other working modals
-  document.body.style.overflow = 'hidden';
-
-  // Trigger animation - scale up for modern effect
-  setTimeout(() => {
-    modalContent.classList.remove('opacity-0', 'scale-95');
-    modalContent.classList.add('opacity-100', 'scale-100');
-  }, 10);
+  openQuoteResponseModal(modal, modalContent);
 
   return true;
 }
@@ -1922,14 +1946,7 @@ export async function showQuoteSendFailure(errorOrMessage) {
     modalContainer.appendChild(modal);
   }
 
-  modal.classList.remove('hidden');
-  modal.style.zIndex = '160';
-  document.body.style.overflow = 'hidden';
-
-  setTimeout(() => {
-    modalContent.classList.remove('opacity-0', 'scale-95');
-    modalContent.classList.add('opacity-100', 'scale-100');
-  }, 10);
+  openQuoteResponseModal(modal, modalContent);
 
   return true;
 }
@@ -1941,38 +1958,14 @@ export function closeQuoteCreatedModal() {
   const modal = el('quoteCreatedModal');
   const modalContent = el('quoteCreatedModalContent');
 
-  if (modal && modalContent) {
-    // Start closing animation - scale down
-    modalContent.classList.remove('opacity-100', 'scale-100');
-    modalContent.classList.add('opacity-0', 'scale-95');
-
-    // Hide modal after animation completes
-    setTimeout(() => {
-      modal.classList.add('hidden');
-      document.body.style.overflow = '';
-    }, 500);
-  } else if (modal) {
-    modal.classList.add('hidden');
-    document.body.style.overflow = '';
-  }
+  closeQuoteResponseModal(modal, modalContent);
 }
 
 export function closeQuoteFailedModal() {
   const modal = el('quoteFailedModal');
   const modalContent = el('quoteFailedModalContent');
 
-  if (modal && modalContent) {
-    modalContent.classList.remove('opacity-100', 'scale-100');
-    modalContent.classList.add('opacity-0', 'scale-95');
-
-    setTimeout(() => {
-      modal.classList.add('hidden');
-      document.body.style.overflow = '';
-    }, 500);
-  } else if (modal) {
-    modal.classList.add('hidden');
-    document.body.style.overflow = '';
-  }
+  closeQuoteResponseModal(modal, modalContent);
 }
 
 export async function copyQuoteNumber() {

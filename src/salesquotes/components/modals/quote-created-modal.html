@@ -1,7 +1,13 @@
 <!-- Quote Created Success Modal -->
 <div id="quoteCreatedModal" class="quote-created-modal fixed inset-0 hidden z-50 transition-opacity duration-200">
   <div class="quote-created-dialog">
-    <div id="quoteCreatedModalContent" class="quote-created-panel transform transition-all duration-300 opacity-0 scale-95 overflow-hidden">
+    <div id="quoteCreatedModalContent" class="quote-created-panel overflow-hidden" style="opacity: 0; transform: translateY(-8px);">
+      <div class="quote-created-header">
+        <p class="quote-created-status quote-created-status-success">Sent successfully</p>
+        <h2 class="quote-created-title">Sales Quote sent to Business Central</h2>
+        <p class="quote-created-subtitle">The request was completed successfully. You can copy the reference numbers below.</p>
+      </div>
+
       <div class="quote-created-body quote-created-body-compact">
         <section class="quote-created-card quote-created-card-primary quote-created-card-compact">
           <p class="quote-created-card-label">Sales Quote Number</p>
@@ -36,9 +42,6 @@
           class="quote-created-btn quote-created-btn-secondary quote-created-btn-compact"
           onclick="window.closeQuoteCreatedModal()"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
           Close
         </button>
       </div>
