@@ -197,11 +197,13 @@ app.use('/api/adm/roles', requireAuth, adminRolesRouter);
 // Backoffice login is a SPECIAL PUBLIC ENDPOINT - must be registered BEFORE the protected route
 // Express matches routes in order, so specific routes must come before general ones
 app.use('/api/backoffice/login', backofficeLoginRouter);
+
+// Make multer available for signature uploads BEFORE backoffice router
+// This must be registered BEFORE the general backoffice route to ensure multipart/form-data is parsed
+app.use('/api/backoffice/salesperson-signatures', upload.single('signatureFile'));
+
 // All other backoffice routes require Azure AD + email authorization
 app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
-
-// Make multer available for signature uploads
-app.use('/api/backoffice/salesperson-signatures', upload.single('signatureFile'));
 
 // Auth info endpoint (public - auth validation happens inside route)
 app.use('/api/auth', authRouter);
