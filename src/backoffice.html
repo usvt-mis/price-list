@@ -737,6 +737,8 @@
     attentionTelBlockOffsetYMm: 0,
     certsOffsetYMm: 3.2,
     totalsOffsetXMm: 0,
+    footerSummaryBlockOffsetXMm: 0,
+    footerSummaryBlockOffsetYMm: 0,
     signatureGridMarginTopMm: 5.4,
     signatureColMinHeightMm: 41.0,
     signatureSignMinHeightMm: 16.0
@@ -1013,9 +1015,31 @@
       max: 20,
       step: 0.1,
       unit: 'mm',
-      group: 'branding',
+      group: 'footerLayout',
       label: 'Totals Label Offset X',
       description: 'Shifts the totals labels left or right inside the totals box.'
+    },
+    {
+      key: 'footerSummaryBlockOffsetXMm',
+      id: 'printLayoutFooterSummaryBlockOffsetXMm',
+      min: -20,
+      max: 20,
+      step: 0.1,
+      unit: 'mm',
+      group: 'footerLayout',
+      label: 'Footer Block Offset X',
+      description: 'Moves the footer line, foot note, total text, remark, and JOB NO together left or right as one block.'
+    },
+    {
+      key: 'footerSummaryBlockOffsetYMm',
+      id: 'printLayoutFooterSummaryBlockOffsetYMm',
+      min: -10,
+      max: 16,
+      step: 0.1,
+      unit: 'mm',
+      group: 'footerLayout',
+      label: 'Footer Block Offset Y',
+      description: 'Moves the footer line, foot note, total text, remark, and JOB NO together up or down as one block.'
     },
     {
       key: 'signatureGridMarginTopMm',
@@ -1061,7 +1085,12 @@
     {
       key: 'content',
       title: 'Content And Totals',
-      description: 'Control the data table, footer disclaimer, and totals presentation.'
+      description: 'Control the data table and footer typography used in the shared Sales Quotes layout.'
+    },
+    {
+      key: 'footerLayout',
+      title: 'Footer Positioning',
+      description: 'Fine-tune the footer divider, foot note, totals, remark, and JOB NO block positions.'
     },
     {
       key: 'branding',

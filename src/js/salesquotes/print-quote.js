@@ -125,6 +125,8 @@ const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   attentionTelBlockOffsetYMm: 0,
   certsOffsetYMm: 3.2,
   totalsOffsetXMm: 0,
+  footerSummaryBlockOffsetXMm: 0,
+  footerSummaryBlockOffsetYMm: 0,
   signatureGridMarginTopMm: 5.4,
   signatureColMinHeightMm: 41.0,
   signatureSignMinHeightMm: 16.0
@@ -214,6 +216,8 @@ function normalizePrintLayoutSettings(value = {}) {
     attentionTelBlockOffsetYMm: clampNumber(value.attentionTelBlockOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.attentionTelBlockOffsetYMm, -10, 16),
     certsOffsetYMm: clampNumber(value.certsOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.certsOffsetYMm, -8, 12),
     totalsOffsetXMm: clampNumber(value.totalsOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.totalsOffsetXMm, -20, 20),
+    footerSummaryBlockOffsetXMm: clampNumber(value.footerSummaryBlockOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.footerSummaryBlockOffsetXMm, -20, 20),
+    footerSummaryBlockOffsetYMm: clampNumber(value.footerSummaryBlockOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.footerSummaryBlockOffsetYMm, -10, 16),
     signatureGridMarginTopMm: clampNumber(value.signatureGridMarginTopMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureGridMarginTopMm, 0, 20),
     signatureColMinHeightMm: clampNumber(value.signatureColMinHeightMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureColMinHeightMm, 20, 70),
     signatureSignMinHeightMm: clampNumber(value.signatureSignMinHeightMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureSignMinHeightMm, 5, 35)
@@ -982,12 +986,17 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .line-footer-row td { padding-top: 1.1mm; padding-bottom: 0.75mm; }
     .footer-label-cell { font-weight: 700; text-align: left; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
+    .footer-summary-block {
+      transform: translate(${settings.footerSummaryBlockOffsetXMm}mm, ${settings.footerSummaryBlockOffsetYMm}mm);
+      transform-origin: top left;
+    }
     .footer-divider { border-top: 1px solid #000; margin-bottom: 1.35mm; }
     .summary-grid { display: grid; grid-template-columns: 1fr 58mm; column-gap: 1mm; align-items: start; }
     .summary-left { min-width: 0; }
     .footer-note { font-size: ${settings.footerNoteFontSize}px; line-height: 1.28; }
     .footer-note div { margin-bottom: 0.55mm; }
     .footer-note .thai { font-weight: 700; }
+    .totals-panel { min-width: 0; }
     .totals { width: 100%; border-collapse: separate; border-spacing: 0 0.45mm; table-layout: fixed; }
     .totals td { padding: 0.18mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 700; vertical-align: top; }
     .totals .label-cell { width: 56%; white-space: nowrap; padding-right: 4.5mm; }
@@ -1090,33 +1099,35 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     </table>
 
     <div class="footer-stack">
-      <div class="footer-divider"></div>
+      <div class="footer-summary-block">
+        <div class="footer-divider"></div>
 
-      <div class="summary-grid">
-        <div class="summary-left">
-          <div class="footer-note">
-            <div class="thai">${escapeHtml(DEFAULT_DISCLAIMER_TH)}</div>
-            <div>${escapeHtml(DEFAULT_DISCLAIMER_EN)}</div>
-          </div>
-          <div class="remark-section">
-            <div class="remark-row">
-              <div class="remark-label">Remark</div>
-              <div class="remark-value">${remarkMarkup}</div>
+        <div class="summary-grid">
+          <div class="summary-left">
+            <div class="footer-note">
+              <div class="thai">${escapeHtml(DEFAULT_DISCLAIMER_TH)}</div>
+              <div>${escapeHtml(DEFAULT_DISCLAIMER_EN)}</div>
             </div>
-            <div class="job-row">
-              <div class="job-label">JOB NO</div>
-              <div>: ${escapeHtml(model.jobNo)}</div>
+            <div class="remark-section">
+              <div class="remark-row">
+                <div class="remark-label">Remark</div>
+                <div class="remark-value">${remarkMarkup}</div>
+              </div>
+              <div class="job-row">
+                <div class="job-label">JOB NO</div>
+                <div>: ${escapeHtml(model.jobNo)}</div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="totals-panel">
-          <table class="totals">
-            <tr><td class="label-cell"><span class="totals-label-text">Total</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.subtotal))}</td></tr>
-            <tr><td class="label-cell"><span class="totals-label-text">Trade Discount</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.tradeDiscount))}</td></tr>
-            <tr><td class="label-cell"><span class="totals-label-text">Sub Total</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.afterDiscount))}</td></tr>
-            <tr><td class="label-cell"><span class="totals-label-text">${escapeHtml(model.vatLabel)}</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.vatAmount))}</td></tr>
-            <tr><td class="label-cell"><span class="totals-label-text">Grand Total</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.grandTotal))}</td></tr>
-          </table>
+          <div class="totals-panel">
+            <table class="totals">
+              <tr><td class="label-cell"><span class="totals-label-text">Total</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.subtotal))}</td></tr>
+              <tr><td class="label-cell"><span class="totals-label-text">Trade Discount</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.tradeDiscount))}</td></tr>
+              <tr><td class="label-cell"><span class="totals-label-text">Sub Total</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.afterDiscount))}</td></tr>
+              <tr><td class="label-cell"><span class="totals-label-text">${escapeHtml(model.vatLabel)}</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.vatAmount))}</td></tr>
+              <tr><td class="label-cell"><span class="totals-label-text">Grand Total</span></td><td class="amount">${escapeHtml(formatCurrency(model.totals.grandTotal))}</td></tr>
+            </table>
+          </div>
         </div>
       </div>
 
