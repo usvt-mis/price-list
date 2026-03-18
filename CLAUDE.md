@@ -189,6 +189,11 @@ See [docs/authentication.md](docs/authentication.md).
 - **Signature Priority**: Uploaded signatures (via backoffice) > BC signature data > No signature
   - `fetchSalespersonSignature()` API call checks `SalespersonSignatures` table first
   - Falls back to BC `requestSignature.signature` or `salesperson.signature` if no upload exists
+- **Backoffice Signature Upload UI**: Searchable salesperson dropdown with autocomplete
+  - Type-to-search with debounced API calls (min 2 chars) to `/api/business-central/salespeople/search`
+  - Displays salesperson name and code in dropdown items
+  - Auto-fills salesperson code on selection
+  - Click-outside-to-close functionality with 200ms blur delay for click handling
 - **Backoffice Print Layout Settings**: Administrators configure global print settings (typography, content, branding, signature, positioning) via Settings tab
   - Settings organized in tabs: Typography, Content And Totals, Footer Positioning, Branding, Signature, Advanced
 - Dynamic meta table column adjustment based on address width

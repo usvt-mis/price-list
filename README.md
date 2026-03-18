@@ -424,6 +424,7 @@ The application uses **Azure Entra ID (Azure AD)** authentication via App Servic
 - **Settings Tab**: Displays authentication info
 - **Signatures Tab**: Manage salesperson signatures for Sales Quotes print layout
   - Upload PNG/JPG signatures (max 500KB) per salesperson code
+  - **Searchable salesperson dropdown**: Type-to-search autocomplete (min 2 chars) displays salesperson name and code
   - Search and filter signatures with pagination
   - View, delete, and audit signature changes
   - Uploaded signatures take priority over Business Central signature data in print output
