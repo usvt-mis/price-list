@@ -228,7 +228,7 @@ router.post('/', requireBackofficeSession, async (req, res, next) => {
   try {
     const session = req.session;
     const { salespersonCode } = req.body;
-    const signatureFile = req.files?.signatureFile;
+    const signatureFile = req.file;
 
     if (!salespersonCode) {
       return res.status(400).json({ error: 'SalespersonCode is required' });
