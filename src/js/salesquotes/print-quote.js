@@ -127,6 +127,8 @@ const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   totalsOffsetXMm: 0,
   footerSummaryBlockOffsetXMm: 0,
   footerSummaryBlockOffsetYMm: 0,
+  signatureBlockOffsetXMm: 0,
+  signatureBlockOffsetYMm: 0,
   signatureGridMarginTopMm: 5.4,
   signatureColMinHeightMm: 41.0,
   signatureSignMinHeightMm: 16.0
@@ -218,6 +220,8 @@ function normalizePrintLayoutSettings(value = {}) {
     totalsOffsetXMm: clampNumber(value.totalsOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.totalsOffsetXMm, -20, 20),
     footerSummaryBlockOffsetXMm: clampNumber(value.footerSummaryBlockOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.footerSummaryBlockOffsetXMm, -20, 20),
     footerSummaryBlockOffsetYMm: clampNumber(value.footerSummaryBlockOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.footerSummaryBlockOffsetYMm, -10, 16),
+    signatureBlockOffsetXMm: clampNumber(value.signatureBlockOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureBlockOffsetXMm, -20, 20),
+    signatureBlockOffsetYMm: clampNumber(value.signatureBlockOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureBlockOffsetYMm, -10, 16),
     signatureGridMarginTopMm: clampNumber(value.signatureGridMarginTopMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureGridMarginTopMm, 0, 20),
     signatureColMinHeightMm: clampNumber(value.signatureColMinHeightMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureColMinHeightMm, 20, 70),
     signatureSignMinHeightMm: clampNumber(value.signatureSignMinHeightMm, DEFAULT_PRINT_LAYOUT_SETTINGS.signatureSignMinHeightMm, 5, 35)
@@ -1015,6 +1019,10 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .job-label { font-weight: 700; }
     .remark-value { white-space: pre-wrap; word-break: break-word; }
     .job-row { margin-top: 1.2mm; font-weight: 700; }
+    .signature-block {
+      transform: translate(${settings.signatureBlockOffsetXMm}mm, ${settings.signatureBlockOffsetYMm}mm);
+      transform-origin: top left;
+    }
     .signature-grid {
       display: grid;
       grid-template-columns: 49mm 57mm 53mm;
@@ -1131,54 +1139,56 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
         </div>
       </div>
 
-      <div class="signature-grid">
-        <div class="signature-col signature-customer">
-          <div class="signature-sign"></div>
-          <div class="signature-line"></div>
-          <div class="signature-caption centered">Customer Confirmed</div>
-          <div class="signature-date">Date_____/_____/_____</div>
+      <div class="signature-block">
+        <div class="signature-grid">
+          <div class="signature-col signature-customer">
+            <div class="signature-sign"></div>
+            <div class="signature-line"></div>
+            <div class="signature-caption centered">Customer Confirmed</div>
+            <div class="signature-date">Date_____/_____/_____</div>
+          </div>
+          <div class="signature-col signature-salesperson">
+            <div class="signature-sign">
+              ${model.salesperson.signature ? `<img src="${escapeHtml(model.salesperson.signature)}" alt="With By Signature" class="signature-image">` : ''}
+            </div>
+            <div class="signature-line"></div>
+            <div class="signature-detail">
+              <div class="detail-label">With By</div>
+              <div class="detail-value">${escapeHtml(model.salesperson.name)}</div>
+            </div>
+            <div class="signature-detail">
+              <div class="detail-label">Tel</div>
+              <div class="detail-value">${escapeHtml(model.salesperson.phone)}</div>
+            </div>
+            <div class="signature-detail">
+              <div class="detail-label">Email :</div>
+              <div class="detail-value">${escapeHtml(model.salesperson.email)}</div>
+            </div>
+          </div>
+          <div class="signature-col signature-approver">
+            <div class="signature-sign">
+              ${model.approver.signature ? `<img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">` : ''}
+            </div>
+            <div class="signature-line"></div>
+            <div class="signature-detail">
+              <div class="detail-label">Approved</div>
+              <div class="detail-value">${escapeHtml(model.approver.name)}</div>
+            </div>
+            <div class="signature-detail">
+              <div class="detail-label">Tel</div>
+              <div class="detail-value">${escapeHtml(model.approver.phone)}</div>
+            </div>
+            <div class="signature-detail">
+              <div class="detail-label">Email :</div>
+              <div class="detail-value">${escapeHtml(model.approver.email)}</div>
+            </div>
+          </div>
         </div>
-        <div class="signature-col signature-salesperson">
-          <div class="signature-sign">
-            ${model.salesperson.signature ? `<img src="${escapeHtml(model.salesperson.signature)}" alt="With By Signature" class="signature-image">` : ''}
-          </div>
-          <div class="signature-line"></div>
-          <div class="signature-detail">
-            <div class="detail-label">With By</div>
-            <div class="detail-value">${escapeHtml(model.salesperson.name)}</div>
-          </div>
-          <div class="signature-detail">
-            <div class="detail-label">Tel</div>
-            <div class="detail-value">${escapeHtml(model.salesperson.phone)}</div>
-          </div>
-          <div class="signature-detail">
-            <div class="detail-label">Email :</div>
-            <div class="detail-value">${escapeHtml(model.salesperson.email)}</div>
-          </div>
-        </div>
-        <div class="signature-col signature-approver">
-          <div class="signature-sign">
-            ${model.approver.signature ? `<img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">` : ''}
-          </div>
-          <div class="signature-line"></div>
-          <div class="signature-detail">
-            <div class="detail-label">Approved</div>
-            <div class="detail-value">${escapeHtml(model.approver.name)}</div>
-          </div>
-          <div class="signature-detail">
-            <div class="detail-label">Tel</div>
-            <div class="detail-value">${escapeHtml(model.approver.phone)}</div>
-          </div>
-          <div class="signature-detail">
-            <div class="detail-label">Email :</div>
-            <div class="detail-value">${escapeHtml(model.approver.email)}</div>
-          </div>
-        </div>
-      </div>
 
-      <div class="doc-footer">
-        <div>Effective Date : ${escapeHtml(model.effectiveDate)}</div>
-        <div>${escapeHtml(model.documentCode)}</div>
+        <div class="doc-footer">
+          <div>Effective Date : ${escapeHtml(model.effectiveDate)}</div>
+          <div>${escapeHtml(model.documentCode)}</div>
+        </div>
       </div>
     </div>
   </div>

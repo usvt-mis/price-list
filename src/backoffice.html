@@ -739,6 +739,8 @@
     totalsOffsetXMm: 0,
     footerSummaryBlockOffsetXMm: 0,
     footerSummaryBlockOffsetYMm: 0,
+    signatureBlockOffsetXMm: 0,
+    signatureBlockOffsetYMm: 0,
     signatureGridMarginTopMm: 5.4,
     signatureColMinHeightMm: 41.0,
     signatureSignMinHeightMm: 16.0
@@ -1040,6 +1042,28 @@
       group: 'footerLayout',
       label: 'Footer Block Offset Y',
       description: 'Moves the footer line, foot note, total text, remark, and JOB NO together up or down as one block.'
+    },
+    {
+      key: 'signatureBlockOffsetXMm',
+      id: 'printLayoutSignatureBlockOffsetXMm',
+      min: -20,
+      max: 20,
+      step: 0.1,
+      unit: 'mm',
+      group: 'signature',
+      label: 'Signature Block Offset X',
+      description: 'Moves the footer signature section and bottom document footer left or right as one block.'
+    },
+    {
+      key: 'signatureBlockOffsetYMm',
+      id: 'printLayoutSignatureBlockOffsetYMm',
+      min: -10,
+      max: 16,
+      step: 0.1,
+      unit: 'mm',
+      group: 'signature',
+      label: 'Signature Block Offset Y',
+      description: 'Moves the footer signature section and bottom document footer up or down as one block.'
     },
     {
       key: 'signatureGridMarginTopMm',

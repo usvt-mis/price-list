@@ -59,7 +59,7 @@ The Price List Calculator computes total cost based on four components:
     - **Visual Control UI**: Interactive sliders with progress indicators, number inputs, and individual reset buttons for each setting
     - **Live Print Preview**: Drag-to-adjust functionality on preview elements with real-time visual feedback
     - Settings organized into groups: Typography, Content, Branding, Signature
-    - Signature layout controls: signatureGridMarginTopMm, signatureColMinHeightMm, signatureSignMinHeightMm
+    - Signature layout controls: signatureGridMarginTopMm, signatureColMinHeightMm, signatureSignMinHeightMm, signatureBlockOffsetXMm, signatureBlockOffsetYMm
 
 ### UI Features
 - **Collapsible Section Cards**: Labor, Materials, Travel, and Onsite Options sections can be collapsed/expanded
