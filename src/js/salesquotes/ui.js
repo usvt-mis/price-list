@@ -1267,6 +1267,8 @@ export function getQuoteFormData() {
     workDescription: el('quoteWorkDescription')?.value || '',
     // New fields
     contact: el('contact')?.value || '',
+    salesPhoneNo: el('salesPhoneNo')?.value || '',
+    salesEmail: el('salesEmail')?.value || '',
     salespersonCode: state.quote.salespersonCode || '',
     salespersonName: state.quote.salespersonName || '',
     assignedUserId: state.quote.assignedUserId || '',
@@ -1303,6 +1305,8 @@ export function populateQuoteForm(quote) {
 
   // New fields
   if (el('contact')) el('contact').value = quote.contact || '';
+  if (el('salesPhoneNo')) el('salesPhoneNo').value = quote.salesPhoneNo || '';
+  if (el('salesEmail')) el('salesEmail').value = quote.salesEmail || '';
   if (el('salespersonCodeSearch')) el('salespersonCodeSearch').value = quote.salespersonCode || '';
   if (el('salespersonName')) el('salespersonName').value = quote.salespersonName || '';
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = quote.assignedUserId || '';

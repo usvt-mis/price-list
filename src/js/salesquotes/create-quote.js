@@ -647,6 +647,8 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     requestedDeliveryDate: reportContext.requestedDeliveryDate || '',
     workDescription: data.workDescription || '',
     contact: pickSourceValueFromSources(headerSources, ['contactName', 'shipToContact', 'billToContact', 'Bill_to_Contact'], ''),
+    salesPhoneNo: data.salesPhoneNo || '',
+    salesEmail: data.salesEmail || '',
     salespersonCode,
     salespersonName: salespersonName || reportContext.salesperson?.name || '',
     assignedUserId: pickSourceValueFromSources(headerSources, ['assignedUserId'], ''),

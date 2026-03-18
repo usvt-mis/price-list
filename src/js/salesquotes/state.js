@@ -30,6 +30,8 @@ function createInitialQuoteState(overrides = {}) {
     },
     workDescription: '',
     contact: '',
+    salesPhoneNo: '',
+    salesEmail: '',
     salespersonCode: '',
     salespersonName: '',
     assignedUserId: '',

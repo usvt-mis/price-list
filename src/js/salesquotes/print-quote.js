@@ -600,8 +600,8 @@ function buildModel() {
     vatLabel: reportContext.vatText || `VAT ${totals.vatRate.toFixed(0)}%`,
     salesperson: {
       name: requestSignature.name || reportContext.salesperson?.name || formData.salespersonName || '',
-      phone: requestSignature.phone || reportContext.salesperson?.phone || '',
-      email: requestSignature.email || reportContext.salesperson?.email || '',
+      phone: formData.salesPhoneNo || requestSignature.phone || reportContext.salesperson?.phone || '',
+      email: formData.salesEmail || requestSignature.email || reportContext.salesperson?.email || '',
       signature: salespersonSignature
     },
     approver: {
