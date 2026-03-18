@@ -940,7 +940,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .certs { display: flex; justify-content: flex-start; align-items: flex-end; gap: 1.1mm; min-height: 8.6mm; transform: translateY(${settings.certsOffsetYMm}mm); }
     .cert-logo { height: 8.1mm; width: auto; object-fit: contain; }
     .meta-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3.3mm; font-size: ${settings.metaFontSize}px; line-height: 1.18; }
-    .meta-table td { padding: 0 1mm 0.95mm 0; vertical-align: top; }
+    .meta-table td { padding: 0 1mm 1.8mm 0; vertical-align: top; }
     .meta-table .meta-divider td {
       border-bottom: 1px solid #000;
       padding-bottom: 1.5mm;
