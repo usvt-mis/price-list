@@ -693,8 +693,8 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value">${renderLeftMetaValueContent(line)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
-      <td class="right-label">${index === 0 ? renderRightMetaContent('Our Ref.', 'label', 'meta-fixed-width') : index === 1 ? renderRightMetaContent('Date', 'label', 'meta-fixed-width') : ''}</td>
-      <td class="right-value">${index === 0 ? renderRightMetaContent(model.ourRef, 'value') : index === 1 ? renderRightMetaContent(model.documentDate, 'value') : ''}</td>
+      <td class="right-label shifted">${index === 0 ? renderRightMetaContent('Our Ref.', 'label', 'meta-fixed-width') : index === 1 ? renderRightMetaContent('Date', 'label', 'meta-fixed-width') : ''}</td>
+      <td class="right-value shifted">${index === 0 ? renderRightMetaContent(model.ourRef, 'value') : index === 1 ? renderRightMetaContent(model.documentDate, 'value') : ''}</td>
     </tr>
   `).join('');
 
@@ -704,8 +704,8 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value">${renderLeftMetaValueContent(line)}</td>
       <td class="mid-label">${index === 0 ? renderMetaOffsetContent('Tel.', 'label') : ''}</td>
       <td class="mid-value">${index === 0 ? renderMetaOffsetContent(model.phone, 'value') : ''}</td>
-      <td class="right-label">${index === 0 ? renderRightMetaContent('Delivery Date', 'label', 'meta-fixed-width') : ''}</td>
-      <td class="right-value">${index === 0 ? renderRightMetaContent(model.deliveryText, 'value') : ''}</td>
+      <td class="right-label shifted">${index === 0 ? renderRightMetaContent('Delivery Date', 'label', 'meta-fixed-width') : ''}</td>
+      <td class="right-value shifted">${index === 0 ? renderRightMetaContent(model.deliveryText, 'value') : ''}</td>
     </tr>
   `).join('');
 
@@ -732,16 +732,16 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value"></td>
       <td class="mid-label">${renderMetaOffsetContent('Attention', 'label')}</td>
       <td class="mid-value">${renderMetaOffsetContent(model.attention, 'value', 'meta-attention-value')}</td>
-      <td class="right-label">${renderRightMetaContent('Expired Date', 'label', 'meta-fixed-width')}</td>
-      <td class="right-value">${renderRightMetaContent(model.expiredDate, 'value')}</td>
+      <td class="right-label shifted">${renderRightMetaContent('Expired Date', 'label', 'meta-fixed-width')}</td>
+      <td class="right-value shifted">${renderRightMetaContent(model.expiredDate, 'value')}</td>
     </tr>
     <tr>
       <td class="label">Tax ID</td>
       <td class="value">${renderLeftMetaValueContent(model.taxId)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
-      <td class="right-label">${renderRightMetaContent('Payment', 'label', 'meta-fixed-width')}</td>
-      <td class="right-value">${renderRightMetaContent(model.paymentText, 'value')}</td>
+      <td class="right-label shifted">${renderRightMetaContent('Payment', 'label', 'meta-fixed-width')}</td>
+      <td class="right-value shifted">${renderRightMetaContent(model.paymentText, 'value')}</td>
     </tr>
     ${deliveryRows}
   `;
@@ -965,8 +965,9 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       box-sizing: border-box;
     }
     .meta-offset-block {
-      transform: translate(${settings.attentionTelBlockOffsetXMm - 5}mm, ${settings.attentionTelBlockOffsetYMm}mm);
-      transform-origin: top left;
+      position: relative;
+      left: ${settings.attentionTelBlockOffsetXMm - 5}mm;
+      top: ${settings.attentionTelBlockOffsetYMm}mm;
     }
     .meta-offset-block-label {
       display: inline-block;
@@ -987,16 +988,20 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       text-align: left;
       white-space: nowrap;
       box-sizing: border-box;
-      transform: translateX(-15mm);
     }
     .right-meta-label {
       padding-right: 0;
     }
     .right-meta.label.meta-fixed-width {
       display: inline-block;
-      width: 13.5ch;
+      width: 13ch;
       text-align: right;
       padding-right: 0.5em;
+    }
+    .meta-table td.right-label.shifted,
+    .meta-table td.right-value.shifted {
+      position: relative;
+      left: -21mm;
     }
     .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; line-height: 1.3; }
     .line-table thead { display: table-header-group; }

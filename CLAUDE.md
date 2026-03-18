@@ -192,7 +192,7 @@ See [docs/authentication.md](docs/authentication.md).
 - **Backoffice Print Layout Settings**: Administrators configure global print settings (typography, content, branding, signature, positioning) via Settings tab
   - Settings organized in tabs: Typography, Content And Totals, Footer Positioning, Branding, Signature, Advanced
 - Dynamic meta table column adjustment based on address width
-- **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13.5ch), horizontal positioning with attentionTelBlockOffsetXMm and translateX adjustments
+- **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13ch), `shifted` class for right columns with relative positioning (-21mm left), attentionTelBlockOffsetXMm/YMm using relative positioning instead of transform
 - Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 
