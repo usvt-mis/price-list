@@ -8,7 +8,7 @@ import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteSendFailure } from './ui.js';
-import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 import { recordQuoteSubmission } from './records.js';
@@ -833,24 +833,12 @@ export function selectCustomerFromLocal(customer) {
   if (el('customerName')) {
     el('customerName').value = customer.CustomerName;
   }
-  if (el('sellToAddress')) {
-    el('sellToAddress').value = customer.Address || '';
-  }
-  if (el('sellToAddress2')) {
-    el('sellToAddress2').value = customer.Address2 || '';
-  }
-  if (el('sellToCity')) {
-    el('sellToCity').value = customer.City || '';
-  }
-  if (el('sellToPostCode')) {
-    el('sellToPostCode').value = customer.PostCode || '';
-  }
-  if (el('sellToVatRegNo')) {
-    el('sellToVatRegNo').value = customer.VATRegistrationNo || '';
-  }
-  if (el('sellToTaxBranchNo')) {
-    el('sellToTaxBranchNo').value = customer.TaxBranchNo || '';
-  }
+  setFieldValue('sellToAddress', customer.Address || '');
+  setFieldValue('sellToAddress2', customer.Address2 || '');
+  setFieldValue('sellToCity', customer.City || '');
+  setFieldValue('sellToPostCode', customer.PostCode || '');
+  setFieldValue('sellToVatRegNo', customer.VATRegistrationNo || '');
+  setFieldValue('sellToTaxBranchNo', customer.TaxBranchNo || '');
 
   // Show Sell-to section
   const sellToSection = el('sellToSection');
@@ -2830,12 +2818,12 @@ export function setupEventListeners() {
         customerNoSearch.value = '';
         // Clear related fields
         if (el('customerName')) el('customerName').value = '';
-        if (el('sellToAddress')) el('sellToAddress').value = '';
-        if (el('sellToAddress2')) el('sellToAddress2').value = '';
-        if (el('sellToCity')) el('sellToCity').value = '';
-        if (el('sellToPostCode')) el('sellToPostCode').value = '';
-        if (el('sellToVatRegNo')) el('sellToVatRegNo').value = '';
-        if (el('sellToTaxBranchNo')) el('sellToTaxBranchNo').value = '';
+        setFieldValue('sellToAddress', '');
+        setFieldValue('sellToAddress2', '');
+        setFieldValue('sellToCity', '');
+        setFieldValue('sellToPostCode', '');
+        setFieldValue('sellToVatRegNo', '');
+        setFieldValue('sellToTaxBranchNo', '');
         if (el('sellToSection')) el('sellToSection').classList.add('hidden');
         // Clear state
         state.quote.customerId = null;

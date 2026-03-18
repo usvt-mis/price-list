@@ -25,6 +25,41 @@ export function els(selector) {
   return document.querySelectorAll(selector);
 }
 
+/**
+ * Set value for either a form field or a read-only display element
+ */
+export function setFieldValue(id, value) {
+  const element = el(id);
+  if (!element) {
+    return;
+  }
+
+  const nextValue = value ?? '';
+  if ('value' in element) {
+    element.value = nextValue;
+    return;
+  }
+
+  element.dataset.value = nextValue;
+  element.textContent = nextValue;
+}
+
+/**
+ * Get value from either a form field or a read-only display element
+ */
+export function getFieldValue(id) {
+  const element = el(id);
+  if (!element) {
+    return '';
+  }
+
+  if ('value' in element) {
+    return element.value || '';
+  }
+
+  return element.dataset.value || '';
+}
+
 // ============================================================
 // Format Helpers
 // ============================================================
@@ -284,10 +319,7 @@ export function clearCustomerSelection() {
   const sellToSection = el('sellToSection');
 
   ['sellToAddress', 'sellToAddress2', 'sellToCity', 'sellToPostCode', 'sellToVatRegNo', 'sellToTaxBranchNo'].forEach(fieldId => {
-    const field = el(fieldId);
-    if (field) {
-      field.value = '';
-    }
+    setFieldValue(fieldId, '');
   });
 
   if (searchInput) searchInput.value = '';
@@ -1247,12 +1279,12 @@ export function getQuoteFormData() {
     invoiceDiscountPercent: parseFloat(el('invoiceDiscountPercent')?.value || 0) || 0,
     vatRate: parseFloat(el('vatRate')?.value || 7) || 7,
     sellTo: {
-      address: el('sellToAddress')?.value || state.quote.sellTo?.address || '',
-      address2: el('sellToAddress2')?.value || state.quote.sellTo?.address2 || '',
-      city: el('sellToCity')?.value || state.quote.sellTo?.city || '',
-      postCode: el('sellToPostCode')?.value || state.quote.sellTo?.postCode || '',
-      vatRegNo: el('sellToVatRegNo')?.value || state.quote.sellTo?.vatRegNo || '',
-      taxBranchNo: el('sellToTaxBranchNo')?.value || state.quote.sellTo?.taxBranchNo || ''
+      address: getFieldValue('sellToAddress') || state.quote.sellTo?.address || '',
+      address2: getFieldValue('sellToAddress2') || state.quote.sellTo?.address2 || '',
+      city: getFieldValue('sellToCity') || state.quote.sellTo?.city || '',
+      postCode: getFieldValue('sellToPostCode') || state.quote.sellTo?.postCode || '',
+      vatRegNo: getFieldValue('sellToVatRegNo') || state.quote.sellTo?.vatRegNo || '',
+      taxBranchNo: getFieldValue('sellToTaxBranchNo') || state.quote.sellTo?.taxBranchNo || ''
     },
     reportContext: state.quote.reportContext,
     lines: [...state.quote.lines]
@@ -1282,12 +1314,12 @@ export function populateQuoteForm(quote) {
   if (el('locationCode')) el('locationCode').value = quote.locationCode || '';
   if (el('responsibilityCenter')) el('responsibilityCenter').value = quote.responsibilityCenter || '';
 
-  if (el('sellToAddress')) el('sellToAddress').value = quote.sellTo?.address || '';
-  if (el('sellToAddress2')) el('sellToAddress2').value = quote.sellTo?.address2 || '';
-  if (el('sellToCity')) el('sellToCity').value = quote.sellTo?.city || '';
-  if (el('sellToPostCode')) el('sellToPostCode').value = quote.sellTo?.postCode || '';
-  if (el('sellToVatRegNo')) el('sellToVatRegNo').value = quote.sellTo?.vatRegNo || '';
-  if (el('sellToTaxBranchNo')) el('sellToTaxBranchNo').value = quote.sellTo?.taxBranchNo || '';
+  setFieldValue('sellToAddress', quote.sellTo?.address || '');
+  setFieldValue('sellToAddress2', quote.sellTo?.address2 || '');
+  setFieldValue('sellToCity', quote.sellTo?.city || '');
+  setFieldValue('sellToPostCode', quote.sellTo?.postCode || '');
+  setFieldValue('sellToVatRegNo', quote.sellTo?.vatRegNo || '');
+  setFieldValue('sellToTaxBranchNo', quote.sellTo?.taxBranchNo || '');
 
   const sellToSection = el('sellToSection');
   if (sellToSection) {
