@@ -980,12 +980,12 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .right-meta-value {
       display: block;
       width: 100%;
-      text-align: right;
+      text-align: left;
       white-space: nowrap;
       box-sizing: border-box;
     }
     .right-meta-label {
-      padding-right: 1.2mm;
+      padding-right: 0;
     }
     .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; line-height: 1.3; }
     .line-table thead { display: table-header-group; }
