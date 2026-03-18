@@ -998,10 +998,13 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       text-align: right;
       padding-right: 0.5em;
     }
-    .meta-table td.right-label.shifted,
-    .meta-table td.right-value.shifted {
+    .meta-table td.right-label.shifted {
       position: relative;
       left: -21mm;
+    }
+    .meta-table td.right-value.shifted {
+      position: relative;
+      left: -17mm;
     }
     .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; line-height: 1.3; }
     .line-table thead { display: table-header-group; }
