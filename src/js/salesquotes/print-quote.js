@@ -732,7 +732,7 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value"></td>
       <td class="mid-label">${renderMetaOffsetContent('Attention', 'label')}</td>
       <td class="mid-value">${renderMetaOffsetContent(model.attention, 'value', 'meta-attention-value')}</td>
-      <td class="right-label">${renderRightMetaContent('Expired Date', 'label')}</td>
+      <td class="right-label">${renderRightMetaContent('Expired Date', 'label', 'meta-fixed-width')}</td>
       <td class="right-value">${renderRightMetaContent(model.expiredDate, 'value')}</td>
     </tr>
     <tr>
@@ -993,7 +993,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     }
     .right-meta.label.meta-fixed-width {
       display: inline-block;
-      width: 8.5ch;
+      width: 12ch;
       text-align: right;
       padding-right: 0.5em;
     }
