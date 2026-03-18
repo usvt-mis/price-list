@@ -141,8 +141,8 @@ const META_TABLE_BASE_WIDTHS_MM = Object.freeze({
   address: 77,
   midLabel: 18,
   midValue: 34,
-  rightLabel: 19,
-  rightValue: 26
+  rightLabel: 17,
+  rightValue: 22
 });
 
 const META_TABLE_MIN_WIDTHS_MM = Object.freeze({
@@ -673,13 +673,17 @@ function renderLeftMetaValueContent(content) {
   return `<span class="left-meta-value">${escapeHtml(normalized)}</span>`;
 }
 
-function renderRightMetaContent(content, kind = 'label') {
-  const normalized = String(content ?? '').trim();
-  if (!normalized) {
+function renderRightMetaContent(label, value) {
+  const normalizedLabel = String(label ?? '').trim();
+  const normalizedValue = String(value ?? '').trim();
+  if (!normalizedLabel && !normalizedValue) {
     return '';
   }
 
-  return `<span class="right-meta-${kind}">${escapeHtml(normalized)}</span>`;
+  return `
+    <span class="right-meta-label">${escapeHtml(normalizedLabel)}</span>
+    <span class="right-meta-value">${escapeHtml(normalizedValue)}</span>
+  `;
 }
 
 function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
@@ -689,8 +693,8 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value">${renderLeftMetaValueContent(line)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
-      <td class="right-label">${index === 0 ? renderRightMetaContent('Our Ref.', 'label') : index === 1 ? renderRightMetaContent('Date', 'label') : ''}</td>
-      <td class="right-value">${index === 0 ? renderRightMetaContent(model.ourRef, 'value') : index === 1 ? renderRightMetaContent(model.documentDate, 'value') : ''}</td>
+      <td class="right-label"></td>
+      <td class="right-value">${index === 0 ? renderRightMetaContent('Our Ref.', model.ourRef) : index === 1 ? renderRightMetaContent('Date', model.documentDate) : ''}</td>
     </tr>
   `).join('');
 
@@ -700,8 +704,8 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value">${renderLeftMetaValueContent(line)}</td>
       <td class="mid-label">${index === 0 ? renderMetaOffsetContent('Tel.', 'label') : ''}</td>
       <td class="mid-value">${index === 0 ? renderMetaOffsetContent(model.phone, 'value') : ''}</td>
-      <td class="right-label">${index === 0 ? renderRightMetaContent('Delivery Date', 'label') : ''}</td>
-      <td class="right-value">${index === 0 ? renderRightMetaContent(model.deliveryText, 'value') : ''}</td>
+      <td class="right-label"></td>
+      <td class="right-value">${index === 0 ? renderRightMetaContent('Delivery Date', model.deliveryText) : ''}</td>
     </tr>
   `).join('');
 
@@ -728,16 +732,16 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value"></td>
       <td class="mid-label">${renderMetaOffsetContent('Attention', 'label')}</td>
       <td class="mid-value">${renderMetaOffsetContent(model.attention, 'value', 'meta-attention-value')}</td>
-      <td class="right-label">${renderRightMetaContent('Expired Date', 'label')}</td>
-      <td class="right-value">${renderRightMetaContent(model.expiredDate, 'value')}</td>
+      <td class="right-label"></td>
+      <td class="right-value">${renderRightMetaContent('Expired Date', model.expiredDate)}</td>
     </tr>
     <tr>
       <td class="label">Tax ID</td>
       <td class="value">${renderLeftMetaValueContent(model.taxId)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
-      <td class="right-label">${renderRightMetaContent('Payment', 'label')}</td>
-      <td class="right-value">${renderRightMetaContent(model.paymentText, 'value')}</td>
+      <td class="right-label"></td>
+      <td class="right-value">${renderRightMetaContent('Payment', model.paymentText)}</td>
     </tr>
     ${deliveryRows}
   `;
@@ -975,17 +979,20 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       max-width: none;
     }
     .meta-table td.right-label { font-weight: 700; white-space: nowrap; }
-    .meta-table td.right-value { white-space: nowrap; }
-    .right-meta-label,
-    .right-meta-value {
-      display: block;
-      width: 100%;
-      text-align: left;
+    .meta-table td.right-value { white-space: nowrap; display: flex; align-items: baseline; justify-content: flex-end; }
+    .right-meta-label {
+      display: inline;
       white-space: nowrap;
       box-sizing: border-box;
+      margin-right: 2mm;
+      font-weight: 700;
     }
-    .right-meta-label {
-      padding-right: 0;
+    .right-meta-value {
+      display: inline;
+      white-space: nowrap;
+      box-sizing: border-box;
+      flex: 1;
+      text-align: right;
     }
     .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; line-height: 1.3; }
     .line-table thead { display: table-header-group; }
