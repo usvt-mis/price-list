@@ -990,13 +990,13 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       box-sizing: border-box;
     }
     .right-meta-label {
-      padding-right: 0;
+      padding-right: 2mm;
     }
     .right-meta.label.meta-fixed-width {
       display: inline-block;
       width: 13ch;
       text-align: right;
-      padding-right: 0.5em;
+      padding-right: 2.5mm;
     }
     .meta-table td.right-label.shifted {
       position: relative;
