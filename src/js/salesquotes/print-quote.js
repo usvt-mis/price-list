@@ -997,12 +997,12 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .footer-divider { border-top: 1px solid #000; margin-bottom: 1.35mm; }
     .summary-grid { display: grid; grid-template-columns: 1fr 58mm; column-gap: 1mm; align-items: start; }
     .summary-left { min-width: 0; }
-    .footer-note { font-size: ${settings.footerNoteFontSize}px; line-height: 1.28; }
-    .footer-note div { margin-bottom: 0.55mm; }
+    .footer-note { font-size: ${settings.footerNoteFontSize}px; line-height: 1.42; }
+    .footer-note div { margin-bottom: 0.9mm; }
     .footer-note .thai { font-weight: 700; }
     .totals-panel { min-width: 0; }
-    .totals { width: 100%; border-collapse: separate; border-spacing: 0 0.45mm; table-layout: fixed; }
-    .totals td { padding: 0.18mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 700; vertical-align: top; }
+    .totals { width: 100%; border-collapse: separate; border-spacing: 0 0.8mm; table-layout: fixed; }
+    .totals td { padding: 0.35mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 700; line-height: 1.35; vertical-align: top; }
     .totals .label-cell { width: 56%; white-space: nowrap; padding-right: 4.5mm; }
     .totals .amount { width: 44%; text-align: right; white-space: nowrap; }
     .totals-label-text { display: inline-block; transform: translateX(${settings.totalsOffsetXMm}mm); }
@@ -1045,18 +1045,20 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     }
     .signature-image { display: block; max-width: 44mm; max-height: 18mm; object-fit: contain; }
     .signature-line { width: 100%; border-top: 1px solid #000; margin-top: 1.2mm; }
-    .signature-caption { margin-top: 0.8mm; font-size: ${settings.signatureFontSize}px; }
+    .signature-caption { margin-top: 1.8mm; font-size: ${settings.signatureFontSize}px; }
     .signature-caption.centered { text-align: center; }
     .signature-detail {
       display: grid;
       grid-template-columns: 12mm 1fr;
       column-gap: 1.8mm;
       align-items: baseline;
+      margin-top: 1.8mm;
       font-size: ${settings.signatureFontSize}px;
     }
+    .signature-detail + .signature-detail { margin-top: 1mm; }
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
-    .signature-customer .signature-date { margin-top: 1.4mm; text-align: center; font-size: ${settings.signatureFontSize}px; }
+    .signature-customer .signature-date { margin-top: 2mm; text-align: center; font-size: ${settings.signatureFontSize}px; }
     .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.8mm; font-size: ${settings.docFooterFontSize}px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
