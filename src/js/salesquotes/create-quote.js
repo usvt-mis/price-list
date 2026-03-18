@@ -2259,11 +2259,6 @@ function extractServiceOrderNos(payload) {
  * Send quote to Business Central
  */
 export async function handleSendQuote() {
-  if (state.quote.mode === 'edit' && state.quote.number) {
-    showToast('Update Sales Quote is not enabled yet', 'error');
-    return;
-  }
-
   // Get form data
   const formData = getQuoteFormData();
 
@@ -2282,66 +2277,85 @@ export async function handleSendQuote() {
   try {
     showSaving();
 
-    // Call Azure Function API
-    const response = await sendQuoteToAzureFunction(sanitizedData);
+    // Check if we're in edit mode (updating existing quote)
+    const isEditMode = state.quote.mode === 'edit' && state.quote.number;
 
-    // Extract Quote Number from response
-    const quoteNumber = response?.result?.number || null;
+    // Call appropriate API function
+    const response = isEditMode
+      ? await updateQuoteInAzureFunction(sanitizedData)
+      : await sendQuoteToAzureFunction(sanitizedData);
 
-    // Extract branch code for Service Order creation
-    const branchCode = state.quote.branch || '';
+    // Extract Quote Number from response (for new quotes) or use existing quote number (for updates)
+    const quoteNumber = isEditMode
+      ? state.quote.number
+      : (response?.result?.number || null);
 
-    // Create Service Order from Sales Quote (if we have a quote number and branch)
-    let serviceOrderResponse = null;
-    let serviceOrderNos = []; // Array to hold multiple Service Order numbers
-
-    if (quoteNumber && branchCode) {
-      try {
-        // Update loading message
-        const messageEl = el('loadingMessage');
-        const titleEl = el('loadingTitle');
-        if (messageEl) messageEl.textContent = 'Creating Service Order...';
-        if (titleEl) titleEl.textContent = 'Creating Service Order';
-
-        serviceOrderResponse = await createServiceOrderFromSQ(quoteNumber, branchCode);
-        serviceOrderNos = extractServiceOrderNos(serviceOrderResponse);
-
-        console.log('Service Orders created:', serviceOrderNos);
-      } catch (soError) {
-        console.error('Failed to create Service Order:', soError);
-        // Continue anyway - quote was created successfully
-        // We'll show the modal but note that Service Order creation failed
-      }
-    }
-
+    // For new quotes only: Create Service Order and save record
+    let serviceOrderNos = [];
     let recordSaveError = null;
-    if (quoteNumber) {
-      try {
-        await recordQuoteSubmission({
-          salesQuoteNumber: quoteNumber,
-          workDescription: sanitizedData.workDescription || ''
-        });
-      } catch (recordError) {
-        recordSaveError = recordError;
-        console.error('Failed to save Sales Quote submission record:', recordError);
+
+    if (!isEditMode) {
+      // Extract branch code for Service Order creation
+      const branchCode = state.quote.branch || '';
+
+      // Create Service Order from Sales Quote (if we have a quote number and branch)
+      let serviceOrderResponse = null;
+
+      if (quoteNumber && branchCode) {
+        try {
+          // Update loading message
+          const messageEl = el('loadingMessage');
+          const titleEl = el('loadingTitle');
+          if (messageEl) messageEl.textContent = 'Creating Service Order...';
+          if (titleEl) titleEl.textContent = 'Creating Service Order';
+
+          serviceOrderResponse = await createServiceOrderFromSQ(quoteNumber, branchCode);
+          serviceOrderNos = extractServiceOrderNos(serviceOrderResponse);
+
+          console.log('Service Orders created:', serviceOrderNos);
+        } catch (soError) {
+          console.error('Failed to create Service Order:', soError);
+          // Continue anyway - quote was created successfully
+          // We'll show the modal but note that Service Order creation failed
+        }
+      }
+
+      // Save submission record
+      if (quoteNumber) {
+        try {
+          await recordQuoteSubmission({
+            salesQuoteNumber: quoteNumber,
+            workDescription: sanitizedData.workDescription || ''
+          });
+        } catch (recordError) {
+          recordSaveError = recordError;
+          console.error('Failed to save Sales Quote submission record:', recordError);
+        }
       }
     }
 
     hideSaving();
 
-    resetQuoteEditorToCreateMode({ showFeedback: false });
-
-    // Show success modal with Quote Number and Service Order Nos
-    if (quoteNumber) {
-      await showQuoteCreatedSuccess(quoteNumber, serviceOrderNos);
+    // Handle different behaviors for create vs update
+    if (isEditMode) {
+      // Update mode: Show success message and stay in edit mode
+      showSuccess(`Sales Quote ${quoteNumber} updated successfully!`);
     } else {
-      // Fallback to generic success if no Quote Number returned
-      console.warn('No Quote Number in response:', response);
-      showSuccess('Quote sent to Business Central successfully!');
-    }
+      // Create mode: Reset to create mode and show success modal
+      resetQuoteEditorToCreateMode({ showFeedback: false });
 
-    if (recordSaveError) {
-      showToast('Quote was sent successfully, but the record could not be saved to My Records.', 'error');
+      // Show success modal with Quote Number and Service Order Nos
+      if (quoteNumber) {
+        await showQuoteCreatedSuccess(quoteNumber, serviceOrderNos);
+      } else {
+        // Fallback to generic success if no Quote Number returned
+        console.warn('No Quote Number in response:', response);
+        showSuccess('Quote sent to Business Central successfully!');
+      }
+
+      if (recordSaveError) {
+        showToast('Quote was sent successfully, but the record could not be saved to My Records.', 'error');
+      }
     }
 
   } catch (error) {

@@ -179,6 +179,8 @@ See [docs/authentication.md](docs/authentication.md).
 - Mode banner shows: quote number, status, customer, branch
 - State: `state.quote.mode` ('create'/'edit'), `state.quote.id/number/etag/status/reportContext`
 - **Customer No locked**, **Work Status shown**, **Ref. SV No. column visible**, **Print button enabled**
+- **Update enabled**: "Update Sales Quote" button sends changes to BC via UpdateSalesQuote endpoint
+- Update mode stays in edit mode after successful update (no reset, no Service Order creation)
 - Field mapping robustness: supports multiple BC API field name variations (qty/quantity/Qty_SaleLine, etc.)
 - Multi-source data extraction with fallback for nested structures
 

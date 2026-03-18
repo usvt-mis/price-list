@@ -1465,26 +1465,19 @@ export function updateQuoteEditorModeUi() {
     if (state.quote.branch) {
       metaParts.push(`Branch: ${state.quote.branch}`);
     }
-    if (isEditMode) {
-      metaParts.push('Update disabled for now');
-    }
     meta.textContent = metaParts.join(' | ');
   }
 
   if (sendButton) {
-    sendButton.disabled = isEditMode;
-    sendButton.classList.toggle('opacity-60', isEditMode);
-    sendButton.classList.toggle('cursor-not-allowed', isEditMode);
-    if (isEditMode) {
-      sendButton.setAttribute('title', 'Update Sales Quote is not enabled yet');
-    } else {
-      sendButton.removeAttribute('title');
-    }
+    // Enable the button in both create and edit modes
+    sendButton.disabled = false;
+    sendButton.classList.remove('opacity-60', 'cursor-not-allowed');
+    sendButton.removeAttribute('title');
   }
 
   if (sendButtonText) {
     sendButtonText.textContent = isEditMode
-      ? 'Update SQ Coming Soon'
+      ? 'Update Sales Quote'
       : 'Send to Business Central';
   }
 }
