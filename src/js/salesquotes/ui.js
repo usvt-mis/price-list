@@ -1649,6 +1649,29 @@ async function ensureQuoteFailedModalLoaded() {
   return { modal, modalContent };
 }
 
+async function ensureQuoteUpdatedModalLoaded() {
+  let modal = el('quoteUpdatedModal');
+  let modalContent = el('quoteUpdatedModalContent');
+
+  if (modal && modalContent) {
+    return { modal, modalContent };
+  }
+
+  console.warn('[QUOTE-UPDATED-MODAL] Modal not found in DOM, loading dynamically...');
+
+  try {
+    const { loadModal } = await import('./components/modal-loader.js');
+    await loadModal('quoteUpdatedModal');
+  } catch (error) {
+    console.error('[QUOTE-UPDATED-MODAL] Failed to load modal dynamically:', error);
+  }
+
+  modal = el('quoteUpdatedModal');
+  modalContent = el('quoteUpdatedModalContent');
+
+  return { modal, modalContent };
+}
+
 function findFirstErrorString(node, seen = new WeakSet()) {
   if (typeof node === 'string') {
     const normalized = node.replace(/\s+/g, ' ').trim();
@@ -2005,6 +2028,55 @@ export async function copyQuoteNumber() {
   );
 }
 
+/**
+ * Show Quote Updated Success modal
+ */
+export async function showQuoteUpdatedSuccess(quoteNumber) {
+  const { modal, modalContent } = await ensureQuoteUpdatedModalLoaded();
+  const quoteNumberDisplay = el('quoteUpdatedNumber');
+
+  if (!modal || !modalContent) {
+    console.error('[QUOTE-UPDATED-MODAL] Modal not available');
+    showSuccess(`Sales Quote ${quoteNumber} updated successfully!`);
+    return false;
+  }
+
+  // Set the Quote Number
+  if (quoteNumberDisplay) {
+    quoteNumberDisplay.textContent = quoteNumber || 'N/A';
+  }
+
+  const modalContainer = document.getElementById('modalContainer');
+  if (modalContainer) {
+    modalContainer.appendChild(modal);
+  }
+
+  openQuoteResponseModal(modal, modalContent);
+
+  return true;
+}
+
+/**
+ * Close Quote Updated Success modal
+ */
+export function closeQuoteUpdatedModal() {
+  const modal = el('quoteUpdatedModal');
+  const modalContent = el('quoteUpdatedModalContent');
+
+  closeQuoteResponseModal(modal, modalContent);
+}
+
+/**
+ * Copy updated quote number to clipboard
+ */
+export async function copyUpdatedQuoteNumber() {
+  await copyTextWithFeedback(
+    el('quoteUpdatedNumber')?.textContent,
+    'copyUpdatedQuoteIcon',
+    'copiedUpdatedQuoteIcon'
+  );
+}
+
 // ============================================================
 // Fullscreen Table Modal
 // ============================================================
@@ -2243,6 +2315,8 @@ if (typeof window !== 'undefined') {
   window.closeQuoteCreatedModal = closeQuoteCreatedModal;
   window.closeQuoteFailedModal = closeQuoteFailedModal;
   window.copyQuoteNumber = copyQuoteNumber;
+  window.closeQuoteUpdatedModal = closeQuoteUpdatedModal;
+  window.copyUpdatedQuoteNumber = copyUpdatedQuoteNumber;
   window.openFullscreenTable = openFullscreenTable;
   window.closeFullscreenTable = closeFullscreenTable;
   window.resetQuoteLineColumns = resetQuoteLineColumnOrder;
