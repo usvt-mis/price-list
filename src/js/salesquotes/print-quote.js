@@ -673,13 +673,17 @@ function renderLeftMetaValueContent(content) {
   return `<span class="left-meta-value">${escapeHtml(normalized)}</span>`;
 }
 
-function renderRightMetaContent(content, kind = 'label') {
+function renderRightMetaContent(content, kind = 'label', extraClass = '') {
   const normalized = String(content ?? '').trim();
   if (!normalized) {
     return '';
   }
 
-  return `<span class="right-meta-${kind}">${escapeHtml(normalized)}</span>`;
+  const className = ['right-meta', kind, extraClass]
+    .filter(Boolean)
+    .join(' ');
+
+  return `<span class="${className}">${escapeHtml(normalized)}</span>`;
 }
 
 function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
@@ -689,7 +693,7 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value">${renderLeftMetaValueContent(line)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
-      <td class="right-label">${index === 0 ? renderRightMetaContent('Our Ref.', 'label') : index === 1 ? renderRightMetaContent('Date', 'label') : ''}</td>
+      <td class="right-label">${index === 0 ? renderRightMetaContent('Our Ref.', 'label', 'meta-fixed-width') : index === 1 ? renderRightMetaContent('Date', 'label', 'meta-fixed-width') : ''}</td>
       <td class="right-value">${index === 0 ? renderRightMetaContent(model.ourRef, 'value') : index === 1 ? renderRightMetaContent(model.documentDate, 'value') : ''}</td>
     </tr>
   `).join('');
@@ -986,6 +990,12 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     }
     .right-meta-label {
       padding-right: 0;
+    }
+    .right-meta.label.meta-fixed-width {
+      display: inline-block;
+      width: 8.5ch;
+      text-align: right;
+      padding-right: 0.5em;
     }
     .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; line-height: 1.3; }
     .line-table thead { display: table-header-group; }
