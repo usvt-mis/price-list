@@ -1003,9 +1003,9 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .footer-note .thai { font-weight: 700; }
     .totals-panel { min-width: 0; }
     .totals { width: 100%; border-collapse: separate; border-spacing: 0 0.8mm; table-layout: fixed; }
-    .totals td { padding: 0.35mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 400; line-height: 1.35; vertical-align: top; }
+    .totals td { padding: 0.35mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 700; line-height: 1.35; vertical-align: top; }
     .totals .label-cell { width: 56%; white-space: nowrap; padding-right: 4.5mm; }
-    .totals .amount { width: 44%; text-align: right; white-space: nowrap; }
+    .totals .amount { width: 44%; text-align: right; white-space: nowrap; font-weight: 400; }
     .totals-label-text { display: inline-block; transform: translateX(${settings.totalsOffsetXMm}mm); }
     .remark-section { margin-top: 3.1mm; font-size: ${settings.remarkFontSize}px; }
     .remark-row,
@@ -1016,10 +1016,11 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       align-items: start;
     }
     .remark-row { min-height: 4.8mm; }
-    .remark-label { font-weight: 700; }
-    .job-label { font-weight: 400; }
+    .remark-label,
+    .job-label { font-weight: 700; }
     .remark-value { white-space: pre-wrap; word-break: break-word; }
-    .job-row { margin-top: 1.2mm; font-weight: 400; }
+    .job-row { margin-top: 1.2mm; }
+    .job-value { font-weight: 400; }
     .signature-block {
       transform: translate(${settings.signatureBlockOffsetXMm}mm, ${settings.signatureBlockOffsetYMm}mm);
       transform-origin: top left;
@@ -1141,7 +1142,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
               </div>
               <div class="job-row">
                 <div class="job-label">JOB NO</div>
-                <div>: ${escapeHtml(model.jobNo)}</div>
+                <div class="job-value">: ${escapeHtml(model.jobNo)}</div>
               </div>
             </div>
           </div>
