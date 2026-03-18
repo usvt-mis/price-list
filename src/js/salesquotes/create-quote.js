@@ -369,6 +369,7 @@ function setSearchSalesQuoteFeedback(type, title, message) {
 function setSearchSalesQuoteLoading(isLoading) {
   const button = el('searchSalesQuoteBtn');
   const input = el('searchSalesQuoteNumber');
+  const searchInputValue = normalizeSalesQuoteNumberInput(input?.value);
 
   state.ui.searchingQuote = isLoading;
 
@@ -386,6 +387,15 @@ function setSearchSalesQuoteLoading(isLoading) {
 
   if (input) {
     input.disabled = isLoading;
+  }
+
+  if (isLoading) {
+    const loadingMessage = searchInputValue
+      ? `Loading ${searchInputValue} from Business Central...`
+      : 'Loading Sales Quote from Business Central...';
+    showLoading(loadingMessage, 'Searching Sales Quote');
+  } else {
+    hideLoading();
   }
 }
 

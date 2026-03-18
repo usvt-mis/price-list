@@ -79,18 +79,30 @@ export function toggle(id, visible) {
 // Loading States
 // ============================================================
 
+function setLoadingOverlayContent(title = 'Processing', message = 'Loading...') {
+  const titleEl = el('loadingTitle');
+  const messageEl = el('loadingMessage');
+
+  if (titleEl) {
+    titleEl.textContent = title;
+  }
+
+  if (messageEl) {
+    messageEl.textContent = message;
+  }
+}
+
 /**
  * Show loading overlay
  */
-export function showLoading(message = 'Loading...') {
+export function showLoading(message = 'Loading...', title = 'Processing') {
   const overlay = el('loadingOverlay');
-  const messageEl = el('loadingMessage');
   if (overlay) {
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
     overlay.style.zIndex = '150'; // Highest z-index for loading
   }
-  if (messageEl) messageEl.textContent = message;
+  setLoadingOverlayContent(title, message);
   state.ui.loading = true;
 }
 
@@ -99,7 +111,10 @@ export function showLoading(message = 'Loading...') {
  */
 export function hideLoading() {
   const overlay = el('loadingOverlay');
-  if (overlay) overlay.classList.add('hidden');
+  if (overlay) {
+    overlay.classList.add('hidden');
+  }
+  setLoadingOverlayContent('Processing', 'Loading...');
   state.ui.loading = false;
 }
 
@@ -107,16 +122,7 @@ export function hideLoading() {
  * Show saving state
  */
 export function showSaving(title = 'Sending Quote', message = 'Sending quote to Business Central...') {
-  const overlay = el('loadingOverlay');
-  const messageEl = el('loadingMessage');
-  const titleEl = el('loadingTitle');
-  if (overlay) {
-    overlay.classList.remove('hidden');
-    overlay.classList.add('flex');
-  }
-  if (messageEl) messageEl.textContent = message;
-  if (titleEl) titleEl.textContent = title;
-  state.ui.loading = true;
+  showLoading(message, title);
   state.ui.saving = true;
 }
 
