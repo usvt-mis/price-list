@@ -968,13 +968,12 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       color: #000;
       font-size: ${settings.lineTableHeaderFontSize}px;
       font-weight: 700;
-      padding: 1.7mm 0.85mm;
+      padding: 2.35mm 0.85mm;
       text-align: center;
     }
     .line-table th:first-child { text-align: left; }
     .line-table th:nth-child(2) {
-      text-align: left;
-      padding-left: 2.1mm;
+      text-align: center;
     }
     .line-table td {
       padding: 0.7mm 0.85mm;
