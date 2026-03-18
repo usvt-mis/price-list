@@ -961,7 +961,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .right-meta-label {
       padding-right: 1.2mm;
     }
-    .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; }
+    .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; line-height: 1.3; }
     .line-table thead { display: table-header-group; }
     .line-table th {
       background: #d9d9d9;
@@ -976,21 +976,21 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       text-align: center;
     }
     .line-table td {
-      padding: 0.7mm 0.85mm;
+      padding: 0.95mm 1.15mm;
       vertical-align: top;
     }
     .line-table tr { page-break-inside: avoid; }
-    .item-cell { white-space: nowrap; text-align: left; }
-    .desc-cell { word-break: break-word; padding-left: 0.5mm; }
+    .item-cell { white-space: nowrap; text-align: left; padding-right: 1.6mm; }
+    .desc-cell { word-break: break-word; padding-left: 1.2mm; }
     .qty-cell,
     .num-cell { text-align: right; white-space: nowrap; }
     .unit-cell { text-align: center; white-space: nowrap; }
-    .line-main-row td { min-height: 5.8mm; }
-    .line-section-row td { padding-top: 0.95mm; padding-bottom: 0.55mm; font-weight: 400; }
+    .line-main-row td { min-height: 6.8mm; }
+    .line-section-row td { padding-top: 1.25mm; padding-bottom: 0.8mm; font-weight: 400; }
     .line-section-row .desc-cell { padding-left: 4mm; }
-    .line-comment-row td { padding-top: 0.12mm; padding-bottom: 0.45mm; }
+    .line-comment-row td { padding-top: 0.35mm; padding-bottom: 0.7mm; }
     .line-comment-row .desc-cell { padding-left: 4mm; }
-    .line-footer-row td { padding-top: 1.1mm; padding-bottom: 0.75mm; }
+    .line-footer-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
     .footer-label-cell { font-weight: 700; text-align: left; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
     .footer-summary-block {
