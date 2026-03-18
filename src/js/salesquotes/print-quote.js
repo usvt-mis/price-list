@@ -740,7 +740,7 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value">${renderLeftMetaValueContent(model.taxId)}</td>
       <td class="mid-label"></td>
       <td class="mid-value"></td>
-      <td class="right-label">${renderRightMetaContent('Payment', 'label')}</td>
+      <td class="right-label">${renderRightMetaContent('Payment', 'label', 'meta-fixed-width')}</td>
       <td class="right-value">${renderRightMetaContent(model.paymentText, 'value')}</td>
     </tr>
     ${deliveryRows}
