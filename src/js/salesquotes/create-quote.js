@@ -1238,7 +1238,6 @@ export function handleAddQuoteLine() {
 
   if (hasServiceItemInGroupNo(lineData.usvtGroupNo, null)) {
     lineData.usvtServiceItemNo = '';
-    lineData.usvtServiceItemDescription = '';
   }
 
   // Check Material No dropdown validation first (must be selected from dropdown, not free text)
@@ -1945,10 +1944,6 @@ async function updateQuoteInAzureFunction(quoteData) {
     const parsedQuantity = parseFloat(line.quantity);
 
     return {
-      id: line.bcId || null,
-      lineId: line.bcId || null,
-      etag: line.bcEtag || null,
-      sequence: line.sequence || 0,
       lineObjectNumber: line.lineObjectNumber || '',
       description: line.description || '',
       quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
@@ -1988,8 +1983,7 @@ async function updateQuoteInAzureFunction(quoteData) {
     requestedDeliveryDate: quoteData.requestedDeliveryDate || '',
     workDescription: quoteData.workDescription || '',
     discountAmount,
-    lineItems,
-    salesQuoteLines: lineItems
+    lineItems
   };
 
   console.log('Updating quote in Azure Function:', requestBody);
