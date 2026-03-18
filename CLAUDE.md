@@ -176,6 +176,9 @@ See [docs/authentication.md](docs/authentication.md).
 - A4-optimized print layout from searched quotes
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
+- **Signature Priority**: Uploaded signatures (via backoffice) > BC signature data > No signature
+  - `fetchSalespersonSignature()` API call checks `SalespersonSignatures` table first
+  - Falls back to BC `requestSignature.signature` or `salesperson.signature` if no upload exists
 - **Backoffice Print Layout Settings**: Administrators configure global print settings (typography, content, branding, signature, positioning) via Settings tab
   - Settings organized in tabs: Typography, Content And Totals, Footer Positioning, Branding, Signature, Advanced
 - Dynamic meta table column adjustment based on address width
@@ -215,7 +218,9 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 
 **Important**: Set ANSI options before creating filtered indexes.
 
-**Available:** `migrate_branch_to_branchid.sql` (see `README_BRANCH_MIGRATION.md`)
+**Available:**
+- `migrate_branch_to_branchid.sql` (see `README_BRANCH_MIGRATION.md`)
+- `database/migrations/add_salesperson_signatures.sql` - Creates `SalespersonSignatures` and `SalespersonSignatureAudit` tables for signature management
 
 ---
 

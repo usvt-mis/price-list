@@ -40,7 +40,7 @@ The Price List Calculator computes total cost based on four components:
   - **Features**: Local database customer search (min 2 chars), customer/item search, quote line management (add/insert/remove), automatic calculations
   - **My Records Tab**: View submitted Sales Quote history with search functionality (Sales Quote Number, Work Description, Submitted At)
   - **Search Quotes Tab**: Load existing Sales Quotes from Business Central by quote number for editing and resubmission
-  - **Print Quote**: Generate professional print-ready quotation documents (A4 layout) from searched Sales Quotes with company logo, customer details, line items, totals, and signatures; print layout can be customized globally via backoffice settings (font sizes, logo width, margins, etc.)
+  - **Print Quote**: Generate professional print-ready quotation documents (A4 layout) from searched Sales Quotes with company logo, customer details, line items, totals, and signatures; print layout can be customized globally via backoffice settings (font sizes, logo width, margins, etc.); salesperson signatures are fetched from uploaded backoffice signatures first, then fallback to Business Central signature data
   - **Date Picker**: Order Date defaults to today (asterisk hidden), Requested Delivery Date prevents past dates (asterisk visible until selected)
   - **Required Field Indicators**: Dynamic red asterisks for 7 fields (Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, BRANCH) - hide when field has value, show when empty
   - **Customer Search**: Fast local lookups from BCCustomers table, auto-fills customer details and Sell-to address (Address, Address2, City, PostCode, VAT Reg No, Tax Branch No)
@@ -200,6 +200,8 @@ The application expects these SQL Server tables:
 | `AppLogs_Archive` | Historical application logs (archived after 30 days) |
 | `BackofficeSettings` | Global backoffice configuration settings (SettingKey, SettingValue, UpdatedBy, CreatedAt, UpdatedAt) |
 | `SalesQuoteUserPreferences` | User-specific preferences for Sales Quotes interface (UserEmail, PreferenceKey, PreferenceValue) |
+| `SalespersonSignatures` | Uploaded salesperson signatures (SalespersonCode, SignatureData, FileName, ContentType, FileSizeBytes, UploadedBy, UploadedAt, UpdatedBy, UpdatedAt) |
+| `SalespersonSignatureAudit` | Audit log for signature changes (Id, SalespersonCode, Action, OldSignatureData, NewSignatureData, FileName, FileSizeBytes, ChangedBy, ClientIP, ChangedAt) |
 
 **Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting. Run `database/migrations/calculator_types.sql` to add CalculatorType and type-specific columns. Run `database/migrations/add_scope_column.sql` to add Scope dropdown for Onsite calculator. Run `database/migrations/priority_site_access.sql` to add SiteAccess column for Onsite calculator (PriorityLevel column already exists and is shared with Workshop). Run `database/migrations/add_onsite_cost_per_hour.sql` to add OnsiteCostPerHour column for calculator-specific branch rates. Run `api/src/database/schemas/create-bccustomers-table.sql` to create the BCCustomers table for local customer cache. BackofficeSettings and SalesQuoteUserPreferences tables are auto-created on first use via their respective utility modules.
 
@@ -301,6 +303,11 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/backoffice/timezone-check` | GET | Diagnostic endpoint for timezone configuration (returns database and JavaScript timezone info) | Backoffice session |
 | `/api/backoffice/salesquotes/print-layout` | GET | Read Sales Quotes print layout settings | Backoffice session |
 | `/api/backoffice/salesquotes/print-layout` | PUT | Update Sales Quotes print layout settings | Backoffice session |
+| `/api/backoffice/salesperson-signatures` | GET | List all signatures with pagination and search (?page, ?pageSize, ?search) | Backoffice session |
+| `/api/backoffice/salesperson-signatures` | POST | Upload a new signature (salespersonCode, signatureFile - max 500KB PNG/JPG) | Backoffice session |
+| `/api/backoffice/salesperson-signatures/:code` | GET | Get signature for a specific salesperson | Backoffice session |
+| `/api/backoffice/salesperson-signatures/:code` | DELETE | Delete a signature | Backoffice session |
+| `/api/backoffice/salesperson-signatures/audit-log` | GET | Get audit log for signature changes (?salespersonCode filter) | Backoffice session |
 | `/api/business-central/config` | GET | Get Business Central configuration status (public, safe values only) | No |
 | `/api/business-central/customers/search` | GET | Search customers in local database | Yes |
 | `/api/business-central/salespeople/search` | GET | Search salespeople in local database | Yes |
@@ -415,6 +422,11 @@ The application uses **Azure Entra ID (Azure AD)** authentication via App Servic
 - **Count Badges**: Each tab shows total user count
 - **Search**: Filter users within each role tab
 - **Settings Tab**: Displays authentication info
+- **Signatures Tab**: Manage salesperson signatures for Sales Quotes print layout
+  - Upload PNG/JPG signatures (max 500KB) per salesperson code
+  - Search and filter signatures with pagination
+  - View, delete, and audit signature changes
+  - Uploaded signatures take priority over Business Central signature data in print output
 - **Local Development**: Automatic bypass when running on localhost - no Azure AD required
 
 **Local Development:**

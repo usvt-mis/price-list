@@ -35,6 +35,7 @@ if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const multer = require('multer');
 
 // Import route modules
 const motorTypesRouter = require('./api/src/routes/motorTypes');
@@ -74,6 +75,15 @@ const PORT = process.env.PORT || 8080;
 
 // CORS for cross-origin requests
 app.use(cors());
+
+// Configure multer for file uploads (max 500KB)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 500 * 1024, // 500KB max
+    files: 1 // Only single file upload
+  }
+});
 
 // Parse JSON bodies
 app.use(express.json());
@@ -189,6 +199,9 @@ app.use('/api/adm/roles', requireAuth, adminRolesRouter);
 app.use('/api/backoffice/login', backofficeLoginRouter);
 // All other backoffice routes require Azure AD + email authorization
 app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
+
+// Make multer available for signature uploads
+app.use('/api/backoffice/salesperson-signatures', upload.single('signatureFile'));
 
 // Auth info endpoint (public - auth validation happens inside route)
 app.use('/api/auth', authRouter);

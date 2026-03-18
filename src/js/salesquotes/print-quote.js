@@ -1,6 +1,8 @@
 import { state } from './state.js';
 import { formatCurrency, getQuoteFormData, showError, showToast } from './ui.js';
 
+const SIGNATURE_API_BASE = '/api/backoffice/salesperson-signatures';
+
 const ASSET_PATHS = {
   logo: '/salesquotes/components/assets/print/uservices-logo.png',
   easa: '/salesquotes/components/assets/print/easa-logo.jpg',
@@ -153,6 +155,29 @@ const META_TABLE_MIN_WIDTHS_MM = Object.freeze({
 });
 
 let printLayoutSettingsPromise = null;
+
+/**
+ * Fetch uploaded signature for a salesperson from backoffice
+ * Priority: Uploaded signature > BC signature data > No signature
+ */
+async function fetchSalespersonSignature(salespersonCode) {
+  if (!salespersonCode) return null;
+
+  try {
+    const response = await fetch(`${SIGNATURE_API_BASE}/${encodeURIComponent(salespersonCode)}`);
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null; // No signature uploaded, that's OK
+      }
+      throw new Error('Failed to fetch salesperson signature');
+    }
+    const data = await response.json();
+    return data.signatureData;
+  } catch (error) {
+    console.warn('Unable to fetch salesperson signature:', error);
+    return null;
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -548,7 +573,7 @@ function buildDeliveryAddressLines(formData, reportContext, customerName = '', c
   return deliveryLines;
 }
 
-function buildModel() {
+async function buildModel() {
   if (!(state.quote.mode === 'edit' && state.quote.number && state.quote.loadedFromBc)) {
     throw new Error('Please search and load a Sales Quote before printing.');
   }
@@ -563,7 +588,8 @@ function buildModel() {
   const detailNotes = unique(compactLines(reportContext.salesComments));
   const documentRef = formData.quoteNumber || reportContext.documentNo || reportContext.externalDocumentNo || '';
   const requestSignature = reportContext.requestSignature || {};
-  const salespersonSignature = normalizeDataUri(requestSignature.signature) || normalizeDataUri(reportContext.salesperson?.signature);
+  const uploadedSalespersonSignature = await fetchSalespersonSignature(formData.salespersonCode);
+  const salespersonSignature = uploadedSalespersonSignature || normalizeDataUri(requestSignature.signature) || normalizeDataUri(reportContext.salesperson?.signature);
   const approverSignature = normalizeDataUri(reportContext.approver?.signature);
   const customerName = reportContext.customerName || formData.customerName || '';
   const customerAddressLines = buildCustomerAddressLines(formData, reportContext);
@@ -1250,7 +1276,7 @@ export async function printSearchedSalesQuote() {
   let printWindow = null;
 
   try {
-    const model = buildModel();
+    const model = await buildModel();
     printWindow = window.open('', '_blank');
 
     if (!printWindow) {
