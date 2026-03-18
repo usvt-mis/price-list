@@ -99,13 +99,23 @@ module.exports = router;
 ### Database Connection
 - Singleton pool in `api/src/db.js`
 - All routes use `getPool()`
-- Parameterized queries for SQL injection prevention
+- **Retry Logic**: Automatic retry with MAX_RETRIES=3 and 2-second delays between attempts
+- **Environment Variables**: Uses individual vars (DB_SERVER, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT) with defaults
+- **Connection Logging**: Detailed console logging for connection attempts and errors
+- **Pool Error Handling**: Auto-resets poolPromise on connection errors to allow reconnection
 - **ANSI Options** required for filtered index compatibility
 
 ### Local Dev Bypass
 - `localhost`: Auto-bypasses auth
 - Mock user: `it@uservices-thailand.com` / `PriceListSales` / BranchId=1 (URY)
 - Override: `MOCK_USER_EMAIL`, `MOCK_USER_ROLE`, `MOCK_USER_BRANCH_ID`
+
+### Local Dev Mock Middleware
+- `api/src/middleware/localDevMock.js`: Provides mock data for endpoints when database is unavailable
+- **Enable**: Set `LOCAL_DEV_MOCK=true` environment variable
+- **Scope**: Only localhost requests (localhost, 127.0.0.1)
+- **Mocked Endpoints**: `/api/branches` and `/api/motor-types` with sample data
+- **Usage**: Helpful for frontend development without database connectivity
 
 ### Branch ID Mapping
 URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
@@ -182,6 +192,7 @@ See [docs/authentication.md](docs/authentication.md).
 - **Backoffice Print Layout Settings**: Administrators configure global print settings (typography, content, branding, signature, positioning) via Settings tab
   - Settings organized in tabs: Typography, Content And Totals, Footer Positioning, Branding, Signature, Advanced
 - Dynamic meta table column adjustment based on address width
+- **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13.5ch), horizontal positioning with attentionTelBlockOffsetXMm and translateX adjustments
 - Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 

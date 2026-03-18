@@ -704,7 +704,7 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="value">${renderLeftMetaValueContent(line)}</td>
       <td class="mid-label">${index === 0 ? renderMetaOffsetContent('Tel.', 'label') : ''}</td>
       <td class="mid-value">${index === 0 ? renderMetaOffsetContent(model.phone, 'value') : ''}</td>
-      <td class="right-label">${index === 0 ? renderRightMetaContent('Delivery Date', 'label') : ''}</td>
+      <td class="right-label">${index === 0 ? renderRightMetaContent('Delivery Date', 'label', 'meta-fixed-width') : ''}</td>
       <td class="right-value">${index === 0 ? renderRightMetaContent(model.deliveryText, 'value') : ''}</td>
     </tr>
   `).join('');
@@ -965,7 +965,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       box-sizing: border-box;
     }
     .meta-offset-block {
-      transform: translate(${settings.attentionTelBlockOffsetXMm}mm, ${settings.attentionTelBlockOffsetYMm}mm);
+      transform: translate(${settings.attentionTelBlockOffsetXMm - 5}mm, ${settings.attentionTelBlockOffsetYMm}mm);
       transform-origin: top left;
     }
     .meta-offset-block-label {
@@ -987,13 +987,14 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       text-align: left;
       white-space: nowrap;
       box-sizing: border-box;
+      transform: translateX(-5mm);
     }
     .right-meta-label {
       padding-right: 0;
     }
     .right-meta.label.meta-fixed-width {
       display: inline-block;
-      width: 12ch;
+      width: 13.5ch;
       text-align: right;
       padding-right: 0.5em;
     }

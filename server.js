@@ -10,7 +10,17 @@
  */
 
 // Load environment variables from .env.local file
-require('dotenv').config({ path: '.env.local' });
+const path = require('path');
+const envPath = path.resolve(__dirname, '.env.local');
+console.log('[Server] Loading .env.local from:', envPath);
+require('dotenv').config({ path: envPath });
+
+// Debug: Check if environment variables are loaded
+console.log('[Server] Environment variables loaded:');
+console.log('  - DB_SERVER:', process.env.DB_SERVER);
+console.log('  - DB_NAME:', process.env.DB_NAME);
+console.log('  - DB_USER:', process.env.DB_USER);
+console.log('  - DB_PORT:', process.env.DB_PORT);
 
 // Import logger for global error handlers
 const logger = require('./api/src/utils/logger');
@@ -33,7 +43,6 @@ if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
 }
 
 const express = require('express');
-const path = require('path');
 const cors = require('cors');
 const multer = require('multer');
 
