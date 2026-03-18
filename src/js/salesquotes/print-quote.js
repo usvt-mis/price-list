@@ -980,7 +980,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .right-meta-value {
       display: block;
       width: 100%;
-      text-align: right;
+      text-align: left;
       white-space: nowrap;
       box-sizing: border-box;
     }
