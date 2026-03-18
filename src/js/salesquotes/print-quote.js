@@ -901,7 +901,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .company .th-name { font-size: ${settings.companyThaiFontSize}px; font-weight: 700; line-height: 1.08; margin-bottom: 1mm; }
     .company .en-name { font-size: ${settings.companyEnglishFontSize}px; font-weight: 700; line-height: 1.08; margin-bottom: 1.6mm; }
     .company-line { font-size: ${companyLineFontSize}px; line-height: 1.24; margin-bottom: 0.48mm; }
-    .page-no { text-align: right; font-size: ${pageNoFontSize}px; font-weight: 700; white-space: nowrap; padding-top: 1.2mm; }
+    .page-no { text-align: right; font-size: ${pageNoFontSize}px; font-weight: 400; white-space: nowrap; padding-top: 1.2mm; }
     .title-row {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
@@ -1003,7 +1003,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .footer-note .thai { font-weight: 700; }
     .totals-panel { min-width: 0; }
     .totals { width: 100%; border-collapse: separate; border-spacing: 0 0.8mm; table-layout: fixed; }
-    .totals td { padding: 0.35mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 700; line-height: 1.35; vertical-align: top; }
+    .totals td { padding: 0.35mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 400; line-height: 1.35; vertical-align: top; }
     .totals .label-cell { width: 56%; white-space: nowrap; padding-right: 4.5mm; }
     .totals .amount { width: 44%; text-align: right; white-space: nowrap; }
     .totals-label-text { display: inline-block; transform: translateX(${settings.totalsOffsetXMm}mm); }
@@ -1016,10 +1016,10 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       align-items: start;
     }
     .remark-row { min-height: 4.8mm; }
-    .remark-label,
-    .job-label { font-weight: 700; }
+    .remark-label { font-weight: 700; }
+    .job-label { font-weight: 400; }
     .remark-value { white-space: pre-wrap; word-break: break-word; }
-    .job-row { margin-top: 1.2mm; font-weight: 700; }
+    .job-row { margin-top: 1.2mm; font-weight: 400; }
     .signature-block {
       transform: translate(${settings.signatureBlockOffsetXMm}mm, ${settings.signatureBlockOffsetYMm}mm);
       transform-origin: top left;
