@@ -987,7 +987,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       text-align: left;
       white-space: nowrap;
       box-sizing: border-box;
-      transform: translateX(-5mm);
+      transform: translateX(-15mm);
     }
     .right-meta-label {
       padding-right: 0;
