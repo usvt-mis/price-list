@@ -1402,9 +1402,9 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     console.log(`[Multi-Page Debug] Page ${pageNumber}: items=${chunk.lines.length}`);
 
     // Build page - all pages have full header and meta table
-    const pageBreakStyle = isLastPage ? '' : 'page-break-after: always;';
+    const pageBreakStyle = isLastPage ? '' : 'page-break-after: avoid';
     const marginTopStyle = pageNumber > 1 ? 'margin-top: 11mm;' : '';
-    const combinedStyle = marginTopStyle ? `style="${pageBreakStyle} ${marginTopStyle}"` : `style="${pageBreakStyle}"`;
+    const combinedStyle = (pageBreakStyle || marginTopStyle) ? `style="${pageBreakStyle} ${marginTopStyle}"` : (pageBreakStyle || marginTopStyle ? `style="${pageBreakStyle}${marginTopStyle}"` : '');
 
     pagesHtml += `
   <div class="page"${combinedStyle ? ` ${combinedStyle}` : ''}>
@@ -1693,7 +1693,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 2mm; font-size: ${settings.docFooterFontSize}px; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: -2mm !important; font-size: ${settings.docFooterFontSize}px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
 </head>
@@ -1977,7 +1977,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 2mm; font-size: ${settings.docFooterFontSize}px; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: -2mm !important; font-size: ${settings.docFooterFontSize}px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
 
     @media print {
@@ -2220,17 +2220,9 @@ export async function printSearchedSalesQuote() {
     const layoutSettings = await loadPrintLayoutSettings();
     const normalizedSettings = normalizePrintLayoutSettings(layoutSettings);
 
-    // Detect if multi-page is needed based on line item count
-    // Use a simple heuristic: more than 12 items likely need multiple pages
-    const useMultiPage = model.lineItems.length > 12;
-    console.log('[Print] Line items:', model.lineItems.length, 'Use multi-page:', useMultiPage);
-
+    // Use multi-page mode (split content across pages)
     printWindow.document.open();
-    if (useMultiPage) {
-      printWindow.document.write(buildMultiPageHtml(model, normalizedSettings));
-    } else {
-      printWindow.document.write(buildPrintHtml(model, normalizedSettings));
-    }
+    printWindow.document.write(buildMultiPageHtml(model, normalizedSettings));
     printWindow.document.close();
     showToast(`Opening print preview for ${state.quote.number}`, 'success');
   } catch (error) {

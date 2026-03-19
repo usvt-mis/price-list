@@ -279,11 +279,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Uses `window.open()` to create a print window with the generated HTML
   - Includes popup blocking detection with user-friendly error message
   - Toast notifications show "Opening print preview for {quote number}" on success
-  - Automatically detects multi-page scenarios (line items > 12) and uses appropriate HTML builder
-  - **Multi-page handling**: `buildMultiPageHtml()` for quotes with many line items, `buildPrintHtml()` for single-page quotes
+  - **Multi-page mode**: Always uses `buildMultiPageHtml()` for all quotes (handles both single and multi-page scenarios)
   - **Print media queries**: CSS `@media print` rules ensure proper page breaks and layout when printing
     - Prevents page breaks inside line table rows, footer stack, and signature grid
-    - Forces page breaks after each page (except last)
     - Avoids page breaks after topbar, title row, and meta table
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
@@ -316,16 +314,16 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Handles single-page scenarios efficiently with early return
 - **Multi-Page HTML Generation**: `buildMultiPageHtml()` generates HTML for multi-page documents
   - All pages have full header and meta table
-  - Page break styling: `page-break-after: always` for non-last pages
+  - Page break styling: `page-break-after: avoid` (allows browser to handle page breaks naturally)
   - Margin styling: `margin-top: 11mm` for pages after the first
-  - Combined style attribute applies both page break and margin where needed
+  - Combined style attribute applies both page break and margin where needed with proper edge case handling
 - **Footer Types**: `buildPageFooter()` supports 'full' and 'partial' types
   - 'full': Complete footer with disclaimer, totals, and signatures (used for single-page quotes)
   - 'partial': Disclaimer + signatures for first/middle pages in multi-page documents
 - **CSS Page Break Rules**: `@media print` and inline styles ensure proper pagination
   - `.page:last-child` has `page-break-after: auto` to prevent trailing blank pages
   - Prevents page breaks inside line table rows, footer stack, and signature grid
-  - Forces page breaks after each page (except last)
+  - Doc footer uses `margin-top: -2mm !important` for optimal positioning
 
 ### My Records (Submission History)
 - "My Records" tab shows user's submitted quotes with search
