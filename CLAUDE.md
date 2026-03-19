@@ -188,6 +188,10 @@ See [docs/authentication.md](docs/authentication.md).
 - A4-optimized print layout from searched quotes
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
+- **Certification Logos**: Support for multiple certification logos with special styling
+  - AEMT logo receives special `cert-logo-aemt` class with max-width constraint (14mm)
+  - Other certification logos use default `cert-logo` class
+  - Logos displayed in flex container with gap and alignment controls
 - **Signature Priority**: Uploaded signatures (via backoffice) > BC signature data > No signature
   - `fetchSalespersonSignature()` API call checks `SalespersonSignatures` table first
   - Falls back to BC `requestSignature.signature` or `salesperson.signature` if no upload exists
