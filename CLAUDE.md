@@ -277,6 +277,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - A4-optimized print layout from searched quotes
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
+- **Multi-Page Printing Support**: Automatic overflow detection and multi-page generation
+  - `willOverflowSinglePage()` detects if quote content exceeds single page capacity
+  - `calculateRowHeights()` calculates height for each printable line row (base row height, description continuations, special row types)
+  - `calculateAvailablePageHeights()` computes available content space per page type (first page, middle pages, last page)
+  - `paginateLines()` intelligently splits line items across pages to avoid orphaned rows
+  - `buildMultiPageHtml()` generates multi-page HTML with page headers and footers
+  - **Automatic mode selection**: `printSearchedSalesQuote()` automatically uses multi-page layout when content overflows
 - **Certification Logos**: Support for multiple certification logos with special styling
   - AEMT logo receives special `cert-logo-aemt` class with max-width constraint (22mm × scale)
   - Other certification logos use default `cert-logo` class
@@ -295,7 +302,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Settings organized in tabs: Typography, Content And Totals, Footer Positioning, Branding, Signature, Advanced
 - Dynamic meta table column adjustment based on address width
 - **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13ch), `shifted` class with differentiated positioning (labels: -21mm left, values: -12mm left), attentionTelBlockOffsetXMm/YMm using relative positioning instead of transform
-- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`
+- **Delivery Date Field**: Uses `reportContext.deliveryDate` for delivery text in meta table
+- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `buildMultiPageHtml()`, `calculateRowHeights()`, `calculateAvailablePageHeights()`, `paginateLines()`, `willOverflowSinglePage()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 
 ### My Records (Submission History)

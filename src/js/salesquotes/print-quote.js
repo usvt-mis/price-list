@@ -617,7 +617,7 @@ async function buildModel() {
     documentDate: formatDate(reportContext.documentDate || reportContext.orderDate || formData.orderDate),
     expiredDate: formatDate(reportContext.quoteValidUntilDate),
     paymentText: reportContext.paymentTermsCode || reportContext.paymentTermsDescription || '',
-    deliveryText: formatDate(reportContext.requestedDeliveryDate || formData.requestedDeliveryDate),
+    deliveryText: formatDate(reportContext.deliveryDate),
     attention: formData.contact || reportContext.billToContact || '',
     phone: state.quote.customer?.phone || reportContext.sellToPhoneNo || '',
     taxId: formData.sellTo?.vatRegNo || reportContext.vatRegistrationNo || '',
@@ -878,6 +878,758 @@ function renderLineRows(lines) {
   }).join('');
 }
 
+/**
+ * Calculate the height in mm for each printable line row
+ * Accounts for base row height, description continuations, and special row types
+ */
+function calculateRowHeights(lines, settings) {
+  const baseRowHeightMm = 6.8; // From CSS: .line-main-row td { min-height: 6.8mm; }
+  const commentRowHeightMm = 3.4; // Approximate for continuation rows
+  const sectionRowHeightMm = 4.0; // Section header/footer rows
+  const descriptionCharsPerMm = 5.5; // Approximate characters per mm at current font size
+
+  const heights = [];
+
+  for (const line of lines) {
+    let rowHeight = 0;
+
+    // Section footer row (printFooter)
+    if (line.printFooter) {
+      rowHeight = sectionRowHeightMm;
+      heights.push(rowHeight);
+      continue;
+    }
+
+    // Section header row (printHeader without amounts)
+    if (line.printHeader) {
+      const descriptionLines = compactLines(String(line.description || '').split(/\r?\n/));
+      const primaryDesc = descriptionLines.shift() || '';
+      const continuations = [
+        ...descriptionLines,
+        ...compactLines(String(line.description2 || '').split(/\r?\n/))
+      ];
+
+      // Main header row
+      rowHeight = sectionRowHeightMm;
+
+      // Continuation rows
+      for (const cont of continuations) {
+        if (cont) {
+          const estLines = Math.max(1, Math.ceil(cont.length / (95 * descriptionCharsPerMm / settings.baseFontSize * 11)));
+          rowHeight += estLines * commentRowHeightMm;
+        }
+      }
+      heights.push(rowHeight);
+      continue;
+    }
+
+    // Comment lines (no amounts)
+    const isCommentLine = line.lineType === 'Comment';
+    const hasLineAmounts = Boolean(
+      line.itemNo
+      || asNumber(line.quantity, 0) !== 0
+      || asNumber(line.unitPrice, 0) !== 0
+      || asNumber(line.discountAmount, 0) !== 0
+      || asNumber(line.lineTotal, 0) !== 0
+    );
+
+    if (isCommentLine && !hasLineAmounts) {
+      const allDescLines = compactLines([
+        String(line.description || '').split(/\r?\n/),
+        String(line.description2 || '').split(/\r?\n/)
+      ].flat());
+
+      for (const descLine of allDescLines) {
+        const estLines = Math.max(1, Math.ceil(descLine.length / (95 * descriptionCharsPerMm / settings.baseFontSize * 11)));
+        rowHeight += estLines * commentRowHeightMm;
+      }
+      heights.push(Math.max(rowHeight, commentRowHeightMm));
+      continue;
+    }
+
+    // Standard line item
+    const descriptionLines = compactLines(String(line.description || '').split(/\r?\n/));
+    const primaryDescription = descriptionLines.shift() || '';
+    const continuationText = [
+      ...descriptionLines,
+      ...compactLines(String(line.description2 || '').split(/\r?\n/))
+    ].join(' ');
+
+    // Main row height
+    rowHeight = baseRowHeightMm;
+
+    // Add continuation row height if there's additional description
+    if (continuationText.trim()) {
+      const descWidthChars = Math.floor(95 * settings.baseFontSize / 11); // Approximate character width
+      const estLines = Math.max(1, Math.ceil(continuationText.length / descWidthChars));
+      rowHeight += estLines * commentRowHeightMm;
+    }
+
+    heights.push(rowHeight);
+  }
+
+  return heights;
+}
+
+/**
+ * Calculate available content space per page type in mm
+ */
+function calculateAvailablePageHeights(settings, hasMetaTable = true) {
+  const pageHeight = 279; // A4 printable height
+  const bodyPaddingTop = 8.5;
+  const bodyPaddingBottom = 8;
+
+  // Fixed section heights (in mm)
+  const topbarHeight = 18; // Logo + company + page number
+  const titleRowHeight = 14; // Title row with certifications
+  const metaTableHeight = hasMetaTable ? 42 : 0; // Meta table rows
+  const lineTableHeaderHeight = 9; // Table header row
+  const footerHeight = 95; // Totals + signatures + document footer
+  const disclaimerOnlyHeight = 12; // Just the disclaimer text
+
+  // First page (full header + meta table)
+  const firstPageHeaderHeight = topbarHeight + titleRowHeight + metaTableHeight;
+  const firstPageAvailable = pageHeight - bodyPaddingTop - bodyPaddingBottom - firstPageHeaderHeight - lineTableHeaderHeight;
+
+  // Middle page (compact header only)
+  const compactHeaderHeight = 12; // Smaller logo + company name + page number
+  const middlePageAvailable = pageHeight - bodyPaddingTop - bodyPaddingBottom - compactHeaderHeight - lineTableHeaderHeight;
+
+  // Last page (compact header + footer)
+  const lastPageAvailable = middlePageAvailable - footerHeight;
+
+  return {
+    firstPage: Math.max(20, firstPageAvailable), // Minimum 20mm for content
+    middlePage: Math.max(20, middlePageAvailable),
+    lastPage: Math.max(20, lastPageAvailable)
+  };
+}
+
+/**
+ * Split line items into page chunks based on available height
+ */
+function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
+  const rowHeights = calculateRowHeights(lines, settings);
+  const pageHeights = calculateAvailablePageHeights(settings, hasMetaTable);
+  const chunks = [];
+  let currentPageType = 'first';
+  let currentHeight = 0;
+  let startIndex = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const rowHeight = rowHeights[i];
+
+    // Determine available height based on current page type
+    let availableHeight;
+    if (currentPageType === 'first') {
+      availableHeight = pageHeights.firstPage;
+    } else if (currentPageType === 'middle') {
+      availableHeight = pageHeights.middlePage;
+    } else {
+      availableHeight = pageHeights.lastPage;
+    }
+
+    // Check if this row fits
+    if (currentHeight + rowHeight <= availableHeight) {
+      currentHeight += rowHeight;
+    } else {
+      // Row doesn't fit, start a new page
+      if (startIndex < i) {
+        chunks.push({
+          startIndex,
+          endIndex: i,
+          pageType: currentPageType,
+          lines: lines.slice(startIndex, i)
+        });
+      }
+
+      startIndex = i;
+      currentHeight = rowHeight;
+
+      // Determine next page type
+      if (currentPageType === 'first') {
+        currentPageType = 'last'; // Will be adjusted if more pages needed
+      } else if (currentPageType === 'middle') {
+        currentPageType = 'middle';
+      } else {
+        currentPageType = 'middle'; // Continue with middle pages
+      }
+    }
+  }
+
+  // Add the last chunk
+  if (startIndex < lines.length) {
+    chunks.push({
+      startIndex,
+      endIndex: lines.length,
+      pageType: currentPageType,
+      lines: lines.slice(startIndex)
+    });
+  }
+
+  // Adjust page types for multi-page scenarios
+  if (chunks.length > 1) {
+    // First page is already 'first'
+    // Middle pages should be 'middle'
+    // Last page should be 'last'
+    for (let i = 0; i < chunks.length; i++) {
+      if (i === 0) {
+        chunks[i].pageType = 'first';
+      } else if (i === chunks.length - 1) {
+        chunks[i].pageType = 'last';
+      } else {
+        chunks[i].pageType = 'middle';
+      }
+    }
+  } else {
+    // Single page - mark as 'only'
+    chunks[0].pageType = 'only';
+  }
+
+  return chunks;
+}
+
+/**
+ * Build page header HTML (full or compact)
+ */
+function buildPageHeader(model, settings, pageNumber, totalPages, headerType = 'full') {
+  const topbarLogoColumnWidthMm = Math.max(settings.logoWidthMm + 2 + Math.max(settings.logoOffsetXMm, 0), 30);
+  const companyLineFontSize = Math.max(settings.baseFontSize - 0.8, 9);
+  const pageNoFontSize = Math.max(settings.baseFontSize - 0.3, 9);
+  const pageLabel = totalPages > 1 ? `หน้า ${pageNumber}/${totalPages}` : 'หน้า 1/1';
+
+  if (headerType === 'compact') {
+    // Compact header for continuation pages
+    const logoWidth = 22; // Smaller logo
+    const companyFontSize = 13; // Smaller font
+
+    return `
+      <div class="topbar topbar--compact">
+        <div style="display: grid; grid-template-columns: ${logoWidth}mm 1fr ${45}mm; align-items: start; column-gap: 4mm; width: 100%;">
+          <img src="${escapeHtml(model.logoSrc)}" alt="U-Services" class="main-logo main-logo--compact" style="width: ${logoWidth}mm;">
+          <div class="company company--compact">
+            <div class="th-name" style="font-size: ${companyFontSize}px;">${escapeHtml(model.companyLines[0] || DEFAULT_COMPANY_LINES[0])}</div>
+          </div>
+          <div class="page-no">${escapeHtml(pageLabel)}</div>
+        </div>
+      </div>`;
+  }
+
+  // Full header
+  const companyMarkup = model.companyLines.slice(2).map(line => `<div class="company-line">${escapeHtml(line)}</div>`).join('');
+  const certificationMarkup = model.certificationLogos
+    .map(src => {
+      const isAemt = src.includes('aemt-logo');
+      const extraClass = isAemt ? ' cert-logo-aemt' : '';
+      return `<img src="${escapeHtml(src)}" alt="" class="cert-logo${extraClass}">`;
+    })
+    .join('');
+
+  return `
+    <div class="topbar">
+      <img src="${escapeHtml(model.logoSrc)}" alt="U-Services" class="main-logo">
+      <div class="company">
+        <div class="th-name">${escapeHtml(model.companyLines[0] || DEFAULT_COMPANY_LINES[0])}</div>
+        <div class="en-name">${escapeHtml(model.companyLines[1] || DEFAULT_COMPANY_LINES[1])}</div>
+        ${companyMarkup}
+      </div>
+      <div class="page-no">${escapeHtml(pageLabel)}</div>
+    </div>
+
+    <div class="title-row">
+      <div class="spacer"></div>
+      <div class="title">${escapeHtml(model.title)}</div>
+      <div class="certs">${certificationMarkup}</div>
+    </div>`;
+}
+
+/**
+ * Build page footer HTML (none, partial, or full)
+ */
+function buildPageFooter(model, settings, totals, footerType = 'full') {
+  const remarkMarkup = model.bottomRemark
+    ? escapeHtml(model.bottomRemark)
+    : '&nbsp;';
+  const signatureSignHeightMm = Math.max(settings.signatureSignMinHeightMm, 22);
+
+  if (footerType === 'none') {
+    return ''; // No footer for middle pages
+  }
+
+  if (footerType === 'partial') {
+    // Disclaimer only for first page in multi-page documents
+    return `
+      <div class="footer-stack footer-stack--partial">
+        <div class="footer-summary-block">
+          <div class="footer-divider"></div>
+          <div class="footer-note">
+            <div class="thai">${escapeHtml(DEFAULT_DISCLAIMER_TH)}</div>
+            <div>${escapeHtml(DEFAULT_DISCLAIMER_EN)}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Full footer with totals and signatures
+  return `
+      <div class="footer-stack">
+        <div class="footer-summary-block">
+          <div class="footer-divider"></div>
+
+          <div class="summary-grid">
+            <div class="summary-left">
+              <div class="footer-note">
+                <div class="thai">${escapeHtml(DEFAULT_DISCLAIMER_TH)}</div>
+                <div>${escapeHtml(DEFAULT_DISCLAIMER_EN)}</div>
+              </div>
+              <div class="remark-section">
+                <div class="remark-row">
+                  <div class="remark-label">Remark</div>
+                  <div class="remark-value">${remarkMarkup}</div>
+                </div>
+                <div class="job-row">
+                  <div class="job-label">JOB NO</div>
+                  <div class="job-value">: ${escapeHtml(model.jobNo)}</div>
+                </div>
+              </div>
+            </div>
+            <div class="totals-panel">
+              <table class="totals">
+                <tr><td class="label-cell"><span class="totals-label-text">Total</span></td><td class="amount">${escapeHtml(formatCurrency(totals.subtotal))}</td></tr>
+                <tr><td class="label-cell"><span class="totals-label-text">Trade Discount</span></td><td class="amount">${escapeHtml(formatCurrency(totals.tradeDiscount))}</td></tr>
+                <tr><td class="label-cell"><span class="totals-label-text">Sub Total</span></td><td class="amount">${escapeHtml(formatCurrency(totals.afterDiscount))}</td></tr>
+                <tr><td class="label-cell"><span class="totals-label-text">${escapeHtml(model.vatLabel)}</span></td><td class="amount">${escapeHtml(formatCurrency(totals.vatAmount))}</td></tr>
+                <tr><td class="label-cell"><span class="totals-label-text">Grand Total</span></td><td class="amount">${escapeHtml(formatCurrency(totals.grandTotal))}</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="signature-block">
+          <div class="signature-grid">
+            <div class="signature-col signature-customer">
+              <div class="signature-sign"></div>
+              <div class="signature-line"></div>
+              <div class="signature-meta">
+                <div class="signature-meta-row"></div>
+                <div class="signature-meta-row centered">
+                  <div class="signature-caption centered">Customer Confirmed</div>
+                </div>
+                <div class="signature-meta-row centered">
+                  <div class="signature-date">Date_____/_____/_____</div>
+                </div>
+              </div>
+            </div>
+            <div class="signature-col signature-salesperson">
+              <div class="signature-sign">
+                ${model.salesperson.signature ? `<img src="${escapeHtml(model.salesperson.signature)}" alt="With By Signature" class="signature-image">` : ''}
+              </div>
+              <div class="signature-line"></div>
+              <div class="signature-meta">
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">With By</div>
+                    <div class="detail-value">${escapeHtml(model.salesperson.name)}</div>
+                  </div>
+                </div>
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Tel</div>
+                    <div class="detail-value">${escapeHtml(model.salesperson.phone)}</div>
+                  </div>
+                </div>
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Email :</div>
+                    <div class="detail-value">${escapeHtml(model.salesperson.email)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="signature-col signature-approver">
+              <div class="signature-sign">
+                ${model.approver.signature ? `<img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">` : ''}
+              </div>
+              <div class="signature-line"></div>
+              <div class="signature-meta">
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Approved</div>
+                    <div class="detail-value">${escapeHtml(model.approver.name)}</div>
+                  </div>
+                </div>
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Tel</div>
+                    <div class="detail-value">${escapeHtml(model.approver.phone)}</div>
+                  </div>
+                </div>
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Email :</div>
+                    <div class="detail-value">${escapeHtml(model.approver.email)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="doc-footer">
+            <div>Effective Date : ${escapeHtml(model.effectiveDate)}</div>
+            <div>${escapeHtml(model.documentCode)}</div>
+          </div>
+        </div>
+      </div>`;
+}
+
+/**
+ * Build multi-page HTML for documents that span multiple pages
+ */
+function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
+  const settings = normalizePrintLayoutSettings(layoutSettings);
+  const customerAddressLines = renderAddressLines(model.customerAddressLines, 2);
+  const deliveryAddressLines = renderAddressLines(model.deliveryAddressLines, 1);
+  const metaRowsMarkup = renderMetaRows(model, customerAddressLines, deliveryAddressLines);
+  const metaColumnWidths = resolveMetaTableColumnWidths(settings);
+
+  // Chunk line items into pages
+  const pageChunks = chunkLineItemsForPages(model.lineItems, settings, true);
+  const totalPages = pageChunks.length;
+
+  // Determine which pages get meta table and footer types
+  const hasMetaTable = totalPages > 0;
+
+  let pagesHtml = '';
+
+  for (let i = 0; i < pageChunks.length; i++) {
+    const chunk = pageChunks[i];
+    const pageNumber = i + 1;
+    const isLastPage = i === pageChunks.length - 1;
+
+    // Determine header type
+    let headerType = 'compact';
+    if (chunk.pageType === 'first' || chunk.pageType === 'only') {
+      headerType = 'full';
+    }
+
+    // Determine footer type
+    let footerType = 'none';
+    if (chunk.pageType === 'only') {
+      footerType = 'full';
+    } else if (chunk.pageType === 'first' && totalPages > 1) {
+      footerType = 'partial';
+    } else if (chunk.pageType === 'last') {
+      footerType = 'full';
+    }
+
+    // Build page
+    pagesHtml += `
+  <div class="page"${chunk.pageType === 'only' ? '' : ' style="page-break-after: always;"'}>
+    ${buildPageHeader(model, settings, pageNumber, totalPages, headerType)}
+
+    ${(headerType === 'full') ? `
+    <table class="meta-table">
+      <colgroup>
+        <col style="width: ${metaColumnWidths.label}mm;">
+        <col style="width: ${metaColumnWidths.address}mm;">
+        <col style="width: ${metaColumnWidths.midLabel}mm;">
+        <col style="width: ${metaColumnWidths.midValue}mm;">
+        <col style="width: ${metaColumnWidths.rightLabel}mm;">
+        <col style="width: ${metaColumnWidths.rightValue}mm;">
+      </colgroup>
+      ${metaRowsMarkup}
+    </table>` : ''}
+
+    <table class="line-table">
+      <thead>
+        <tr>
+          <th style="width: 11%;">Item</th>
+          <th style="width: 39%;">Description</th>
+          <th style="width: 8.5%;">Qty</th>
+          <th style="width: 6%;">@</th>
+          <th style="width: 15.5%;">Unit/Price</th>
+          <th style="width: 10.5%;">Discount</th>
+          <th style="width: 14.5%;">Total</th>
+        </tr>
+      </thead>
+      <tbody>${renderLineRows(chunk.lines)}</tbody>
+    </table>
+
+    ${buildPageFooter(model, settings, model.totals, footerType)}
+  </div>`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(model.ourRef || 'Sales Quote')} Print</title>
+  <style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #fff; color: #000; font-family: Tahoma, Arial, sans-serif; font-size: ${settings.baseFontSize}px; line-height: 1.22; }
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 8.5mm 9mm 8mm;
+    }
+    .page {
+      width: 192mm;
+      min-height: 279mm;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .page:last-child {
+      page-break-after: auto;
+    }
+    .topbar { display: grid; grid-template-columns: ${Math.max(settings.logoWidthMm + 2 + Math.max(settings.logoOffsetXMm, 0), 30)}mm 1fr 23mm; align-items: start; column-gap: 4mm; }
+    .topbar--compact { margin-bottom: 3mm; }
+    .main-logo {
+      width: ${settings.logoWidthMm}mm;
+      height: auto;
+      object-fit: contain;
+      margin-top: 0.8mm;
+      transform: translate(${settings.logoOffsetXMm}mm, ${settings.logoOffsetYMm}mm);
+      transform-origin: top left;
+    }
+    .main-logo--compact { width: 22mm; }
+    .company {
+      padding-top: 0.5mm;
+      transform: translate(${settings.companyBlockOffsetXMm}mm, ${settings.companyBlockOffsetYMm}mm);
+      transform-origin: top left;
+    }
+    .company .th-name { font-size: ${settings.companyThaiFontSize}px; font-weight: 700; line-height: 1.08; margin-bottom: 1mm; }
+    .company .en-name { font-size: ${settings.companyEnglishFontSize}px; font-weight: 700; line-height: 1.08; margin-bottom: 1.6mm; }
+    .company-line { font-size: ${Math.max(settings.baseFontSize - 0.8, 9)}px; line-height: 1.24; margin-bottom: 0.48mm; }
+    .company--compact .th-name { font-size: 13px; margin-bottom: 0.5mm; }
+    .company--compact .en-name { font-size: 12px; }
+    .page-no { text-align: right; font-size: ${Math.max(settings.baseFontSize - 0.3, 9)}px; font-weight: 400; white-space: nowrap; padding-top: 1.2mm; }
+    .title-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: end;
+      margin: 7mm 0 3.1mm;
+      column-gap: 0.8mm;
+    }
+    .title-row .spacer { min-height: 1px; }
+    .title { font-size: ${settings.titleFontSize}px; font-weight: 700; white-space: nowrap; }
+    .certs { display: flex; justify-content: flex-start; align-items: flex-end; gap: 1.1mm; min-height: ${8.6 * settings.certsSizeScale}mm; transform: translate(${settings.certsOffsetXMm}mm, ${settings.certsOffsetYMm}mm); }
+    .cert-logo { height: ${8.1 * settings.certsSizeScale}mm; width: auto; object-fit: contain; }
+    .cert-logo.cert-logo-aemt { max-width: ${22 * settings.certsSizeScale}mm;}
+    .meta-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3.3mm; font-size: ${settings.metaFontSize}px; line-height: 1.18; }
+    .meta-table td { padding: 0 1mm 1.8mm 0; vertical-align: top; }
+    .meta-table .meta-divider td {
+      border-bottom: 1px solid #000;
+      padding-bottom: 1.5mm;
+    }
+    .meta-table .meta-customer-row td {
+      padding-top: 0.8mm;
+    }
+    .meta-table .meta-address-row td {
+      padding-top: 1.4mm;
+    }
+    .meta-table td.label { font-weight: 700; white-space: nowrap; }
+    .meta-table td.value { word-break: break-word; }
+    .meta-table td.mid-label { font-weight: 700; white-space: nowrap; text-align: right; padding-right: 1.2mm; }
+    .meta-table td.mid-value { word-break: break-word; }
+    .left-meta-value {
+      display: block;
+      padding-left: ${settings.leftMetaValuePaddingMm}mm;
+      box-sizing: border-box;
+    }
+    .meta-offset-block {
+      position: relative;
+      left: ${settings.attentionTelBlockOffsetXMm - 5}mm;
+      top: ${settings.attentionTelBlockOffsetYMm}mm;
+    }
+    .meta-offset-block-label {
+      display: inline-block;
+    }
+    .meta-offset-block-value {
+      display: block;
+    }
+    .meta-attention-value {
+      width: ${settings.attentionValueWidthMm}mm;
+      max-width: none;
+    }
+    .meta-table td.right-label { font-weight: 700; white-space: nowrap; }
+    .meta-table td.right-value { white-space: nowrap; }
+    .right-meta-label,
+    .right-meta-value {
+      display: block;
+      width: 100%;
+      text-align: left;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
+    .right-meta-label {
+      padding-right: 2mm;
+    }
+    .right-meta.label.meta-fixed-width {
+      display: inline-block;
+      width: 13ch;
+      text-align: right;
+      padding-right: 2.5mm;
+    }
+    .meta-table td.right-label.shifted {
+      position: relative;
+      left: -21mm;
+    }
+    .meta-table td.right-value.shifted {
+      position: relative;
+      left: -10mm;
+    }
+    .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.2mm; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; line-height: 1.3; }
+    .line-table thead { display: table-header-group; }
+    .line-table th {
+      background: #d9d9d9;
+      color: #000;
+      font-size: ${settings.lineTableHeaderFontSize}px;
+      font-weight: 700;
+      padding: 2.35mm 0.85mm;
+      text-align: center;
+    }
+    .line-table th:first-child { text-align: left; }
+    .line-table th:nth-child(2) {
+      text-align: center;
+    }
+    .line-table td {
+      padding: 0.95mm 1.15mm;
+      vertical-align: top;
+    }
+    .line-table tr { page-break-inside: avoid; }
+    .item-cell { white-space: nowrap; text-align: left; padding-right: 1.6mm; }
+    .desc-cell { word-break: break-word; padding-left: 1.2mm; }
+    .qty-cell,
+    .num-cell { text-align: right; white-space: nowrap; }
+    .unit-cell { text-align: center; white-space: nowrap; }
+    .line-main-row td { min-height: 6.8mm; }
+    .line-section-row td { padding-top: 1.25mm; padding-bottom: 0.8mm; font-weight: 400; }
+    .line-section-row .desc-cell { padding-left: 4mm; }
+    .line-comment-row td { padding-top: 0.35mm; padding-bottom: 0.7mm; }
+    .line-comment-row .desc-cell { padding-left: 4mm; }
+    .line-footer-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
+    .footer-label-cell { font-weight: 700; text-align: left; }
+    .footer-stack { margin-top: auto; padding-top: 6.6mm; }
+    .footer-stack--partial {
+      margin-top: 3mm;
+      padding-top: 2mm;
+      border-top: 1px solid #ccc;
+    }
+    .footer-summary-block {
+      transform: translate(${settings.footerSummaryBlockOffsetXMm}mm, ${settings.footerSummaryBlockOffsetYMm}mm);
+      transform-origin: top left;
+    }
+    .footer-divider { border-top: 1px solid #000; margin-bottom: 1.35mm; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 58mm; column-gap: 1mm; align-items: start; }
+    .summary-left { min-width: 0; }
+    .footer-note { font-size: ${settings.footerNoteFontSize}px; line-height: 1.42; }
+    .footer-note div { margin-bottom: 0.9mm; }
+    .footer-note .thai { font-weight: 700; }
+    .totals-panel { min-width: 0; }
+    .totals { width: 100%; border-collapse: separate; border-spacing: 0 0.8mm; table-layout: fixed; }
+    .totals td { padding: 0.35mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 700; line-height: 1.35; vertical-align: top; }
+    .totals .label-cell { width: 56%; white-space: nowrap; padding-right: 4.5mm; }
+    .totals .amount { width: 44%; text-align: right; white-space: nowrap; font-weight: 400; }
+    .totals-label-text { display: inline-block; transform: translateX(${settings.totalsOffsetXMm}mm); }
+    .remark-section { margin-top: 3.1mm; font-size: ${settings.remarkFontSize}px; }
+    .remark-row,
+    .job-row {
+      display: grid;
+      grid-template-columns: 15mm 1fr;
+      column-gap: 2mm;
+      align-items: start;
+    }
+    .remark-row { min-height: 4.8mm; }
+    .remark-label,
+    .job-label { font-weight: 700; }
+    .remark-value { white-space: pre-wrap; word-break: break-word; }
+    .job-row { margin-top: 1.2mm; }
+    .job-value { font-weight: 400; }
+    .signature-block {
+      transform: translate(${settings.signatureBlockOffsetXMm}mm, ${settings.signatureBlockOffsetYMm}mm);
+      transform-origin: top left;
+    }
+    .signature-grid {
+      display: grid;
+      grid-template-columns: 49mm 57mm 53mm;
+      justify-content: space-between;
+      column-gap: 0;
+      margin-top: ${settings.signatureGridMarginTopMm}mm;
+      align-items: start;
+    }
+    .signature-col {
+      min-height: ${settings.signatureColMinHeightMm}mm;
+      display: grid;
+      grid-template-rows: ${signatureSignHeightMm}mm auto auto;
+      align-content: start;
+    }
+    .signature-sign {
+      min-height: ${signatureSignHeightMm}mm;
+      height: ${signatureSignHeightMm}mm;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .signature-image {
+      display: block;
+      max-width: 48mm;
+      max-height: 22mm;
+      object-fit: contain;
+      image-rendering: auto;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .signature-line { width: 100%; border-top: 1px solid #000; margin-top: 1.2mm; }
+    .signature-meta {
+      display: grid;
+      grid-template-rows: repeat(3, minmax(4.8mm, auto));
+      row-gap: 1mm;
+      margin-top: 1.8mm;
+      align-content: start;
+    }
+    .signature-meta-row {
+      min-height: 4.8mm;
+      display: flex;
+      align-items: baseline;
+    }
+    .signature-meta-row.centered {
+      justify-content: center;
+    }
+    .signature-caption { font-size: ${settings.signatureFontSize}px; }
+    .signature-caption.centered { text-align: center; }
+    .signature-detail {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 12mm 1fr;
+      column-gap: 1.8mm;
+      align-items: baseline;
+      font-size: ${settings.signatureFontSize}px;
+    }
+    .signature-detail .detail-label { white-space: nowrap; }
+    .signature-detail .detail-value { min-width: 0; }
+    .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.8mm; font-size: ${settings.docFooterFontSize}px; }
+    .empty-row { text-align: center; color: #666; padding: 6mm 0; }
+  </style>
+</head>
+<body>
+${pagesHtml}
+  <script>
+    (function () {
+      var go = function () { setTimeout(function () { window.print(); }, 180); };
+      if (document.readyState === 'complete') { go(); } else { window.addEventListener('load', go, { once: true }); }
+    }());
+  </script>
+</body>
+</html>`;
+}
+
+/**
+ * Build single-page HTML (original behavior for backward compatibility)
+ */
 function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
   const settings = normalizePrintLayoutSettings(layoutSettings);
   const customerAddressLines = renderAddressLines(model.customerAddressLines, 2);
@@ -1308,6 +2060,21 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
 </html>`;
 }
 
+/**
+ * Detect if the quote content will overflow a single page
+ */
+function willOverflowSinglePage(model, settings) {
+  const pageHeights = calculateAvailablePageHeights(settings, true);
+  const rowHeights = calculateRowHeights(model.lineItems, settings);
+
+  // Sum all row heights
+  const totalLineItemsHeight = rowHeights.reduce((sum, h) => sum + h, 0);
+
+  // Check if content fits in first page (which has footer)
+  // The 'lastPage' height already accounts for footer space
+  return totalLineItemsHeight > pageHeights.lastPage;
+}
+
 export async function printSearchedSalesQuote() {
   let printWindow = null;
 
@@ -1324,9 +2091,17 @@ export async function printSearchedSalesQuote() {
     printWindow.document.close();
 
     const layoutSettings = await loadPrintLayoutSettings();
+    const normalizedSettings = normalizePrintLayoutSettings(layoutSettings);
+
+    // Determine if multi-page is needed
+    const useMultiPage = willOverflowSinglePage(model, normalizedSettings);
 
     printWindow.document.open();
-    printWindow.document.write(buildPrintHtml(model, layoutSettings));
+    if (useMultiPage) {
+      printWindow.document.write(buildMultiPageHtml(model, normalizedSettings));
+    } else {
+      printWindow.document.write(buildPrintHtml(model, normalizedSettings));
+    }
     printWindow.document.close();
     showToast(`Opening print preview for ${state.quote.number}`, 'success');
   } catch (error) {
