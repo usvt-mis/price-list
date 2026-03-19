@@ -249,6 +249,18 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Field mapping robustness: supports multiple BC API field name variations (qty/quantity/Qty_SaleLine, etc.)
 - Multi-source data extraction with fallback for nested structures
 
+**Quote Reload After Update:**
+- After successful quote updates or failed update attempts, the system automatically reloads the quote from Business Central
+- This ensures the UI displays the latest data from BC after any changes
+- **Modal close behavior**: Both `closeQuoteUpdatedModal()` and `closeQuoteFailedModal()` now trigger a quote reload after the modal animation completes (300ms delay)
+- **Implementation**: `reloadCurrentQuote()` function in `src/js/salesquotes/create-quote.js`:
+  - Only reloads if in edit mode with a valid quote number
+  - Sets the search input value to the current quote number
+  - Triggers the search flow with loading state and feedback messages
+  - Uses `fetchSalesQuoteByNumber()` and `applySearchedSalesQuote()` to refresh data
+  - Displays success/error messages to the user
+- **UI functions**: Modal close functions in `src/js/salesquotes/ui.js` are now async and call `reloadCurrentQuote()` after closing the modal
+
 ### Print Quote
 - A4-optimized print layout from searched quotes
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer

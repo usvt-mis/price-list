@@ -2013,11 +2013,18 @@ export function closeQuoteCreatedModal() {
   closeQuoteResponseModal(modal, modalContent);
 }
 
-export function closeQuoteFailedModal() {
+export async function closeQuoteFailedModal() {
   const modal = el('quoteFailedModal');
   const modalContent = el('quoteFailedModalContent');
 
+  // First close the modal
   closeQuoteResponseModal(modal, modalContent);
+
+  // Then reload the quote after modal animation completes
+  const { reloadCurrentQuote } = await import('./create-quote.js');
+  setTimeout(async () => {
+    await reloadCurrentQuote();
+  }, 300); // Wait for modal close animation
 }
 
 export async function copyQuoteNumber() {
@@ -2084,11 +2091,18 @@ export async function showQuoteUpdatedSuccess(quoteNumber, serviceOrderNos = nul
 /**
  * Close Quote Updated Success modal
  */
-export function closeQuoteUpdatedModal() {
+export async function closeQuoteUpdatedModal() {
   const modal = el('quoteUpdatedModal');
   const modalContent = el('quoteUpdatedModalContent');
 
+  // First close the modal
   closeQuoteResponseModal(modal, modalContent);
+
+  // Then reload the quote after modal animation completes
+  const { reloadCurrentQuote } = await import('./create-quote.js');
+  setTimeout(async () => {
+    await reloadCurrentQuote();
+  }, 300); // Wait for modal close animation
 }
 
 /**

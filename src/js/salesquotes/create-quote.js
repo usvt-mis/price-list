@@ -4012,6 +4012,49 @@ function setupEditModalEventListeners() {
 }
 
 // ============================================================
+// Quote Reload After Update
+// ============================================================
+
+/**
+ * Reload the current quote from Business Central
+ * Used after update operations to refresh quote data
+ */
+export async function reloadCurrentQuote() {
+  // Only reload if we're in edit mode with a quote number
+  if (state.quote.mode !== 'edit' || !state.quote.number) {
+    return;
+  }
+
+  const quoteNumber = state.quote.number;
+
+  // Set search input value and trigger search
+  const searchInput = el('searchSalesQuoteNumber');
+  if (searchInput) {
+    searchInput.value = quoteNumber;
+  }
+
+  // Trigger the search flow
+  setSearchSalesQuoteLoading(true);
+  setSearchSalesQuoteFeedback('loading', `Reloading ${quoteNumber}`, 'Fetching latest data from Business Central...');
+  clearValidationErrors();
+
+  try {
+    const responseData = await fetchSalesQuoteByNumber(quoteNumber);
+    await applySearchedSalesQuote(responseData);
+    showSuccess(`Reloaded ${quoteNumber} from Business Central`);
+  } catch (error) {
+    const errorMessage = normalizeGatewayHttpErrorMessage(
+      error,
+      'Unable to reload Sales Quote from Business Central.'
+    );
+    setSearchSalesQuoteFeedback('error', `Unable to reload ${quoteNumber}`, errorMessage);
+    showError(errorMessage);
+  } finally {
+    setSearchSalesQuoteLoading(false);
+  }
+}
+
+// ============================================================
 // Export functions to window for onclick handlers
 // ============================================================
 
