@@ -198,7 +198,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Single Service Order: Shows "Service Order No: SVRY2512-0013"
 - Multiple Service Orders: Shows "Service Order Nos: SVRY2512-0013, SVRY2512-0014, ..."
 - All Service Order numbers are displayed and can be copied to clipboard
-- Implementation: `src/js/salesquotes/ui.js` - `showQuoteCreatedSuccess()`, `src/salesquotes/components/modals/quote-created-modal.html`
+- **Modal close behavior**: After closing the success modal, the system automatically:
+  1. Resets the quote editor to create mode (clears all form data)
+  2. Switches to the "My Records" tab
+  3. Loads the quote submission records
+- This provides a smooth user workflow after successful quote creation
+- Implementation: `src/js/salesquotes/ui.js` - `showQuoteCreatedSuccess()`, `closeQuoteCreatedModal()`, `src/salesquotes/components/modals/quote-created-modal.html`
 
 **Service Item No Validation:**
 - **Policy**: Only one Service Item No is allowed per Group No across all quote lines
