@@ -297,7 +297,7 @@ function buildSearchQuoteReportContext(data, resolvedSalespersonName, sourceCont
     },
     rawLines: printableLineSources.map((line, index) => ({
       bcId: line?.id || line?.bcId || null,
-      sequence: Number(line?.sequence ?? line?.lineNo ?? line?.LineNo ?? line?.Line_No_) || index + 1,
+      sequence: index + 1,
       groupNo: normalizeGroupNo(line?.usvtGroupNo ?? line?.groupNo ?? line?.USVT_Group_No_),
       showInDocument: normalizeBcBoolean(line?.usvtShowInDocument ?? line?.showInDocument ?? line?.USVT_Show_in_Document, true),
       isHeader: normalizeBcBoolean(line?.usvtHeader ?? line?.header ?? line?.USVT_Header, false),
@@ -436,7 +436,7 @@ function mapBcLineToEditorLine(line, index) {
     bcEtag: line?.['@odata.etag'] || line?.bcEtag || null,
     documentId: line?.documentId || null,
     documentNo: line?.documentNo || line?.documentNumber || line?.Number || '',
-    sequence: Number(line?.sequence ?? line?.lineNo ?? line?.LineNo ?? line?.Line_No_) || index + 1,
+    sequence: index + 1,
     itemId: line?.itemId || null,
     accountId: line?.accountId || null,
     lineType: normalizeLineType(line?.lineType ?? line?.type ?? line?.Type),
