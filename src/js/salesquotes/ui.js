@@ -2031,9 +2031,21 @@ export async function copyQuoteNumber() {
 /**
  * Show Quote Updated Success modal
  */
-export async function showQuoteUpdatedSuccess(quoteNumber) {
+export async function showQuoteUpdatedSuccess(quoteNumber, serviceOrderNos = null) {
   const { modal, modalContent } = await ensureQuoteUpdatedModalLoaded();
   const quoteNumberDisplay = el('quoteUpdatedNumber');
+  const serviceOrderNoDisplay = el('serviceOrderUpdatedNumber');
+  const serviceOrderNoSection = el('serviceOrderUpdatedSection');
+  const normalizedServiceOrderNos = Array.isArray(serviceOrderNos)
+    ? serviceOrderNos
+      .map(soNo => typeof soNo === 'string' ? soNo.trim() : '')
+      .filter(soNo => soNo !== '')
+    : typeof serviceOrderNos === 'string' && serviceOrderNos.trim() !== ''
+      ? serviceOrderNos
+        .split(/[\r\n,;]+/)
+        .map(soNo => soNo.trim())
+        .filter(soNo => soNo !== '')
+      : [];
 
   if (!modal || !modalContent) {
     console.error('[QUOTE-UPDATED-MODAL] Modal not available');
@@ -2044,6 +2056,19 @@ export async function showQuoteUpdatedSuccess(quoteNumber) {
   // Set the Quote Number
   if (quoteNumberDisplay) {
     quoteNumberDisplay.textContent = quoteNumber || 'N/A';
+  }
+
+  // Set Service Order Nos if available
+  const hasServiceOrders = normalizedServiceOrderNos.length > 0;
+
+  if (serviceOrderNoSection) {
+    if (hasServiceOrders) {
+      serviceOrderNoSection.classList.remove('hidden');
+      renderServiceOrderList(serviceOrderNoDisplay, normalizedServiceOrderNos);
+    } else {
+      serviceOrderNoSection.classList.add('hidden');
+      renderServiceOrderList(serviceOrderNoDisplay, []);
+    }
   }
 
   const modalContainer = document.getElementById('modalContainer');

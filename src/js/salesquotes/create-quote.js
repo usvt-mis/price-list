@@ -2285,47 +2285,45 @@ export async function handleSendQuote() {
       ? state.quote.number
       : (response?.result?.number || null);
 
-    // For new quotes only: Create Service Order and save record
+    // Create Service Order and save record (for both create and update modes)
     let serviceOrderNos = [];
     let recordSaveError = null;
 
-    if (!isEditMode) {
-      // Extract branch code for Service Order creation
-      const branchCode = state.quote.branch || '';
+    // Extract branch code for Service Order creation
+    const branchCode = state.quote.branch || '';
 
-      // Create Service Order from Sales Quote (if we have a quote number and branch)
-      let serviceOrderResponse = null;
+    // Create Service Order from Sales Quote (if we have a quote number and branch)
+    let serviceOrderResponse = null;
 
-      if (quoteNumber && branchCode) {
-        try {
-          // Update loading message
-          const messageEl = el('loadingMessage');
-          const titleEl = el('loadingTitle');
-          if (messageEl) messageEl.textContent = 'Creating Service Order...';
-          if (titleEl) titleEl.textContent = 'Creating Service Order';
+    if (quoteNumber && branchCode) {
+      try {
+        // Update loading message
+        const messageEl = el('loadingMessage');
+        const titleEl = el('loadingTitle');
+        if (messageEl) messageEl.textContent = 'Creating Service Order...';
+        if (titleEl) titleEl.textContent = 'Creating Service Order';
 
-          serviceOrderResponse = await createServiceOrderFromSQ(quoteNumber, branchCode);
-          serviceOrderNos = extractServiceOrderNos(serviceOrderResponse);
+        serviceOrderResponse = await createServiceOrderFromSQ(quoteNumber, branchCode);
+        serviceOrderNos = extractServiceOrderNos(serviceOrderResponse);
 
-          console.log('Service Orders created:', serviceOrderNos);
-        } catch (soError) {
-          console.error('Failed to create Service Order:', soError);
-          // Continue anyway - quote was created successfully
-          // We'll show the modal but note that Service Order creation failed
-        }
+        console.log('Service Orders created:', serviceOrderNos);
+      } catch (soError) {
+        console.error('Failed to create Service Order:', soError);
+        // Continue anyway - quote was created/updated successfully
+        // We'll show the modal but note that Service Order creation failed
       }
+    }
 
-      // Save submission record
-      if (quoteNumber) {
-        try {
-          await recordQuoteSubmission({
-            salesQuoteNumber: quoteNumber,
-            workDescription: sanitizedData.workDescription || ''
-          });
-        } catch (recordError) {
-          recordSaveError = recordError;
-          console.error('Failed to save Sales Quote submission record:', recordError);
-        }
+    // Save submission record (for new quotes only)
+    if (!isEditMode && quoteNumber) {
+      try {
+        await recordQuoteSubmission({
+          salesQuoteNumber: quoteNumber,
+          workDescription: sanitizedData.workDescription || ''
+        });
+      } catch (recordError) {
+        recordSaveError = recordError;
+        console.error('Failed to save Sales Quote submission record:', recordError);
       }
     }
 
@@ -2333,8 +2331,8 @@ export async function handleSendQuote() {
 
     // Handle different behaviors for create vs update
     if (isEditMode) {
-      // Update mode: Show success modal and stay in edit mode
-      await showQuoteUpdatedSuccess(quoteNumber);
+      // Update mode: Show success modal with service order nos and stay in edit mode
+      await showQuoteUpdatedSuccess(quoteNumber, serviceOrderNos);
     } else {
       // Create mode: Reset to create mode and show success modal
       resetQuoteEditorToCreateMode({ showFeedback: false });
