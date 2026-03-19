@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code (claude.ai/code) when working with this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ---
 
@@ -8,7 +8,11 @@ Guidance for Claude Code (claude.ai/code) when working with this repository.
 
 Price List Calculator - Web application for calculating service costs.
 
-**Tech Stack:** Vanilla JavaScript + Tailwind CSS | Express.js | Azure SQL Server | Azure Easy Auth
+**Tech Stack:**
+- **Frontend**: Vanilla JavaScript + Tailwind CSS (single-page HTML apps)
+- **Backend**: Express.js
+- **Database**: Azure SQL Server
+- **Auth**: Azure Easy Auth (App Service)
 
 **Calculators:**
 
@@ -23,20 +27,26 @@ Price List Calculator - Web application for calculating service costs.
 ## Quick Start
 
 ```bash
-npm install && npm start
+npm install          # Install dependencies
+npm start            # Start Express.js server
 ```
 
-See [QUICKSTART.md](QUICKSTART.md) for details.
+[QUICKSTART.md](QUICKSTART.md) for detailed setup.
 
 ---
 
-## Cost Components
+## Cost Components (Business Logic)
 
-1. **Labor**: Job manhours × branch cost/hour → multipliers + Sales Profit
-2. **Materials**: Tiered pricing + commission only (no multipliers)
+1. **Labor**: Job manhours × branch-specific cost/hour
+2. **Materials**: Tiered pricing (see formula below)
 3. **Sales Profit**: Applied to Labor ONLY (can be negative for discounts)
-4. **Travel/Shipping**: Km × 15 baht/km → base amount only
-5. **Onsite Options**: Optional add-ons → base amount only
+4. **Travel/Shipping**: Km × 15 baht/km
+5. **Onsite Options**: Optional add-ons (Onsite only)
+
+**Treatment:**
+- Labor → Branch multipliers + Sales Profit
+- Materials → Tiered pricing + commission only (no multipliers)
+- Travel/Onsite Options → Base amounts only
 
 **Tiered Materials Pricing:**
 ```
@@ -60,13 +70,13 @@ src/js/
 ├── auth/           # Authentication (token-handling, mode-detection, ui)
 ├── onsite/         # Onsite calculator modules
 ├── workshop/       # Workshop calculator modules
-└── salesquotes/    # Sales Quotes modules (records.js, preferences.js)
+└── salesquotes/    # Sales Quotes modules
 
 api/src/
-├── routes/         # Express.js routes (salesquotes.js, business-central/gateway.js)
+├── routes/         # Express.js route modules
 ├── db.js           # Database connection pool
 ├── middleware/     # Express middleware
-├── utils/          # Shared utilities (logger, calculator, settings)
+├── utils/          # Shared utilities (logger, calculator)
 └── jobs/           # Scheduled jobs (node-cron)
 
 src/salesquotes/components/
@@ -77,9 +87,9 @@ src/salesquotes/components/
 
 ---
 
-## Key Patterns
+## Key Code Patterns
 
-### Express.js Route
+### Express.js Route Pattern
 ```js
 const express = require('express');
 const router = express.Router();
@@ -90,7 +100,9 @@ router.get('/', async (req, res, next) => {
     const pool = await getPool();
     const result = await pool.request().query('SELECT ...');
     res.json(result.recordset);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;
@@ -99,16 +111,37 @@ module.exports = router;
 ### Database Connection
 - Singleton pool in `api/src/db.js`
 - All routes use `getPool()`
-- **Retry Logic**: Automatic retry with MAX_RETRIES=3 and 2-second delays between attempts
-- **Environment Variables**: Uses individual vars (DB_SERVER, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT) with defaults
-- **Connection Logging**: Detailed console logging for connection attempts and errors
-- **Pool Error Handling**: Auto-resets poolPromise on connection errors to allow reconnection
-- **ANSI Options** required for filtered index compatibility
+- Parameterized queries to prevent SQL injection
+- **ANSI Options** set for filtered index compatibility
 
-### Local Dev Bypass
+### Local Development Bypass
 - `localhost`: Auto-bypasses auth
 - Mock user: `it@uservices-thailand.com` / `PriceListSales` / BranchId=1 (URY)
-- Override: `MOCK_USER_EMAIL`, `MOCK_USER_ROLE`, `MOCK_USER_BRANCH_ID`
+- Override via: `MOCK_USER_EMAIL`, `MOCK_USER_ROLE`, `MOCK_USER_BRANCH_ID`
+
+### Branch ID Mapping
+URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
+
+### Critical Modal Loading Pattern
+- For modals that block user access (e.g., "No Branch Assigned" modal), preload modals BEFORE validation logic
+- Implementation: In `app.js`, call `preloadAllModals()` before `loadInitialData()`
+- Include fallback: Modal loading function should attempt dynamic load if modal not found in DOM
+- Last resort: Use `alert()` as fallback if modal loading completely fails
+
+### Modal Stacking Context Pattern
+- For modals that appear over other modals (e.g., confirmation dialogs), ensure proper stacking:
+  1. Use higher z-index value (e.g., `z-[150]` for overlays on top of `z-[100]` base modals)
+  2. Move modal to end of container before showing: `modalContainer.appendChild(modal)`
+- This ensures the modal appears on top regardless of DOM order when dynamically loaded
+- Implementation: See `showConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
+
+### Modal Animation Pattern
+- **Use inline styles for animations**, not Tailwind CSS classes with classList manipulation
+- Tailwind arbitrary value syntax (e.g., `translate-y-[-10px]`) may not work correctly with `classList.remove()`
+- **Initial hidden state** (in HTML): `style="opacity: 0; transform: translateY(-10px);"`
+- **Show animation** (in JS): `modalContent.style.opacity = '1'; modalContent.style.transform = 'translateY(0)';`
+- **Hide animation** (in JS): `modalContent.style.opacity = '0'; modalContent.style.transform = 'translateY(-10px)';`
+- Implementation: See `confirm-new-ser-modal.html` and `showConfirmNewSerModal()` / `hideConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
 
 ### Local Dev Mock Middleware
 - `api/src/middleware/localDevMock.js`: Provides mock data for endpoints when database is unavailable
@@ -116,17 +149,6 @@ module.exports = router;
 - **Scope**: Only localhost requests (localhost, 127.0.0.1)
 - **Mocked Endpoints**: `/api/branches` and `/api/motor-types` with sample data
 - **Usage**: Helpful for frontend development without database connectivity
-
-### Branch ID Mapping
-URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
-
-### Modal Patterns
-| Pattern | Description |
-|---------|-------------|
-| **Preload Critical Modals** | Call `preloadAllModals()` before `loadInitialData()` in `app.js`; fallback to dynamic load or `alert()` |
-| **Stacking Context** | Use `z-[150]` + `modalContainer.appendChild(modal)` + inline `style="z-index: 150;"` for overlay modals |
-| **Animation** | Use inline styles only: `style="opacity: 0; transform: translateY(-10px);"`; avoid Tailwind arbitrary values with classList manipulation |
-| **Loading Notice** | Shows after 700ms delay if init incomplete; `finishInitialLoadingNotice()` dismisses in all paths (success/error/uncaught) |
 
 ### Gateway Proxy (Business Central API)
 - Server-side Azure Function key management via environment variables
@@ -146,36 +168,74 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 | Role | Access |
 |------|--------|
-| Executive | Full costs, margins, multipliers |
-| Sales | Restricted (no cost data) |
-| NoRole | "Awaiting assignment" screen |
-| Customer | View-only via shared links |
+| **Executive** | Full costs, margins, multipliers |
+| **Sales** | Restricted view (no cost data) |
+| **NoRole** | "Awaiting assignment" screen |
+| **Customer** | View-only via shared links |
 
-See [docs/authentication.md](docs/authentication.md).
+[docs/authentication.md](docs/authentication.md) for details.
 
 ---
 
 ## Business Central API (Sales Quotes)
 
-**Endpoints:** CreateSalesQuoteWithoutNumber, CreateServiceItem, CreateServiceOrderFromSQ, GetSalesQuotesFromNumber, UpdateSalesQuote
+**External Azure Function Endpoints:**
+- `CreateSalesQuoteWithoutNumber` - Create quotes in Business Central
+- `CreateServiceItem` - Create Service Items (New SER button)
+- `CreateServiceOrderFromSQ` - Create Service Orders from Sales Quote (after quote creation)
 
-### Quote Creation Flow
-1. Send quote → BC (includes `refSalesQuoteNo` field for quote reference)
-2. Extract unique Group No values (with Service Item No)
-3. Track `refServiceOrderNo` for each group (existing Service Order reference)
-4. Call CreateServiceOrderFromSQ per group:
+**Implementation:** `src/js/salesquotes/create-quote.js`
+
+**Flow:** After successfully creating a Sales Quote, the system automatically:
+1. Extracts unique Group No values from all quote lines (only groups with at least one Service Item No)
+2. Tracks `refServiceOrderNo` for each group (existing Service Order reference)
+3. Calls `CreateServiceOrderFromSQ` with one payload per unique Group No:
    - If group has `refServiceOrderNo`: Uses `"no"` field with existing Service Order number
    - If group has no `refServiceOrderNo`: Uses `"branchCode"` field to create new Service Order
-5. Display success modal with quote number + service orders
+4. Displays Service Order number(s) in the success modal (comma-separated if multiple)
 
-### Validation Policies
-| Policy | Implementation |
-|--------|----------------|
-| **Branch Assignment** | Modal blocks access if no `branchId`; displays user email for admin identification |
-| **Service Item No** | One per Group No across all lines; "New SER" button disabled if group has existing SER |
-| **Dropdown Fields** | Customer No, Salesperson, Assigned User ID, Material No must select from dropdown (no free-text); uses `state.ui.dropdownFields.valid/touched` |
-| **Edit Line - Comment Type** | Clears/disables Material No, Qty, Unit Price, Disc %, Discount Amt, Addition, Ref. SQ No |
-| **Edit Mode - Customer No** | Field locked (read-only, gray background, hidden dropdown) to prevent customer change |
+**Success Modal Display:**
+- Single Service Order: Shows "Service Order No: SVRY2512-0013"
+- Multiple Service Orders: Shows "Service Order Nos: SVRY2512-0013, SVRY2512-0014, ..."
+- All Service Order numbers are displayed and can be copied to clipboard
+- Implementation: `src/js/salesquotes/ui.js` - `showQuoteCreatedSuccess()`, `src/salesquotes/components/modals/quote-created-modal.html`
+
+**Service Item No Validation:**
+- **Policy**: Only one Service Item No is allowed per Group No across all quote lines
+- When adding/editing a line, if the selected Group No already has a Service Item No in another line, the "New SER" button is disabled with a tooltip
+- This prevents duplicate Service Item creation within the same group
+- Implementation: `src/js/salesquotes/create-quote.js` - functions `hasServiceItemInGroupNo()`, `updateNewSerButtonStateForAddModal()`, `updateNewSerButtonStateForEditModal()`
+
+**Branch Assignment Validation:**
+- **Policy**: Users must have a Branch assigned (via `branchId` in user profile) to access Sales Quotes
+- If no `branchId` is found, a modal is displayed that freezes the page until the user refreshes after being assigned a branch
+- Modal is preloaded during app initialization to ensure availability before branch validation runs
+- Includes fallback mechanism to load modal dynamically if preload fails
+- Implementation: `src/js/salesquotes/create-quote.js` - `initializeBranchFields()`, `src/js/salesquotes/ui.js` - `showNoBranchModal()`
+
+**Edit Line Modal - Type Field Behavior:**
+- **Comment Type**: When Type is set to "Comment" (on change or when opening an existing Comment line), the following fields are disabled and cleared:
+  - No (Material No.) - cleared (not required on save)
+  - Qty - set to 0 (not validated on save)
+  - Unit Price - set to 0
+  - Disc % - set to 0
+  - Discount Amt - set to 0
+  - Addition - unchecked
+  - Ref. SQ No. - cleared
+- **Item Type**: When Type is switched back to "Item", all fields are re-enabled
+- **Validation on Save**: Material No. and quantity (> 0) are only required when Type = "Item". Description is required for both types.
+- Implementation: `src/js/salesquotes/create-quote.js` - `updateEditModalFieldStates()`, `saveEditLine()`, `closeEditLineModal()`
+
+**Dropdown Search Field Validation:**
+- **Policy**: Search dropdown fields (Customer No., Salesperson Code, Assigned User ID, Material No.) must only accept values selected from the dropdown, not free-text input
+- **Implementation**: Uses `state.ui.dropdownFields` with `valid` and `touched` flags:
+  - `touched`: Set to `true` when user types in the field
+  - `valid`: Set to `true` only when an item is selected from the dropdown
+  - On `blur`: If `touched=true` but `valid=false` and field has a value, the field is cleared and an error message is shown
+  - On `save` (Add/Edit Line): Before saving, the system forces blur on Material No field and checks `dropdownFields.materialNo.valid` / `editMaterialNo.valid`. If invalid with a value present, shows error "Please select a material from the dropdown list" and prevents save
+- **Edge Case Handling**: When loading from saved state (draft), fields are not validated until the user actually interacts with them (touched flag prevents clearing valid pre-loaded values)
+- **Modal Material No Fields**: The Material No. field in both Add Line (`materialNo`) and Edit Line (`editMaterialNo`) modals also enforces dropdown-only selection
+- Implementation: `src/js/salesquotes/state.js` - `dropdownFields` state object, `src/js/salesquotes/create-quote.js` - blur event handlers and save validation in `handleAddQuoteLine()`, `saveEditLine()` for `customerNoSearch`, `salespersonCodeSearch`, `assignedUserIdSearch`, `lineObjectNumberSearch`, `editLineObjectNumberSearch`
 
 ### Search & Edit Mode
 - Search by quote number → loads into editor
@@ -237,37 +297,47 @@ See [docs/authentication.md](docs/authentication.md).
 - Reset button, layout hint with status messages
 - Syncs with fullscreen table modal
 
-See [docs/api-integration.md](docs/api-integration.md) for full API docs.
+[docs/api-integration.md](docs/api-integration.md) for full API documentation.
 
 ---
 
 ## Database Migrations
 
 ```bash
+# Connect to Azure SQL
+sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
+  -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30
+
+# Execute migration
 sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
   -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30 \
   -i api/src/database/schemas/[script].sql
 ```
 
-**Important**: Set ANSI options before creating filtered indexes.
+**Important**: All migration scripts must set ANSI options before creating filtered indexes.
 
-**Available:**
-- `migrate_branch_to_branchid.sql` (see `README_BRANCH_MIGRATION.md`)
+**Available Migrations:**
+- `migrate_branch_to_branchid.sql` - Migrate legacy BRANCH text column to BranchId integer (see `README_BRANCH_MIGRATION.md` for details)
 - `database/migrations/add_salesperson_signatures.sql` - Creates `SalespersonSignatures` and `SalespersonSignatureAudit` tables for signature management
 
 ---
 
-## Documentation Links
+## Detailed Documentation
 
-| Doc | Description |
-|-----|-------------|
-| [Quick Start](QUICKSTART.md) | Setup |
-| [Frontend](docs/frontend.md) | UI/UX, components |
-| [Backend](docs/backend.md) | Routes, Express.js |
+| Document | Description |
+|----------|-------------|
+| [Quick Start](QUICKSTART.md) | Setup instructions |
+| [Frontend](docs/frontend.md) | UI/UX, components, patterns |
+| [Backend](docs/backend.md) | Route modules, Express.js |
 | [API Integration](docs/api-integration.md) | Azure Function APIs |
-| [Authentication](docs/authentication.md) | Easy Auth, RBAC |
-| [Database Schema](docs/database/schema.md) | Tables, indexes |
-| [Calculation](docs/calculation.md) | Pricing formulas |
-| [Backoffice](docs/backoffice.md) | User management |
-| [Agent Team](.claude/agents.md) | Agent system |
-| [Custom Skills](.claude/skills.md) | Skill definitions |
+| [Authentication](docs/authentication.md) | Azure Easy Auth, RBAC |
+| [Database Schema](docs/database/schema.md) | Tables, indexes, relationships |
+| [Calculation](docs/calculation.md) | Pricing formulas, multipliers |
+| [Backoffice](docs/backoffice.md) | User management interface |
+
+---
+
+## Agent Team & Skills
+
+- [Agent Team System](.claude/agents.md)
+- [Custom Skills](.claude/skills.md)
