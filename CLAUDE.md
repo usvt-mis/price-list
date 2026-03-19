@@ -160,7 +160,7 @@ See [docs/authentication.md](docs/authentication.md).
 **Endpoints:** CreateSalesQuoteWithoutNumber, CreateServiceItem, CreateServiceOrderFromSQ, GetSalesQuotesFromNumber, UpdateSalesQuote
 
 ### Quote Creation Flow
-1. Send quote → BC
+1. Send quote → BC (includes `refSalesQuoteNo` field for quote reference)
 2. Extract unique Group No values (with Service Item No)
 3. Call CreateServiceOrderFromSQ per group
 4. Display success modal with quote number + service orders
