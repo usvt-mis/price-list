@@ -1016,12 +1016,11 @@ function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
   let currentHeight = 0;
 
   // All pages have: full header (topbar + title + certs) + meta table + line table header
-  // All pages have signatures (~95mm), but only last page has totals
-  // So all pages have approximately the same footer height
+  // All pages have footer (disclaimer, remark, totals, signatures)
+  // Target: ~14 items per page = 14 × 8.5mm = 119mm
   const footerHeight = 95;
-
-  // Available height for all pages (with footer/signatures)
-  const pageWithFooterAvailable = pageHeights.firstPage - footerHeight;
+  const targetLineItemSpace = 120; // mm
+  const pageWithFooterAvailable = targetLineItemSpace;
 
   // Debug: log the calculated values
   console.log('[Chunk Debug] Page with footer available:', pageWithFooterAvailable.toFixed(2), 'mm');
@@ -1403,8 +1402,12 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     console.log(`[Multi-Page Debug] Page ${pageNumber}: items=${chunk.lines.length}`);
 
     // Build page - all pages have full header and meta table
+    const pageBreakStyle = isLastPage ? '' : 'page-break-after: always;';
+    const marginTopStyle = pageNumber > 1 ? 'margin-top: 11mm;' : '';
+    const combinedStyle = marginTopStyle ? `style="${pageBreakStyle} ${marginTopStyle}"` : `style="${pageBreakStyle}"`;
+
     pagesHtml += `
-  <div class="page"${isLastPage ? '' : ' style="page-break-after: always;"'}>
+  <div class="page"${combinedStyle ? ` ${combinedStyle}` : ''}>
     ${buildPageHeader(model, settings, pageNumber, totalPages, 'full')}
 
     <table class="meta-table">
@@ -1690,7 +1693,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.8mm; font-size: ${settings.docFooterFontSize}px; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 2mm; font-size: ${settings.docFooterFontSize}px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
 </head>
@@ -1752,6 +1755,9 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       margin: 0 auto;
       display: flex;
       flex-direction: column;
+    }
+    .page:last-child {
+      page-break-after: auto;
     }
     .topbar { display: grid; grid-template-columns: ${topbarLogoColumnWidthMm}mm 1fr 23mm; align-items: start; column-gap: 4mm; }
     .main-logo {
@@ -1971,7 +1977,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.8mm; font-size: ${settings.docFooterFontSize}px; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 2mm; font-size: ${settings.docFooterFontSize}px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
 
     @media print {
@@ -2044,6 +2050,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       </thead>
       <tbody>${renderLineRows(model.lineItems)}</tbody>
     </table>
+    </div>
 
     <div class="footer-stack">
       <div class="footer-summary-block">

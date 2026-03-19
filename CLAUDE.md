@@ -311,12 +311,21 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Page Chunking Logic**: `chunkLineItemsForPages()` determines how line items are distributed across pages
   - **All pages have identical structure**: header, meta table, disclaimer, totals, signatures, and document footer
   - Only line items and page numbers differ between pages
-  - All pages reserve 95mm for footer/signatures (same available height for all pages)
+  - Target line item space: 120mm per page (approximately 14 items at 8.5mm each)
   - Console logging for debugging: `[Chunk Debug]` prefix shows page calculations
   - Handles single-page scenarios efficiently with early return
+- **Multi-Page HTML Generation**: `buildMultiPageHtml()` generates HTML for multi-page documents
+  - All pages have full header and meta table
+  - Page break styling: `page-break-after: always` for non-last pages
+  - Margin styling: `margin-top: 11mm` for pages after the first
+  - Combined style attribute applies both page break and margin where needed
 - **Footer Types**: `buildPageFooter()` supports 'full' and 'partial' types
   - 'full': Complete footer with disclaimer, totals, and signatures (used for single-page quotes)
   - 'partial': Disclaimer + signatures for first/middle pages in multi-page documents
+- **CSS Page Break Rules**: `@media print` and inline styles ensure proper pagination
+  - `.page:last-child` has `page-break-after: auto` to prevent trailing blank pages
+  - Prevents page breaks inside line table rows, footer stack, and signature grid
+  - Forces page breaks after each page (except last)
 
 ### My Records (Submission History)
 - "My Records" tab shows user's submitted quotes with search
