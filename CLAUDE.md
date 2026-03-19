@@ -275,21 +275,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 ### Print Quote
 - A4-optimized print layout from searched quotes
+- **PDF Generation**: Uses `html2pdf.js` library to generate and download PDF files directly (no print preview window)
+  - Configuration: A4 portrait format, 2x scale for high quality, JPEG images at 98% quality
+  - Automatic pagination handling by html2pdf.js (avoids manual multi-page detection)
+  - Temporary DOM container created for rendering, cleaned up after PDF generation
+  - Toast notifications show "Generating PDF..." during generation and success message when complete
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
-- **Multi-Page Printing Support**: Automatic overflow detection and multi-page generation
-  - `willOverflowSinglePage()` detects if quote content exceeds single page capacity using direct height calculation:
-    - Calculates available space for line items on a single page: `pageHeight - bodyPaddingTop - bodyPaddingBottom - topbarHeight - titleRowHeight - metaTableHeight - lineTableHeaderHeight - footerHeight`
-    - Compares total line items height against available space
-    - **Debug logging**: Outputs line items count, total height, available space, and overflow status to console for troubleshooting
-  - `calculateRowHeights()` calculates height for each printable line row with calibrated values:
-    - `baseRowHeightMm`: 8.5mm (calibrated to match BC's 17 items per page: 146.5mm / 17 ≈ 8.6mm)
-    - `commentRowHeightMm`: 4.5mm (continuation rows, scaled proportionally)
-    - `sectionRowHeightMm`: 5.0mm (section header/footer rows)
-  - `calculateAvailablePageHeights()` computes available content space per page type (first page, middle pages, last page)
-  - `paginateLines()` intelligently splits line items across pages to avoid orphaned rows
-  - `buildMultiPageHtml()` generates multi-page HTML with page headers and footers
-  - **Automatic mode selection**: `printSearchedSalesQuote()` automatically uses multi-page layout when content overflows (logs mode selection to console)
 - **Certification Logos**: Support for multiple certification logos with special styling
   - AEMT logo receives special `cert-logo-aemt` class with max-width constraint (22mm × scale)
   - Other certification logos use default `cert-logo` class
@@ -309,8 +301,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Dynamic meta table column adjustment based on address width
 - **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13ch), `shifted` class with differentiated positioning (labels: -21mm left, values: -12mm left), attentionTelBlockOffsetXMm/YMm using relative positioning instead of transform
 - **Delivery Date Field**: Uses `reportContext.deliveryDate` for delivery text in meta table
-- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `buildMultiPageHtml()`, `calculateRowHeights()`, `calculateAvailablePageHeights()`, `paginateLines()`, `willOverflowSinglePage()`
+- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
+- **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content
 
 ### My Records (Submission History)
 - "My Records" tab shows user's submitted quotes with search

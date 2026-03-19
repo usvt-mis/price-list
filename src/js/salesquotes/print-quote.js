@@ -2092,39 +2092,79 @@ function willOverflowSinglePage(model, settings) {
   return totalLineItemsHeight > singlePageAvailable;
 }
 
-export async function printSearchedSalesQuote() {
-  let printWindow = null;
-
-  try {
-    const model = await buildModel();
-    printWindow = window.open('', '_blank');
-
-    if (!printWindow) {
-      throw new Error('Popup was blocked. Please allow popups for this site and try again.');
+/**
+ * Load html2pdf.js library dynamically from CDN
+ */
+function loadHtml2Pdf() {
+  return new Promise((resolve, reject) => {
+    if (window.html2pdf) {
+      resolve(window.html2pdf);
+      return;
     }
 
-    printWindow.document.open();
-    printWindow.document.write('<!DOCTYPE html><html><head><title>Preparing print preview...</title></head><body style="font-family: Tahoma, Arial, sans-serif; padding: 24px;">Preparing print preview...</body></html>');
-    printWindow.document.close();
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    script.onload = () => resolve(window.html2pdf);
+    script.onerror = () => reject(new Error('Failed to load html2pdf.js'));
+    document.head.appendChild(script);
+  });
+}
 
+export async function printSearchedSalesQuote() {
+  let container = null;
+
+  try {
+    // Load html2pdf library
+    const html2pdf = await loadHtml2Pdf();
+
+    const model = await buildModel();
     const layoutSettings = await loadPrintLayoutSettings();
     const normalizedSettings = normalizePrintLayoutSettings(layoutSettings);
 
-    // Determine if multi-page is needed
-    const useMultiPage = willOverflowSinglePage(model, normalizedSettings);
-    console.log('[Multi-Page Debug] Using multi-page layout:', useMultiPage);
+    // Use the single-page HTML builder (html2pdf will handle pagination)
+    const htmlContent = buildPrintHtml(model, normalizedSettings);
 
-    printWindow.document.open();
-    if (useMultiPage) {
-      printWindow.document.write(buildMultiPageHtml(model, normalizedSettings));
-    } else {
-      printWindow.document.write(buildPrintHtml(model, normalizedSettings));
+    // Create a temporary container to hold the HTML
+    container = document.createElement('div');
+    container.setAttribute('data-print-temp', 'true');
+    container.innerHTML = htmlContent;
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.width = '192mm'; // A4 width
+    document.body.appendChild(container);
+
+    // Configure html2pdf options
+    const opt = {
+      margin: [10, 10, 10, 10], // mm margins
+      filename: `${model.ourRef || 'SalesQuote'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait'
+      },
+      pagebreak: { mode: ['css', 'legacy'] }
+    };
+
+    // Generate and download PDF
+    showToast('Generating PDF...', 'info');
+    await html2pdf().set(opt).from(container).save();
+
+    // Clean up
+    if (container && container.parentNode) {
+      container.parentNode.removeChild(container);
     }
-    printWindow.document.close();
-    showToast(`Opening print preview for ${state.quote.number}`, 'success');
+    showToast(`PDF generated for ${state.quote.number}`, 'success');
+
   } catch (error) {
-    if (printWindow && !printWindow.closed) {
-      printWindow.close();
+    // Clean up container if it exists
+    if (container && container.parentNode) {
+      container.parentNode.removeChild(container);
     }
     console.error('Unable to print Sales Quote:', error);
     showError(error.message || 'Unable to print Sales Quote right now.');
