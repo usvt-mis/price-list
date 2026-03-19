@@ -2006,16 +2006,19 @@ export async function showQuoteSendFailure(errorOrMessage) {
 /**
  * Close Quote Created Success modal
  */
-export function closeQuoteCreatedModal() {
+export async function closeQuoteCreatedModal() {
   const modal = el('quoteCreatedModal');
   const modalContent = el('quoteCreatedModalContent');
 
   // Close the modal
   closeQuoteResponseModal(modal, modalContent);
 
-  // Switch to My Records tab after modal closes
-  setTimeout(() => {
+  // Switch to My Records tab after modal closes and load records
+  setTimeout(async () => {
     switchTab('records');
+    // Load records after switching tabs so newly created quote appears
+    const { loadQuoteSubmissionRecords } = await import('./records.js');
+    await loadQuoteSubmissionRecords();
   }, 300);
 }
 

@@ -193,13 +193,14 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
    - If group has `refServiceOrderNo`: Uses `"no"` field with existing Service Order number
    - If group has no `refServiceOrderNo`: Uses `"branchCode"` field to create new Service Order
 4. Displays Service Order number(s) in the success modal (comma-separated if multiple)
+5. Includes `workStatus` field in the Azure Function payload (defaults to empty string if not set)
 
 **Success Modal Display:**
 - Single Service Order: Shows "Service Order No: SVRY2512-0013"
 - Multiple Service Orders: Shows "Service Order Nos: SVRY2512-0013, SVRY2512-0014, ..."
 - All Service Order numbers are displayed and can be copied to clipboard
-- **Modal close behavior**: After closing the success modal, the system automatically switches to the "My Records" tab
-- This provides a smooth user workflow after successful quote creation
+- **Modal close behavior**: After closing the success modal, the system automatically switches to the "My Records" tab and loads the submission records
+- This provides a smooth user workflow after successful quote creation and ensures the newly created quote appears in the records list
 - Implementation: `src/js/salesquotes/ui.js` - `showQuoteCreatedSuccess()`, `closeQuoteCreatedModal()`, `src/salesquotes/components/modals/quote-created-modal.html`
 
 **Service Item No Validation:**
@@ -243,7 +244,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Search by quote number → loads into editor
 - Mode banner shows: quote number, status, customer, branch
 - State: `state.quote.mode` ('create'/'edit'), `state.quote.id/number/etag/status/reportContext`
-- **Customer No locked**, **Work Status shown**, **Ref. SV No. column visible**, **Print button enabled**
+- **Customer No locked**, **Work Status shown (editable dropdown)**, **Ref. SV No. column visible**, **Print button enabled**
+- **Work Status field**: Editable dropdown with options (Win, Lose, Cancelled) for searched Sales Quotes
+- **Sales Phone No. and Sales Email**: These fields are hidden (not displayed in the UI)
 - **Update enabled**: "Update Sales Quote" button sends changes to BC via UpdateSalesQuote endpoint
 - Update mode stays in edit mode after successful update (no reset)
 - **Service Order creation**: Service Orders are created for both new quotes AND quote updates (via CreateServiceOrderFromSQ per Group No)

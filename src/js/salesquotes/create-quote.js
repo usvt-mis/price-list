@@ -1984,6 +1984,7 @@ async function updateQuoteInAzureFunction(quoteData) {
     requestedDeliveryDate: quoteData.requestedDeliveryDate || '',
     workDescription: quoteData.workDescription || '',
     discountAmount,
+    workStatus: quoteData.workStatus || '',
     refSalesQuoteNo: salesQuoteNumber,
     lineItems
   };
