@@ -162,8 +162,11 @@ See [docs/authentication.md](docs/authentication.md).
 ### Quote Creation Flow
 1. Send quote → BC (includes `refSalesQuoteNo` field for quote reference)
 2. Extract unique Group No values (with Service Item No)
-3. Call CreateServiceOrderFromSQ per group
-4. Display success modal with quote number + service orders
+3. Track `refServiceOrderNo` for each group (existing Service Order reference)
+4. Call CreateServiceOrderFromSQ per group:
+   - If group has `refServiceOrderNo`: Uses `"no"` field with existing Service Order number
+   - If group has no `refServiceOrderNo`: Uses `"branchCode"` field to create new Service Order
+5. Display success modal with quote number + service orders
 
 ### Validation Policies
 | Policy | Implementation |

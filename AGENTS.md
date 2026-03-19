@@ -168,8 +168,11 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 **Flow:** After successfully creating a Sales Quote, the system automatically:
 1. Extracts unique Group No values from all quote lines (only groups with at least one Service Item No)
-2. Calls `CreateServiceOrderFromSQ` with one payload per unique Group No
-3. Displays Service Order number(s) in the success modal (comma-separated if multiple)
+2. Tracks `refServiceOrderNo` for each group (existing Service Order reference)
+3. Calls `CreateServiceOrderFromSQ` with one payload per unique Group No:
+   - If group has `refServiceOrderNo`: Uses `"no"` field with existing Service Order number
+   - If group has no `refServiceOrderNo`: Uses `"branchCode"` field to create new Service Order
+4. Displays Service Order number(s) in the success modal (comma-separated if multiple)
 
 **Success Modal Display:**
 - Single Service Order: Shows "Service Order No: SVRY2512-0013"

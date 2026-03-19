@@ -255,7 +255,7 @@ function buildSearchQuoteReportContext(data, resolvedSalespersonName, sourceCont
     dueDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['dueDate', 'DueDate_SalesHeader', 'Due_Date'], '')),
     shipmentDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['shipmentDate', 'ShipmentDate_SalesHeader'], '')),
     quoteValidUntilDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['quoteValidUntilDate', 'quoteValidDate', 'QuoteValidDate_SalesHeader', 'Quote_Valid_Until_Date'], '')),
-    requestedDeliveryDate: normalizeBcDate(pickSourceValueFromSources(uniqueObjectReferences([...lineSources, ...headerSources]), ['requestedDeliveryDate', 'usvtDeliveryDate', 'USVT_Delivery_Date', 'shipmentDate', 'ShipmentDate_SalesHeader'], '')),
+    requestedDeliveryDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['requestedDeliveryDate', 'RequestedDeliveryDate_SalesHeader', 'usvtDeliveryDate', 'USVT_Delivery_Date'], '')),
     paymentTermsCode: pickSourceValueFromSources(headerSources, ['paymentTermsCode', 'Payment_Terms_Code'], ''),
     paymentTermsDescription: pickSourceValueFromSources(headerSources, ['paymentTermsDescription', 'descriptionPaymentTerms', 'Description_PaymentTerms'], ''),
     paymentMethodDescription: pickSourceValueFromSources(headerSources, ['paymentMethodDescription', 'descriptionPaymentMethod', 'Description_PaymentMethod'], ''),
@@ -2118,34 +2118,67 @@ async function createServiceItem(description, customerNo, groupNo) {
 async function createServiceOrderFromSQ(salesQuoteId, branchCode) {
   const API_URL = GATEWAY_API.CREATE_SERVICE_ORDER_FROM_SQ;
 
-  // Extract unique Group No values - only include groups that have at least one Service Item No
-  const groupNosWithServiceItem = new Set();
+  // Track groups with Service Item No and their refServiceOrderNo values
+  const groupInfo = new Map(); // groupNo -> { hasServiceItem: boolean, refServiceOrderNo: string|null }
 
   for (const line of state.quote.lines) {
     const groupNo = normalizeGroupNo(line.usvtGroupNo);
     const serviceItemNo = line.usvtServiceItemNo;
+    const refServiceOrderNo = line.usvtRefServiceOrderNo || '';
 
-    // Include this group if it has a Service Item No
-    if (groupNo && groupNo.trim() !== '' && serviceItemNo && serviceItemNo.trim() !== '') {
-      groupNosWithServiceItem.add(groupNo);
+    if (!groupNo || groupNo.trim() === '') continue;
+
+    if (!groupInfo.has(groupNo)) {
+      groupInfo.set(groupNo, { hasServiceItem: false, refServiceOrderNo: null });
+    }
+
+    const info = groupInfo.get(groupNo);
+
+    // Track if this group has a Service Item No
+    if (serviceItemNo && serviceItemNo.trim() !== '') {
+      info.hasServiceItem = true;
+    }
+
+    // Track refServiceOrderNo if present
+    if (refServiceOrderNo && refServiceOrderNo.trim() !== '') {
+      info.refServiceOrderNo = refServiceOrderNo;
     }
   }
 
-  const uniqueGroupNos = Array.from(groupNosWithServiceItem);
+  // Filter to only groups that have at least one Service Item No
+  const groupsWithServiceItem = [];
+  for (const [groupNo, info] of groupInfo.entries()) {
+    if (info.hasServiceItem) {
+      groupsWithServiceItem.push({ groupNo, refServiceOrderNo: info.refServiceOrderNo });
+    }
+  }
 
-  console.log('Unique Group Nos with Service Item:', uniqueGroupNos);
+  console.log('Groups with Service Item:', groupsWithServiceItem.map(g => ({ groupNo: g.groupNo, hasRef: !!g.refServiceOrderNo })));
 
-  if (uniqueGroupNos.length === 0) {
+  if (groupsWithServiceItem.length === 0) {
     console.warn('No Group Nos with Service Item found in quote lines, skipping Service Order creation');
     return null;
   }
 
   // Build payload array - one entry per unique Group No
-  const requestBody = uniqueGroupNos.map(groupNo => ({
-    salesQuoteId: salesQuoteId,
-    branchCode: branchCode,
-    GroupNo: parseInt(groupNo, 10)
-  }));
+  // If group has refServiceOrderNo, use "no" instead of "branchCode"
+  const requestBody = groupsWithServiceItem.map(({ groupNo, refServiceOrderNo }) => {
+    if (refServiceOrderNo && refServiceOrderNo.trim() !== '') {
+      // Group has existing Service Order - use "no" field
+      return {
+        salesQuoteId: salesQuoteId,
+        no: refServiceOrderNo,
+        GroupNo: parseInt(groupNo, 10)
+      };
+    } else {
+      // New Service Order - use branchCode
+      return {
+        salesQuoteId: salesQuoteId,
+        branchCode: branchCode,
+        GroupNo: parseInt(groupNo, 10)
+      };
+    }
+  });
 
   console.log('Creating Service Order from SQ with payload:', JSON.stringify(requestBody, null, 2));
 
