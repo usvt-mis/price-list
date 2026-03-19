@@ -890,7 +890,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
   const metaColumnWidths = resolveMetaTableColumnWidths(settings);
   const companyLineFontSize = Math.max(settings.baseFontSize - 0.8, 9);
   const pageNoFontSize = Math.max(settings.baseFontSize - 0.3, 9);
-  const signatureSignHeightMm = Math.max(settings.signatureSignMinHeightMm, 18);
+  const signatureSignHeightMm = Math.max(settings.signatureSignMinHeightMm, 22);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1093,7 +1093,15 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       align-items: flex-end;
       justify-content: center;
     }
-    .signature-image { display: block; max-width: 44mm; max-height: 18mm; object-fit: contain; }
+    .signature-image {
+      display: block;
+      max-width: 48mm;
+      max-height: 22mm;
+      object-fit: contain;
+      image-rendering: auto;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
     .signature-line { width: 100%; border-top: 1px solid #000; margin-top: 1.2mm; }
     .signature-meta {
       display: grid;
