@@ -1956,6 +1956,7 @@ async function updateQuoteInAzureFunction(quoteData) {
       usvtCreateSv: line.usvtCreateSv || line.createSv || false,
       usvtAddition: line.usvtAddition || false,
       usvtRefSalesQuoteno: line.usvtRefSalesQuoteno || '',
+      usvtRefServiceOrderNo: line.usvtRefServiceOrderNo || '',
       discountAmount: line.discountAmount || 0
     };
   });

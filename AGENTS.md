@@ -217,6 +217,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Modal Material No Fields**: The Material No. field in both Add Line (`materialNo`) and Edit Line (`editMaterialNo`) modals also enforces dropdown-only selection
 - Implementation: `src/js/salesquotes/state.js` - `dropdownFields` state object, `src/js/salesquotes/create-quote.js` - blur event handlers and save validation in `handleAddQuoteLine()`, `saveEditLine()` for `customerNoSearch`, `salespersonCodeSearch`, `assignedUserIdSearch`, `lineObjectNumberSearch`, `editLineObjectNumberSearch`
 
+**Update Quote - Service Order Reference:**
+- **Policy**: When updating an existing Sales Quote, the `usvtRefServiceOrderNo` field is included in the payload to maintain Service Order references
+- **Implementation**: The `updateQuoteInAzureFunction()` function in `src/js/salesquotes/create-quote.js` includes `usvtRefServiceOrderNo` in the line payload for each quote line
+- **Field Mapping**: `usvtRefServiceOrderNo: line.usvtRefServiceOrderNo || ''` - defaults to empty string if not set
+- **Purpose**: Ensures that existing Service Order references are preserved when quotes are updated in Business Central
+- Implementation: `src/js/salesquotes/create-quote.js` - `updateQuoteInAzureFunction()` function
+
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 
 ---
