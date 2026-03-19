@@ -208,6 +208,10 @@ See [docs/authentication.md](docs/authentication.md).
 - Table: `SalesQuoteSubmissionRecords` (Id, SalesQuoteNumber, SenderEmail, WorkDescription, ClientIP, SubmittedAt)
 - API: `GET /api/salesquotes/records?search={query}`, `POST /api/salesquotes/records`
 - Backoffice audit log integration: blue badge "Sales Quote Sent"
+- **Clickable Quote Numbers**: Quote numbers in the table are clickable buttons with a search icon
+  - Clicking switches to the Search tab, fills the input with the quote number, and triggers the search
+  - Implementation: `loadQuoteFromRecords()` function in `src/js/salesquotes/records.js`
+  - Uses `window.switchTab('search')`, fills `searchSalesQuoteNumber` input, and calls `window.searchSalesQuote()` with 50ms delay
 
 ### User Preferences API
 - Table: `SalesQuoteUserPreferences` (Id, UserEmail, PreferenceKey, PreferenceValue, CreatedAt, UpdatedAt)

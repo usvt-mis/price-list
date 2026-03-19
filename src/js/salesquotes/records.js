@@ -45,19 +45,59 @@ function renderRecords(records) {
     return;
   }
 
-  container.innerHTML = records.map(record => {
+  container.innerHTML = records.map((record, index) => {
     const description = record.workDescription
       ? `<div class="max-w-2xl whitespace-pre-wrap break-words text-sm text-slate-700">${escapeHtml(record.workDescription)}</div>`
       : '<span class="text-sm text-slate-400">No work description</span>';
 
     return `
       <tr class="hover:bg-slate-50">
-        <td class="px-4 py-3 font-medium text-slate-900">${escapeHtml(record.salesQuoteNumber)}</td>
+        <td class="px-4 py-3 font-medium">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+            data-quote-number="${escapeHtml(record.salesQuoteNumber)}"
+            data-action="load-quote"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            ${escapeHtml(record.salesQuoteNumber)}
+          </button>
+        </td>
         <td class="px-4 py-3">${description}</td>
         <td class="px-4 py-3 whitespace-nowrap text-slate-600">${escapeHtml(formatSubmittedAt(record.submittedAt))}</td>
       </tr>
     `;
   }).join('');
+
+  // Attach click handlers to quote number buttons
+  container.querySelectorAll('[data-action="load-quote"]').forEach(button => {
+    button.addEventListener('click', () => {
+      const quoteNumber = button.getAttribute('data-quote-number');
+      loadQuoteFromRecords(quoteNumber);
+    });
+  });
+}
+
+/**
+ * Loads a Sales Quote from the My Records table into the editor.
+ * Switches to the Search tab, fills the input, and triggers the search.
+ */
+function loadQuoteFromRecords(salesQuoteNumber) {
+  // Switch to search tab
+  window.switchTab('search');
+
+  // Fill the search input
+  const searchInput = el('searchSalesQuoteNumber');
+  if (searchInput) {
+    searchInput.value = salesQuoteNumber;
+  }
+
+  // Trigger the search (after a small delay to ensure tab switch is complete)
+  setTimeout(() => {
+    window.searchSalesQuote();
+  }, 50);
 }
 
 export async function loadQuoteSubmissionRecords() {
