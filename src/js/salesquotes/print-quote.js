@@ -126,6 +126,8 @@ const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   attentionTelBlockOffsetXMm: 0,
   attentionTelBlockOffsetYMm: 0,
   certsOffsetYMm: 3.2,
+  certsOffsetXMm: 0,
+  certsSizeScale: 1.0,
   totalsOffsetXMm: 0,
   footerSummaryBlockOffsetXMm: 0,
   footerSummaryBlockOffsetYMm: 0,
@@ -242,6 +244,8 @@ function normalizePrintLayoutSettings(value = {}) {
     attentionTelBlockOffsetXMm: clampNumber(value.attentionTelBlockOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.attentionTelBlockOffsetXMm, -40, 20),
     attentionTelBlockOffsetYMm: clampNumber(value.attentionTelBlockOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.attentionTelBlockOffsetYMm, -10, 16),
     certsOffsetYMm: clampNumber(value.certsOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.certsOffsetYMm, -8, 12),
+    certsOffsetXMm: clampNumber(value.certsOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.certsOffsetXMm, -30, 30),
+    certsSizeScale: clampNumber(value.certsSizeScale, DEFAULT_PRINT_LAYOUT_SETTINGS.certsSizeScale, 0.5, 3),
     totalsOffsetXMm: clampNumber(value.totalsOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.totalsOffsetXMm, -20, 20),
     footerSummaryBlockOffsetXMm: clampNumber(value.footerSummaryBlockOffsetXMm, DEFAULT_PRINT_LAYOUT_SETTINGS.footerSummaryBlockOffsetXMm, -20, 20),
     footerSummaryBlockOffsetYMm: clampNumber(value.footerSummaryBlockOffsetYMm, DEFAULT_PRINT_LAYOUT_SETTINGS.footerSummaryBlockOffsetYMm, -10, 16),
@@ -945,9 +949,9 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     }
     .title-row .spacer { min-height: 1px; }
     .title { font-size: ${settings.titleFontSize}px; font-weight: 700; white-space: nowrap; }
-    .certs { display: flex; justify-content: flex-start; align-items: flex-end; gap: 1.1mm; min-height: 8.6mm; transform: translateY(${settings.certsOffsetYMm}mm); }
-    .cert-logo { height: 8.1mm; width: auto; object-fit: contain; }
-    .cert-logo.cert-logo-aemt { max-width: 21mm; }
+    .certs { display: flex; justify-content: flex-start; align-items: flex-end; gap: 1.1mm; min-height: ${8.6 * settings.certsSizeScale}mm; transform: translate(${settings.certsOffsetXMm}mm, ${settings.certsOffsetYMm}mm); }
+    .cert-logo { height: ${8.1 * settings.certsSizeScale}mm; width: auto; object-fit: contain; }
+    .cert-logo.cert-logo-aemt { max-width: ${22 * settings.certsSizeScale}mm;}
     .meta-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3.3mm; font-size: ${settings.metaFontSize}px; line-height: 1.18; }
     .meta-table td { padding: 0 1mm 1.8mm 0; vertical-align: top; }
     .meta-table .meta-divider td {

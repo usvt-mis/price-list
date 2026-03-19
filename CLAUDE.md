@@ -189,9 +189,11 @@ See [docs/authentication.md](docs/authentication.md).
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
 - **Certification Logos**: Support for multiple certification logos with special styling
-  - AEMT logo receives special `cert-logo-aemt` class with max-width constraint (21mm)
+  - AEMT logo receives special `cert-logo-aemt` class with max-width constraint (22mm × scale)
   - Other certification logos use default `cert-logo` class
   - Logos displayed in flex container with gap and alignment controls
+  - **Positioning**: `certsOffsetXMm` (range: -30 to 30mm) moves logos left or right, `certsOffsetYMm` (range: -8 to 12mm) moves logos up or down
+  - **Sizing**: `certsSizeScale` (range: 0.5 to 3x) adjusts logo size (1.0 = original size, 2.0 = twice as large)
 - **Signature Priority**: Uploaded signatures (via backoffice) > BC signature data > No signature
   - `fetchSalespersonSignature()` API call checks `SalespersonSignatures` table first
   - Falls back to BC `requestSignature.signature` or `salesperson.signature` if no upload exists

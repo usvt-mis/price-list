@@ -55,10 +55,11 @@ The Price List Calculator computes total cost based on four components:
   - **Status Tracking**: Active (logged in) vs Pending (awaiting first login)
   - **Count Badges**: User count displayed on each tab
   - **Audit Log Tab**: View complete audit history including role changes and Sales Quote submissions
-  - **Settings Tab**: Manage global backoffice configuration including Sales Quotes print layout settings (font sizes, logo width, margins, signature layout)
+  - **Settings Tab**: Manage global backoffice configuration including Sales Quotes print layout settings (font sizes, logo width, margins, signature layout, certification logos)
     - **Visual Control UI**: Interactive sliders with progress indicators, number inputs, and individual reset buttons for each setting
     - **Live Print Preview**: Drag-to-adjust functionality on preview elements with real-time visual feedback
     - Settings organized into groups: Typography, Content, Branding, Signature
+    - Certification logo controls: certsOffsetXMm (horizontal position), certsOffsetYMm (vertical position), certsSizeScale (size scaling)
     - Signature layout controls: signatureGridMarginTopMm, signatureColMinHeightMm, signatureSignMinHeightMm, signatureBlockOffsetXMm, signatureBlockOffsetYMm
 
 ### UI Features
