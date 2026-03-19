@@ -275,11 +275,16 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 ### Print Quote
 - A4-optimized print layout from searched quotes
-- **PDF Generation**: Uses `html2pdf.js` library to generate and download PDF files directly (no print preview window)
-  - Configuration: A4 portrait format, 2x scale for high quality, JPEG images at 98% quality
-  - Automatic pagination handling by html2pdf.js (avoids manual multi-page detection)
-  - Temporary DOM container created for rendering, cleaned up after PDF generation
-  - Toast notifications show "Generating PDF..." during generation and success message when complete
+- **Print Preview**: Opens browser's native print preview window in a new tab
+  - Uses `window.open()` to create a print window with the generated HTML
+  - Includes popup blocking detection with user-friendly error message
+  - Toast notifications show "Opening print preview for {quote number}" on success
+  - Automatically detects multi-page scenarios (line items > 12) and uses appropriate HTML builder
+  - **Multi-page handling**: `buildMultiPageHtml()` for quotes with many line items, `buildPrintHtml()` for single-page quotes
+  - **Print media queries**: CSS `@media print` rules ensure proper page breaks and layout when printing
+    - Prevents page breaks inside line table rows, footer stack, and signature grid
+    - Forces page breaks after each page (except last)
+    - Avoids page breaks after topbar, title row, and meta table
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
 - **Certification Logos**: Support for multiple certification logos with special styling
@@ -301,9 +306,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Dynamic meta table column adjustment based on address width
 - **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13ch), `shifted` class with differentiated positioning (labels: -21mm left, values: -12mm left), attentionTelBlockOffsetXMm/YMm using relative positioning instead of transform
 - **Delivery Date Field**: Uses `reportContext.deliveryDate` for delivery text in meta table
-- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`
+- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `buildMultiPageHtml()`, `chunkLineItemsForPages()`, `calculateRowHeights()`, `calculateAvailablePageHeights()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
-- **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content
+- **Page Chunking Logic**: `chunkLineItemsForPages()` determines how line items are distributed across pages
+  - Simplified logic: all non-last pages use same available height, last page reserves 95mm for footer
+  - Console logging for debugging: `[Chunk Debug]` prefix shows page calculations
+  - Handles single-page scenarios efficiently with early return
 
 ### My Records (Submission History)
 - "My Records" tab shows user's submitted quotes with search

@@ -1012,79 +1012,93 @@ function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
   const rowHeights = calculateRowHeights(lines, settings);
   const pageHeights = calculateAvailablePageHeights(settings, hasMetaTable);
   const chunks = [];
-  let currentPageType = 'first';
-  let currentHeight = 0;
   let startIndex = 0;
+  let currentHeight = 0;
 
-  for (let i = 0; i < lines.length; i++) {
-    const rowHeight = rowHeights[i];
+  // All pages have: full header (topbar + title + certs) + meta table + line table header
+  // Last page additionally has: full footer (95mm)
+  const footerHeight = 95;
 
-    // Determine available height based on current page type
-    let availableHeight;
-    if (currentPageType === 'first') {
-      availableHeight = pageHeights.firstPage;
-    } else if (currentPageType === 'middle') {
-      availableHeight = pageHeights.middlePage;
-    } else {
-      availableHeight = pageHeights.lastPage;
-    }
+  // Available height for non-last pages (no footer)
+  const pageWithoutFooterAvailable = pageHeights.firstPage;
+  // Available height for last page (with full footer)
+  const pageWithFooterAvailable = pageHeights.firstPage - footerHeight;
 
-    // Check if this row fits
-    if (currentHeight + rowHeight <= availableHeight) {
-      currentHeight += rowHeight;
-    } else {
-      // Row doesn't fit, start a new page
-      if (startIndex < i) {
+  // Debug: log the calculated values
+  console.log('[Chunk Debug] Page without footer available:', pageWithoutFooterAvailable.toFixed(2), 'mm');
+  console.log('[Chunk Debug] Page with footer available:', pageWithFooterAvailable.toFixed(2), 'mm');
+  console.log('[Chunk Debug] Total lines:', lines.length);
+  console.log('[Chunk Debug] Total row height:', rowHeights.reduce((a, b) => a + b, 0).toFixed(2), 'mm');
+
+  // Check if everything fits on one page
+  const totalHeight = rowHeights.reduce((a, b) => a + b, 0);
+  if (totalHeight <= pageWithFooterAvailable) {
+    console.log('[Chunk Debug] Everything fits on one page');
+    chunks.push({
+      startIndex: 0,
+      endIndex: lines.length,
+      pageType: 'only',
+      lines: lines
+    });
+  } else {
+    console.log('[Chunk Debug] Need multiple pages');
+    // Build chunks - all pages except last use pageWithoutFooterAvailable
+    for (let i = 0; i < lines.length; i++) {
+      const rowHeight = rowHeights[i];
+      const isLastItem = i === lines.length - 1;
+
+      // For last page, we need to account for footer space
+      // But we don't know which page will be last until we've chunked everything
+      // So we use pageWithoutFooterAvailable for all pages, and the last page might overflow
+      // Actually, let's use a simpler approach: fill pages with pageWithoutFooterAvailable,
+      // and whatever remains goes to the last page
+      const availableHeight = pageWithoutFooterAvailable;
+
+      if (currentHeight + rowHeight <= availableHeight) {
+        currentHeight += rowHeight;
+      } else {
+        // Row doesn't fit, start a new page
+        if (startIndex < i) {
+          chunks.push({
+            startIndex,
+            endIndex: i,
+            pageType: 'middle', // Will be adjusted later
+            lines: lines.slice(startIndex, i)
+          });
+        }
+
+        startIndex = i;
+        currentHeight = rowHeight;
+      }
+
+      // If this is the last item, add the final chunk
+      if (isLastItem && startIndex < lines.length) {
         chunks.push({
           startIndex,
-          endIndex: i,
-          pageType: currentPageType,
-          lines: lines.slice(startIndex, i)
+          endIndex: lines.length,
+          pageType: 'last', // Last chunk is the last page
+          lines: lines.slice(startIndex)
         });
       }
-
-      startIndex = i;
-      currentHeight = rowHeight;
-
-      // Determine next page type
-      if (currentPageType === 'first') {
-        currentPageType = 'last'; // Will be adjusted if more pages needed
-      } else if (currentPageType === 'middle') {
-        currentPageType = 'middle';
-      } else {
-        currentPageType = 'middle'; // Continue with middle pages
-      }
     }
   }
 
-  // Add the last chunk
-  if (startIndex < lines.length) {
-    chunks.push({
-      startIndex,
-      endIndex: lines.length,
-      pageType: currentPageType,
-      lines: lines.slice(startIndex)
-    });
-  }
-
-  // Adjust page types for multi-page scenarios
-  if (chunks.length > 1) {
-    // First page is already 'first'
-    // Middle pages should be 'middle'
-    // Last page should be 'last'
-    for (let i = 0; i < chunks.length; i++) {
-      if (i === 0) {
-        chunks[i].pageType = 'first';
-      } else if (i === chunks.length - 1) {
-        chunks[i].pageType = 'last';
-      } else {
-        chunks[i].pageType = 'middle';
-      }
-    }
-  } else {
-    // Single page - mark as 'only'
+  // Adjust page types
+  if (chunks.length === 1) {
     chunks[0].pageType = 'only';
+  } else if (chunks.length > 1) {
+    chunks[0].pageType = 'first';
+    for (let i = 1; i < chunks.length - 1; i++) {
+      chunks[i].pageType = 'middle';
+    }
+    chunks[chunks.length - 1].pageType = 'last';
   }
+
+  // Debug logging
+  console.log('[Multi-Page Debug] Total chunks:', chunks.length);
+  chunks.forEach((chunk, i) => {
+    console.log(`[Multi-Page Debug] Chunk ${i + 1}: type=${chunk.pageType}, items=${chunk.lines.length}, startIndex=${chunk.startIndex}, endIndex=${chunk.endIndex}`);
+  });
 
   return chunks;
 }
@@ -1296,9 +1310,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
   // Chunk line items into pages
   const pageChunks = chunkLineItemsForPages(model.lineItems, settings, true);
   const totalPages = pageChunks.length;
-
-  // Determine which pages get meta table and footer types
-  const hasMetaTable = totalPages > 0;
+  console.log('[Multi-Page Debug] Building HTML with', totalPages, 'pages');
 
   let pagesHtml = '';
 
@@ -1307,28 +1319,17 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     const pageNumber = i + 1;
     const isLastPage = i === pageChunks.length - 1;
 
-    // Determine header type
-    let headerType = 'compact';
-    if (chunk.pageType === 'first' || chunk.pageType === 'only') {
-      headerType = 'full';
-    }
+    // All pages get full header (topbar + title + certs + meta table)
+    // Only last page gets full footer (totals + signatures)
+    const footerType = isLastPage ? 'full' : 'none';
 
-    // Determine footer type
-    let footerType = 'none';
-    if (chunk.pageType === 'only') {
-      footerType = 'full';
-    } else if (chunk.pageType === 'first' && totalPages > 1) {
-      footerType = 'partial';
-    } else if (chunk.pageType === 'last') {
-      footerType = 'full';
-    }
+    console.log(`[Multi-Page Debug] Page ${pageNumber}: items=${chunk.lines.length}, footer=${footerType}`);
 
-    // Build page
+    // Build page - all pages have full header and meta table
     pagesHtml += `
-  <div class="page"${chunk.pageType === 'only' ? '' : ' style="page-break-after: always;"'}>
-    ${buildPageHeader(model, settings, pageNumber, totalPages, headerType)}
+  <div class="page"${isLastPage ? '' : ' style="page-break-after: always;"'}>
+    ${buildPageHeader(model, settings, pageNumber, totalPages, 'full')}
 
-    ${(headerType === 'full') ? `
     <table class="meta-table">
       <colgroup>
         <col style="width: ${metaColumnWidths.label}mm;">
@@ -1339,7 +1340,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
         <col style="width: ${metaColumnWidths.rightValue}mm;">
       </colgroup>
       ${metaRowsMarkup}
-    </table>` : ''}
+    </table>
 
     <table class="line-table">
       <thead>
@@ -1895,6 +1896,31 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
     .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.8mm; font-size: ${settings.docFooterFontSize}px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
+
+    @media print {
+      .page {
+        width: 100%;
+        margin: 0;
+        page-break-after: always;
+      }
+      .page:last-child {
+        page-break-after: auto;
+      }
+      .line-table tr {
+        page-break-inside: avoid;
+      }
+      .footer-stack {
+        page-break-inside: avoid;
+      }
+      .signature-grid {
+        page-break-inside: avoid;
+      }
+      .topbar,
+      .title-row,
+      .meta-table {
+        page-break-after: avoid;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2092,79 +2118,40 @@ function willOverflowSinglePage(model, settings) {
   return totalLineItemsHeight > singlePageAvailable;
 }
 
-/**
- * Load html2pdf.js library dynamically from CDN
- */
-function loadHtml2Pdf() {
-  return new Promise((resolve, reject) => {
-    if (window.html2pdf) {
-      resolve(window.html2pdf);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-    script.onload = () => resolve(window.html2pdf);
-    script.onerror = () => reject(new Error('Failed to load html2pdf.js'));
-    document.head.appendChild(script);
-  });
-}
-
 export async function printSearchedSalesQuote() {
-  let container = null;
+  let printWindow = null;
 
   try {
-    // Load html2pdf library
-    const html2pdf = await loadHtml2Pdf();
-
     const model = await buildModel();
+    printWindow = window.open('', '_blank');
+
+    if (!printWindow) {
+      throw new Error('Popup was blocked. Please allow popups for this site and try again.');
+    }
+
+    printWindow.document.open();
+    printWindow.document.write('<!DOCTYPE html><html><head><title>Preparing print preview...</title></head><body style="font-family: Tahoma, Arial, sans-serif; padding: 24px;">Preparing print preview...</body></html>');
+    printWindow.document.close();
+
     const layoutSettings = await loadPrintLayoutSettings();
     const normalizedSettings = normalizePrintLayoutSettings(layoutSettings);
 
-    // Use the single-page HTML builder (html2pdf will handle pagination)
-    const htmlContent = buildPrintHtml(model, normalizedSettings);
+    // Detect if multi-page is needed based on line item count
+    // Use a simple heuristic: more than 12 items likely need multiple pages
+    const useMultiPage = model.lineItems.length > 12;
+    console.log('[Print] Line items:', model.lineItems.length, 'Use multi-page:', useMultiPage);
 
-    // Create a temporary container to hold the HTML
-    container = document.createElement('div');
-    container.setAttribute('data-print-temp', 'true');
-    container.innerHTML = htmlContent;
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.width = '192mm'; // A4 width
-    document.body.appendChild(container);
-
-    // Configure html2pdf options
-    const opt = {
-      margin: [10, 10, 10, 10], // mm margins
-      filename: `${model.ourRef || 'SalesQuote'}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        logging: false
-      },
-      jsPDF: {
-        unit: 'mm',
-        format: 'a4',
-        orientation: 'portrait'
-      },
-      pagebreak: { mode: ['css', 'legacy'] }
-    };
-
-    // Generate and download PDF
-    showToast('Generating PDF...', 'info');
-    await html2pdf().set(opt).from(container).save();
-
-    // Clean up
-    if (container && container.parentNode) {
-      container.parentNode.removeChild(container);
+    printWindow.document.open();
+    if (useMultiPage) {
+      printWindow.document.write(buildMultiPageHtml(model, normalizedSettings));
+    } else {
+      printWindow.document.write(buildPrintHtml(model, normalizedSettings));
     }
-    showToast(`PDF generated for ${state.quote.number}`, 'success');
-
+    printWindow.document.close();
+    showToast(`Opening print preview for ${state.quote.number}`, 'success');
   } catch (error) {
-    // Clean up container if it exists
-    if (container && container.parentNode) {
-      container.parentNode.removeChild(container);
+    if (printWindow && !printWindow.closed) {
+      printWindow.close();
     }
     console.error('Unable to print Sales Quote:', error);
     showError(error.message || 'Unable to print Sales Quote right now.');
