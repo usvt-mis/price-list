@@ -2006,27 +2006,17 @@ export async function showQuoteSendFailure(errorOrMessage) {
 /**
  * Close Quote Created Success modal
  */
-export async function closeQuoteCreatedModal() {
+export function closeQuoteCreatedModal() {
   const modal = el('quoteCreatedModal');
   const modalContent = el('quoteCreatedModalContent');
 
-  // First close the modal
+  // Close the modal
   closeQuoteResponseModal(modal, modalContent);
 
-  // After modal animation completes (220ms), reset state and switch to My Records
-  setTimeout(async () => {
-    const { resetQuoteEditorToCreateMode } = await import('./create-quote.js');
-    const { loadQuoteSubmissionRecords } = await import('./records.js');
-
-    // 1. Reset the quote editor (like page refresh)
-    resetQuoteEditorToCreateMode({ showFeedback: false });
-
-    // 2. Switch to My Records tab
+  // Switch to My Records tab after modal closes
+  setTimeout(() => {
     switchTab('records');
-
-    // 3. Load the records (will happen automatically via tab click listener, but we ensure it)
-    await loadQuoteSubmissionRecords();
-  }, 300); // Wait for modal close animation (220ms) + small buffer
+  }, 300);
 }
 
 export async function closeQuoteFailedModal() {
