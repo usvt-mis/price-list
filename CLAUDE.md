@@ -306,12 +306,17 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Dynamic meta table column adjustment based on address width
 - **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13ch), `shifted` class with differentiated positioning (labels: -21mm left, values: -12mm left), attentionTelBlockOffsetXMm/YMm using relative positioning instead of transform
 - **Delivery Date Field**: Uses `reportContext.deliveryDate` for delivery text in meta table
-- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `buildMultiPageHtml()`, `chunkLineItemsForPages()`, `calculateRowHeights()`, `calculateAvailablePageHeights()`
+- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `buildMultiPageHtml()`, `chunkLineItemsForPages()`, `calculateRowHeights()`, `calculateAvailablePageHeights()`, `buildPageFooter()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 - **Page Chunking Logic**: `chunkLineItemsForPages()` determines how line items are distributed across pages
-  - Simplified logic: all non-last pages use same available height, last page reserves 95mm for footer
+  - **All pages have identical structure**: header, meta table, disclaimer, totals, signatures, and document footer
+  - Only line items and page numbers differ between pages
+  - All pages reserve 95mm for footer/signatures (same available height for all pages)
   - Console logging for debugging: `[Chunk Debug]` prefix shows page calculations
   - Handles single-page scenarios efficiently with early return
+- **Footer Types**: `buildPageFooter()` supports 'full' and 'partial' types
+  - 'full': Complete footer with disclaimer, totals, and signatures (used for single-page quotes)
+  - 'partial': Disclaimer + signatures for first/middle pages in multi-page documents
 
 ### My Records (Submission History)
 - "My Records" tab shows user's submitted quotes with search

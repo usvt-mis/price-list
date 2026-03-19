@@ -1016,16 +1016,14 @@ function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
   let currentHeight = 0;
 
   // All pages have: full header (topbar + title + certs) + meta table + line table header
-  // Last page additionally has: full footer (95mm)
+  // All pages have signatures (~95mm), but only last page has totals
+  // So all pages have approximately the same footer height
   const footerHeight = 95;
 
-  // Available height for non-last pages (no footer)
-  const pageWithoutFooterAvailable = pageHeights.firstPage;
-  // Available height for last page (with full footer)
+  // Available height for all pages (with footer/signatures)
   const pageWithFooterAvailable = pageHeights.firstPage - footerHeight;
 
   // Debug: log the calculated values
-  console.log('[Chunk Debug] Page without footer available:', pageWithoutFooterAvailable.toFixed(2), 'mm');
   console.log('[Chunk Debug] Page with footer available:', pageWithFooterAvailable.toFixed(2), 'mm');
   console.log('[Chunk Debug] Total lines:', lines.length);
   console.log('[Chunk Debug] Total row height:', rowHeights.reduce((a, b) => a + b, 0).toFixed(2), 'mm');
@@ -1042,29 +1040,32 @@ function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
     });
   } else {
     console.log('[Chunk Debug] Need multiple pages');
-    // Build chunks - all pages except last use pageWithoutFooterAvailable
+    // Build chunks - need to account for footer on last page
     for (let i = 0; i < lines.length; i++) {
       const rowHeight = rowHeights[i];
       const isLastItem = i === lines.length - 1;
+      const remainingItemsCount = lines.length - i;
+      const remainingItemsHeight = rowHeights.slice(i).reduce((a, b) => a + b, 0);
 
-      // For last page, we need to account for footer space
-      // But we don't know which page will be last until we've chunked everything
-      // So we use pageWithoutFooterAvailable for all pages, and the last page might overflow
-      // Actually, let's use a simpler approach: fill pages with pageWithoutFooterAvailable,
-      // and whatever remains goes to the last page
-      const availableHeight = pageWithoutFooterAvailable;
+      // Calculate available height for current page
+      // All pages have the same available height (all have signatures/footer)
+      const availableHeight = pageWithFooterAvailable;
+
+      console.log(`[Chunk Debug] i=${i}: currentHeight=${currentHeight.toFixed(1)}, rowHeight=${rowHeight}, remaining=${remainingItemsHeight.toFixed(1)}, available=${availableHeight}`);
 
       if (currentHeight + rowHeight <= availableHeight) {
         currentHeight += rowHeight;
       } else {
         // Row doesn't fit, start a new page
+        console.log(`[Chunk Debug] Overflow at i=${i}: currentHeight=${currentHeight}, rowHeight=${rowHeight}, total=${currentHeight + rowHeight}`);
         if (startIndex < i) {
           chunks.push({
             startIndex,
             endIndex: i,
-            pageType: 'middle', // Will be adjusted later
+            pageType: 'middle',
             lines: lines.slice(startIndex, i)
           });
+          console.log(`[Chunk Debug] Pushed chunk: ${startIndex} to ${i}`);
         }
 
         startIndex = i;
@@ -1073,14 +1074,17 @@ function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
 
       // If this is the last item, add the final chunk
       if (isLastItem && startIndex < lines.length) {
+        console.log(`[Chunk Debug] Last item: pushing chunk from ${startIndex} to ${lines.length}`);
         chunks.push({
           startIndex,
           endIndex: lines.length,
-          pageType: 'last', // Last chunk is the last page
+          pageType: 'last',
           lines: lines.slice(startIndex)
         });
       }
     }
+
+    console.log('[Chunk Debug] Chunks after loop:', chunks.length);
   }
 
   // Adjust page types
@@ -1171,7 +1175,7 @@ function buildPageFooter(model, settings, totals, footerType = 'full') {
   }
 
   if (footerType === 'partial') {
-    // Disclaimer only for first page in multi-page documents
+    // Disclaimer + signatures for first/middle pages in multi-page documents
     return `
       <div class="footer-stack footer-stack--partial">
         <div class="footer-summary-block">
@@ -1179,6 +1183,81 @@ function buildPageFooter(model, settings, totals, footerType = 'full') {
           <div class="footer-note">
             <div class="thai">${escapeHtml(DEFAULT_DISCLAIMER_TH)}</div>
             <div>${escapeHtml(DEFAULT_DISCLAIMER_EN)}</div>
+          </div>
+        </div>
+
+        <div class="signature-block">
+          <div class="signature-grid">
+            <div class="signature-col signature-customer">
+              <div class="signature-sign"></div>
+              <div class="signature-line"></div>
+              <div class="signature-meta">
+                <div class="signature-meta-row"></div>
+                <div class="signature-meta-row centered">
+                  <div class="signature-caption centered">Customer Confirmed</div>
+                </div>
+                <div class="signature-meta-row centered">
+                  <div class="signature-date">Date_____/_____/_____</div>
+                </div>
+              </div>
+            </div>
+            <div class="signature-col signature-salesperson">
+              <div class="signature-sign">
+                ${model.salesperson.signature ? `<img src="${escapeHtml(model.salesperson.signature)}" alt="With By Signature" class="signature-image">` : ''}
+              </div>
+              <div class="signature-line"></div>
+              <div class="signature-meta">
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">With By</div>
+                    <div class="detail-value">${escapeHtml(model.salesperson.name)}</div>
+                  </div>
+                </div>
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Tel</div>
+                    <div class="detail-value">${escapeHtml(model.salesperson.phone)}</div>
+                  </div>
+                </div>
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Email :</div>
+                    <div class="detail-value">${escapeHtml(model.salesperson.email)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="signature-col signature-approver">
+              <div class="signature-sign">
+                ${model.approver.signature ? `<img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">` : ''}
+              </div>
+              <div class="signature-line"></div>
+              <div class="signature-meta">
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Approved</div>
+                    <div class="detail-value">${escapeHtml(model.approver.name)}</div>
+                  </div>
+                </div>
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Tel</div>
+                    <div class="detail-value">${escapeHtml(model.approver.phone)}</div>
+                  </div>
+                </div>
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Email :</div>
+                    <div class="detail-value">${escapeHtml(model.approver.email)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="doc-footer">
+            <div>Effective Date : ${escapeHtml(model.effectiveDate)}</div>
+            <div>${escapeHtml(model.documentCode)}</div>
           </div>
         </div>
       </div>`;
@@ -1319,11 +1398,9 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     const pageNumber = i + 1;
     const isLastPage = i === pageChunks.length - 1;
 
-    // All pages get full header (topbar + title + certs + meta table)
-    // Only last page gets full footer (totals + signatures)
-    const footerType = isLastPage ? 'full' : 'none';
-
-    console.log(`[Multi-Page Debug] Page ${pageNumber}: items=${chunk.lines.length}, footer=${footerType}`);
+    // ALL pages have identical structure: header, meta, disclaimer, totals, signatures, footer
+    // Only line items and page number differ
+    console.log(`[Multi-Page Debug] Page ${pageNumber}: items=${chunk.lines.length}`);
 
     // Build page - all pages have full header and meta table
     pagesHtml += `
@@ -1357,7 +1434,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
       <tbody>${renderLineRows(chunk.lines)}</tbody>
     </table>
 
-    ${buildPageFooter(model, settings, model.totals, footerType)}
+    ${buildPageFooter(model, settings, model.totals, 'full')}
   </div>`;
   }
 
