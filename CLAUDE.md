@@ -278,7 +278,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
 - **Multi-Page Printing Support**: Automatic overflow detection and multi-page generation
-  - `willOverflowSinglePage()` detects if quote content exceeds single page capacity
+  - `willOverflowSinglePage()` detects if quote content exceeds single page capacity using direct height calculation:
+    - Calculates available space for line items on a single page: `pageHeight - bodyPaddingTop - bodyPaddingBottom - topbarHeight - titleRowHeight - metaTableHeight - lineTableHeaderHeight - footerHeight`
+    - Compares total line items height against available space
+    - **Debug logging**: Outputs line items count, total height, available space, and overflow status to console for troubleshooting
   - `calculateRowHeights()` calculates height for each printable line row with calibrated values:
     - `baseRowHeightMm`: 8.5mm (calibrated to match BC's 17 items per page: 146.5mm / 17 ≈ 8.6mm)
     - `commentRowHeightMm`: 4.5mm (continuation rows, scaled proportionally)
@@ -286,7 +289,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `calculateAvailablePageHeights()` computes available content space per page type (first page, middle pages, last page)
   - `paginateLines()` intelligently splits line items across pages to avoid orphaned rows
   - `buildMultiPageHtml()` generates multi-page HTML with page headers and footers
-  - **Automatic mode selection**: `printSearchedSalesQuote()` automatically uses multi-page layout when content overflows
+  - **Automatic mode selection**: `printSearchedSalesQuote()` automatically uses multi-page layout when content overflows (logs mode selection to console)
 - **Certification Logos**: Support for multiple certification logos with special styling
   - AEMT logo receives special `cert-logo-aemt` class with max-width constraint (22mm × scale)
   - Other certification logos use default `cert-logo` class

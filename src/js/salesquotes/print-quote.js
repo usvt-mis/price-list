@@ -2065,15 +2065,31 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
  * Detect if the quote content will overflow a single page
  */
 function willOverflowSinglePage(model, settings) {
-  const pageHeights = calculateAvailablePageHeights(settings, true);
-  const rowHeights = calculateRowHeights(model.lineItems, settings);
+  const pageHeight = 279; // A4 printable height
+  const bodyPaddingTop = 8.5;
+  const bodyPaddingBottom = 8;
 
-  // Sum all row heights
+  // Single page has: full header + meta table + line table header + line items + full footer
+  const topbarHeight = 18;
+  const titleRowHeight = 14;
+  const metaTableHeight = 42;
+  const lineTableHeaderHeight = 9;
+  const footerHeight = 95;
+
+  // Calculate available space for line items on a single page
+  const singlePageAvailable = pageHeight - bodyPaddingTop - bodyPaddingBottom
+    - topbarHeight - titleRowHeight - metaTableHeight - lineTableHeaderHeight - footerHeight;
+
+  const rowHeights = calculateRowHeights(model.lineItems, settings);
   const totalLineItemsHeight = rowHeights.reduce((sum, h) => sum + h, 0);
 
-  // Check if content fits in first page (which has footer)
-  // The 'lastPage' height already accounts for footer space
-  return totalLineItemsHeight > pageHeights.lastPage;
+  // Debug logging
+  console.log('[Multi-Page Debug] Line items count:', model.lineItems.length);
+  console.log('[Multi-Page Debug] Total line items height:', totalLineItemsHeight.toFixed(2), 'mm');
+  console.log('[Multi-Page Debug] Single page available:', singlePageAvailable.toFixed(2), 'mm');
+  console.log('[Multi-Page Debug] Will overflow?', totalLineItemsHeight > singlePageAvailable);
+
+  return totalLineItemsHeight > singlePageAvailable;
 }
 
 export async function printSearchedSalesQuote() {
@@ -2096,6 +2112,7 @@ export async function printSearchedSalesQuote() {
 
     // Determine if multi-page is needed
     const useMultiPage = willOverflowSinglePage(model, normalizedSettings);
+    console.log('[Multi-Page Debug] Using multi-page layout:', useMultiPage);
 
     printWindow.document.open();
     if (useMultiPage) {
