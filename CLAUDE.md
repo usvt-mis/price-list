@@ -279,7 +279,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
 - **Multi-Page Printing Support**: Automatic overflow detection and multi-page generation
   - `willOverflowSinglePage()` detects if quote content exceeds single page capacity
-  - `calculateRowHeights()` calculates height for each printable line row (base row height, description continuations, special row types)
+  - `calculateRowHeights()` calculates height for each printable line row with calibrated values:
+    - `baseRowHeightMm`: 8.5mm (calibrated to match BC's 17 items per page: 146.5mm / 17 ≈ 8.6mm)
+    - `commentRowHeightMm`: 4.5mm (continuation rows, scaled proportionally)
+    - `sectionRowHeightMm`: 5.0mm (section header/footer rows)
   - `calculateAvailablePageHeights()` computes available content space per page type (first page, middle pages, last page)
   - `paginateLines()` intelligently splits line items across pages to avoid orphaned rows
   - `buildMultiPageHtml()` generates multi-page HTML with page headers and footers

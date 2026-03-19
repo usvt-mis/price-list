@@ -883,9 +883,9 @@ function renderLineRows(lines) {
  * Accounts for base row height, description continuations, and special row types
  */
 function calculateRowHeights(lines, settings) {
-  const baseRowHeightMm = 6.8; // From CSS: .line-main-row td { min-height: 6.8mm; }
-  const commentRowHeightMm = 3.4; // Approximate for continuation rows
-  const sectionRowHeightMm = 4.0; // Section header/footer rows
+  const baseRowHeightMm = 8.5; // Calibrated to match BC's 17 items per page (146.5mm / 17 ≈ 8.6mm)
+  const commentRowHeightMm = 4.5; // Approximate for continuation rows (scaled proportionally)
+  const sectionRowHeightMm = 5.0; // Section header/footer rows
   const descriptionCharsPerMm = 5.5; // Approximate characters per mm at current font size
 
   const heights = [];
@@ -1291,6 +1291,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
   const deliveryAddressLines = renderAddressLines(model.deliveryAddressLines, 1);
   const metaRowsMarkup = renderMetaRows(model, customerAddressLines, deliveryAddressLines);
   const metaColumnWidths = resolveMetaTableColumnWidths(settings);
+  const signatureSignHeightMm = Math.max(settings.signatureSignMinHeightMm, 22);
 
   // Chunk line items into pages
   const pageChunks = chunkLineItemsForPages(model.lineItems, settings, true);
