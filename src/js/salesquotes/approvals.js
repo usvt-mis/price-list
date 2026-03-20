@@ -48,6 +48,26 @@ const STATUS_BADGE_CLASSES = {
   BeingRevised: 'bg-purple-100 text-purple-700'
 };
 
+function hasPendingRevisionRequest(approval) {
+  return approval?.approvalStatus === APPROVAL_STATUS.APPROVED &&
+    typeof approval?.actionComment === 'string' &&
+    approval.actionComment.trim() !== '';
+}
+
+function getApprovalStatusPresentation(approval) {
+  if (hasPendingRevisionRequest(approval)) {
+    return {
+      label: 'Revision Request Pending',
+      badgeClass: 'bg-orange-100 text-orange-700'
+    };
+  }
+
+  return {
+    label: STATUS_LABELS[approval?.approvalStatus] || approval?.approvalStatus || '-',
+    badgeClass: STATUS_BADGE_CLASSES[approval?.approvalStatus] || 'bg-slate-100 text-slate-700'
+  };
+}
+
 // ============================================================
 // API Helpers
 // ============================================================
@@ -69,6 +89,16 @@ async function fetchWithAuth(url, options = {}) {
   }
 
   return response.json();
+}
+
+function resetApprovalState() {
+  state.quote.approvalStatus = null;
+  state.approval.currentStatus = null;
+  state.approval.canEdit = true;
+  state.approval.canPrint = true;
+  state.approval.actionComment = null;
+  state.approval.submittedAt = null;
+  state.approval.directorActionAt = null;
 }
 
 // ============================================================
@@ -273,6 +303,15 @@ export async function loadMyApprovalRequests() {
       });
     });
 
+    container.querySelectorAll('[data-action="cancel-request"]').forEach(button => {
+      button.addEventListener('click', () => {
+        const quoteNumber = button.getAttribute('data-quote-number');
+        if (quoteNumber) {
+          cancelApprovalRequest(quoteNumber);
+        }
+      });
+    });
+
   } catch (error) {
     console.error('Failed to load my approval requests:', error);
     container.innerHTML = `
@@ -289,6 +328,7 @@ function renderApprovalRow(approval) {
   const submittedAt = approval.submittedForApprovalAt
     ? new Date(approval.submittedForApprovalAt).toLocaleString()
     : '-';
+  const statusPresentation = getApprovalStatusPresentation(approval);
 
   const total = parseFloat(approval.totalAmount || 0).toLocaleString('en-US', {
     minimumFractionDigits: 2,
@@ -305,8 +345,8 @@ function renderApprovalRow(approval) {
       <td class="px-4 py-3 text-right">${total}</td>
       <td class="px-4 py-3 whitespace-nowrap">${submittedAt}</td>
       <td class="px-4 py-3">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE_CLASSES[approval.approvalStatus]}">
-          ${STATUS_LABELS[approval.approvalStatus] || approval.approvalStatus}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusPresentation.badgeClass}">
+          ${statusPresentation.label}
         </span>
       </td>
     </tr>
@@ -317,6 +357,8 @@ function renderMyApprovalRow(approval) {
   const submittedAt = approval.submittedForApprovalAt
     ? new Date(approval.submittedForApprovalAt).toLocaleString()
     : '-';
+  const statusPresentation = getApprovalStatusPresentation(approval);
+  const pendingRevisionRequest = hasPendingRevisionRequest(approval);
 
   const total = parseFloat(approval.totalAmount || 0).toLocaleString('en-US', {
     minimumFractionDigits: 2,
@@ -336,7 +378,7 @@ function renderMyApprovalRow(approval) {
         Cancel
       </button>
     `;
-  } else if (approval.approvalStatus === APPROVAL_STATUS.REVISE || 
+  } else if (approval.approvalStatus === APPROVAL_STATUS.REVISE ||
              approval.approvalStatus === APPROVAL_STATUS.REJECTED ||
              approval.approvalStatus === APPROVAL_STATUS.BEING_REVISED) {
     actionButton = `
@@ -348,6 +390,12 @@ function renderMyApprovalRow(approval) {
       >
         Edit & Resubmit
       </button>
+    `;
+  } else if (pendingRevisionRequest) {
+    actionButton = `
+      <span class="text-sm font-medium text-orange-700">
+        Awaiting revision approval
+      </span>
     `;
   }
 
@@ -366,8 +414,8 @@ function renderMyApprovalRow(approval) {
       <td class="px-4 py-3">${escapeHtml(approval.customerName || '-')}</td>
       <td class="px-4 py-3 text-right">${total}</td>
       <td class="px-4 py-3">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE_CLASSES[approval.approvalStatus]}">
-          ${STATUS_LABELS[approval.approvalStatus] || approval.approvalStatus}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusPresentation.badgeClass}">
+          ${statusPresentation.label}
         </span>
       </td>
       <td class="px-4 py-3">${submittedAt}</td>
@@ -636,7 +684,7 @@ export async function rejectQuote(quoteNumber, comment) {
     });
 
     hideLoading();
-    showToast('Quote rejected', 'success');
+    showToast('Quote rejected. Salesperson can now edit and resubmit.', 'success');
 
     closeApprovalPreviewModal();
     await loadPendingApprovals();
@@ -714,6 +762,8 @@ export async function requestRevisionForApprovedQuote(quoteNumber, comment) {
       await updateQuoteEditorModeUi();
     }
 
+    await loadMyApprovalRequests();
+
     return true;
   } catch (error) {
     hideLoading();
@@ -742,6 +792,7 @@ export async function approveRevisionRequest(quoteNumber) {
     hideLoading();
     showToast('Revision request approved. Quote is now editable.', 'success');
 
+    closeApprovalPreviewModal();
     await loadPendingApprovals();
     await updatePendingApprovalsBadge();
 
@@ -870,6 +921,10 @@ async function loadQuoteForPreview(quoteNumber) {
  */
 function renderQuotePreview(container, quoteData, approval, directorSignature) {
   const lines = quoteData.salesQuoteLines || quoteData.lines || [];
+  const statusPresentation = getApprovalStatusPresentation(approval);
+  const pendingRevisionRequest = hasPendingRevisionRequest(approval);
+  const quoteNumber = quoteData.number || approval.salesQuoteNumber || currentPreviewQuoteNumber || 'N/A';
+  const actionCommentLabel = pendingRevisionRequest ? 'Revision Request Reason:' : 'Director Comments:';
   const total = parseFloat(quoteData.totalAmount || 0).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -882,10 +937,10 @@ function renderQuotePreview(container, quoteData, approval, directorSignature) {
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-lg font-semibold text-slate-900">${escapeHtml(quoteData.sellToCustomerName || quoteData.customerName || 'N/A')}</h3>
-            <p class="text-sm text-slate-500">Quote No: ${escapeHtml(quoteData.number || quoteNumber)}</p>
+            <p class="text-sm text-slate-500">Quote No: ${escapeHtml(quoteNumber)}</p>
           </div>
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${STATUS_BADGE_CLASSES[approval.approvalStatus]}">
-            ${STATUS_LABELS[approval.approvalStatus] || approval.approvalStatus}
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusPresentation.badgeClass}">
+            ${statusPresentation.label}
           </span>
         </div>
       </div>
@@ -917,7 +972,7 @@ function renderQuotePreview(container, quoteData, approval, directorSignature) {
       <!-- Action Comment (if any) -->
       ${approval.actionComment ? `
         <div class="bg-blue-50 rounded-lg p-3">
-          <p class="text-xs text-blue-600 mb-1">Director Comments:</p>
+          <p class="text-xs text-blue-600 mb-1">${escapeHtml(actionCommentLabel)}</p>
           <p class="text-sm text-blue-800 whitespace-pre-wrap">${escapeHtml(approval.actionComment)}</p>
         </div>
       ` : ''}
@@ -980,6 +1035,7 @@ function renderActionButtons(container, approval) {
 
   const canApprove = authState.user?.effectiveRole === ROLE.SALES_DIRECTOR ||
                       authState.user?.effectiveRole === ROLE.EXECUTIVE;
+  const pendingRevisionRequest = hasPendingRevisionRequest(approval);
 
   let buttons = '';
 
@@ -996,16 +1052,6 @@ function renderActionButtons(container, approval) {
         Approve
       </button>
       <button
-        id="btnRequestRevision"
-        type="button"
-        class="inline-flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-amber-600 transition-colors"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-        </svg>
-        Request Revision
-      </button>
-      <button
         id="btnRejectQuote"
         type="button"
         class="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors"
@@ -1014,6 +1060,19 @@ function renderActionButtons(container, approval) {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
         Reject
+      </button>
+    `;
+  } else if (canApprove && pendingRevisionRequest) {
+    buttons = `
+      <button
+        id="btnApproveRevisionRequest"
+        type="button"
+        class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        Approve Revision Request
       </button>
     `;
   }
@@ -1036,7 +1095,7 @@ function renderActionButtons(container, approval) {
 
   // Attach event listeners
   const btnApprove = el('btnApproveQuote');
-  const btnRevise = el('btnRequestRevision');
+  const btnApproveRevision = el('btnApproveRevisionRequest');
   const btnReject = el('btnRejectQuote');
   const btnClose = el('btnClosePreview');
 
@@ -1048,18 +1107,17 @@ function renderActionButtons(container, approval) {
     });
   }
 
-  if (btnRevise) {
-    btnRevise.addEventListener('click', () => {
-      const comment = prompt('Please enter revision comments:');
-      if (comment && currentPreviewQuoteNumber) {
-        requestRevision(currentPreviewQuoteNumber, comment);
+  if (btnApproveRevision) {
+    btnApproveRevision.addEventListener('click', () => {
+      if (currentPreviewQuoteNumber) {
+        approveRevisionRequest(currentPreviewQuoteNumber);
       }
     });
   }
 
   if (btnReject) {
     btnReject.addEventListener('click', () => {
-      const comment = prompt('Please enter rejection reason:');
+      const comment = prompt('Please enter rejection comments:');
       if (comment && currentPreviewQuoteNumber) {
         rejectQuote(currentPreviewQuoteNumber, comment);
       }
@@ -1083,26 +1141,29 @@ export async function checkApprovalStatus(quoteNumber) {
     const response = await fetchWithAuth(`/api/salesquotes/approvals/${quoteNumber}`);
     const approval = response.approval;
 
-    if (approval) {
-      state.approval.currentStatus = approval.approvalStatus;
-      state.approval.canEdit = approval.approvalStatus === APPROVAL_STATUS.DRAFT ||
-                               approval.approvalStatus === APPROVAL_STATUS.REVISE ||
-                               approval.approvalStatus === APPROVAL_STATUS.REJECTED ||
-                               approval.approvalStatus === APPROVAL_STATUS.BEING_REVISED ||
-                               approval.approvalStatus === APPROVAL_STATUS.CANCELLED;
-      state.approval.canPrint = approval.approvalStatus === APPROVAL_STATUS.APPROVED ||
-                               authState.user?.effectiveRole === ROLE.EXECUTIVE;
-      state.approval.actionComment = approval.actionComment;
-      state.approval.submittedAt = approval.submittedForApprovalAt;
-      state.approval.directorActionAt = approval.salesDirectorActionAt;
+    if (!approval) {
+      resetApprovalState();
+      return null;
     }
+
+    state.quote.approvalStatus = approval.approvalStatus;
+    state.approval.currentStatus = approval.approvalStatus;
+    state.approval.canEdit = approval.approvalStatus === APPROVAL_STATUS.DRAFT ||
+                             approval.approvalStatus === APPROVAL_STATUS.REVISE ||
+                             approval.approvalStatus === APPROVAL_STATUS.REJECTED ||
+                             approval.approvalStatus === APPROVAL_STATUS.BEING_REVISED ||
+                             approval.approvalStatus === APPROVAL_STATUS.CANCELLED;
+    state.approval.canPrint = approval.approvalStatus === APPROVAL_STATUS.APPROVED ||
+                             approval.approvalStatus === APPROVAL_STATUS.BEING_REVISED ||
+                             authState.user?.effectiveRole === ROLE.EXECUTIVE;
+    state.approval.actionComment = approval.actionComment;
+    state.approval.submittedAt = approval.submittedForApprovalAt;
+    state.approval.directorActionAt = approval.salesDirectorActionAt;
 
     return approval;
   } catch (error) {
     // No approval record exists - quote is in draft state
-    state.approval.currentStatus = null;
-    state.approval.canEdit = true;
-    state.approval.canPrint = true;
+    resetApprovalState();
     return null;
   }
 }

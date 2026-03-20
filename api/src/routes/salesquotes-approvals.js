@@ -398,10 +398,26 @@ router.get('/list/pending', async (req, res, next) => {
         TotalAmount,
         ApprovalStatus,
         SubmittedForApprovalAt,
-        CreatedAt
+        SalesDirectorActionAt,
+        ActionComment,
+        CreatedAt,
+        UpdatedAt
       FROM SalesQuoteApprovals
       WHERE ApprovalStatus = 'PendingApproval'
-      ORDER BY SubmittedForApprovalAt DESC
+        OR (
+          ApprovalStatus = 'Approved'
+          AND ActionComment IS NOT NULL
+          AND LTRIM(RTRIM(ActionComment)) <> ''
+        )
+      ORDER BY
+        CASE
+          WHEN ApprovalStatus = 'Approved'
+            AND ActionComment IS NOT NULL
+            AND LTRIM(RTRIM(ActionComment)) <> ''
+          THEN 0
+          ELSE 1
+        END,
+        COALESCE(UpdatedAt, SubmittedForApprovalAt, CreatedAt) DESC
     `);
 
     const approvals = result.recordset.map(mapApprovalRecord);
@@ -547,6 +563,10 @@ router.post('/:quoteNumber/reject', async (req, res, next) => {
   const { quoteNumber } = req.params;
   const { comment } = req.body || {};
 
+  if (!comment || !comment.trim()) {
+    return res.status(400).json({ error: 'Comment is required when rejecting a quote' });
+  }
+
   try {
     const pool = await getPool();
     await ensureApprovalTable(pool);
@@ -569,7 +589,7 @@ router.post('/:quoteNumber/reject', async (req, res, next) => {
       .input('salesQuoteNumber', require('mssql').NVarChar(50), quoteNumber)
       .input('salesDirectorEmail', require('mssql').NVarChar(255), clientEmail)
       .input('actionAt', new Date())
-      .input('comment', require('mssql').NVarChar('max'), comment || null)
+      .input('comment', require('mssql').NVarChar('max'), comment.trim())
       .query(`
         UPDATE SalesQuoteApprovals
         SET ApprovalStatus = 'Rejected',
@@ -585,11 +605,11 @@ router.post('/:quoteNumber/reject', async (req, res, next) => {
     logger.info('APPROVALS', 'Rejected', `Quote ${quoteNumber} rejected by ${clientEmail}`, {
       salesQuoteNumber: quoteNumber,
       salespersonEmail: approval.SalespersonEmail,
-      comment: comment || ''
+      comment: comment.trim()
     });
 
     res.json({
-      message: 'Quote rejected',
+      message: 'Quote rejected. Salesperson can now edit and resubmit.',
       approval: mapApprovalRecord(updated)
     });
 
@@ -771,18 +791,21 @@ router.post('/:quoteNumber/request-revision', async (req, res, next) => {
       });
     }
 
+    if (approval.ActionComment && approval.ActionComment.trim()) {
+      return res.status(400).json({
+        error: 'A revision request is already awaiting Sales Director approval for this quote.',
+        currentStatus: approval.ApprovalStatus
+      });
+    }
+
     // Create revision request - status stays as Approved but with ActionComment set
     // Sales Director will need to approve the revision request to move to BeingRevised
     await pool.request()
       .input('salesQuoteNumber', require('mssql').NVarChar(50), quoteNumber)
-      .input('salespersonEmail', require('mssql').NVarChar(255), clientEmail)
       .input('comment', require('mssql').NVarChar('max'), comment.trim())
-      .input('actionAt', new Date())
       .query(`
         UPDATE SalesQuoteApprovals
         SET ActionComment = @comment,
-            SalesDirectorEmail = @salespersonEmail,
-            SalesDirectorActionAt = @actionAt,
             UpdatedAt = GETUTCDATE()
         WHERE SalesQuoteNumber = @salesQuoteNumber
       `);

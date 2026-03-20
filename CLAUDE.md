@@ -390,8 +390,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()`, `src/salesquotes.html` - button element
 - **Mode Banner Approval Status Display**:
   - When viewing a searched quote, the mode banner displays the current approval status with user-friendly labels
-  - Status labels: "Submitted to BC", "Revision Requested", "Pending Approval", "Approved", "Rejected", "Being Revised"
-  - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function
+  - Status labels: "Submitted to BC", "Revision Requested", "Pending Approval", "Approved", "Rejected", "Being Revised", "Revision Request Pending"
+  - "Revision Request Pending" status is shown when an Approved quote has a revision request (ActionComment is not null/empty) awaiting Sales Director approval
+  - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function, `src/js/salesquotes/approvals.js` - `getApprovalStatusPresentation()`
 - **Revision Comment Display**:
   - When a quote is in "Revise" status, a blue-styled comment box displays the director's revision comment
   - The comment box appears below the mode banner with an edit icon and the comment text
@@ -399,22 +400,26 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function creates/updates `#revisionCommentDisplay` element
 - **Revision Request Workflow (Sales Users on Approved Quotes)**:
   - Sales users can request revision on Approved quotes when they need to make changes
-  - User provides a comment explaining the revision reason
+  - User provides a comment explaining the revision reason via the "Revise" button in the mode banner
   - Status remains "Approved" but ActionComment is set with the revision request
   - Sales Director must approve the revision request before the quote becomes editable
   - Once approved, status transitions to "BeingRevised" and quote becomes editable by the sales user
+  - Only one revision request can be pending at a time - system validates that no revision request is already awaiting approval
   - API endpoints: `POST /api/salesquotes/approvals/:quoteNumber/request-revision` (Sales), `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` (Director/Executive)
-  - Frontend functions: `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
+  - Frontend functions: `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`, `showRevisionRequestPendingModal()`
+  - Implementation: `src/js/salesquotes/create-quote.js`, `src/js/salesquotes/approvals.js`, `src/js/salesquotes/ui.js`, `src/salesquotes.html` - Revise button
 - **Approvals Tab**: Visible to all authenticated users (Sales, Sales Directors, Executives)
   - **Pending Approvals Section**: Only visible to Sales Directors and Executives
     - Shows pending approvals list with quote details
+    - Includes both PendingApproval status quotes AND Approved quotes with revision requests (ActionComment is not null/empty)
+    - Approved quotes with revision requests are shown with "Revision Request Pending" status (orange badge) and appear at the top of the list
     - Badge count shows number of pending approvals
     - Refresh button to reload pending approvals
-    - Actions: Approve, Reject, Request Revision (with comment), Approve Revision Request
+    - Actions: Approve, Reject (requires comment), Request Revision (with comment), Approve Revision Request
   - **My Approval Requests Section**: Visible to all authenticated users
     - Shows status of each request with color-coded badges
     - View approval history and director comments
-    - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Purple (Being Revised), Slate (Cancelled)
+    - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Purple (Being Revised), Slate (Cancelled), Orange (Revision Request Pending)
     - Edit & Resubmit button available for Revise, Rejected, and BeingRevised statuses
 - **API Endpoints**:
   - `POST /api/salesquotes/approvals/initialize` - Initialize approval record (SubmittedToBC status)
@@ -434,7 +439,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Indexes for efficient queries on status and salesperson
   - CHECK constraint for valid statuses: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised
 - **Frontend Module**: `src/js/salesquotes/approvals.js`
-  - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
+  - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`, `hasPendingRevisionRequest()`, `getApprovalStatusPresentation()`
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
   - Styles: `approval-styles.css` - Approval-specific UI styles
 - **Integration with Quote Creation**:
@@ -443,7 +448,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Approval workflow is optional - quotes can still be sent without approval
   - Approved quotes can be printed and sent to customer
   - Sales users can request revision on Approved quotes, requiring SD approval before editing
-- **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`
+- **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`, `src/js/salesquotes/create-quote.js`, `src/salesquotes.html`
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 

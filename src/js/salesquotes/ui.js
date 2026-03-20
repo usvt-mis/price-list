@@ -72,6 +72,14 @@ export function getFieldValue(id) {
   return element.dataset.value || '';
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 // ============================================================
 // Format Helpers
 // ============================================================
@@ -424,6 +432,100 @@ function isSearchSalesQuoteEditorMode() {
   return state.quote.mode === 'edit' && Boolean(state.quote.number) && state.quote.loadedFromBc;
 }
 
+function hasPendingRevisionRequestState() {
+  return state.approval.currentStatus === 'Approved' &&
+    typeof state.approval.actionComment === 'string' &&
+    state.approval.actionComment.trim() !== '';
+}
+
+export function isQuoteEditable() {
+  return !isSearchSalesQuoteEditorMode() || state.approval.canEdit !== false;
+}
+
+export function getQuoteEditLockMessage() {
+  if (state.approval.currentStatus === 'Approved') {
+    if (hasPendingRevisionRequestState()) {
+      return 'Revision request already submitted. Awaiting Sales Director approval.';
+    }
+
+    return 'Approved quotes are read-only. Use Revise to request editing access.';
+  }
+
+  if (state.approval.currentStatus === 'PendingApproval') {
+    return 'This quote is awaiting approval and cannot be edited.';
+  }
+
+  return 'This quote cannot be edited in its current approval status.';
+}
+
+function canModifyQuoteLines() {
+  return isQuoteEditable();
+}
+
+function setMainFormFieldLocked(element, locked, title) {
+  if (!element) {
+    return;
+  }
+
+  if ('disabled' in element) {
+    element.disabled = locked;
+  }
+
+  if ('readOnly' in element && (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA')) {
+    element.readOnly = locked;
+  }
+
+  element.classList.toggle('bg-slate-50', locked);
+  element.classList.toggle('text-slate-600', locked);
+  element.classList.toggle('cursor-not-allowed', locked);
+
+  if (locked && title) {
+    element.setAttribute('title', title);
+  } else {
+    element.removeAttribute('title');
+  }
+}
+
+function setActionButtonLocked(element, locked, title) {
+  if (!element) {
+    return;
+  }
+
+  element.disabled = locked;
+  element.classList.toggle('opacity-60', locked);
+  element.classList.toggle('cursor-not-allowed', locked);
+
+  if (locked && title) {
+    element.setAttribute('title', title);
+  } else {
+    element.removeAttribute('title');
+  }
+}
+
+function updateQuoteEditorFormLockState(locked, title) {
+  [
+    'orderDate',
+    'requestedDeliveryDate',
+    'contact',
+    'salesPhoneNo',
+    'salesEmail',
+    'salespersonCodeSearch',
+    'assignedUserIdSearch',
+    'serviceOrderType',
+    'division',
+    'workStatus',
+    'quoteWorkDescription',
+    'invoiceDiscount',
+    'invoiceDiscountPercent'
+  ].forEach(fieldId => {
+    setMainFormFieldLocked(el(fieldId), locked, title);
+  });
+
+  setActionButtonLocked(el('addLineBtn'), locked, title);
+  setActionButtonLocked(el('fabAddLine'), locked, title);
+  setActionButtonLocked(el('insertLineAtStartBtn'), locked, title);
+}
+
 const QUOTE_LINE_COLUMNS = [
   {
     id: 'sequence',
@@ -549,13 +651,15 @@ const QUOTE_LINE_COLUMNS = [
     label: 'Actions',
     width: '100px',
     cellClass: 'whitespace-nowrap',
-    render: (line, index) => `
-      <div class="flex gap-1">
-        <button class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1" onclick="window.openEditLineModal('${line.id}')">Edit</button>
-        <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1" onclick="window.openInsertLineModal(${index})">Insert</button>
-        <button class="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1" onclick="window.removeQuoteLine(${index})">Remove</button>
-      </div>
-    `
+    render: (line, index) => canModifyQuoteLines()
+      ? `
+        <div class="flex gap-1">
+          <button class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1" onclick="window.openEditLineModal('${line.id}')">Edit</button>
+          <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1" onclick="window.openInsertLineModal(${index})">Insert</button>
+          <button class="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1" onclick="window.removeQuoteLine(${index})">Remove</button>
+        </div>
+      `
+      : '<span class="text-xs font-medium text-slate-400">Locked</span>'
   }
 ];
 
@@ -702,9 +806,12 @@ function renderQuoteLineRow(line, index, rowClass) {
   const cells = getOrderedQuoteLineColumns()
     .map(column => renderQuoteLineCell(column, line, index))
     .join('');
+  const isEditable = canModifyQuoteLines();
+  const interactiveClassName = isEditable ? ' row-double-clickable' : '';
+  const dblClickHandler = isEditable ? ` ondblclick="window.openEditLineModal('${line.id}')"` : '';
 
   return `
-    <tr class="${rowClass} row-double-clickable" ondblclick="window.openEditLineModal('${line.id}')">
+    <tr class="${rowClass}${interactiveClassName}"${dblClickHandler}>
       ${cells}
     </tr>
   `;
@@ -954,6 +1061,11 @@ export function renderTotals() {
  * Open add line modal
  */
 export function openAddLineModal(insertIndex = null) {
+  if (!canModifyQuoteLines()) {
+    showToast(getQuoteEditLockMessage(), 'error');
+    return;
+  }
+
   // Close edit modal if open
   const editModal = el('editLineModal');
   if (editModal && !editModal.classList.contains('hidden')) {
@@ -1457,9 +1569,7 @@ function setCustomerNoFieldLockState(locked) {
  * Update quote editor banner/button state for create vs edit mode
  */
 export async function updateQuoteEditorModeUi() {
-  // Fetch approval status at the top level so it's available for all usage
   const APPROVAL = await getApprovalStatus();
-  
   const isEditMode = state.quote.mode === 'edit' && Boolean(state.quote.number);
   const isSearchSalesQuoteMode = isSearchSalesQuoteEditorMode();
   const banner = el('quoteEditorModeBanner');
@@ -1470,8 +1580,15 @@ export async function updateQuoteEditorModeUi() {
   const printButton = el('printQuoteBtn');
   const workStatusFieldContainer = el('workStatusFieldContainer');
   const sendApprovalRequestBtn = el('sendApprovalRequestBtn');
+  const requestRevisionBtn = el('requestRevisionBtn');
+  const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
+  const pendingRevisionRequest = hasPendingRevisionRequestState();
+  const quoteLocked = isSearchSalesQuoteMode && !isQuoteEditable();
+  const lockMessage = quoteLocked ? getQuoteEditLockMessage() : '';
 
   setCustomerNoFieldLockState(isEditMode);
+  updateQuoteEditorFormLockState(quoteLocked, lockMessage);
+  renderQuoteLines();
 
   if (workStatusFieldContainer) {
     workStatusFieldContainer.classList.toggle('hidden', !isSearchSalesQuoteMode);
@@ -1496,13 +1613,16 @@ export async function updateQuoteEditorModeUi() {
     if (state.quote.status) {
       metaParts.push(`Status: ${state.quote.status}`);
     }
-    if (state.approval.currentStatus) {
-      const statusLabel = APPROVAL.SUBMITTED_TO_BC === state.approval.currentStatus ? 'Submitted to BC' :
-                        APPROVAL.REVISE === state.approval.currentStatus ? 'Revision Requested' :
-                        APPROVAL.PENDING_APPROVAL === state.approval.currentStatus ? 'Pending Approval' :
-                        APPROVAL.APPROVED === state.approval.currentStatus ? 'Approved' :
-                        APPROVAL.REJECTED === state.approval.currentStatus ? 'Rejected' :
-                        state.approval.currentStatus;
+    if (approvalStatus) {
+      const statusLabel = pendingRevisionRequest ? 'Approved (Revision Requested)' :
+        APPROVAL.SUBMITTED_TO_BC === approvalStatus ? 'Submitted to BC' :
+        APPROVAL.REVISE === approvalStatus ? 'Revision Requested' :
+        APPROVAL.PENDING_APPROVAL === approvalStatus ? 'Pending Approval' :
+        APPROVAL.APPROVED === approvalStatus ? 'Approved' :
+        APPROVAL.REJECTED === approvalStatus ? 'Rejected' :
+        APPROVAL.BEING_REVISED === approvalStatus ? 'Being Revised' :
+        APPROVAL.CANCELLED === approvalStatus ? 'Cancelled' :
+        approvalStatus;
       metaParts.push(`Approval: ${statusLabel}`);
     }
     if (state.quote.customerName) {
@@ -1513,42 +1633,75 @@ export async function updateQuoteEditorModeUi() {
     }
     meta.textContent = metaParts.join(' | ');
     
-    // Show revision comments if present
-    if (state.approval.actionComment && state.approval.currentStatus === APPROVAL.REVISE) {
-      // Create or update revision comment display
-      let revisionCommentDiv = el('revisionCommentDisplay');
-      if (!revisionCommentDiv) {
-        revisionCommentDiv = document.createElement('div');
-        revisionCommentDiv.id = 'revisionCommentDisplay';
-        revisionCommentDiv.className = 'mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg';
-        banner.appendChild(revisionCommentDiv);
+    const commentConfig = approvalStatus === APPROVAL.REVISE
+      ? {
+          title: 'Revision Requested',
+          containerClassName: 'mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg',
+          iconClassName: 'w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5',
+          titleClassName: 'text-sm font-semibold text-blue-900',
+          textClassName: 'text-sm text-blue-700 mt-1 whitespace-pre-wrap',
+          iconPath: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'
+        }
+      : approvalStatus === APPROVAL.REJECTED
+        ? {
+            title: 'Rejected',
+            containerClassName: 'mt-3 p-3 bg-red-50 border border-red-200 rounded-lg',
+            iconClassName: 'w-5 h-5 text-red-600 flex-shrink-0 mt-0.5',
+            titleClassName: 'text-sm font-semibold text-red-900',
+            textClassName: 'text-sm text-red-700 mt-1 whitespace-pre-wrap',
+            iconPath: 'M6 18L18 6M6 6l12 12'
+          }
+        : pendingRevisionRequest
+          ? {
+              title: 'Revision Request Pending Approval',
+              containerClassName: 'mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg',
+              iconClassName: 'w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5',
+              titleClassName: 'text-sm font-semibold text-orange-900',
+              textClassName: 'text-sm text-orange-700 mt-1 whitespace-pre-wrap',
+              iconPath: 'M12 8v4m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z'
+            }
+        : null;
+
+    if (state.approval.actionComment && commentConfig) {
+      const escapedActionComment = escapeHtml(state.approval.actionComment);
+      let approvalCommentDiv = el('approvalCommentDisplay');
+      if (!approvalCommentDiv) {
+        approvalCommentDiv = document.createElement('div');
+        approvalCommentDiv.id = 'approvalCommentDisplay';
+        banner.appendChild(approvalCommentDiv);
       }
-      revisionCommentDiv.innerHTML = `
+      approvalCommentDiv.className = commentConfig.containerClassName;
+      approvalCommentDiv.innerHTML = `
         <div class="flex items-start gap-2">
-          <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+          <svg class="${commentConfig.iconClassName}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${commentConfig.iconPath}"></path>
           </svg>
           <div class="flex-1">
-            <p class="text-sm font-semibold text-blue-900">Revision Requested</p>
-            <p class="text-sm text-blue-700 mt-1 whitespace-pre-wrap">${state.approval.actionComment}</p>
+            <p class="${commentConfig.titleClassName}">${commentConfig.title}</p>
+            <p class="${commentConfig.textClassName}">${escapedActionComment}</p>
           </div>
         </div>
       `;
-      revisionCommentDiv.classList.remove('hidden');
+      approvalCommentDiv.classList.remove('hidden');
     } else {
-      // Hide revision comment display if not in Revise status
-      const revisionCommentDiv = el('revisionCommentDisplay');
-      if (revisionCommentDiv) {
-        revisionCommentDiv.classList.add('hidden');
+      const approvalCommentDiv = el('approvalCommentDisplay');
+      if (approvalCommentDiv) {
+        approvalCommentDiv.classList.add('hidden');
       }
     }
   }
 
   if (sendButton) {
-    // Enable the button in both create and edit modes
-    sendButton.disabled = false;
-    sendButton.classList.remove('opacity-60', 'cursor-not-allowed');
-    sendButton.removeAttribute('title');
+    const disableSendButton = isEditMode && quoteLocked;
+    sendButton.disabled = disableSendButton;
+    sendButton.classList.toggle('opacity-60', disableSendButton);
+    sendButton.classList.toggle('cursor-not-allowed', disableSendButton);
+
+    if (disableSendButton && lockMessage) {
+      sendButton.setAttribute('title', lockMessage);
+    } else {
+      sendButton.removeAttribute('title');
+    }
   }
 
   if (sendButtonText) {
@@ -1557,11 +1710,7 @@ export async function updateQuoteEditorModeUi() {
       : 'Send to Business Central';
   }
 
-  // Show "Send Approval Request" button for all users when quote is loaded
-    if (sendApprovalRequestBtn) {
-    const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
-
-    // Calculate total amount from state to check if button should be shown
+  if (sendApprovalRequestBtn || requestRevisionBtn) {
     const invoiceDiscount = parseFloat(el('invoiceDiscount')?.value || 0);
     const vatRate = parseFloat(el('vatRate')?.value || 7) / 100;
     const subtotal = state.quote.lines.reduce((sum, line) => {
@@ -1573,61 +1722,26 @@ export async function updateQuoteEditorModeUi() {
     const afterDiscount = subtotal - invoiceDiscount;
     const total = afterDiscount + (afterDiscount * vatRate);
 
-    // Button visibility: must be in edit mode with quote loaded from BC, appropriate status, AND total > 0
-    // Simplified check: If in edit mode and quote has a number, it must be loaded from BC
-    // (We only set mode='edit' when loading from BC or creating a new quote that gets a number)
-    const canRequestApproval = isEditMode &&
+    const canRequestApproval = isSearchSalesQuoteMode &&
       (approvalStatus === null ||
        approvalStatus === APPROVAL.DRAFT ||
        approvalStatus === APPROVAL.SUBMITTED_TO_BC ||
        approvalStatus === APPROVAL.REVISE ||
        approvalStatus === APPROVAL.BEING_REVISED ||
        approvalStatus === APPROVAL.REJECTED) &&
-      total > 0; // Hide button for zero or negative totals
+      total > 0;
+    const canRequestRevision = isSearchSalesQuoteMode &&
+      approvalStatus === APPROVAL.APPROVED &&
+      authState.user?.effectiveRole !== ROLE.SALES_DIRECTOR &&
+      authState.user?.effectiveRole !== ROLE.EXECUTIVE &&
+      !pendingRevisionRequest;
 
-    // ========================================
-    // DEBUG LOGS: Send Approval Request Button
-    // ========================================
-    console.group('🔍 [Send Approval Request Button] Debug Info');
-    console.log('📍 Current State:');
-    console.log('  - state.quote.mode:', state.quote.mode);
-    console.log('  - state.quote.number:', state.quote.number);
-    console.log('  - state.quote.loadedFromBc:', state.quote.loadedFromBc);
-    console.log('  - state.quote.approvalStatus:', state.quote.approvalStatus);
-    console.log('  - state.approval.currentStatus:', state.approval.currentStatus);
-    console.log('');
-    console.log('📊 Calculated Values:');
-    console.log('  - isEditMode:', isEditMode);
-    console.log('  - approvalStatus (used):', approvalStatus);
-    console.log('  - APPROVAL.DRAFT:', APPROVAL.DRAFT);
-    console.log('  - APPROVAL.SUBMITTED_TO_BC:', APPROVAL.SUBMITTED_TO_BC);
-    console.log('  - APPROVAL.REVISE:', APPROVAL.REVISE);
-    console.log('  - subtotal:', subtotal.toFixed(2));
-    console.log('  - invoiceDiscount:', invoiceDiscount.toFixed(2));
-    console.log('  - afterDiscount:', afterDiscount.toFixed(2));
-    console.log('  - vatRate:', (vatRate * 100).toFixed(2) + '%');
-    console.log('  - total:', total.toFixed(2));
-    console.log('');
-    console.log('✅ Conditions Check:');
-    console.log('  1. isEditMode?', isEditMode ? '✅ PASS' : '❌ FAIL - Not in edit mode');
-    console.log('  2. approvalStatus valid?', 
-      (approvalStatus === null ? '✅ PASS (null)' :
-       approvalStatus === APPROVAL.DRAFT ? `✅ PASS (${APPROVAL.DRAFT})` :
-       approvalStatus === APPROVAL.SUBMITTED_TO_BC ? `✅ PASS (${APPROVAL.SUBMITTED_TO_BC})` :
-       approvalStatus === APPROVAL.REVISE ? `✅ PASS (${APPROVAL.REVISE})` :
-       `❌ FAIL - Invalid status: ${approvalStatus}`));
-    console.log('  3. total > 0?', total > 0 ? `✅ PASS (${total.toFixed(2)})` : `❌ FAIL - Total is ${total.toFixed(2)}`);
-    console.log('');
-    console.log('🎯 Final Result:');
-    console.log('  - canRequestApproval:', canRequestApproval);
-    console.log('  - Button will be:', canRequestApproval ? 'VISIBLE ✅' : 'HIDDEN ❌');
-    console.groupEnd();
-    // ========================================
+    if (sendApprovalRequestBtn) {
+      sendApprovalRequestBtn.classList.toggle('hidden', !canRequestApproval);
+    }
 
-    if (canRequestApproval) {
-      sendApprovalRequestBtn.classList.remove('hidden');
-    } else {
-      sendApprovalRequestBtn.classList.add('hidden');
+    if (requestRevisionBtn) {
+      requestRevisionBtn.classList.toggle('hidden', !canRequestRevision);
     }
   }
 }

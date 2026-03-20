@@ -8,11 +8,11 @@ import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteUpdatedSuccess, showQuoteSendFailure } from './ui.js';
-import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 import { recordQuoteSubmission } from './records.js';
-import { submitForApproval, createApprovalRecord, sendApprovalRequest as sendApprovalRequestModule, checkApprovalStatus, APPROVAL_STATUS } from './approvals.js';
+import { submitForApproval, createApprovalRecord, sendApprovalRequest as sendApprovalRequestModule, checkApprovalStatus, APPROVAL_STATUS, resubmitForApproval, requestRevisionForApprovedQuote } from './approvals.js';
 import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
 
@@ -40,6 +40,21 @@ function normalizeLineType(value) {
   }
 
   return 'Item';
+}
+
+function hasPendingRevisionRequestForApprovedQuote() {
+  return state.approval.currentStatus === APPROVAL_STATUS.APPROVED &&
+    typeof state.approval.actionComment === 'string' &&
+    state.approval.actionComment.trim() !== '';
+}
+
+function ensureQuoteEditableForChanges() {
+  if (state.quote.mode === 'edit' && !isQuoteEditable()) {
+    showToast(getQuoteEditLockMessage(), 'error');
+    return false;
+  }
+
+  return true;
 }
 
 function getGroupServiceItemLockMessage(groupNo) {
@@ -1209,6 +1224,10 @@ export function selectMaterialFromEditSearch(material) {
  * Add quote line from modal
  */
 export function handleAddQuoteLine() {
+  if (!ensureQuoteEditableForChanges()) {
+    return;
+  }
+
   // Force blur event on Material No field to trigger dropdown validation
   const materialNoField = el('lineObjectNumberSearch');
   if (materialNoField) {
@@ -1305,6 +1324,10 @@ export function handleAddQuoteLine() {
  * Handle quote line removal - shows confirmation modal
  */
 export function handleRemoveQuoteLine(index) {
+  if (!ensureQuoteEditableForChanges()) {
+    return;
+  }
+
   // Cancel any active edit before showing modal
   if (state.ui.editingLineId) {
     exitLineEditMode(false, state.ui.editingLineId);
@@ -1353,6 +1376,11 @@ function hideConfirmRemoveModal() {
  * Confirm and execute line removal
  */
 function confirmRemoveLine() {
+  if (!ensureQuoteEditableForChanges()) {
+    hideConfirmRemoveModal();
+    return;
+  }
+
   const index = state.ui.pendingRemoveLineIndex;
 
   if (index !== null) {
@@ -2305,6 +2333,10 @@ function extractServiceOrderNos(payload) {
  * Send quote to Business Central
  */
 export async function handleSendQuote() {
+  if (!ensureQuoteEditableForChanges()) {
+    return;
+  }
+
   // Get form data
   const formData = getQuoteFormData();
 
@@ -2438,7 +2470,6 @@ export async function sendApprovalRequest() {
   const quoteNumber = state.quote.number;
   const currentStatus = state.quote.approvalStatus || state.approval.currentStatus;
 
-  // Validation
   if (!quoteNumber) {
     showToast('No Sales Quote loaded', 'error');
     return;
@@ -2450,48 +2481,91 @@ export async function sendApprovalRequest() {
   }
 
   if (currentStatus === APPROVAL_STATUS.APPROVED) {
-    showToast('Quote is already approved', 'info');
+    if (hasPendingRevisionRequestForApprovedQuote()) {
+      showToast('Revision request already submitted. Awaiting Sales Director approval.', 'info');
+      return;
+    }
+
+    showToast('Quote is already approved. Use Revise if you need to request edits.', 'info');
     return;
   }
 
-  // Get quote data for approval submission
   const formData = getQuoteFormData();
   const totals = calculateTotals(
     formData.invoiceDiscount,
     formData.vatRate / 100
   );
   const totalAmount = totals.total || '0';
-
-  showLoading('Sending Approval Request', 'Submitting to Sales Director...');
+  const approvalPayload = {
+    totalAmount: parseFloat(totalAmount.replace(/,/g, '')),
+    customerName: state.quote.customerName || '',
+    workDescription: formData.workDescription || ''
+  };
+  const requiresResubmission = currentStatus === APPROVAL_STATUS.REVISE ||
+    currentStatus === APPROVAL_STATUS.REJECTED ||
+    currentStatus === APPROVAL_STATUS.BEING_REVISED;
 
   try {
-    const success = await sendApprovalRequestFromModule({
-      salesQuoteNumber: quoteNumber,
-      salespersonCode: state.quote.salespersonCode || formData.salespersonCode || '',
-      salespersonName: state.quote.salespersonName || formData.salespersonName || '',
-      customerName: state.quote.customerName || '',
-      workDescription: formData.workDescription || '',
-      totalAmount: parseFloat(totalAmount.replace(/,/g, ''))
-    });
-
-    hideLoading();
+    const success = requiresResubmission
+      ? await resubmitForApproval(quoteNumber, approvalPayload)
+      : await sendApprovalRequestFromModule({
+          salesQuoteNumber: quoteNumber,
+          salespersonCode: state.quote.salespersonCode || formData.salespersonCode || '',
+          salespersonName: state.quote.salespersonName || formData.salespersonName || '',
+          customerName: approvalPayload.customerName,
+          workDescription: approvalPayload.workDescription,
+          totalAmount: approvalPayload.totalAmount
+        });
 
     if (success) {
-      // Update state
       state.quote.approvalStatus = APPROVAL_STATUS.PENDING_APPROVAL;
       state.approval.currentStatus = APPROVAL_STATUS.PENDING_APPROVAL;
+      state.approval.actionComment = null;
 
-      // Update UI
-      updateQuoteEditorModeUi();
-
-      // Show success message
-      showToast('Approval request sent to Sales Director', 'success');
+      await updateQuoteEditorModeUi();
     }
   } catch (error) {
-    hideLoading();
     console.error('Failed to send approval request:', error);
     showToast(`Failed to send approval request: ${error.message}`, 'error');
   }
+}
+
+export async function requestApprovedQuoteRevision() {
+  const quoteNumber = state.quote.number;
+  const currentStatus = state.quote.approvalStatus || state.approval.currentStatus;
+
+  if (authState.user?.effectiveRole === ROLE.SALES_DIRECTOR || authState.user?.effectiveRole === ROLE.EXECUTIVE) {
+    showToast('Revise requests are intended for Sales users editing their own approved quotes.', 'info');
+    return;
+  }
+
+  if (!quoteNumber) {
+    showToast('No Sales Quote loaded', 'error');
+    return;
+  }
+
+  if (currentStatus !== APPROVAL_STATUS.APPROVED) {
+    showToast('Revise is only available for approved quotes', 'info');
+    return;
+  }
+
+  if (hasPendingRevisionRequestForApprovedQuote()) {
+    showToast('Revision request already submitted. Awaiting Sales Director approval.', 'info');
+    return;
+  }
+
+  const comment = window.prompt('Please enter the reason for this revision request:');
+  if (comment === null) {
+    return;
+  }
+
+  const normalizedComment = comment.trim();
+  if (!normalizedComment) {
+    showToast('Please provide a reason for the revision request', 'error');
+    return;
+  }
+
+  await requestRevisionForApprovedQuote(quoteNumber, normalizedComment);
 }
 
 /**
@@ -3321,6 +3395,7 @@ if (typeof window !== 'undefined') {
   window.saveDraft = handleSaveDraft;
   window.sendQuote = handleSendQuote;
   window.sendApprovalRequest = sendApprovalRequest;
+  window.requestApprovedQuoteRevision = requestApprovedQuoteRevision;
   window.searchSalesQuote = handleSearchSalesQuote;
   window.startNewSalesQuote = startNewSalesQuoteFlow;
 
@@ -3418,6 +3493,10 @@ function renderItemDropdown(items) {
  * @param {string} lineId - The ID of the line to edit
  */
 function openEditLineModal(lineId) {
+  if (!ensureQuoteEditableForChanges()) {
+    return;
+  }
+
   const line = state.quote.lines.find(l => l.id === lineId);
   if (!line) {
     console.error(`Line with ID ${lineId} not found`);
@@ -3584,6 +3663,10 @@ function closeEditLineModal() {
  * Save changes from edit line modal
  */
 function saveEditLine() {
+  if (!ensureQuoteEditableForChanges()) {
+    return;
+  }
+
   const lineId = state.ui.editingLineId;
   if (!lineId) return;
 
@@ -4176,6 +4259,9 @@ if (typeof window !== 'undefined') {
   window.openEditLineModal = openEditLineModal;
   window.closeEditLineModal = closeEditLineModal;
   window.saveEditLine = saveEditLine;
+  window.sendQuote = handleSendQuote;
+  window.sendApprovalRequest = sendApprovalRequest;
+  window.requestApprovedQuoteRevision = requestApprovedQuoteRevision;
   window.searchSalesQuote = handleSearchSalesQuote;
   window.startNewSalesQuote = startNewSalesQuoteFlow;
   // New SER confirmation modal handlers
