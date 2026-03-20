@@ -6,6 +6,18 @@
 import { state } from './state.js';
 import { BC_UI_CONFIG } from './config.js';
 import { SALES_QUOTES_PREFERENCE_KEYS, loadSalesQuotePreference, saveSalesQuotePreference } from './preferences.js';
+import { authState } from '../state.js';
+import { ROLE } from '../core/config.js';
+
+// Import APPROVAL_STATUS dynamically when needed to avoid circular dependency
+let APPROVAL_STATUS = null;
+async function getApprovalStatus() {
+  if (!APPROVAL_STATUS) {
+    const module = await import('./approvals.js');
+    APPROVAL_STATUS = module.APPROVAL_STATUS;
+  }
+  return APPROVAL_STATUS;
+}
 
 // ============================================================
 // DOM Element Helpers
@@ -1444,7 +1456,7 @@ function setCustomerNoFieldLockState(locked) {
 /**
  * Update quote editor banner/button state for create vs edit mode
  */
-export function updateQuoteEditorModeUi() {
+export async function updateQuoteEditorModeUi() {
   const isEditMode = state.quote.mode === 'edit' && Boolean(state.quote.number);
   const isSearchSalesQuoteMode = isSearchSalesQuoteEditorMode();
   const banner = el('quoteEditorModeBanner');
@@ -1454,6 +1466,7 @@ export function updateQuoteEditorModeUi() {
   const sendButtonText = el('sendQuoteBtnText');
   const printButton = el('printQuoteBtn');
   const workStatusFieldContainer = el('workStatusFieldContainer');
+  const sendApprovalRequestBtn = el('sendApprovalRequestBtn');
 
   setCustomerNoFieldLockState(isEditMode);
 
@@ -1500,6 +1513,25 @@ export function updateQuoteEditorModeUi() {
     sendButtonText.textContent = isEditMode
       ? 'Update Sales Quote'
       : 'Send to Business Central';
+  }
+
+  // Show "Send Approval Request" button for Sales users when quote is loaded
+  if (sendApprovalRequestBtn) {
+    const userRole = authState.user?.effectiveRole;
+    const isSalesOnly = userRole === ROLE.SALES;
+    const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
+
+    const APPROVAL = await getApprovalStatus();
+    const canRequestApproval = isEditMode && isSalesOnly && isSearchSalesQuoteMode &&
+      (approvalStatus === null ||
+       approvalStatus === APPROVAL.DRAFT ||
+       approvalStatus === APPROVAL.SUBMITTED_TO_BC);
+
+    if (canRequestApproval) {
+      sendApprovalRequestBtn.classList.remove('hidden');
+    } else {
+      sendApprovalRequestBtn.classList.add('hidden');
+    }
   }
 }
 

@@ -20,6 +20,7 @@ function createInitialQuoteState(overrides = {}) {
     customer: null,
     customerNo: null,
     customerName: null,
+    approvalStatus: null,
     sellTo: {
       address: null,
       address2: null,

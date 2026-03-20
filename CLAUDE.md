@@ -371,11 +371,20 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 ### Sales Quotes Approval Workflow
 - Multi-stage approval workflow for Sales Quotes requiring director/executive approval
-- **Approval Statuses**: Draft, PendingApproval, Approved, Rejected, Revise, Cancelled
+- **Approval Statuses**: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled
 - **Roles & Permissions**:
-  - Sales users: Create quotes, submit for approval, view their requests
+  - Sales users: Create quotes, initialize approval records, submit for approval, view their requests
   - Sales Directors: View pending approvals, approve/reject/request revision
   - Executives: Full approval access (same as Sales Directors)
+- **Approval Record Initialization**:
+  - Quotes are automatically initialized with "SubmittedToBC" status when created/updated
+  - Auto-approval for zero or negative total quotes (status set to "Approved")
+  - API endpoint: `POST /api/salesquotes/approvals/initialize`
+- **Send Approval Request Button**:
+  - Visible to Sales users only when viewing a searched quote
+  - Allows submitting quotes for director/executive approval
+  - Button shown when quote status is Draft or SubmittedToBC
+  - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()`, `src/salesquotes.html` - button element
 - **Approvals Tab**: Visible only to Sales Directors and Executives
   - Shows pending approvals list with quote details
   - Badge count shows number of pending approvals
@@ -384,7 +393,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **My Approval Requests**: Sales users can track their submitted approval requests
   - Shows status of each request with color-coded badges
   - View approval history and director comments
+  - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Slate (Cancelled)
 - **API Endpoints**:
+  - `POST /api/salesquotes/approvals/initialize` - Initialize approval record (SubmittedToBC status)
   - `POST /api/salesquotes/approvals` - Submit quote for approval
   - `GET /api/salesquotes/approvals/:quoteNumber` - Get approval status by quote number
   - `GET /api/salesquotes/approvals/list/pending` - Get pending approvals list
@@ -396,15 +407,17 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Fields: Id, SalesQuoteNumber, SalespersonEmail, SalespersonCode, SalespersonName, CustomerName, WorkDescription, TotalAmount, ApprovalStatus, SubmittedForApprovalAt, SalesDirectorEmail, SalesDirectorActionAt, ActionComment, CreatedAt, UpdatedAt
   - Unique constraint on SalesQuoteNumber
   - Indexes for efficient queries on status and salesperson
+  - CHECK constraint for valid statuses: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled
 - **Frontend Module**: `src/js/salesquotes/approvals.js`
   - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
   - Styles: `approval-styles.css` - Approval-specific UI styles
 - **Integration with Quote Creation**:
-  - After quote creation, users can submit for approval instead of directly sending to customer
+  - After quote creation/update, approval records are automatically initialized with SubmittedToBC status
+  - Sales users can submit quotes for approval via "Send Approval Request" button
   - Approval workflow is optional - quotes can still be sent without approval
   - Approved quotes can be printed and sent to customer
-- **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`
+- **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 

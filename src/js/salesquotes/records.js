@@ -3,6 +3,7 @@ import { el, showToast } from './ui.js';
 // Approval status constants
 const APPROVAL_STATUS = {
   DRAFT: 'Draft',
+  SUBMITTED_TO_BC: 'SubmittedToBC',
   PENDING_APPROVAL: 'PendingApproval',
   APPROVED: 'Approved',
   REJECTED: 'Rejected',
@@ -12,6 +13,7 @@ const APPROVAL_STATUS = {
 
 const STATUS_LABELS = {
   Draft: 'Draft',
+  SubmittedToBC: 'Submitted to BC',
   PendingApproval: 'Pending',
   Approved: 'Approved',
   Rejected: 'Rejected',
@@ -21,6 +23,7 @@ const STATUS_LABELS = {
 
 const STATUS_BADGE_CLASSES = {
   Draft: 'bg-gray-100 text-gray-700',
+  SubmittedToBC: 'bg-blue-50 text-blue-700',
   PendingApproval: 'bg-amber-100 text-amber-700',
   Approved: 'bg-green-100 text-green-700',
   Rejected: 'bg-red-100 text-red-700',

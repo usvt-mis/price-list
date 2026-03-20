@@ -81,7 +81,19 @@ app.http("functionName", {
 - `GET /api/ping` - Health check
 - `GET /api/version` - App version
 
-#### 2. Saved Calculations (Azure AD Auth)
+#### 2. Sales Quotes Approval Endpoints (Azure AD Auth)
+- `POST /api/salesquotes/approvals/initialize` - Initialize approval record with SubmittedToBC status
+  - Auto-approves quotes with zero or negative total amounts
+  - Returns existing approval record if quote already exists
+- `POST /api/salesquotes/approvals` - Submit quote for approval
+- `GET /api/salesquotes/approvals/:quoteNumber` - Get approval status by quote number
+- `GET /api/salesquotes/approvals/list/pending` - Get pending approvals list (Sales Directors/Executives only)
+- `GET /api/salesquotes/approvals/list/my` - Get current user's approval requests
+- `PUT /api/salesquotes/approvals/:quoteNumber/approve` - Approve a quote
+- `PUT /api/salesquotes/approvals/:quoteNumber/reject` - Reject a quote
+- `PUT /api/salesquotes/approvals/:quoteNumber/revise` - Request revision
+
+#### 3. Saved Calculations (Azure AD Auth)
 - `GET /api/saved-calculations` - List user's saved calculations
 - `POST /api/saved-calculations` - Save a calculation
 - `GET /api/saved-calculations/{id}` - Load a calculation
@@ -89,7 +101,7 @@ app.http("functionName", {
 - `DELETE /api/saved-calculations/{id}` - Delete a calculation
 - `GET /api/shared-calculations/{id}` - Access shared calculation (no auth)
 
-#### 3. Admin Endpoints (Azure AD - Executive Only)
+#### 4. Admin Endpoints (Azure AD - Executive Only)
 - `GET /api/admin/roles` - List all role assignments
 - `POST /api/admin/roles/assign` - Assign role to user
 - `DELETE /api/admin/roles/{email}` - Remove user role
@@ -102,7 +114,7 @@ app.http("functionName", {
 - `POST /api/admin/logs/purge/manual` - Manually trigger archive
 - `GET /api/admin/logs/health` - System health check
 
-#### 4. Backoffice Endpoints (JWT Auth)
+#### 5. Backoffice Endpoints (JWT Auth)
 - `POST /api/backoffice/login` - Backoffice login
 - `POST /api/backoffice/logout` - Backoffice logout
 - `GET /api/backoffice/users` - List users with roles

@@ -9,7 +9,7 @@ const { getPool } = require('../db');
 const { validateAuth, extractUserEmail } = require('../middleware/authExpress');
 const logger = require('../utils/logger');
 
-const VALID_STATUSES = ['Draft', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled'];
+const VALID_STATUSES = ['Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled'];
 
 /**
  * Ensure SalesQuoteApprovals table exists
@@ -36,7 +36,7 @@ async function ensureApprovalTable(pool) {
         UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
         CONSTRAINT UQ_SalesQuoteApprovals_QuoteNumber UNIQUE (SalesQuoteNumber),
         CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
-          ApprovalStatus IN ('Draft', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled')
+          ApprovalStatus IN ('Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled')
         )
       );
 
@@ -86,6 +86,122 @@ function isSubmittingSalesperson(approval, userEmail) {
 }
 
 // ============================================================
+// POST /api/salesquotes/approvals/initialize - Initialize approval record
+// Creates approval record in "SubmittedToBC" status without requesting approval
+// ============================================================
+
+router.post('/initialize', async (req, res, next) => {
+  const clientEmail = getAuthenticatedEmail(req);
+  if (!clientEmail) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const {
+    salesQuoteNumber,
+    salespersonCode,
+    salespersonName,
+    customerName,
+    workDescription,
+    totalAmount
+  } = req.body;
+
+  // Validation
+  if (!salesQuoteNumber || !salespersonCode) {
+    return res.status(400).json({ error: 'Sales Quote Number and Salesperson Code are required' });
+  }
+
+  if (totalAmount === undefined || totalAmount === null) {
+    return res.status(400).json({ error: 'Total Amount is required' });
+  }
+
+  const amount = parseFloat(totalAmount);
+  if (isNaN(amount)) {
+    return res.status(400).json({ error: 'Total Amount must be a valid number' });
+  }
+
+  try {
+    const pool = await getPool();
+    await ensureApprovalTable(pool);
+
+    // Check if quote already exists
+    const existing = await getApprovalByQuoteNumber(pool, salesQuoteNumber);
+    if (existing) {
+      // Return existing record without error
+      return res.status(200).json({
+        message: 'Approval record already exists',
+        approval: mapApprovalRecord(existing)
+      });
+    }
+
+    // For quotes with zero or negative total, auto-approve
+    let finalStatus = 'SubmittedToBC';
+    let submittedAt = null;
+
+    if (amount <= 0) {
+      finalStatus = 'Approved';
+      logger.info('APPROVALS', 'AutoApprovedZeroValue', `Quote ${salesQuoteNumber} auto-approved (total: ${amount})`);
+    }
+
+    // Insert new approval record with SubmittedToBC status
+    const result = await pool.request()
+      .input('salesQuoteNumber', require('mssql').NVarChar(50), salesQuoteNumber)
+      .input('salespersonEmail', require('mssql').NVarChar(255), clientEmail)
+      .input('salespersonCode', require('mssql').NVarChar(50), salespersonCode)
+      .input('salespersonName', require('mssql').NVarChar(255), salespersonName || null)
+      .input('customerName', require('mssql').NVarChar(255), customerName || null)
+      .input('workDescription', require('mssql').NVarChar('max'), workDescription || null)
+      .input('totalAmount', require('mssql').Decimal(18, 2), amount)
+      .input('approvalStatus', require('mssql').NVarChar(50), finalStatus)
+      .input('submittedForApprovalAt', submittedAt ? new Date(submittedAt) : null)
+      .query(`
+        INSERT INTO SalesQuoteApprovals (
+          SalesQuoteNumber,
+          SalespersonEmail,
+          SalespersonCode,
+          SalespersonName,
+          CustomerName,
+          WorkDescription,
+          TotalAmount,
+          ApprovalStatus,
+          SubmittedForApprovalAt
+        )
+        VALUES (
+          @salesQuoteNumber,
+          @salespersonEmail,
+          @salespersonCode,
+          @salespersonName,
+          @customerName,
+          @workDescription,
+          @totalAmount,
+          @approvalStatus,
+          @submittedForApprovalAt
+        );
+
+        SELECT SCOPE_IDENTITY() as Id, * FROM SalesQuoteApprovals
+        WHERE SalesQuoteNumber = @salesQuoteNumber;
+      `);
+
+    const approval = mapApprovalRecord(result.recordset[0]);
+
+    logger.info('APPROVALS', 'Initialized', `Quote ${salesQuoteNumber} initialized with status ${finalStatus}`, {
+      salesQuoteNumber,
+      approvalStatus: finalStatus,
+      totalAmount: amount
+    });
+
+    res.status(201).json({
+      message: finalStatus === 'Approved'
+        ? 'Quote approved automatically (zero value)'
+        : 'Approval record created - quote submitted to BC',
+      approval
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================================
 // POST /api/salesquotes/approvals - Submit quote for approval
 // ============================================================
 
@@ -125,7 +241,49 @@ router.post('/', async (req, res, next) => {
     // Check if quote already exists
     const existing = await getApprovalByQuoteNumber(pool, salesQuoteNumber);
     if (existing) {
-      // If already submitted, return current status
+      // If in SubmittedToBC status, transition to PendingApproval
+      if (existing.ApprovalStatus === 'SubmittedToBC') {
+        // For quotes with zero or negative total, auto-approve
+        let finalStatus = 'PendingApproval';
+        let submittedAt = new Date().toISOString();
+
+        const amount = parseFloat(totalAmount);
+        if (amount <= 0) {
+          finalStatus = 'Approved';
+          submittedAt = null;
+          logger.info('APPROVALS', 'AutoApprovedZeroValue', `Quote ${salesQuoteNumber} auto-approved (total: ${amount})`);
+        }
+
+        // Update to PendingApproval
+        await pool.request()
+          .input('salesQuoteNumber', require('mssql').NVarChar(50), salesQuoteNumber)
+          .input('approvalStatus', require('mssql').NVarChar(50), finalStatus)
+          .input('submittedForApprovalAt', submittedAt ? new Date(submittedAt) : null)
+          .query(`
+            UPDATE SalesQuoteApprovals
+            SET ApprovalStatus = @approvalStatus,
+                SubmittedForApprovalAt = @submittedForApprovalAt,
+                UpdatedAt = GETUTCDATE()
+            WHERE SalesQuoteNumber = @salesQuoteNumber
+          `);
+
+        const updated = await getApprovalByQuoteNumber(pool, salesQuoteNumber);
+
+        logger.info('APPROVALS', 'TransitionedToPending', `Quote ${salesQuoteNumber} transitioned from SubmittedToBC to ${finalStatus}`, {
+          salesQuoteNumber,
+          previousStatus: 'SubmittedToBC',
+          newStatus: finalStatus
+        });
+
+        return res.status(200).json({
+          message: finalStatus === 'Approved'
+            ? 'Quote approved automatically (zero value)'
+            : 'Quote submitted for approval',
+          approval: mapApprovalRecord(updated)
+        });
+      }
+
+      // For other statuses, return current status
       return res.status(200).json({
         approvalStatus: existing.ApprovalStatus,
         message: `Quote already submitted for approval. Current status: ${existing.ApprovalStatus}`,

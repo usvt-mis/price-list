@@ -15,6 +15,7 @@ import { fetchSalespersonSignature } from './print-quote.js';
 
 const APPROVAL_STATUS = {
   DRAFT: 'Draft',
+  SUBMITTED_TO_BC: 'SubmittedToBC',
   PENDING_APPROVAL: 'PendingApproval',
   APPROVED: 'Approved',
   REJECTED: 'Rejected',
@@ -24,6 +25,7 @@ const APPROVAL_STATUS = {
 
 const STATUS_LABELS = {
   Draft: 'Draft',
+  SubmittedToBC: 'Submitted to BC',
   PendingApproval: 'Pending Approval',
   Approved: 'Approved',
   Rejected: 'Rejected',
@@ -33,6 +35,7 @@ const STATUS_LABELS = {
 
 const STATUS_BADGE_CLASSES = {
   Draft: 'bg-gray-100 text-gray-700',
+  SubmittedToBC: 'bg-blue-50 text-blue-700',
   PendingApproval: 'bg-amber-100 text-amber-700',
   Approved: 'bg-green-100 text-green-700',
   Rejected: 'bg-red-100 text-red-700',
@@ -338,11 +341,115 @@ function escapeHtml(value) {
 }
 
 // ============================================================
-// Submit for Approval
+// Create Approval Record
+// ============================================================
+
+/**
+ * Create approval record in "Submitted to BC" status
+ * This creates the record without submitting for approval
+ */
+export async function createApprovalRecord(quoteData) {
+  const { salesQuoteNumber, salespersonCode, salespersonName, customerName, workDescription, totalAmount } = quoteData;
+
+  if (!salesQuoteNumber) {
+    console.error('[Approval] Sales Quote number is required for approval record creation');
+    return false;
+  }
+
+  // Check if total amount requires approval (only if > 0)
+  const total = parseFloat(totalAmount) || 0;
+  if (total <= 0) {
+    console.log('[Approval] Quote total is zero or negative, skipping approval record creation');
+    state.approval.currentStatus = APPROVAL_STATUS.APPROVED;
+    return true;
+  }
+
+  try {
+    const response = await fetchWithAuth('/api/salesquotes/approvals/initialize', {
+      method: 'POST',
+      body: JSON.stringify({
+        salesQuoteNumber,
+        salespersonCode,
+        salespersonName,
+        customerName,
+        workDescription,
+        totalAmount: total
+      })
+    });
+
+    state.approval.currentStatus = response.approval?.approvalStatus || APPROVAL_STATUS.SUBMITTED_TO_BC;
+
+    console.log('[Approval] Approval record created in SubmittedToBC status');
+    return true;
+  } catch (error) {
+    console.error('Failed to create approval record:', error);
+    // Don't show error to user - quote creation succeeded, just approval record creation failed
+    return false;
+  }
+}
+
+/**
+ * Send approval request (transition from SubmittedToBC to PendingApproval)
+ * This is called manually when user clicks "Send Approval Request" button
+ */
+export async function sendApprovalRequest(quoteData) {
+  const { salesQuoteNumber, salespersonCode, salespersonName, customerName, workDescription, totalAmount } = quoteData;
+
+  if (!salesQuoteNumber) {
+    showToast('Sales Quote number is required', 'error');
+    return false;
+  }
+
+  // Check if total amount requires approval (only if > 0)
+  const total = parseFloat(totalAmount) || 0;
+  if (total <= 0) {
+    console.log('[Approval] Quote total is zero or negative, auto-approving');
+    state.approval.currentStatus = APPROVAL_STATUS.APPROVED;
+    return true;
+  }
+
+  showLoading('Sending Approval Request', 'Submitting to Sales Director...');
+
+  try {
+    const response = await fetchWithAuth('/api/salesquotes/approvals', {
+      method: 'POST',
+      body: JSON.stringify({
+        salesQuoteNumber,
+        salespersonCode,
+        salespersonName,
+        customerName,
+        workDescription,
+        totalAmount: total
+      })
+    });
+
+    state.approval.currentStatus = response.approval?.approvalStatus || APPROVAL_STATUS.PENDING_APPROVAL;
+
+    hideLoading();
+
+    if (state.approval.currentStatus === APPROVAL_STATUS.APPROVED) {
+      showToast('Quote approved automatically', 'success');
+    } else {
+      showToast('Quote submitted for approval', 'success');
+    }
+
+    return true;
+  } catch (error) {
+    hideLoading();
+    console.error('Failed to send approval request:', error);
+    showToast(`Failed to send approval request: ${error.message}`, 'error');
+    return false;
+  }
+}
+
+// ============================================================
+// Submit for Approval (legacy - kept for backward compatibility)
 // ============================================================
 
 /**
  * Submit current quote for approval (called after successful BC creation)
+ * NOTE: This function is kept for backward compatibility but should not be used
+ * for new quotes. Use createApprovalRecord() instead.
  */
 export async function submitForApproval(quoteData) {
   const { salesQuoteNumber, salespersonCode, salespersonName, customerName, workDescription, totalAmount } = quoteData;

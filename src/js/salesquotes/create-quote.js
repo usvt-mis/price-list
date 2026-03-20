@@ -12,7 +12,7 @@ import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCust
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 import { recordQuoteSubmission } from './records.js';
-import { submitForApproval, checkApprovalStatus } from './approvals.js';
+import { submitForApproval, createApprovalRecord, sendApprovalRequest as sendApprovalRequestModule, checkApprovalStatus, APPROVAL_STATUS } from './approvals.js';
 import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
 
@@ -682,7 +682,20 @@ async function applySearchedSalesQuote(payload) {
   setDropdownFieldLoadedState('customerNo', editableQuote.customerNo);
   setDropdownFieldLoadedState('salespersonCode', editableQuote.salespersonCode);
   setDropdownFieldLoadedState('assignedUserId', editableQuote.assignedUserId);
-  updateQuoteEditorModeUi();
+
+  // Fetch approval status for this quote
+  if (editableQuote.number) {
+    try {
+      const approval = await checkApprovalStatus(editableQuote.number);
+      if (approval) {
+        state.quote.approvalStatus = approval.approvalStatus;
+      }
+    } catch (error) {
+      console.error('Failed to fetch approval status:', error);
+    }
+  }
+
+  await updateQuoteEditorModeUi();
   saveState();
 
   const processedAtText = editableQuote.processedAt
@@ -2379,15 +2392,14 @@ export async function handleSendQuote() {
       if (quoteNumber) {
         await showQuoteCreatedSuccess(quoteNumber, serviceOrderNos);
 
-        // Approval workflow: Submit for approval if needed
-        // Only Sales users need approval; Directors and Executives auto-approve
+        // Approval workflow: Create approval record in "Submitted to BC" status
+        // Quote is in BC but approval is not yet requested - user will manually request approval
         const userRole = authState.user?.effectiveRole;
-        const needsApproval = userRole === ROLE.SALES;
         const totalAmount = calculateTotals().total || '0';
 
-        if (needsApproval && parseFloat(totalAmount.replace(/,/g, '')) > 0) {
-          // Submit for approval after successful BC creation
-          await submitForApproval({
+        // Create approval record for all roles (Sales, Director, Executive) with positive total
+        if (parseFloat(totalAmount.replace(/,/g, '')) > 0) {
+          await createApprovalRecord({
             salesQuoteNumber: quoteNumber,
             salespersonCode: sanitizedData.salespersonCode || '',
             salespersonName: formData.salespersonName || '',
@@ -2395,12 +2407,9 @@ export async function handleSendQuote() {
             workDescription: sanitizedData.workDescription || '',
             totalAmount: parseFloat(totalAmount.replace(/,/g, ''))
           });
-        } else if (userRole === ROLE.SALES_DIRECTOR || userRole === ROLE.EXECUTIVE) {
-          // Directors and Executives auto-approve (status already set to Approved in approvals module)
-          console.log('[Approval] User is Director/Executive - quote auto-approved');
         } else {
           // Zero-value quotes don't need approval
-          console.log('[Approval] Quote total is zero - no approval needed');
+          console.log('[Approval] Quote total is zero - no approval record needed');
         }
       } else {
         // Fallback to generic success if no Quote Number returned
@@ -2418,6 +2427,79 @@ export async function handleSendQuote() {
     console.error('Failed to send quote:', error);
     await showQuoteSendFailure(error);
   }
+}
+
+/**
+ * Send approval request for current Sales Quote
+ * Called when user clicks "Send Approval Request" button
+ * Transitions quote from "Submitted to BC" to "Pending Approval" status
+ */
+export async function sendApprovalRequest() {
+  const quoteNumber = state.quote.number;
+  const currentStatus = state.quote.approvalStatus || state.approval.currentStatus;
+
+  // Validation
+  if (!quoteNumber) {
+    showToast('No Sales Quote loaded', 'error');
+    return;
+  }
+
+  if (currentStatus === APPROVAL_STATUS.PENDING_APPROVAL) {
+    showToast('Quote already submitted for approval', 'info');
+    return;
+  }
+
+  if (currentStatus === APPROVAL_STATUS.APPROVED) {
+    showToast('Quote is already approved', 'info');
+    return;
+  }
+
+  // Get quote data for approval submission
+  const formData = getQuoteFormData();
+  const totals = calculateTotals(
+    formData.invoiceDiscount,
+    formData.vatRate / 100
+  );
+  const totalAmount = totals.total || '0';
+
+  showLoading('Sending Approval Request', 'Submitting to Sales Director...');
+
+  try {
+    const success = await sendApprovalRequestFromModule({
+      salesQuoteNumber: quoteNumber,
+      salespersonCode: state.quote.salespersonCode || formData.salespersonCode || '',
+      salespersonName: state.quote.salespersonName || formData.salespersonName || '',
+      customerName: state.quote.customerName || '',
+      workDescription: formData.workDescription || '',
+      totalAmount: parseFloat(totalAmount.replace(/,/g, ''))
+    });
+
+    hideLoading();
+
+    if (success) {
+      // Update state
+      state.quote.approvalStatus = APPROVAL_STATUS.PENDING_APPROVAL;
+      state.approval.currentStatus = APPROVAL_STATUS.PENDING_APPROVAL;
+
+      // Update UI
+      updateQuoteEditorModeUi();
+
+      // Show success message
+      showToast('Approval request sent to Sales Director', 'success');
+    }
+  } catch (error) {
+    hideLoading();
+    console.error('Failed to send approval request:', error);
+    showToast(`Failed to send approval request: ${error.message}`, 'error');
+  }
+}
+
+/**
+ * Wrapper function to call sendApprovalRequest from approvals module
+ * Named differently to avoid naming conflict
+ */
+async function sendApprovalRequestFromModule(quoteData) {
+  return await sendApprovalRequestModule(quoteData);
 }
 
 // ============================================================
@@ -3238,6 +3320,7 @@ if (typeof window !== 'undefined') {
   window.clearQuote = handleClearQuote;
   window.saveDraft = handleSaveDraft;
   window.sendQuote = handleSendQuote;
+  window.sendApprovalRequest = sendApprovalRequest;
   window.searchSalesQuote = handleSearchSalesQuote;
   window.startNewSalesQuote = startNewSalesQuoteFlow;
 
