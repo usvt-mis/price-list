@@ -637,9 +637,9 @@ async function buildModel() {
         const directorSignature = await fetchSalesDirectorSignature();
         if (directorSignature) {
           approverSignature = directorSignature;
-          approverName = 'Sales Director';
-          approverPhone = '';
-          approverEmail = '';
+          approverName = '';
+          approverPhone = '08-6320-7404';
+          approverEmail = 'supachai@uservices-thailand.com';
           console.log('[Print] Using Sales Director signature from approval system');
         } else {
           // Fallback to BC approver if director signature not found

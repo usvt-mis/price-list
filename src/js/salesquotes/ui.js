@@ -1533,8 +1533,10 @@ export async function updateQuoteEditorModeUi() {
     const afterDiscount = subtotal - invoiceDiscount;
     const total = afterDiscount + (afterDiscount * vatRate);
 
-    // Button visibility: must be in edit mode, appropriate status, AND total > 0
-    const canRequestApproval = isEditMode && isSearchSalesQuoteMode &&
+    // Button visibility: must be in edit mode with quote loaded from BC, appropriate status, AND total > 0
+    // Simplified check: If in edit mode and quote has a number, it must be loaded from BC
+    // (We only set mode='edit' when loading from BC or creating a new quote that gets a number)
+    const canRequestApproval = isEditMode &&
       (approvalStatus === null ||
        approvalStatus === APPROVAL.DRAFT ||
        approvalStatus === APPROVAL.SUBMITTED_TO_BC) &&
