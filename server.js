@@ -227,6 +227,10 @@ app.use('/api/salesquotes', requireAuth, salesQuotesRouter);
 // Sales Quote approvals workflow (requires authentication)
 app.use('/api/salesquotes/approvals', requireAuth, salesQuotesApprovalsRouter);
 
+// Sales Director signature public endpoint (no auth required)
+const salesdirectorSignaturePublicRouter = require('./api/src/routes/salesdirector-signature-public');
+app.use('/api/salesdirector-signature', salesdirectorSignaturePublicRouter);
+
 // Business Central public config endpoint (no auth required - safe values only)
 app.get('/api/business-central/config', (req, res) => {
   res.json({

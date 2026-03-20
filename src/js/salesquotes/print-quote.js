@@ -5,6 +5,7 @@ import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
 
 const SIGNATURE_API_BASE = '/api/backoffice/salesperson-signatures';
+const SALESDIRECTOR_SIGNATURE_API = '/api/salesdirector-signature';
 
 const ASSET_PATHS = {
   logo: '/salesquotes/components/assets/print/uservices-logo.png',
@@ -180,6 +181,25 @@ export async function fetchSalespersonSignature(salespersonCode) {
     return data.signatureData;
   } catch (error) {
     console.warn('Unable to fetch salesperson signature:', error);
+    return null;
+  }
+}
+
+/**
+ * Fetch Sales Director signature (public endpoint)
+ * Returns null if no signature is uploaded
+ */
+export async function fetchSalesDirectorSignature() {
+  try {
+    const response = await fetch(SALESDIRECTOR_SIGNATURE_API);
+    if (!response.ok) {
+      console.warn('Failed to fetch Sales Director signature:', response.status);
+      return null;
+    }
+    const data = await response.json();
+    return data.signatureData || null;
+  } catch (error) {
+    console.warn('Unable to fetch Sales Director signature:', error);
     return null;
   }
 }
@@ -614,7 +634,7 @@ async function buildModel() {
       const approval = await checkApprovalStatus(quoteNumber);
       if (approval && approval.approvalStatus === APPROVAL_STATUS.APPROVED) {
         // Fetch Sales Director signature
-        const directorSignature = await fetchSalespersonSignature('DIRECTOR');
+        const directorSignature = await fetchSalesDirectorSignature();
         if (directorSignature) {
           approverSignature = directorSignature;
           approverName = 'Sales Director';

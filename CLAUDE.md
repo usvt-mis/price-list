@@ -328,6 +328,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Signature Priority**: Uploaded signatures (via backoffice) > BC signature data > No signature
   - `fetchSalespersonSignature()` API call checks `SalespersonSignatures` table first
   - Falls back to BC `requestSignature.signature` or `salesperson.signature` if no upload exists
+  - `fetchSalesDirectorSignature()` API call fetches Sales Director signature from public endpoint for approved quotes
+  - Implementation: `src/js/salesquotes/print-quote.js` - `fetchSalespersonSignature()`, `fetchSalesDirectorSignature()`
 - **Backoffice Signature Upload UI**: Searchable salesperson dropdown with autocomplete
   - Type-to-search with debounced API calls (min 2 chars) to `/api/business-central/salespeople/search`
   - Displays salesperson name and code in dropdown items
@@ -421,6 +423,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `PUT /api/salesquotes/approvals/:quoteNumber/approve` - Approve a quote
   - `PUT /api/salesquotes/approvals/:quoteNumber/reject` - Reject a quote
   - `PUT /api/salesquotes/approvals/:quoteNumber/revise` - Request revision
+- **Public Endpoints**:
+  - `GET /api/salesdirector-signature` - Get Sales Director signature (no auth required, used by print functionality)
+  - Implementation: `api/src/routes/salesdirector-signature-public.js`
 - **Database Schema**: `SalesQuoteApprovals` table
   - Fields: Id, SalesQuoteNumber, SalespersonEmail, SalespersonCode, SalespersonName, CustomerName, WorkDescription, TotalAmount, ApprovalStatus, SubmittedForApprovalAt, SalesDirectorEmail, SalesDirectorActionAt, ActionComment, CreatedAt, UpdatedAt
   - Unique constraint on SalesQuoteNumber
@@ -459,18 +464,27 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 **Available Migrations:**
 - `migrate_branch_to_branchid.sql` - Migrate legacy BRANCH text column to BranchId integer (see `README_BRANCH_MIGRATION.md` for details)
 - `database/migrations/add_salesperson_signatures.sql` - Creates `SalespersonSignatures` and `SalespersonSignatureAudit` tables for signature management
+- `database/migrations/add_salesdirector_signatures.sql` - Creates `SalesDirectorSignatures` and `SalesDirectorSignatureAudit` tables for Sales Director signature management (fixed signature approach)
 - `api/src/database/schemas/add_sales_quote_approvals.sql` - Creates `SalesQuoteApprovals` table for approval workflow
 - `api/src/database/schemas/add_salesdirector_role_constraint.sql` - Adds SalesDirector role constraint to UserRoles table
 
 ### Backoffice User Management
 - Backoffice interface for managing user roles and permissions
-- **Tabs**: Executives, Sales, Sales Directors, Customers, Audit, Deletion, Settings, Signatures
+- **Tabs**: Executives, Sales, Sales Directors, Customers, Audit, Deletion, Settings, Signatures, Sales Director Signature
 - **Sales Directors Tab**: Dedicated tab for managing Sales Director role assignments
   - Add Sales Directors via email input with validation
   - Search and filter Sales Directors by email
   - View Sales Director details: email, branch, status, assigned by, last login
   - Remove Sales Director role assignment
   - Pagination support for large user lists
+- **Sales Director Signature Tab**: Fixed signature management for all Sales Directors
+  - Upload signature file (PNG/JPG, max 500KB)
+  - View current signature with file info (name, type, size, uploaded by, updated at)
+  - Delete signature with confirmation
+  - Only one signature allowed (fixed approach - applies to all Sales Directors)
+  - Audit log tracks all signature changes (UPLOAD/DELETE actions)
+  - API: `GET/POST/DELETE /api/backoffice/salesdirector-signature`
+  - Implementation: `api/src/routes/backoffice/salesdirector-signatures.js`
 - **Role Assignment API**: `POST /api/admin/roles/assign`
   - Requires PriceListExecutive role
   - Supported roles: Executive, Sales, SalesDirector
