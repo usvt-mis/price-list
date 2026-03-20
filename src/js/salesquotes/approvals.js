@@ -8,7 +8,7 @@ import { authState } from '../state.js';
 import { ROLE, MODE } from '../core/config.js';
 import { GATEWAY_API } from './config.js';
 import { el, show, hide, showToast, showLoading, hideLoading, updateQuoteEditorModeUi } from './ui.js';
-import { fetchSalespersonSignature } from './print-quote.js';
+import { fetchSalesDirectorSignature } from './print-quote.js';
 import { canApproveQuotes } from '../auth/mode-detection.js';
 
 // ============================================================
@@ -935,10 +935,9 @@ async function loadQuoteForPreview(quoteNumber) {
 
     // Fetch Sales Director signature if approved
     let directorSignature = null;
-    if (approval.approvalStatus === APPROVAL_STATUS.APPROVED && approval.salesDirectorEmail) {
-      // Get director's salesperson code (would need to be stored or looked up)
-      // For now, use a special code format
-      directorSignature = await fetchSalespersonSignature('DIRECTOR');
+    if (approval.approvalStatus === APPROVAL_STATUS.APPROVED) {
+      const signature = await fetchSalesDirectorSignature();
+      directorSignature = signature?.signatureData || null;
     }
 
     // Render preview

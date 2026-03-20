@@ -474,7 +474,7 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 - `database/migrations/add_salesperson_signatures.sql` - Creates `SalespersonSignatures` and `SalespersonSignatureAudit` tables for signature management
 - `database/migrations/add_salesdirector_signatures.sql` - Creates `SalesDirectorSignatures` and `SalesDirectorSignatureAudit` tables for Sales Director signature management (fixed signature approach)
 - `database/migrations/add_salesdirector_contact_fields.sql` - Adds FullName, PhoneNo, Email columns to SalesDirectorSignatures table
-- `database/migrations/add_being_revised_approval_status.sql` - Adds "BeingRevised" status to SalesQuoteApprovals table and migrates existing "Revise" quotes
+- `database/migrations/add_being_revised_approval_status.sql` - Adds "BeingRevised" status to SalesQuoteApprovals table and preserves existing "Revise" rows for director-requested revisions
 - `api/src/database/schemas/add_sales_quote_approvals.sql` - Creates `SalesQuoteApprovals` table for approval workflow
 - `api/src/database/schemas/add_salesdirector_role_constraint.sql` - Adds SalesDirector role constraint to UserRoles table
 

@@ -16,6 +16,8 @@ const PENDING_REVISION_THRESHOLD_MS = 1000;
  * Ensure SalesQuoteApprovals table exists
  */
 async function ensureApprovalTable(pool) {
+  const statusConstraintSql = VALID_STATUSES.map((status) => `'${status}'`).join(', ');
+
   await pool.request().query(`
     IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SalesQuoteApprovals]') AND type in (N'U'))
     BEGIN
@@ -38,7 +40,7 @@ async function ensureApprovalTable(pool) {
         UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
         CONSTRAINT UQ_SalesQuoteApprovals_QuoteNumber UNIQUE (SalesQuoteNumber),
         CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
-          ApprovalStatus IN ('Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled', 'BeingRevised')
+          ApprovalStatus IN (${statusConstraintSql})
         )
       );
 
@@ -61,6 +63,42 @@ async function ensureApprovalTable(pool) {
         IF ERROR_NUMBER() <> 2705
           THROW;
       END CATCH
+    END;
+  `);
+
+  await pool.request().query(`
+    IF OBJECT_ID(N'dbo.SalesQuoteApprovals', N'U') IS NOT NULL
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM sys.check_constraints
+        WHERE parent_object_id = OBJECT_ID(N'dbo.SalesQuoteApprovals')
+          AND name = 'CK_SalesQuoteApprovals_Status'
+          AND definition LIKE '%BeingRevised%'
+      )
+      BEGIN
+        BEGIN TRY
+          ALTER TABLE dbo.SalesQuoteApprovals
+          DROP CONSTRAINT CK_SalesQuoteApprovals_Status;
+        END TRY
+        BEGIN CATCH
+          IF ERROR_NUMBER() NOT IN (3727, 3728)
+            THROW;
+        END CATCH;
+
+        IF NOT EXISTS (
+          SELECT 1
+          FROM sys.check_constraints
+          WHERE parent_object_id = OBJECT_ID(N'dbo.SalesQuoteApprovals')
+            AND name = 'CK_SalesQuoteApprovals_Status'
+        )
+        BEGIN
+          ALTER TABLE dbo.SalesQuoteApprovals
+          WITH CHECK ADD CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
+            ApprovalStatus IN (${statusConstraintSql})
+          );
+        END
+      END
     END;
   `);
 
