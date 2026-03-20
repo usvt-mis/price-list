@@ -1,4 +1,4 @@
-import { el, showToast } from './ui.js';
+import { el, showToast, showLoading, hideLoading } from './ui.js';
 
 // Approval status constants
 const APPROVAL_STATUS = {
@@ -189,6 +189,9 @@ export async function loadQuoteSubmissionRecords() {
     </tr>
   `;
 
+  // Show loading modal
+  showLoading('Loading your records...', 'Loading My Records');
+
   try {
     const url = new URL('/api/salesquotes/records', window.location.origin);
     if (search) {
@@ -214,6 +217,9 @@ export async function loadQuoteSubmissionRecords() {
       </tr>
     `;
     return false;
+  } finally {
+    // Hide loading modal
+    hideLoading();
   }
 }
 

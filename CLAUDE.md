@@ -366,6 +366,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Table: `SalesQuoteSubmissionRecords` (Id, SalesQuoteNumber, SenderEmail, WorkDescription, ClientIP, SubmittedAt)
 - API: `GET /api/salesquotes/records?search={query}`, `POST /api/salesquotes/records`
 - Backoffice audit log integration: blue badge "Sales Quote Sent"
+- **Loading State**: Shows loading modal "Loading your records..." while fetching data from the API
+  - Uses `showLoading()` and `hideLoading()` functions from `ui.js`
+  - Loading modal is displayed before API call and hidden in `finally` block to ensure cleanup
+  - Implementation: `loadQuoteSubmissionRecords()` function in `src/js/salesquotes/records.js`
 - **Clickable Quote Numbers**: Quote numbers in the table are clickable buttons with a search icon
   - Clicking switches to the Search tab, fills the input with the quote number, and triggers the search
   - Implementation: `loadQuoteFromRecords()` function in `src/js/salesquotes/records.js`
