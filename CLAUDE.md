@@ -187,6 +187,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `isLoading`: Boolean flag for loading state
 - **Import Pattern**: Use `import { authState } from '../../state.js'` from subdirectories (e.g., `src/js/salesquotes/`)
 - **Legacy Note**: Previously `authState` was in `src/js/auth/state.js` but has been consolidated into global state
+- **effectiveRole in req.user**: The `requireAuth()` middleware in `api/src/middleware/authExpress.js` now sets `req.user.effectiveRole` for all authenticated requests, ensuring the effective role is available to all downstream route handlers
 
 ---
 
@@ -396,7 +397,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Auto-approval for zero or negative total quotes (status set to "Approved")
   - API endpoint: `POST /api/salesquotes/approvals/initialize`
 - **Send Approval Request Button**:
-  - Visible to Sales users only when viewing a searched quote
+  - Visible to all users when viewing a searched quote (not Sales-only)
   - Allows submitting quotes for director/executive approval
   - Button shown when quote status is Draft or SubmittedToBC
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()`, `src/salesquotes.html` - button element
@@ -457,6 +458,7 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 - `migrate_branch_to_branchid.sql` - Migrate legacy BRANCH text column to BranchId integer (see `README_BRANCH_MIGRATION.md` for details)
 - `database/migrations/add_salesperson_signatures.sql` - Creates `SalespersonSignatures` and `SalespersonSignatureAudit` tables for signature management
 - `api/src/database/schemas/add_sales_quote_approvals.sql` - Creates `SalesQuoteApprovals` table for approval workflow
+- `api/src/database/schemas/add_salesdirector_role_constraint.sql` - Adds SalesDirector role constraint to UserRoles table
 
 ---
 
