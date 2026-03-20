@@ -2033,7 +2033,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .signature-detail {
       width: 100%;
       display: grid;
-      grid-template-columns: 12mm 1fr;
+      grid-template-columns: 10mm 1fr;
       column-gap: 1.8mm;
       align-items: baseline;
       font-size: ${settings.signatureFontSize}px;
