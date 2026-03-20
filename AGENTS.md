@@ -195,6 +195,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `currentStatus`: Current approval status (Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised)
   - `canEdit`: Boolean flag for edit permission
   - `canPrint`: Boolean flag for print permission
+  - `salespersonEmail`: Email of the approval owner (used for ownership-based revision requests)
   - `directorSignature`: Sales Director signature data
   - `actionComment`: Action comment from Sales Director
   - `hasPendingRevisionRequest`: Boolean flag indicating if an Approved quote has a pending revision request
@@ -385,7 +386,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Multi-stage approval workflow for Sales Quotes requiring director/executive approval
 - **Approval Statuses**: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised
 - **Roles & Permissions**:
-  - Sales users: Create quotes, initialize approval records, submit for approval, request revision on approved quotes, view their requests
+  - Sales users: Create quotes, initialize approval records, submit for approval, request revision on their own approved quotes (ownership-based), view their requests
   - Sales Directors: View pending approvals, approve/reject/request revision, approve revision requests from sales users
   - Executives: Full approval access (same as Sales Directors)
 - **Approval Record Initialization**:
@@ -417,14 +418,15 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Backend includes `hasPendingRevisionRequest` in approval record responses
   - Frontend uses this flag to determine if a revision request is pending
   - Implementation: `api/src/routes/salesquotes-approvals.js` - `hasPendingRevisionRequestRecord()`, `mapApprovalRecord()`
-- **Revision Request Workflow (Sales Users on Approved Quotes)**:
-  - Sales users can request revision on Approved quotes when they need to make changes
+- **Revision Request Workflow (Ownership-based on Approved Quotes)**:
+  - Only the approval owner (salespersonEmail) can request revision on Approved quotes
   - User provides a comment explaining the revision reason
   - Status remains "Approved" but ActionComment is set with the revision request
   - Sales Director must approve the revision request before the quote becomes editable
-  - Once approved, status transitions to "BeingRevised" and quote becomes editable by the sales user
+  - Once approved, status transitions to "BeingRevised" and quote becomes editable by the approval owner
+  - Frontend uses `isCurrentUserApprovalOwner()` function to check ownership before allowing revision requests
   - API endpoints: `POST /api/salesquotes/approvals/:quoteNumber/request-revision` (Sales), `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` (Director/Executive)
-  - Frontend functions: `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
+  - Frontend functions: `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`, `isCurrentUserApprovalOwner()`
 - **Approvals Tab**: Visible to all authenticated users (Sales, Sales Directors, Executives)
   - **Pending Approvals Section**: Only visible to Sales Directors and Executives
     - Shows pending approvals list with quote details
@@ -461,6 +463,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Frontend Module**: `src/js/salesquotes/approvals.js`
   - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
   - Helper functions: `hasPendingRevisionRequest()` - Checks if an approval has a pending revision request (uses backend flag first, falls back to client-side calculation)
+- **UI Module**: `src/js/salesquotes/ui.js`
+  - Functions: `isCurrentUserApprovalOwner()` - Checks if current user is the approval owner (compares current user email with approval's salespersonEmail)
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
   - Styles: `approval-styles.css` - Approval-specific UI styles
 - **Integration with Quote Creation**:
@@ -468,7 +472,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Sales users can submit quotes for approval via "Send Approval Request" button
   - Approval workflow is optional - quotes can still be sent without approval
   - Approved quotes can be printed and sent to customer
-  - Sales users can request revision on Approved quotes, requiring SD approval before editing
+  - Only approval owner can request revision on Approved quotes, requiring SD approval before editing
 - **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.

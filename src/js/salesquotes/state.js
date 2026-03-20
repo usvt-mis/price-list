@@ -140,6 +140,7 @@ export const state = {
     currentStatus: null,  // Draft, PendingApproval, Approved, Rejected, Revise, Cancelled
     canEdit: true,
     canPrint: true,
+    salespersonEmail: null,
     directorSignature: null,
     actionComment: null,
     hasPendingRevisionRequest: false,

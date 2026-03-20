@@ -121,6 +121,7 @@ function resetApprovalState() {
   state.approval.currentStatus = null;
   state.approval.canEdit = true;
   state.approval.canPrint = true;
+  state.approval.salespersonEmail = null;
   state.approval.actionComment = null;
   state.approval.hasPendingRevisionRequest = false;
   state.approval.submittedAt = null;
@@ -1183,6 +1184,7 @@ export async function checkApprovalStatus(quoteNumber) {
     state.approval.canPrint = approval.approvalStatus === APPROVAL_STATUS.APPROVED ||
                              approval.approvalStatus === APPROVAL_STATUS.BEING_REVISED ||
                              authState.user?.effectiveRole === ROLE.EXECUTIVE;
+    state.approval.salespersonEmail = approval.salespersonEmail || null;
     state.approval.actionComment = approval.actionComment;
     state.approval.hasPendingRevisionRequest = hasPendingRevisionRequest(approval);
     state.approval.submittedAt = approval.submittedForApprovalAt;

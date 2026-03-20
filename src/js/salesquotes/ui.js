@@ -7,7 +7,6 @@ import { state } from './state.js';
 import { BC_UI_CONFIG } from './config.js';
 import { SALES_QUOTES_PREFERENCE_KEYS, loadSalesQuotePreference, saveSalesQuotePreference } from './preferences.js';
 import { authState } from '../state.js';
-import { ROLE } from '../core/config.js';
 
 // Import APPROVAL_STATUS dynamically when needed to avoid circular dependency
 let APPROVAL_STATUS = null;
@@ -435,6 +434,15 @@ function isSearchSalesQuoteEditorMode() {
 function hasPendingRevisionRequestState() {
   return state.approval.currentStatus === 'Approved' &&
     state.approval.hasPendingRevisionRequest === true;
+}
+
+export function isCurrentUserApprovalOwner() {
+  const currentUserEmail = authState.user?.email?.trim().toLowerCase();
+  const approvalOwnerEmail = state.approval.salespersonEmail?.trim().toLowerCase();
+
+  return Boolean(currentUserEmail) &&
+    Boolean(approvalOwnerEmail) &&
+    currentUserEmail === approvalOwnerEmail;
 }
 
 export function isQuoteEditable() {
@@ -1729,7 +1737,7 @@ export async function updateQuoteEditorModeUi() {
        approvalStatus === APPROVAL.BEING_REVISED ||
        approvalStatus === APPROVAL.REJECTED) &&
       total > 0;
-    const canUseRevisionRequest = authState.user?.effectiveRole === ROLE.SALES;
+    const canUseRevisionRequest = isCurrentUserApprovalOwner();
     const showRequestRevision = isSearchSalesQuoteMode &&
       approvalStatus === APPROVAL.APPROVED &&
       canUseRevisionRequest &&

@@ -8,7 +8,7 @@ import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteUpdatedSuccess, showQuoteSendFailure } from './ui.js';
-import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 import { recordQuoteSubmission } from './records.js';
@@ -2533,8 +2533,8 @@ export async function requestApprovedQuoteRevision() {
   const quoteNumber = state.quote.number;
   const currentStatus = state.quote.approvalStatus || state.approval.currentStatus;
 
-  if (authState.user?.effectiveRole === ROLE.SALES_DIRECTOR || authState.user?.effectiveRole === ROLE.EXECUTIVE) {
-    showToast('Revise requests are intended for Sales users editing their own approved quotes.', 'info');
+  if (!isCurrentUserApprovalOwner()) {
+    showToast('Only the owner of this approved quote can request a revision.', 'info');
     return;
   }
 
