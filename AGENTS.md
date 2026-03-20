@@ -191,6 +191,16 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `isAuthenticated`: Boolean flag for auth status
   - `user`: User object with name, email, initials, roles, effectiveRole
   - `isLoading`: Boolean flag for loading state
+- **Approval State**: `state.approval` object contains:
+  - `currentStatus`: Current approval status (Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised)
+  - `canEdit`: Boolean flag for edit permission
+  - `canPrint`: Boolean flag for print permission
+  - `directorSignature`: Sales Director signature data
+  - `actionComment`: Action comment from Sales Director
+  - `hasPendingRevisionRequest`: Boolean flag indicating if an Approved quote has a pending revision request
+  - `submittedAt`: Timestamp when approval was submitted
+  - `directorActionAt`: Timestamp when Sales Director took action
+  - `updatedAt`: Timestamp when the approval record was last updated
 - **Import Pattern**: Use `import { authState } from '../../state.js'` from subdirectories (e.g., `src/js/salesquotes/`)
 - **Legacy Note**: Previously `authState` was in `src/js/auth/state.js` but has been consolidated into global state
 
@@ -397,6 +407,16 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - The comment box appears below the mode banner with an edit icon and the comment text
   - Hidden automatically when not in Revise status
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function creates/updates `#revisionCommentDisplay` element
+- **Pending Revision Request Detection**:
+  - Backend calculates `hasPendingRevisionRequest` flag using timestamp-based validation
+  - Detection logic: An Approved quote has a pending revision request if:
+    - Approval status is "Approved"
+    - ActionComment is not empty
+    - The time difference between `UpdatedAt` and `SalesDirectorActionAt` exceeds `PENDING_REVISION_THRESHOLD_MS` (1000ms)
+  - This prevents false positives from the initial approval action when ActionComment is cleared
+  - Backend includes `hasPendingRevisionRequest` in approval record responses
+  - Frontend uses this flag to determine if a revision request is pending
+  - Implementation: `api/src/routes/salesquotes-approvals.js` - `hasPendingRevisionRequestRecord()`, `mapApprovalRecord()`
 - **Revision Request Workflow (Sales Users on Approved Quotes)**:
   - Sales users can request revision on Approved quotes when they need to make changes
   - User provides a comment explaining the revision reason
@@ -408,6 +428,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Approvals Tab**: Visible to all authenticated users (Sales, Sales Directors, Executives)
   - **Pending Approvals Section**: Only visible to Sales Directors and Executives
     - Shows pending approvals list with quote details
+    - Includes both quotes with "PendingApproval" status AND quotes with pending revision requests (Approved quotes with ActionComment set)
     - Badge count shows number of pending approvals
     - Refresh button to reload pending approvals
     - Actions: Approve, Reject, Request Revision (with comment), Approve Revision Request
@@ -420,21 +441,26 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `POST /api/salesquotes/approvals/initialize` - Initialize approval record (SubmittedToBC status)
   - `POST /api/salesquotes/approvals` - Submit quote for approval
   - `GET /api/salesquotes/approvals/:quoteNumber` - Get approval status by quote number
-  - `GET /api/salesquotes/approvals/list/pending` - Get pending approvals list
+  - `GET /api/salesquotes/approvals/list/pending` - Get pending approvals list (includes both PendingApproval status and Approved quotes with pending revision requests)
   - `GET /api/salesquotes/approvals/list/my` - Get current user's approval requests
-  - `PUT /api/salesquotes/approvals/:quoteNumber/approve` - Approve a quote
+  - `PUT /api/salesquotes/approvals/:quoteNumber/approve` - Approve a quote (clears ActionComment when approving)
   - `PUT /api/salesquotes/approvals/:quoteNumber/reject` - Reject a quote
   - `PUT /api/salesquotes/approvals/:quoteNumber/revise` - Request revision (Director/Executive)
   - `POST /api/salesquotes/approvals/:quoteNumber/request-revision` - Request revision on Approved quote (Sales)
   - `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` - Approve revision request (Director/Executive)
   - `POST /api/salesquotes/approvals/:quoteNumber/resubmit` - Resubmit after revision (Sales)
+- **Constants**:
+  - `PENDING_REVISION_THRESHOLD_MS = 1000` - Time threshold (in milliseconds) used to determine if a revision request is pending (prevents false positives from initial approval action)
 - **Database Schema**: `SalesQuoteApprovals` table
   - Fields: Id, SalesQuoteNumber, SalespersonEmail, SalespersonCode, SalespersonName, CustomerName, WorkDescription, TotalAmount, ApprovalStatus, SubmittedForApprovalAt, SalesDirectorEmail, SalesDirectorActionAt, ActionComment, CreatedAt, UpdatedAt
   - Unique constraint on SalesQuoteNumber
   - Indexes for efficient queries on status and salesperson
   - CHECK constraint for valid statuses: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised
+  - **API Response Fields**: The `mapApprovalRecord()` function includes additional computed fields:
+    - `hasPendingRevisionRequest`: Boolean flag indicating if an Approved quote has a pending revision request (calculated via timestamp comparison)
 - **Frontend Module**: `src/js/salesquotes/approvals.js`
   - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
+  - Helper functions: `hasPendingRevisionRequest()` - Checks if an approval has a pending revision request (uses backend flag first, falls back to client-side calculation)
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
   - Styles: `approval-styles.css` - Approval-specific UI styles
 - **Integration with Quote Creation**:

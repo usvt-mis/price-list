@@ -142,8 +142,10 @@ export const state = {
     canPrint: true,
     directorSignature: null,
     actionComment: null,
+    hasPendingRevisionRequest: false,
     submittedAt: null,
-    directorActionAt: null
+    directorActionAt: null,
+    updatedAt: null
   }
 };
 

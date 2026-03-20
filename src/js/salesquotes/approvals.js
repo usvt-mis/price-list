@@ -48,10 +48,35 @@ const STATUS_BADGE_CLASSES = {
   BeingRevised: 'bg-purple-100 text-purple-700'
 };
 
+const PENDING_REVISION_THRESHOLD_MS = 1000;
+
+function normalizeTimestamp(value) {
+  if (!value) {
+    return null;
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
 function hasPendingRevisionRequest(approval) {
+  if (typeof approval?.hasPendingRevisionRequest === 'boolean') {
+    return approval.hasPendingRevisionRequest;
+  }
+
   return approval?.approvalStatus === APPROVAL_STATUS.APPROVED &&
     typeof approval?.actionComment === 'string' &&
-    approval.actionComment.trim() !== '';
+    approval.actionComment.trim() !== '' &&
+    (() => {
+      const updatedAtMs = normalizeTimestamp(approval?.updatedAt);
+      const directorActionAtMs = normalizeTimestamp(approval?.salesDirectorActionAt);
+
+      if (updatedAtMs === null || directorActionAtMs === null) {
+        return false;
+      }
+
+      return (updatedAtMs - directorActionAtMs) > PENDING_REVISION_THRESHOLD_MS;
+    })();
 }
 
 function getApprovalStatusPresentation(approval) {
@@ -97,8 +122,10 @@ function resetApprovalState() {
   state.approval.canEdit = true;
   state.approval.canPrint = true;
   state.approval.actionComment = null;
+  state.approval.hasPendingRevisionRequest = false;
   state.approval.submittedAt = null;
   state.approval.directorActionAt = null;
+  state.approval.updatedAt = null;
 }
 
 // ============================================================
@@ -1157,8 +1184,10 @@ export async function checkApprovalStatus(quoteNumber) {
                              approval.approvalStatus === APPROVAL_STATUS.BEING_REVISED ||
                              authState.user?.effectiveRole === ROLE.EXECUTIVE;
     state.approval.actionComment = approval.actionComment;
+    state.approval.hasPendingRevisionRequest = hasPendingRevisionRequest(approval);
     state.approval.submittedAt = approval.submittedForApprovalAt;
     state.approval.directorActionAt = approval.salesDirectorActionAt;
+    state.approval.updatedAt = approval.updatedAt;
 
     return approval;
   } catch (error) {

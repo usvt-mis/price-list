@@ -44,8 +44,7 @@ function normalizeLineType(value) {
 
 function hasPendingRevisionRequestForApprovedQuote() {
   return state.approval.currentStatus === APPROVAL_STATUS.APPROVED &&
-    typeof state.approval.actionComment === 'string' &&
-    state.approval.actionComment.trim() !== '';
+    state.approval.hasPendingRevisionRequest === true;
 }
 
 function ensureQuoteEditableForChanges() {

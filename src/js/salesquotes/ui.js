@@ -434,8 +434,7 @@ function isSearchSalesQuoteEditorMode() {
 
 function hasPendingRevisionRequestState() {
   return state.approval.currentStatus === 'Approved' &&
-    typeof state.approval.actionComment === 'string' &&
-    state.approval.actionComment.trim() !== '';
+    state.approval.hasPendingRevisionRequest === true;
 }
 
 export function isQuoteEditable() {
@@ -1730,10 +1729,10 @@ export async function updateQuoteEditorModeUi() {
        approvalStatus === APPROVAL.BEING_REVISED ||
        approvalStatus === APPROVAL.REJECTED) &&
       total > 0;
-    const canRequestRevision = isSearchSalesQuoteMode &&
+    const canUseRevisionRequest = authState.user?.effectiveRole === ROLE.SALES;
+    const showRequestRevision = isSearchSalesQuoteMode &&
       approvalStatus === APPROVAL.APPROVED &&
-      authState.user?.effectiveRole !== ROLE.SALES_DIRECTOR &&
-      authState.user?.effectiveRole !== ROLE.EXECUTIVE &&
+      canUseRevisionRequest &&
       !pendingRevisionRequest;
 
     if (sendApprovalRequestBtn) {
@@ -1741,7 +1740,8 @@ export async function updateQuoteEditorModeUi() {
     }
 
     if (requestRevisionBtn) {
-      requestRevisionBtn.classList.toggle('hidden', !canRequestRevision);
+      requestRevisionBtn.classList.toggle('hidden', !showRequestRevision);
+      setActionButtonLocked(requestRevisionBtn, false, '');
     }
   }
 }

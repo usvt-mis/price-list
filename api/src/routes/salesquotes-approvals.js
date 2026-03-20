@@ -10,6 +10,7 @@ const { validateAuth, extractUserEmail } = require('../middleware/authExpress');
 const logger = require('../utils/logger');
 
 const VALID_STATUSES = ['Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled', 'BeingRevised'];
+const PENDING_REVISION_THRESHOLD_MS = 1000;
 
 /**
  * Ensure SalesQuoteApprovals table exists
@@ -83,6 +84,35 @@ function canUserApprove(role) {
  */
 function isSubmittingSalesperson(approval, userEmail) {
   return approval && approval.SalespersonEmail.toLowerCase() === userEmail.toLowerCase();
+}
+
+function normalizeTimestamp(value) {
+  if (!value) {
+    return null;
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function hasPendingRevisionRequestRecord(record) {
+  if (!record || record.ApprovalStatus !== 'Approved') {
+    return false;
+  }
+
+  const actionComment = typeof record.ActionComment === 'string' ? record.ActionComment.trim() : '';
+  if (!actionComment) {
+    return false;
+  }
+
+  const updatedAtMs = normalizeTimestamp(record.UpdatedAt);
+  const directorActionAtMs = normalizeTimestamp(record.SalesDirectorActionAt);
+
+  if (updatedAtMs === null || directorActionAtMs === null) {
+    return false;
+  }
+
+  return (updatedAtMs - directorActionAtMs) > PENDING_REVISION_THRESHOLD_MS;
 }
 
 // ============================================================
@@ -420,7 +450,9 @@ router.get('/list/pending', async (req, res, next) => {
         COALESCE(UpdatedAt, SubmittedForApprovalAt, CreatedAt) DESC
     `);
 
-    const approvals = result.recordset.map(mapApprovalRecord);
+    const approvals = result.recordset
+      .map(mapApprovalRecord)
+      .filter(approval => approval.approvalStatus === 'PendingApproval' || approval.hasPendingRevisionRequest);
 
     res.json({
       count: approvals.length,
@@ -523,6 +555,7 @@ router.post('/:quoteNumber/approve', async (req, res, next) => {
         SET ApprovalStatus = 'Approved',
             SalesDirectorEmail = @salesDirectorEmail,
             SalesDirectorActionAt = @actionAt,
+            ActionComment = NULL,
             UpdatedAt = GETUTCDATE()
         WHERE SalesQuoteNumber = @salesQuoteNumber
       `);
@@ -1004,6 +1037,7 @@ function mapApprovalRecord(record) {
     workDescription: record.WorkDescription,
     totalAmount: record.TotalAmount,
     approvalStatus: record.ApprovalStatus,
+    hasPendingRevisionRequest: hasPendingRevisionRequestRecord(record),
     submittedForApprovalAt: record.SubmittedForApprovalAt,
     salesDirectorEmail: record.SalesDirectorEmail,
     salesDirectorActionAt: record.SalesDirectorActionAt,
