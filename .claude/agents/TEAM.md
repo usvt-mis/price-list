@@ -1,6 +1,6 @@
 # Agent Team Overview
 
-Hierarchical agent team for the Price List Calculator with clear coordination protocols.
+Hierarchical agent team for Price List Calculator with clear coordination protocols.
 
 ## Team Structure
 
@@ -10,21 +10,21 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
                     │   (Coordinator)     │
                     └──────────┬──────────┘
                                │
-                ┌──────────────┴──────────────┐
-                │                             │
-        ┌───────▼────────┐           ┌────────▼────────┐
-        │ Architect Agent│           │  Planner Agent  │
-        │  (Technical)   │           │ (Implementation)│
-        └───────┬────────┘           └────────┬────────┘
-                │                             │
-                └──────────────┬──────────────┘
-                               │
-    ┌──────────────────────────┼──────────────────────────┐
-    │          │               │              │            │
-┌───▼────┐ ┌───▼────┐   ┌──────▼──────┐  ┌───▼────┐  ┌───▼────┐
-│Frontend│ │Backoff │   │   Backend   │  │ Auth   │  │Logging │
-│        │ │office  │   │             │  │& Secur│  │& Monit │
-└────────┘ └────────┘   └─────────────┘  └────────┘  └────────┘
+                   ┌───────────┴───────────┐
+                   │                       │
+           ┌───────▼────────┐   ┌────────▼────────┐
+           │ Architect Agent│   │  Planner Agent  │
+           │  (Technical)   │   │ (Implementation)│
+           └───────┬────────┘   └────────┬────────┘
+                   │                       │
+                   └───────────┬───────────┘
+                              │
+      ┌──────────────────────────┼──────────────────────────┐
+      │          │               │              │            │
+  ┌───▼────┐ ┌───▼────┐   ┌──────▼──────┐  ┌───▼────┐  ┌───▼────┐
+  │Frontend│ │Backoff │   │   Backend   │  │ Auth   │  │Logging │
+  │        │ │office  │   │             │  & Secur│  │& Monit │
+  └────────┘ └────────┘   └─────────────┘  └────────┘  └────────┘
 
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
 │ Calculation  │  │  Database    │  │  Deployment  │
@@ -34,10 +34,10 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
 ┌──────────────────────────────────────────────────────────────┐
 │            Coordination + Utility Agents                      │
 │  ┌──────────────────────┐  ┌──────────────────────────────┐ │
-│  │  Chinese Foreman     │  │ Internet Researcher          │ │
-│  │  (工头/Gongtou)      │  │ (Scout)                      │ │
-│  │  Translation +       │  │ Research support for all     │ │
-│  │  Chinese Coordination│  │ agents                       │ │
+│  │ Chinese Foreman     │  │ Internet Researcher          │ │
+│  │ (工头/Gongtou)      │  │ (Scout)                      │ │
+│  │ Translation +       │  │ Research support for all     │ │
+│  │ Chinese Coordination│  │ agents                       │ │
 │  └──────────────────────┘  └──────────────────────────────┘ │
 │  ┌──────────────────────┐                                   │
 │  │ Universal Translator │                                   │
@@ -100,11 +100,11 @@ Hierarchical agent team for the Price List Calculator with clear coordination pr
 
 | Agent | Role | File | Scope | Reports To |
 |-------|------|------|-------|------------|
-| Frontend Agent | UI components, responsive design, interactions | `frontend.md` | Main calculator only (`src/index.html`) | Architect (UI/UX), Planner (implementation) |
-| Backoffice Agent | Backoffice admin UI, role management, audit logs | `backoffice.md` | Backoffice only (`src/backoffice.html`) | Architect (UI/UX), Planner (implementation) |
-| Backend Agent | Azure Functions API, business logic | `backend.md` | API endpoints only (no auth/logging) | Architect (API), Planner (implementation) |
-| Auth & Security Agent | Authentication systems, security policies, RBAC | `auth.md` | Dual auth (Azure AD + JWT), rate limiting, security | Architect (security), Planner (implementation) |
-| Logging & Monitoring Agent | Application logging, performance tracking, health checks | `logging.md` | Logger utility, performance metrics, archival | Architect (monitoring), Planner (implementation) |
+| Frontend Agent | UI components, responsive design, interactions | `frontend.md` | Multi-page apps (onsite.html, workshop.html, salesquotes.html) | Architect (UI/UX), Planner (implementation) |
+| Backoffice Agent | Backoffice admin UI, role management, audit logs, 2FA | `backoffice.md` | Backoffice only (`src/backoffice.html`) | Architect (UI/UX), Planner (implementation) |
+| Backend Agent | Express.js API, business logic | `backend.md` | API endpoints only (no auth/logging) | Architect (API), Planner (implementation) |
+| Auth & Security Agent | Authentication systems, security policies, RBAC, 2FA | `auth.md` | Dual auth (Azure AD + JWT + 2FA), rate limiting, security | Architect (security), Planner (implementation) |
+| Logging & Monitoring Agent | Application logging, performance tracking, health checks | `logging.md` | Application Insights, custom logger, PII masking | Architect (monitoring), Planner (implementation) |
 | Calculation Agent | Pricing formulas, commission logic, multipliers | `calculation.md` | Cost calculations, commission logic, multipliers | Architect (formulas), Planner (implementation) |
 | Database Agent | SQL schema, queries, data integrity, diagnostic scripts | `database.md` | Schema, queries, migrations, diagnostics | Architect (schema), Planner (migrations) |
 | Deployment Agent | Azure deployment, CI/CD, configuration | `deployment.md` | Azure deployment, CI/CD, configuration | Architect (infrastructure), Planner (releases) |
@@ -198,7 +198,7 @@ Auth/Security Task Identified
                 ↓
     Auth & Security Agent implements with coordination
                 ↓
-    Verification: Test with all user roles (Executive, Sales, NoRole, Customer)
+    Verification: Test with all user roles (Executive, SalesDirector, Sales, NoRole, Customer)
 ```
 
 ### Protocol 6: Logging/Monitoring Tasks
@@ -265,7 +265,7 @@ Research Task Identified
 
 ### Decision Tree for Task Routing
 ```
-Is the task simple and single-domain?
+Is task simple and single-domain?
     YES → Direct to specialist agent
     NO  → Continue
 
@@ -293,11 +293,11 @@ Is it a backoffice-specific task?
     YES → Backoffice Agent (may coordinate with others)
     NO  → Continue
 
-Does the task involve architecture/design?
+Does task involve architecture/design?
     YES → Architect Agent
     NO  → Continue
 
-Does the task require implementation planning?
+Does task require implementation planning?
     YES → Planner Agent
     NO  → Orchestrator to coordinate
 ```
@@ -306,7 +306,7 @@ Does the task require implementation planning?
 
 | Trigger | Agent to Involve |
 |---------|-----------------|
-| Fix button alignment (main calculator) | Frontend Agent (direct) |
+| Fix button alignment (onsite/workshop/salesquotes) | Frontend Agent (direct) |
 | Fix backoffice UI layout | Backoffice Agent (direct) |
 | Add new API endpoint | Backend Agent (direct) |
 | Update commission formula | Calculation Agent (direct) |
@@ -317,9 +317,13 @@ Does the task require implementation planning?
 | Research best practices/patterns | Internet Researcher Agent (Scout) |
 | Translate any language to Chinese prompt | Universal Translator (translation only) or Chinese Foreman (translation + coordination) |
 | Coordinate multi-agent Chinese workflow | Chinese Foreman Agent (工头) |
-| Add new feature (main calculator UI only) | Planner Agent → Frontend Agent |
+| Add new feature (onsite UI only) | Planner Agent → Frontend Agent |
+| Add new feature (workshop UI only) | Planner Agent → Frontend Agent |
+| Add new feature (salesquotes UI only) | Planner Agent → Frontend Agent |
 | Add new feature (backoffice UI only) | Planner Agent → Backoffice Agent |
-| Add new feature (frontend + backend) | Planner Agent → Frontend + Backend + Auth |
+| Add new feature (onsite UI + backend) | Planner Agent → Frontend + Backend + Auth |
+| Add new feature (workshop UI + backend) | Planner Agent → Frontend + Backend + Auth |
+| Add new feature (salesquotes UI + backend) | Planner Agent → Frontend + Backend + Auth |
 | Change authentication policy | Planner Agent → Auth & Security + Frontend + Backend |
 | Add logging to endpoint | Planner Agent → Logging & Monitoring + Backend |
 | Major architectural change | Architect Agent → Planner Agent → Specialists |
@@ -338,9 +342,9 @@ Does the task require implementation planning?
 ├── planner.md                   (Level 2: Implementation lead)
 ├── chinese-foreman.md           (Level 2: Chinese-language coordinator + translator)
 ├── universal-translator.md      (Multi-language translation-only agent)
-├── frontend.md                  (Level 3: Specialist - Main calculator)
+├── frontend.md                  (Level 3: Specialist - Multi-page apps)
 ├── backoffice.md                (Level 3: Specialist - Backoffice admin)
-├── backend.md                   (Level 3: Specialist - API endpoints)
+├── backend.md                   (Level 3: Specialist - Express.js API)
 ├── auth.md                      (Level 3: Specialist - Authentication & security)
 ├── logging.md                   (Level 3: Specialist - Logging & monitoring)
 ├── calculation.md               (Level 3: Specialist - Formulas)
@@ -379,11 +383,11 @@ Does the task require implementation planning?
 
 ## Verification Tests
 
-After implementation, verify the team works correctly:
+After implementation, verify team works correctly:
 
 ### Test 1: Simple Single-Domain Task
 ```
-User: "Fix the mobile layout for the materials table"
+User: "Fix mobile layout for materials table"
 Expected: Orchestrator routes directly to Frontend Agent
 ```
 
@@ -450,7 +454,7 @@ Expected: Orchestrator routes to Chinese Foreman Agent for translation and coord
 
 ### Test 12: Translation-Only Task
 ```
-User: "Translate 'Fix the calculator layout' to Chinese"
+User: "Translate 'Fix calculator layout' to Chinese"
 Expected: Universal Translator (WanNengYi) provides translation without coordination
 ```
 
@@ -458,4 +462,16 @@ Expected: Universal Translator (WanNengYi) provides translation without coordina
 ```
 User: "Research best practices for SQL Server connection pooling"
 Expected: Orchestrator routes to Internet Researcher Agent (Scout)
+```
+
+### Test 14: Multi-Page App Task
+```
+User: "Add new feature to onsite calculator"
+Expected: Orchestrator routes to Frontend Agent for onsite.html
+```
+
+### Test 15: 2FA Task
+```
+User: "Add two-factor authentication to backoffice"
+Expected: Orchestrator routes to Auth & Security Agent + Backoffice Agent
 ```

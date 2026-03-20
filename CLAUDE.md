@@ -9,10 +9,10 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 Price List Calculator - Web application for calculating service costs.
 
 **Tech Stack:**
-- **Frontend**: Vanilla JavaScript + Tailwind CSS (single-page HTML apps)
-- **Backend**: Express.js
+- **Frontend**: Vanilla JavaScript + Tailwind CSS (multi-page HTML apps)
+- **Backend**: Express.js (migrated from Azure Functions v4)
 - **Database**: Azure SQL Server
-- **Auth**: Azure Easy Auth (App Service)
+- **Auth**: Azure Easy Auth (App Service) + Two-Factor Auth (Backoffice)
 
 **Calculators:**
 
@@ -66,18 +66,33 @@ Final Price = PricePerUnit × (1 + commission%)
 
 ```
 src/js/
+├── state.js        # Global state management
 ├── core/           # Shared utilities (config, utils, calculations)
 ├── auth/           # Authentication (token-handling, mode-detection, ui)
 ├── onsite/         # Onsite calculator modules
 ├── workshop/       # Workshop calculator modules
-└── salesquotes/    # Sales Quotes modules
+├── salesquotes/    # Sales Quotes modules
+└── admin/          # Admin interface modules
 
 api/src/
 ├── routes/         # Express.js route modules
+│   ├── onsite/     # Onsite calculator routes
+│   ├── workshop/   # Workshop calculator routes
+│   ├── business-central/  # Business Central integration
+│   ├── backoffice/  # Backoffice admin routes
+│   ├── admin/      # Admin routes (roles, diagnostics)
+│   └── *.js       # Legacy routes (motorTypes, branches, labor, materials, etc.)
 ├── db.js           # Database connection pool
-├── middleware/     # Express middleware
+├── middleware/     # Express middleware (authExpress, twoFactorAuthExpress, etc.)
 ├── utils/          # Shared utilities (logger, calculator)
 └── jobs/           # Scheduled jobs (node-cron)
+
+src/
+├── index.html      # Main calculator (legacy)
+├── onsite.html     # Onsite calculator
+├── workshop.html   # Workshop calculator
+├── salesquotes.html # Sales Quotes calculator
+└── backoffice.html # Backoffice admin interface
 
 src/salesquotes/components/
 ├── styles/         # External CSS
@@ -462,5 +477,5 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 
 ## Agent Team & Skills
 
-- [Agent Team System](.Codex/agents.md)
-- [Custom Skills](.Codex/skills.md)
+- [Agent Team System](.claude/agents/TEAM.md)
+- [Custom Skills](.agents/skills/)

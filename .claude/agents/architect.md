@@ -47,35 +47,41 @@ Orchestrator Agent (Coordinator)
 You have deep knowledge of the entire system architecture:
 
 #### Frontend Architecture
-- **Single-file application**: `src/index.html` contains all HTML, CSS, JavaScript
-- **State management**: Global variables (`branches`, `labor`, `materialLines`)
+- **Multi-page application**: Separate HTML files for each calculator (onsite.html, workshop.html, salesquotes.html)
+- **Legacy single-file**: `src/index.html` contains all HTML, CSS, JavaScript (deprecated)
+- **State management**: Global state in `src/js/state.js` - Centralized state management for the entire application
 - **Styling**: Tailwind CSS via CDN (no build process)
 - **API communication**: Fetch API with promises
 - **Responsive design**: Mobile-first with `md:` breakpoint (768px)
 - **Mode system**: Executive vs Sales modes with localStorage persistence
+- **Modular JavaScript**: Organized into core/, auth/, onsite/, workshop/, salesquotes/ directories
 
 #### Backend Architecture
-- **Azure Functions v4**: Serverless API with Node.js runtime
-- **Entry point**: `api/src/index.js` registers all HTTP functions
+- **Express.js server**: `server.js` is the main entry point (migrated from Azure Functions v4)
 - **Connection pooling**: Singleton pattern in `api/src/db.js`
-- **Function pattern**: Each file in `functions/` calls `app.http()` to register
+- **Route pattern**: Express Router modules in `api/src/routes/`
 - **Security**: Parameterized queries, appropriate HTTP status codes
+- **Application Insights**: Azure native logging integration
 
 #### Database Schema
 ```
 MotorTypes      → Motor type definitions
-Branches        → CostPerHour, OverheadPercent, PolicyProfit
+Branches        → CostPerHour, OverheadPercent, PolicyProfit, BranchId
 Jobs            → JobCode, JobName, SortOrder
 Jobs2MotorType  → Junction table (LEFT JOIN pattern)
 Materials       → MaterialCode, MaterialName, UnitCost, IsActive
 UserRoles       → User role assignments (Executive/Sales/NoRole)
 BackofficeAdmins → Backoffice admin credentials
+BackofficeSessions → Backoffice session management (2FA)
 RoleAssignmentAudit → Role change audit trail
-AppLogs         → Application logging
-PerformanceMetrics → API performance tracking
-AppLogs_Archive → Historical log data
 SavedCalculations → User-saved calculations
 SharedCalculations → Share link access
+OnsiteCalculations → Onsite calculator saved data
+WorkshopCalculations → Workshop calculator saved data
+SalesQuoteSubmissionRecords → Sales Quote submission history
+SalesQuoteUserPreferences → User preferences for Sales Quotes
+SalesQuoteApprovals → Sales Quote approval workflow
+SalespersonSignatures → Salesperson signature uploads
 ```
 
 #### Dual Authentication Architecture
@@ -83,37 +89,41 @@ SharedCalculations → Share link access
   - Role-based access control (Executive, Sales, NoRole, Customer)
   - Automatic role detection via UserRoles table
   - Local dev bypass for testing
-  - Middleware: `api/src/middleware/auth.js`
-- **Backoffice Admin**: Username/password + JWT
+  - Middleware: `api/src/middleware/authExpress.js`
+- **Backoffice Admin**: Username/password + JWT + Two-Factor Authentication
   - Separate authentication system
   - Bcrypt password hashing (10 rounds)
   - JWT token validation (8-hour expiration)
+  - Two-Factor Authentication (TOTP-based)
   - Rate limiting and account lockout
-  - Middleware: `api/src/middleware/backofficeAuth.js`
+  - Middleware: `api/src/middleware/twoFactorAuthExpress.js`
 
 #### Logging & Monitoring Architecture
-- **Logger Utility**: Async buffered logging with circuit breaker
+- **Application Insights**: Azure native logging integration
+  - Automatic request tracking
+  - Performance metrics collection
+  - Exception tracking
+  - Dependency tracking
+  - Console log capture
+  - Disk retry caching for reliability
+- **Custom Logger Utility**: `api/src/utils/logger.js` for structured logging
   - PII masking (emails, IPs, phone numbers)
-  - Correlation ID propagation
   - Multiple log levels (DEBUG, INFO, WARN, ERROR, CRITICAL)
   - Graceful fallback to console
-- **Performance Tracking**: API response times, database latency
-- **Log Archival**: Daily timer trigger (2 AM UTC)
-- **Database**: AppLogs, PerformanceMetrics, AppLogs_Archive
-- **Admin Endpoints**: Query, export, purge, health checks
 
 #### Backoffice System Architecture
 - **Standalone HTML**: `src/backoffice.html` (separate from main calculator)
 - **Dedicated API Endpoints**: `/api/backoffice/*`
 - **User Role Management**: Assign/remove roles via UI
 - **Audit Logging**: Role change history with full context
+- **Two-Factor Authentication**: TOTP-based 2FA for enhanced security
 - **Schema Repair**: Diagnostic endpoint for production troubleshooting
 
 #### Calculation Architecture
 - **Multipliers**: Branch (silent) → Sales Profit (user input) → Commission (tiered)
 - **Helper functions**: `getBranchMultiplier()`, `getSalesProfitMultiplier()`, `getCompleteMultiplier()`
-- **Master function**: `calcAll()` (~lines 820-850) orchestrates all calculations
-- **Reactive updates**: Changes trigger `renderLabor()`, `renderMaterials()`, `calcAll()`
+- **Master function**: `calcAll()` orchestrates all calculations
+- **Reactive updates**: Changes trigger re-calculation and display updates
 
 ## Triggers for Involvement
 
@@ -157,7 +167,7 @@ You should be involved when:
 
 ### Consistency Checklist
 Before approving any architectural change:
-- [ ] Follows existing patterns (function registration, query patterns, state management)
+- [ ] Follows existing patterns (Express routes, query patterns, state management)
 - [ ] Maintains responsive design principles
 - [ ] Preserves calculation accuracy
 - [ ] Considers mobile and desktop experiences
@@ -171,7 +181,7 @@ Before approving any architectural change:
 
 | Task | Key Considerations |
 |------|-------------------|
-| Add new API endpoint | Function pattern, parameterized queries, error handling, response format |
+| Add new API endpoint | Express Router pattern, parameterized queries, error handling, response format |
 | Modify database schema | Impact on existing queries, migration strategy, API changes |
 | Add UI component | Responsive design, mode visibility, state management, event handling |
 | Change calculation logic | Impact on commission, multipliers, reactivity, display updates |
@@ -194,17 +204,17 @@ Before approving any architectural change:
 ### With Auth & Security Agent
 - Consult on authentication architecture decisions
 - Review security policies and authorization models
-- Ensure dual auth systems (Azure AD + JWT) are properly isolated
+- Ensure dual auth systems (Azure AD + JWT + 2FA) are properly isolated
 - Review rate limiting and account lockout strategies
 
 ### With Logging & Monitoring Agent
 - Consult on logging architecture and strategy
 - Review performance tracking implementation
 - Ensure PII masking and correlation ID propagation
-- Review archival and retention policies
+- Review Application Insights integration
 
 ### With Backend Agent
-- Consult on API design and function patterns
+- Consult on API design and Express Router patterns
 - Review error handling strategies
 - Ensure security best practices (parameterized queries, appropriate status codes)
 - Coordinate with Auth Agent for endpoint protection
