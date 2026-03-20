@@ -191,6 +191,18 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `isAuthenticated`: Boolean flag for auth status
   - `user`: User object with name, email, initials, roles, effectiveRole
   - `isLoading`: Boolean flag for loading state
+- **Approval State**: `state.approval` object contains:
+  - `currentStatus`: Current approval status (Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised)
+  - `canEdit`: Boolean flag for edit permission
+  - `canPrint`: Boolean flag for print permission
+  - `approvalOwnerEmail`: Email of the approval owner (used for ownership-based revision requests)
+  - `salespersonEmail`: Email of the salesperson who submitted the quote
+  - `directorSignature`: Sales Director signature data
+  - `actionComment`: Action comment from Sales Director
+  - `hasPendingRevisionRequest`: Boolean flag indicating if an Approved quote has a pending revision request
+  - `submittedAt`: Timestamp when approval was submitted
+  - `directorActionAt`: Timestamp when Sales Director took action
+  - `updatedAt`: Timestamp when the approval record was last updated
 - **Import Pattern**: Use `import { authState } from '../../state.js'` from subdirectories (e.g., `src/js/salesquotes/`)
 - **Legacy Note**: Previously `authState` was in `src/js/auth/state.js` but has been consolidated into global state
 
@@ -375,7 +387,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Multi-stage approval workflow for Sales Quotes requiring director/executive approval
 - **Approval Statuses**: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised
 - **Roles & Permissions**:
-  - Sales users: Create quotes, initialize approval records, submit for approval, request revision on approved quotes, view their requests
+  - Sales users: Create quotes, initialize approval records, submit for approval, request revision on their own approved quotes (ownership-based), view their requests
   - Sales Directors: View pending approvals, approve/reject/request revision, approve revision requests from sales users
   - Executives: Full approval access (same as Sales Directors)
 - **Approval Record Initialization**:
@@ -390,65 +402,88 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()`, `src/salesquotes.html` - button element
 - **Mode Banner Approval Status Display**:
   - When viewing a searched quote, the mode banner displays the current approval status with user-friendly labels
-  - Status labels: "Submitted to BC", "Revision Requested", "Pending Approval", "Approved", "Rejected", "Being Revised", "Revision Request Pending"
-  - "Revision Request Pending" status is shown when an Approved quote has a revision request (ActionComment is not null/empty) awaiting Sales Director approval
-  - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function, `src/js/salesquotes/approvals.js` - `getApprovalStatusPresentation()`
+  - Status labels: "Submitted to BC", "Revision Requested", "Pending Approval", "Approved", "Rejected", "Being Revised"
+  - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function
 - **Revision Comment Display**:
   - When a quote is in "Revise" status, a blue-styled comment box displays the director's revision comment
   - The comment box appears below the mode banner with an edit icon and the comment text
   - Hidden automatically when not in Revise status
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function creates/updates `#revisionCommentDisplay` element
-- **Revision Request Workflow (Sales Users on Approved Quotes)**:
-  - Sales users can request revision on Approved quotes when they need to make changes
-  - User provides a comment explaining the revision reason via the "Revise" button in the mode banner
+- **Pending Revision Request Detection**:
+  - Backend calculates `hasPendingRevisionRequest` flag using timestamp-based validation
+  - Detection logic: An Approved quote has a pending revision request if:
+    - Approval status is "Approved"
+    - ActionComment is not empty
+    - The time difference between `UpdatedAt` and `SalesDirectorActionAt` exceeds `PENDING_REVISION_THRESHOLD_MS` (1000ms)
+  - This prevents false positives from the initial approval action when ActionComment is cleared
+  - Backend includes `hasPendingRevisionRequest` in approval record responses
+  - Frontend uses this flag to determine if a revision request is pending
+  - Implementation: `api/src/routes/salesquotes-approvals.js` - `hasPendingRevisionRequestRecord()`, `mapApprovalRecord()`
+- **Revision Request Workflow (Ownership-based on Approved Quotes)**:
+  - Only the approval owner (ApprovalOwnerEmail, defaults to SalespersonEmail) can request revision on Approved quotes
+  - User provides a comment explaining the revision reason
   - Status remains "Approved" but ActionComment is set with the revision request
   - Sales Director must approve the revision request before the quote becomes editable
-  - Once approved, status transitions to "BeingRevised" and quote becomes editable by the sales user
-  - Only one revision request can be pending at a time - system validates that no revision request is already awaiting approval
+  - Once approved, status transitions to "BeingRevised" and quote becomes editable by the approval owner
+  - Frontend uses `isCurrentUserApprovalOwner()` function to check ownership by comparing current user email with approval's ApprovalOwnerEmail
   - API endpoints: `POST /api/salesquotes/approvals/:quoteNumber/request-revision` (Sales), `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` (Director/Executive)
-  - Frontend functions: `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`, `showRevisionRequestPendingModal()`
-  - Implementation: `src/js/salesquotes/create-quote.js`, `src/js/salesquotes/approvals.js`, `src/js/salesquotes/ui.js`, `src/salesquotes.html` - Revise button
+  - Frontend functions: `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`, `isCurrentUserApprovalOwner()`, `applyApprovalIdentity()`
+  - **Approval Identity Management**: The `applyApprovalIdentity()` function in `approvals.js` applies both `approvalOwnerEmail` and `salespersonEmail` from approval records to state
+  - **Revision Request Logging**: Detailed logging for debugging revision request actions and button visibility
+    - `logRequestRevisionActionDecision()` in `create-quote.js` logs all decision points in `requestApprovedQuoteRevision()` with context
+    - `logRequestRevisionVisibilityDecision()` in `ui.js` logs "Request Revision" button visibility decisions with deduplication
+    - Logs include: quote number, mode, approval status, user emails, ownership check, pending request status, and reasons for decisions
+    - Signature-based deduplication prevents console spam from repeated visibility checks
+    - Implementation: `src/js/salesquotes/create-quote.js` - `logRequestRevisionActionDecision()`, `src/js/salesquotes/ui.js` - `logRequestRevisionVisibilityDecision()`
 - **Approvals Tab**: Visible to all authenticated users (Sales, Sales Directors, Executives)
   - **Pending Approvals Section**: Only visible to Sales Directors and Executives
     - Shows pending approvals list with quote details
-    - Includes both PendingApproval status quotes AND Approved quotes with revision requests (ActionComment is not null/empty)
-    - Approved quotes with revision requests are shown with "Revision Request Pending" status (orange badge) and appear at the top of the list
+    - Includes both quotes with "PendingApproval" status AND quotes with pending revision requests (Approved quotes with ActionComment set)
     - Badge count shows number of pending approvals
     - Refresh button to reload pending approvals
-    - Actions: Approve, Reject (requires comment), Request Revision (with comment), Approve Revision Request
+    - Actions: Approve, Reject, Request Revision (with comment), Approve Revision Request
   - **My Approval Requests Section**: Visible to all authenticated users
     - Shows status of each request with color-coded badges
     - View approval history and director comments
-    - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Purple (Being Revised), Slate (Cancelled), Orange (Revision Request Pending)
+    - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Purple (Being Revised), Slate (Cancelled)
     - Edit & Resubmit button available for Revise, Rejected, and BeingRevised statuses
 - **API Endpoints**:
   - `POST /api/salesquotes/approvals/initialize` - Initialize approval record (SubmittedToBC status)
   - `POST /api/salesquotes/approvals` - Submit quote for approval
   - `GET /api/salesquotes/approvals/:quoteNumber` - Get approval status by quote number
-  - `GET /api/salesquotes/approvals/list/pending` - Get pending approvals list
+  - `GET /api/salesquotes/approvals/list/pending` - Get pending approvals list (includes both PendingApproval status and Approved quotes with pending revision requests)
   - `GET /api/salesquotes/approvals/list/my` - Get current user's approval requests
-  - `PUT /api/salesquotes/approvals/:quoteNumber/approve` - Approve a quote
+  - `PUT /api/salesquotes/approvals/:quoteNumber/approve` - Approve a quote (clears ActionComment when approving)
   - `PUT /api/salesquotes/approvals/:quoteNumber/reject` - Reject a quote
   - `PUT /api/salesquotes/approvals/:quoteNumber/revise` - Request revision (Director/Executive)
   - `POST /api/salesquotes/approvals/:quoteNumber/request-revision` - Request revision on Approved quote (Sales)
   - `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` - Approve revision request (Director/Executive)
   - `POST /api/salesquotes/approvals/:quoteNumber/resubmit` - Resubmit after revision (Sales)
+- **Constants**:
+  - `PENDING_REVISION_THRESHOLD_MS = 1000` - Time threshold (in milliseconds) used to determine if a revision request is pending (prevents false positives from initial approval action)
 - **Database Schema**: `SalesQuoteApprovals` table
-  - Fields: Id, SalesQuoteNumber, SalespersonEmail, SalespersonCode, SalespersonName, CustomerName, WorkDescription, TotalAmount, ApprovalStatus, SubmittedForApprovalAt, SalesDirectorEmail, SalesDirectorActionAt, ActionComment, CreatedAt, UpdatedAt
+  - Fields: Id, SalesQuoteNumber, SalespersonEmail, ApprovalOwnerEmail, SalespersonCode, SalespersonName, CustomerName, WorkDescription, TotalAmount, ApprovalStatus, SubmittedForApprovalAt, SalesDirectorEmail, SalesDirectorActionAt, ActionComment, CreatedAt, UpdatedAt
   - Unique constraint on SalesQuoteNumber
   - Indexes for efficient queries on status and salesperson
   - CHECK constraint for valid statuses: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised
+  - **API Response Fields**: The `mapApprovalRecord()` function includes additional computed fields:
+    - `hasPendingRevisionRequest`: Boolean flag indicating if an Approved quote has a pending revision request (calculated via timestamp comparison)
+  - **Ownership-based Revision**: The `ApprovalOwnerEmail` field (defaults to SalespersonEmail) determines who can request revisions on Approved quotes
 - **Frontend Module**: `src/js/salesquotes/approvals.js`
-  - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`, `hasPendingRevisionRequest()`, `getApprovalStatusPresentation()`
+  - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
+  - Helper functions: `hasPendingRevisionRequest()` - Checks if an approval has a pending revision request (uses backend flag first, falls back to client-side calculation)
+- **UI Module**: `src/js/salesquotes/ui.js`
+  - Functions: `isCurrentUserApprovalOwner()` - Checks if current user is the approval owner (compares current user email with approval's ApprovalOwnerEmail, falls back to SalespersonEmail)
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
   - Styles: `approval-styles.css` - Approval-specific UI styles
 - **Integration with Quote Creation**:
   - After quote creation/update, approval records are automatically initialized with SubmittedToBC status
+  - ApprovalOwnerEmail is set to the salesperson's email during initialization
   - Sales users can submit quotes for approval via "Send Approval Request" button
   - Approval workflow is optional - quotes can still be sent without approval
   - Approved quotes can be printed and sent to customer
-  - Sales users can request revision on Approved quotes, requiring SD approval before editing
-- **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`, `src/js/salesquotes/create-quote.js`, `src/salesquotes.html`
+  - Only approval owner (ApprovalOwnerEmail) can request revision on Approved quotes, requiring SD approval before editing
+  - **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 
@@ -475,6 +510,7 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 - `database/migrations/add_salesdirector_signatures.sql` - Creates `SalesDirectorSignatures` and `SalesDirectorSignatureAudit` tables for Sales Director signature management (fixed signature approach)
 - `database/migrations/add_salesdirector_contact_fields.sql` - Adds FullName, PhoneNo, Email columns to SalesDirectorSignatures table
 - `database/migrations/add_being_revised_approval_status.sql` - Adds "BeingRevised" status to SalesQuoteApprovals table and preserves existing "Revise" rows for director-requested revisions
+- `database/migrations/add_approval_owner_email_to_sales_quote_approvals.sql` - Adds `ApprovalOwnerEmail` column to SalesQuoteApprovals table for ownership-based revision requests
 - `api/src/database/schemas/add_sales_quote_approvals.sql` - Creates `SalesQuoteApprovals` table for approval workflow
 - `api/src/database/schemas/add_salesdirector_role_constraint.sql` - Adds SalesDirector role constraint to UserRoles table
 
