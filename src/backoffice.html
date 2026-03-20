@@ -317,6 +317,9 @@
           <button onclick="showBackofficeTab('sales')" id="backofficeTabSales" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
             Sales <span id="salesCount" class="ml-1 px-2 py-0.5 text-xs bg-blue-200 text-blue-700 rounded-full">0</span>
           </button>
+          <button onclick="showBackofficeTab('salesDirectors')" id="backofficeTabSalesDirectors" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
+            Sales Directors <span id="salesDirectorsCount" class="ml-1 px-2 py-0.5 text-xs bg-indigo-200 text-indigo-700 rounded-full">0</span>
+          </button>
           <button onclick="showBackofficeTab('customers')" id="backofficeTabCustomers" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
             Customers <span id="customerCount" class="ml-1 px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded-full">0</span>
           </button>
@@ -452,6 +455,68 @@
                 Previous
               </button>
               <button id="salesNextPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sales Directors Tab -->
+        <div id="backofficeSalesDirectorsTab" class="hidden">
+          <!-- Inline Add Form -->
+          <div class="flex flex-col sm:flex-row gap-3 mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+            <div class="flex-1">
+              <input id="salesDirectorsEmailInput" type="email" placeholder="Enter email to add to Sales Directors..."
+                class="w-full px-4 py-2 rounded-lg border border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="salesDirectorsValidation" class="text-sm"></span>
+              <button id="salesDirectorsAddBtn" class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors">
+                Add
+              </button>
+            </div>
+          </div>
+
+          <!-- Search -->
+          <div class="flex flex-col sm:flex-row gap-4 mb-6">
+            <div class="flex-1">
+              <input id="salesDirectorsSearch" type="text" placeholder="Search Sales Directors by email..."
+                class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+            </div>
+            <button id="salesDirectorsSearchBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 transition-colors">
+              Search
+            </button>
+          </div>
+
+          <!-- Users Table -->
+          <div class="border border-slate-200 rounded-lg overflow-hidden">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="text-left px-4 py-3 font-medium">Email</th>
+                  <th class="text-left px-4 py-3 font-medium">Branch</th>
+                  <th class="text-left px-4 py-3 font-medium">Status</th>
+                  <th class="text-left px-4 py-3 font-medium">Assigned By</th>
+                  <th class="text-left px-4 py-3 font-medium">Last Login</th>
+                  <th class="text-left px-4 py-3 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="salesDirectorsUsersList" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="6" class="px-4 py-8 text-center text-slate-500">Loading Sales Directors...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div id="salesDirectorsPagination" class="flex items-center justify-between mt-4">
+            <span id="salesDirectorsPaginationInfo" class="text-sm text-slate-600"></span>
+            <div class="flex items-center gap-2">
+              <button id="salesDirectorsPrevPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
+                Previous
+              </button>
+              <button id="salesDirectorsNextPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
                 Next
               </button>
             </div>
@@ -762,6 +827,13 @@
             <div>
               <div class="font-medium text-slate-900">Sales</div>
               <div class="text-xs text-slate-500">Can view and save calculations</div>
+            </div>
+          </label>
+          <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+            <input type="radio" name="roleChange" value="SalesDirector" class="text-indigo-600">
+            <div>
+              <div class="font-medium text-slate-900">Sales Director</div>
+              <div class="text-xs text-slate-500">Full access plus quote approval authority</div>
             </div>
           </label>
           <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
@@ -1767,16 +1839,16 @@
     backofficeState.currentTab = tab;
 
     // Reset all tab button styles
-    const tabButtons = ['backofficeTabExecutives', 'backofficeTabSales', 'backofficeTabCustomers', 'backofficeTabAudit', 'backofficeTabDeletion', 'backofficeTabSettings', 'backofficeTabSignatures'];
+    const tabButtons = ['backofficeTabExecutives', 'backofficeTabSales', 'backofficeTabSalesDirectors', 'backofficeTabCustomers', 'backofficeTabAudit', 'backofficeTabDeletion', 'backofficeTabSettings', 'backofficeTabSignatures'];
     tabButtons.forEach(btnId => {
       if (el(btnId)) {
-        el(btnId).classList.remove('bg-white', 'shadow-sm', 'text-purple-600', 'text-blue-600', 'text-gray-600', 'text-green-600');
+        el(btnId).classList.remove('bg-white', 'shadow-sm', 'text-purple-600', 'text-blue-600', 'text-indigo-600', 'text-gray-600', 'text-green-600');
         el(btnId).classList.add('text-slate-600', 'hover:text-slate-900');
       }
     });
 
     // Hide all tab contents
-    const tabContents = ['backofficeExecutivesTab', 'backofficeSalesTab', 'backofficeCustomersTab', 'backofficeAuditTab', 'backofficeDeletionTab', 'backofficeSettingsTab', 'backofficeSignaturesTab'];
+    const tabContents = ['backofficeExecutivesTab', 'backofficeSalesTab', 'backofficeSalesDirectorsTab', 'backofficeCustomersTab', 'backofficeAuditTab', 'backofficeDeletionTab', 'backofficeSettingsTab', 'backofficeSignaturesTab'];
     tabContents.forEach(contentId => {
       if (el(contentId)) {
         el(contentId).classList.add('hidden');
@@ -1802,6 +1874,15 @@
         el('backofficeSalesTab').classList.remove('hidden');
       }
       loadRoleTabUsers('Sales', 'sales');
+    } else if (tab === 'salesDirectors') {
+      if (el('backofficeTabSalesDirectors')) {
+        el('backofficeTabSalesDirectors').classList.add('bg-white', 'shadow-sm', 'text-indigo-600');
+        el('backofficeTabSalesDirectors').classList.remove('text-slate-600', 'hover:text-slate-900');
+      }
+      if (el('backofficeSalesDirectorsTab')) {
+        el('backofficeSalesDirectorsTab').classList.remove('hidden');
+      }
+      loadRoleTabUsers('SalesDirector', 'salesDirectors');
     } else if (tab === 'customers') {
       if (el('backofficeTabCustomers')) {
         el('backofficeTabCustomers').classList.add('bg-white', 'shadow-sm', 'text-gray-600');
@@ -2053,6 +2134,7 @@
 
   setupTabHandlers('Executive', 'executive');
   setupTabHandlers('Sales', 'sales');
+  setupTabHandlers('SalesDirector', 'salesDirectors');
   setupTabHandlers('Customer', 'customer');
 
   const auditSearchBtn = el('auditSearchBtn');

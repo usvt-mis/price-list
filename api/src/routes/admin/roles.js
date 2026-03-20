@@ -77,7 +77,7 @@ router.get('/', async (req, res, next) => {
  * POST /api/adm/roles/assign
  * Assign Executive role to a user
  * Requires: PriceListExecutive role
- * Body: { email: string, role: 'Executive' | 'Sales' }
+ * Body: { email: string, role: 'Executive' | 'Sales' | 'SalesDirector' }
  */
 router.post('/assign', async (req, res, next) => {
   const correlationId = req.headers['x-correlation-id'] || logger.getCorrelationId();
@@ -107,13 +107,13 @@ router.post('/assign', async (req, res, next) => {
       return res.status(400).json({ error: 'Email and role are required' });
     }
 
-    if (!['Executive', 'Sales'].includes(role)) {
-      scopedLogger.warn('API', 'RoleAssignValidationFailed', 'Role must be Executive or Sales', {
+    if (!['Executive', 'Sales', 'SalesDirector'].includes(role)) {
+      scopedLogger.warn('API', 'RoleAssignValidationFailed', 'Role must be Executive, Sales, or SalesDirector', {
         userEmail,
         userRole: 'Executive',
         serverContext: { endpoint: '/api/admin/roles/assign', requestedRole: role }
       });
-      return res.status(400).json({ error: "Role must be 'Executive' or 'Sales'" });
+      return res.status(400).json({ error: "Role must be 'Executive', 'Sales', or 'SalesDirector'" });
     }
 
     scopedLogger.info('API', 'RoleAssignmentStart', `User ${userEmail} assigning ${role} role to ${email}`, {

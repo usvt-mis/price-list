@@ -6,8 +6,10 @@
 import { state } from './state.js';
 import { authState } from '../state.js';
 import { ROLE, MODE } from '../core/config.js';
-import { el, show, hide, showToast, showLoading, hideLoading } from './ui.js';
+import { GATEWAY_API } from './config.js';
+import { el, show, hide, showToast, showLoading, hideLoading, updateQuoteEditorModeUi } from './ui.js';
 import { fetchSalespersonSignature } from './print-quote.js';
+import { canApproveQuotes } from '../auth/mode-detection.js';
 
 // ============================================================
 // Constants
@@ -71,6 +73,30 @@ async function fetchWithAuth(url, options = {}) {
 // ============================================================
 
 /**
+ * Initialize visibility of approvals sections based on user role
+ * - Pending Approvals: Sales Director/Executive only
+ * - My Approval Requests: All authenticated users
+ */
+export function initializeApprovalsSectionVisibility() {
+  const pendingSection = el('pendingApprovalsSection');
+  const myApprovalsSection = el('myApprovalsSection');
+
+  // Pending Approvals section - only for directors/executives
+  if (pendingSection) {
+    if (canApproveQuotes()) {
+      show('pendingApprovalsSection');
+    } else {
+      hide('pendingApprovalsSection');
+    }
+  }
+
+  // My Approval Requests section - always show for authenticated users
+  if (myApprovalsSection) {
+    show('myApprovalsSection');
+  }
+}
+
+/**
  * Initialize approvals tab - show/hide based on user role
  */
 export async function initializeApprovalsTab() {
@@ -78,13 +104,28 @@ export async function initializeApprovalsTab() {
   const tabApprovals = el('tabApprovals');
   const approvalsBadge = el('approvalsBadge');
 
-  // Show tab for Sales Directors and Executives
-  const canApprove = userRole === ROLE.SALES_DIRECTOR || userRole === ROLE.EXECUTIVE;
+  // Hide tab for unauthenticated users or NoRole
+  const hasRole = userRole && userRole !== ROLE.NO_ROLE;
 
-  if (canApprove && tabApprovals) {
+  if (hasRole && tabApprovals) {
     show('tabApprovals');
     if (approvalsBadge) show('approvalsBadge');
-    await updatePendingApprovalsBadge();
+
+    // Initialize section visibility
+    initializeApprovalsSectionVisibility();
+
+    // Only update badge for directors/executives
+    if (canApproveQuotes()) {
+      // Graceful error handling - badge update is non-critical
+      try {
+        await updatePendingApprovalsBadge();
+      } catch (error) {
+        console.warn('[Approvals] Could not update badge (auth state may differ from backend):', error.message);
+      }
+    } else {
+      // Hide badge for non-directors
+      if (approvalsBadge) hide('approvalsBadge');
+    }
   } else {
     hide('tabApprovals');
     if (approvalsBadge) hide('approvalsBadge');
@@ -356,14 +397,7 @@ export async function createApprovalRecord(quoteData) {
     return false;
   }
 
-  // Check if total amount requires approval (only if > 0)
-  const total = parseFloat(totalAmount) || 0;
-  if (total <= 0) {
-    console.log('[Approval] Quote total is zero or negative, skipping approval record creation');
-    state.approval.currentStatus = APPROVAL_STATUS.APPROVED;
-    return true;
-  }
-
+  // Auto-approval removed - always create the record regardless of total amount
   try {
     const response = await fetchWithAuth('/api/salesquotes/approvals/initialize', {
       method: 'POST',
@@ -373,7 +407,7 @@ export async function createApprovalRecord(quoteData) {
         salespersonName,
         customerName,
         workDescription,
-        totalAmount: total
+        totalAmount
       })
     });
 
@@ -400,14 +434,7 @@ export async function sendApprovalRequest(quoteData) {
     return false;
   }
 
-  // Check if total amount requires approval (only if > 0)
-  const total = parseFloat(totalAmount) || 0;
-  if (total <= 0) {
-    console.log('[Approval] Quote total is zero or negative, auto-approving');
-    state.approval.currentStatus = APPROVAL_STATUS.APPROVED;
-    return true;
-  }
-
+  // Auto-approval removed - always submit for approval regardless of total amount
   showLoading('Sending Approval Request', 'Submitting to Sales Director...');
 
   try {
@@ -419,7 +446,7 @@ export async function sendApprovalRequest(quoteData) {
         salespersonName,
         customerName,
         workDescription,
-        totalAmount: total
+        totalAmount
       })
     });
 
@@ -427,11 +454,10 @@ export async function sendApprovalRequest(quoteData) {
 
     hideLoading();
 
-    if (state.approval.currentStatus === APPROVAL_STATUS.APPROVED) {
-      showToast('Quote approved automatically', 'success');
-    } else {
-      showToast('Quote submitted for approval', 'success');
-    }
+    showToast('Quote submitted for approval', 'success');
+
+    // Update UI to reflect new status (hide "Send Approval Request" button, update badge)
+    await updateQuoteEditorModeUi();
 
     return true;
   } catch (error) {
@@ -459,14 +485,7 @@ export async function submitForApproval(quoteData) {
     return false;
   }
 
-  // Check if total amount requires approval (only if > 0)
-  const total = parseFloat(totalAmount) || 0;
-  if (total <= 0) {
-    console.log('[Approval] Quote total is zero or negative, skipping approval');
-    state.approval.currentStatus = APPROVAL_STATUS.APPROVED;
-    return true;
-  }
-
+  // Auto-approval removed - always submit for approval regardless of total amount
   showLoading('Submitting for approval...', 'Sending Approval Request');
 
   try {
@@ -478,7 +497,7 @@ export async function submitForApproval(quoteData) {
         salespersonName,
         customerName,
         workDescription,
-        totalAmount: total
+        totalAmount
       })
     });
 
@@ -486,11 +505,7 @@ export async function submitForApproval(quoteData) {
 
     hideLoading();
 
-    if (state.approval.currentStatus === APPROVAL_STATUS.APPROVED) {
-      showToast('Quote approved automatically', 'success');
-    } else {
-      showToast('Quote submitted for approval', 'success');
-    }
+    showToast('Quote submitted for approval', 'success');
 
     return true;
   } catch (error) {
@@ -744,10 +759,13 @@ async function loadQuoteForPreview(quoteNumber) {
     const approvalResponse = await fetchWithAuth(`/api/salesquotes/approvals/${quoteNumber}`);
     const approval = approvalResponse.approval;
 
-    // Fetch quote details from BC
-    const bcResponse = await fetch(`/api/business-central/sales-quotes/${quoteNumber}`);
+    // Fetch quote details from BC using the correct gateway endpoint
+    const bcResponse = await fetch(`${GATEWAY_API.GET_SALES_QUOTES_FROM_NUMBER}?salesQuoteNumber=${encodeURIComponent(quoteNumber)}`);
     if (!bcResponse.ok) throw new Error('Failed to fetch quote details');
-    const quoteData = await bcResponse.json();
+    const bcResponseData = await bcResponse.json();
+    
+    // Extract quote data from gateway response format (result.data wrapper)
+    const quoteData = bcResponseData.data || bcResponseData.result?.data || bcResponseData.result;
 
     // Fetch Sales Director signature if approved
     let directorSignature = null;

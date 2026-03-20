@@ -767,9 +767,10 @@
       </div>
     </div>
 
-    <!-- Approvals View (Sales Director/Executive only) -->
+    <!-- Approvals View -->
     <div id="approvalsView" class="view hidden">
-      <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+      <!-- Pending Approvals Section (Sales Director/Executive only) -->
+      <div id="pendingApprovalsSection" class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
           <div>
             <div class="flex items-center gap-2 mb-2">
@@ -814,8 +815,8 @@
         </div>
       </div>
 
-      <!-- My Approval Requests (Sales users) -->
-      <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mt-6">
+      <!-- My Approval Requests Section (All authenticated users) -->
+      <div id="myApprovalsSection" class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mt-6">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
           <div>
             <div class="flex items-center gap-2 mb-2">

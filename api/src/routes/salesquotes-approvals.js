@@ -133,14 +133,9 @@ router.post('/initialize', async (req, res, next) => {
       });
     }
 
-    // For quotes with zero or negative total, auto-approve
+    // Always use SubmittedToBC status - auto-approval removed
     let finalStatus = 'SubmittedToBC';
     let submittedAt = null;
-
-    if (amount <= 0) {
-      finalStatus = 'Approved';
-      logger.info('APPROVALS', 'AutoApprovedZeroValue', `Quote ${salesQuoteNumber} auto-approved (total: ${amount})`);
-    }
 
     // Insert new approval record with SubmittedToBC status
     const result = await pool.request()
@@ -190,9 +185,7 @@ router.post('/initialize', async (req, res, next) => {
     });
 
     res.status(201).json({
-      message: finalStatus === 'Approved'
-        ? 'Quote approved automatically (zero value)'
-        : 'Approval record created - quote submitted to BC',
+      message: 'Approval record created - quote submitted to BC',
       approval
     });
 
@@ -243,16 +236,9 @@ router.post('/', async (req, res, next) => {
     if (existing) {
       // If in SubmittedToBC status, transition to PendingApproval
       if (existing.ApprovalStatus === 'SubmittedToBC') {
-        // For quotes with zero or negative total, auto-approve
+        // Transition to PendingApproval - auto-approval removed
         let finalStatus = 'PendingApproval';
         let submittedAt = new Date().toISOString();
-
-        const amount = parseFloat(totalAmount);
-        if (amount <= 0) {
-          finalStatus = 'Approved';
-          submittedAt = null;
-          logger.info('APPROVALS', 'AutoApprovedZeroValue', `Quote ${salesQuoteNumber} auto-approved (total: ${amount})`);
-        }
 
         // Update to PendingApproval
         await pool.request()
@@ -276,9 +262,7 @@ router.post('/', async (req, res, next) => {
         });
 
         return res.status(200).json({
-          message: finalStatus === 'Approved'
-            ? 'Quote approved automatically (zero value)'
-            : 'Quote submitted for approval',
+          message: 'Quote submitted for approval',
           approval: mapApprovalRecord(updated)
         });
       }
@@ -291,15 +275,9 @@ router.post('/', async (req, res, next) => {
       });
     }
 
-    // For quotes with zero or negative total, auto-approve
+    // Submit for approval - auto-approval removed
     let finalStatus = 'PendingApproval';
     let submittedAt = new Date().toISOString();
-
-    if (amount <= 0) {
-      finalStatus = 'Approved';
-      submittedAt = null; // No submission needed for zero-value quotes
-      logger.info('APPROVALS', 'AutoApprovedZeroValue', `Quote ${salesQuoteNumber} auto-approved (total: ${amount})`);
-    }
 
     // Insert new approval record
     const result = await pool.request()
@@ -349,9 +327,7 @@ router.post('/', async (req, res, next) => {
     });
 
     res.status(201).json({
-      message: finalStatus === 'Approved'
-        ? 'Quote approved automatically (zero value)'
-        : 'Quote submitted for approval',
+      message: 'Quote submitted for approval',
       approval
     });
 
@@ -379,7 +355,7 @@ router.get('/:quoteNumber', async (req, res, next) => {
     const approval = await getApprovalByQuoteNumber(pool, quoteNumber);
 
     if (!approval) {
-      return res.status(404).json({ error: 'Approval record not found' });
+      return res.status(200).json({ approval: null });
     }
 
     res.json({ approval: mapApprovalRecord(approval) });

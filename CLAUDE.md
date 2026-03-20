@@ -394,22 +394,24 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Executives: Full approval access (same as Sales Directors)
 - **Approval Record Initialization**:
   - Quotes are automatically initialized with "SubmittedToBC" status when created/updated
-  - Auto-approval for zero or negative total quotes (status set to "Approved")
+  - Auto-approval has been removed - all quotes now require manual approval regardless of total amount
   - API endpoint: `POST /api/salesquotes/approvals/initialize`
 - **Send Approval Request Button**:
-  - Visible to all users when viewing a searched quote (not Sales-only)
+  - Visible to all users when viewing a searched quote with total > 0
   - Allows submitting quotes for director/executive approval
-  - Button shown when quote status is Draft or SubmittedToBC
+  - Button shown when quote status is Draft or SubmittedToBC AND total amount > 0
+  - Hidden for zero or negative total quotes
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()`, `src/salesquotes.html` - button element
-- **Approvals Tab**: Visible only to Sales Directors and Executives
-  - Shows pending approvals list with quote details
-  - Badge count shows number of pending approvals
-  - Refresh button to reload pending approvals
-  - Actions: Approve, Reject, Request Revision (with comment)
-- **My Approval Requests**: Sales users can track their submitted approval requests
-  - Shows status of each request with color-coded badges
-  - View approval history and director comments
-  - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Slate (Cancelled)
+- **Approvals Tab**: Visible to all authenticated users (Sales, Sales Directors, Executives)
+  - **Pending Approvals Section**: Only visible to Sales Directors and Executives
+    - Shows pending approvals list with quote details
+    - Badge count shows number of pending approvals
+    - Refresh button to reload pending approvals
+    - Actions: Approve, Reject, Request Revision (with comment)
+  - **My Approval Requests Section**: Visible to all authenticated users
+    - Shows status of each request with color-coded badges
+    - View approval history and director comments
+    - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Slate (Cancelled)
 - **API Endpoints**:
   - `POST /api/salesquotes/approvals/initialize` - Initialize approval record (SubmittedToBC status)
   - `POST /api/salesquotes/approvals` - Submit quote for approval
@@ -459,6 +461,23 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 - `database/migrations/add_salesperson_signatures.sql` - Creates `SalespersonSignatures` and `SalespersonSignatureAudit` tables for signature management
 - `api/src/database/schemas/add_sales_quote_approvals.sql` - Creates `SalesQuoteApprovals` table for approval workflow
 - `api/src/database/schemas/add_salesdirector_role_constraint.sql` - Adds SalesDirector role constraint to UserRoles table
+
+### Backoffice User Management
+- Backoffice interface for managing user roles and permissions
+- **Tabs**: Executives, Sales, Sales Directors, Customers, Audit, Deletion, Settings, Signatures
+- **Sales Directors Tab**: Dedicated tab for managing Sales Director role assignments
+  - Add Sales Directors via email input with validation
+  - Search and filter Sales Directors by email
+  - View Sales Director details: email, branch, status, assigned by, last login
+  - Remove Sales Director role assignment
+  - Pagination support for large user lists
+- **Role Assignment API**: `POST /api/admin/roles/assign`
+  - Requires PriceListExecutive role
+  - Supported roles: Executive, Sales, SalesDirector
+  - Body: `{ email: string, role: 'Executive' | 'Sales' | 'SalesDirector' }`
+  - Validates email format and role value
+  - Implementation: `api/src/routes/admin/roles.js`
+- **Implementation**: `src/backoffice.html` - tab structure and UI, `api/src/routes/backoffice/index.js` - backend API
 
 ---
 

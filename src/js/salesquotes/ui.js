@@ -1515,17 +1515,30 @@ export async function updateQuoteEditorModeUi() {
       : 'Send to Business Central';
   }
 
-  // Show "Send Approval Request" button for Sales users when quote is loaded
+  // Show "Send Approval Request" button for all users when quote is loaded
   if (sendApprovalRequestBtn) {
-    const userRole = authState.user?.effectiveRole;
-    const isSalesOnly = userRole === ROLE.SALES;
     const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
 
     const APPROVAL = await getApprovalStatus();
-    const canRequestApproval = isEditMode && isSalesOnly && isSearchSalesQuoteMode &&
+
+    // Calculate total amount from state to check if button should be shown
+    const invoiceDiscount = parseFloat(el('invoiceDiscount')?.value || 0);
+    const vatRate = parseFloat(el('vatRate')?.value || 7) / 100;
+    const subtotal = state.quote.lines.reduce((sum, line) => {
+      const quantity = parseFloat(line.quantity) || 0;
+      const unitPrice = parseFloat(line.unitPrice) || 0;
+      const discountAmount = parseFloat(line.discountAmount) || 0;
+      return sum + (quantity * unitPrice - discountAmount);
+    }, 0);
+    const afterDiscount = subtotal - invoiceDiscount;
+    const total = afterDiscount + (afterDiscount * vatRate);
+
+    // Button visibility: must be in edit mode, appropriate status, AND total > 0
+    const canRequestApproval = isEditMode && isSearchSalesQuoteMode &&
       (approvalStatus === null ||
        approvalStatus === APPROVAL.DRAFT ||
-       approvalStatus === APPROVAL.SUBMITTED_TO_BC);
+       approvalStatus === APPROVAL.SUBMITTED_TO_BC) &&
+      total > 0; // Hide button for zero or negative totals
 
     if (canRequestApproval) {
       sendApprovalRequestBtn.classList.remove('hidden');

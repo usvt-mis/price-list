@@ -257,6 +257,11 @@ async function requireAuth(req, res, next) {
       userRole: process.env.MOCK_USER_ROLE || 'PriceListSales'
     });
     req.user = createMockUser();
+
+    // CRITICAL: Set effectiveRole for local dev users too
+    const effectiveRole = await getUserEffectiveRole(req.user);
+    req.user.effectiveRole = effectiveRole;
+
     return next();
   }
 
@@ -323,6 +328,12 @@ async function requireAuth(req, res, next) {
   }
 
   req.user = user;
+
+  // CRITICAL: Set effectiveRole on user object for all routes to use
+  // This ensures req.user.effectiveRole is available downstream
+  const effectiveRole = await getUserEffectiveRole(req.user);
+  req.user.effectiveRole = effectiveRole;
+
   next();
 }
 
