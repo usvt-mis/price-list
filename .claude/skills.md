@@ -50,6 +50,35 @@ Deploys the application to Azure App Service Production environment.
 - Manages CI/CD processes
 - Ensures proper configuration for production environment
 
+### `/fix` Skill
+Professionally diagnose and fix issues in the application with systematic analysis and proper resolution.
+
+**Usage:**
+```
+/fix [issue description or error details]
+```
+
+**What it does:**
+- Analyzes the issue and understands the root cause
+- Locates relevant code and understands context
+- Implements a minimal, targeted fix
+- Tests the fix (if applicable)
+- Creates a proper commit with conventional commit message
+
+### `/start` Skill
+Start the Express.js application locally for development.
+
+**Usage:**
+```
+/start
+```
+
+**What it does:**
+- Runs pre-start checks (Node.js, API configuration)
+- Starts the Express.js server on port 8080
+- Monitors startup progress
+- Reports local development URL and any errors
+
 ## Skill Templates
 
 The repository includes templates for creating new skills:
