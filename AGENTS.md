@@ -172,6 +172,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Proxy routes: `/api/business-central/gateway/*`
 - Supports GET/POST; fallback keys for GetSalesQuotesFromNumber/UpdateSalesQuote
 - Config: `GATEWAY_BASE_URL`, `{CSQWN,CSI,CSOFSQ,GSQFN,USQ}_KEY`, `{...}_PATH` overrides
+- **Retry Logic**: Automatic retry for GET/HEAD requests on transient failures (network errors, timeouts)
+- **Configurable Timeout**: `GATEWAY_REQUEST_TIMEOUT_MS` (default: 15000ms) for gateway requests
+- **Retry Configuration**: `GATEWAY_FETCH_MAX_ATTEMPTS` (default: 3), `GATEWAY_FETCH_RETRY_DELAY_MS` (default: 400ms)
+- **Error Mapping**: User-friendly error messages for gateway failures (502 for connection issues, 504 for timeouts)
+- **Retryable Errors**: ECONNRESET, ECONNREFUSED, ENOTFOUND, EAI_AGAIN, ETIMEDOUT, UND_ERR_CONNECT_TIMEOUT, UND_ERR_HEADERS_TIMEOUT, UND_ERR_SOCKET
+- **Implementation**: `api/src/routes/business-central/gateway.js` - `fetchGatewayWithRetry()`, `mapGatewayProxyError()`, `performGatewayFetch()`
 
 ### Motor Drive Type Filtering (Workshop)
 - State: `appState.motorDriveType` ('AC' or 'DC')

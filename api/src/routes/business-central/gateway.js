@@ -7,6 +7,27 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../../utils/logger');
 
+const RETRYABLE_GATEWAY_METHODS = new Set(['GET', 'HEAD']);
+const RETRYABLE_GATEWAY_ERROR_CODES = new Set([
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ETIMEDOUT',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_SOCKET'
+]);
+
+function parsePositiveInteger(value, fallbackValue) {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackValue;
+}
+
+const GATEWAY_REQUEST_TIMEOUT_MS = parsePositiveInteger(process.env.GATEWAY_REQUEST_TIMEOUT_MS, 15000);
+const GATEWAY_FETCH_MAX_ATTEMPTS = parsePositiveInteger(process.env.GATEWAY_FETCH_MAX_ATTEMPTS, 3);
+const GATEWAY_FETCH_RETRY_DELAY_MS = parsePositiveInteger(process.env.GATEWAY_FETCH_RETRY_DELAY_MS, 400);
+
 const GATEWAY_ENDPOINTS = {
   createSalesQuoteWithoutNumber: {
     defaultPath: 'CreateSalesQuoteWithoutNumber',
@@ -79,6 +100,106 @@ function resolveGatewayFunctionKey(endpointConfig) {
   throw new Error(`Missing required gateway environment variable: ${endpointConfig.keyEnv}`);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getGatewayErrorCode(error) {
+  return error?.cause?.code || error?.code || null;
+}
+
+function isRetryableGatewayFetchError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const name = String(error?.name || '');
+  const errorCode = getGatewayErrorCode(error);
+
+  return name === 'AbortError'
+    || name === 'GatewayTimeoutError'
+    || message.includes('fetch failed')
+    || message.includes('timeout')
+    || RETRYABLE_GATEWAY_ERROR_CODES.has(errorCode);
+}
+
+function mapGatewayProxyError(error) {
+  if (error?.name === 'GatewayTimeoutError') {
+    return {
+      statusCode: 504,
+      message: 'Business Central gateway timed out while loading data. Please try again.'
+    };
+  }
+
+  if (isRetryableGatewayFetchError(error)) {
+    return {
+      statusCode: 502,
+      message: 'Unable to reach the Business Central gateway right now. Please try again.'
+    };
+  }
+
+  return {
+    statusCode: error?.statusCode || 500,
+    message: error?.message || 'Business Central gateway request failed.'
+  };
+}
+
+async function performGatewayFetch(url, fetchOptions, timeoutMs) {
+  const controller = new AbortController();
+  let didTimeout = false;
+  const timeoutHandle = setTimeout(() => {
+    didTimeout = true;
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (didTimeout) {
+      const timeoutError = new Error(`Gateway request timed out after ${timeoutMs}ms`);
+      timeoutError.name = 'GatewayTimeoutError';
+      timeoutError.cause = error;
+      throw timeoutError;
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
+}
+
+async function fetchGatewayWithRetry(url, fetchOptions, requestMethod, logContext) {
+  const normalizedMethod = String(requestMethod || 'GET').toUpperCase();
+  const maxAttempts = RETRYABLE_GATEWAY_METHODS.has(normalizedMethod)
+    ? GATEWAY_FETCH_MAX_ATTEMPTS
+    : 1;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await performGatewayFetch(url, fetchOptions, GATEWAY_REQUEST_TIMEOUT_MS);
+    } catch (error) {
+      const shouldRetry = attempt < maxAttempts && isRetryableGatewayFetchError(error);
+      const errorCode = getGatewayErrorCode(error);
+
+      if (!shouldRetry) {
+        error.gatewayAttempt = attempt;
+        throw error;
+      }
+
+      logger.warn('BC_GATEWAY', `${logContext.eventType}Retry`, 'Retrying Business Central gateway request after transient failure', {
+        endpoint: logContext.endpointPath,
+        method: normalizedMethod,
+        attempt,
+        maxAttempts,
+        error: error.message,
+        errorCode
+      });
+
+      await sleep(GATEWAY_FETCH_RETRY_DELAY_MS * attempt);
+    }
+  }
+}
+
 function getGatewayRequestConfig(endpointName) {
   const endpointConfig = GATEWAY_ENDPOINTS[endpointName];
   if (!endpointConfig) {
@@ -104,6 +225,9 @@ function getGatewayRequestConfig(endpointName) {
 }
 
 async function proxyGatewayRequest(req, res, next, endpointName, eventType, options = {}) {
+  let requestMethod;
+  let url;
+
   try {
     const {
       endpointPath,
@@ -112,8 +236,8 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
       method: configuredMethod,
       baseUrl
     } = getGatewayRequestConfig(endpointName);
-    const requestMethod = options.method || configuredMethod;
-    const url = buildGatewayUrl(baseUrl, endpointPath, options.queryParams);
+    requestMethod = options.method || configuredMethod;
+    url = buildGatewayUrl(baseUrl, endpointPath, options.queryParams);
 
     logger.info('BC_GATEWAY', `${eventType}Start`, 'Forwarding request to Azure Function gateway', {
       endpoint: endpointPath,
@@ -134,7 +258,10 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
       fetchOptions.body = JSON.stringify(req.body ?? {});
     }
 
-    const response = await fetch(url, fetchOptions);
+    const response = await fetchGatewayWithRetry(url, fetchOptions, requestMethod, {
+      endpointPath,
+      eventType
+    });
 
     const contentType = response.headers.get('content-type');
     const responseBody = await response.text();
@@ -151,11 +278,23 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
 
     res.status(response.status).send(responseBody);
   } catch (err) {
+    const mappedError = mapGatewayProxyError(err);
+
     logger.error('BC_GATEWAY', `${eventType}Error`, 'Azure Function gateway request failed', {
       endpoint: endpointName,
-      error: err.message
+      method: requestMethod,
+      url,
+      attempt: err.gatewayAttempt || 1,
+      error: err.message,
+      errorName: err.name,
+      errorCode: getGatewayErrorCode(err),
+      errorCause: err.cause?.message || null
     });
-    next(err);
+
+    const forwardedError = new Error(mappedError.message);
+    forwardedError.statusCode = mappedError.statusCode;
+    forwardedError.cause = err;
+    next(forwardedError);
   }
 }
 
