@@ -17,7 +17,8 @@ const modalPaths = {
   'confirmRemoveModal': '/salesquotes/components/modals/confirm-remove-modal.html',
   'confirmClearQuoteModal': '/salesquotes/components/modals/confirm-clear-modal.html',
   'confirmNewSerModal': '/salesquotes/components/modals/confirm-new-ser-modal.html',
-  'noBranchModal': '/salesquotes/components/modals/no-branch-modal.html'
+  'noBranchModal': '/salesquotes/components/modals/no-branch-modal.html',
+  'approvalActionModal': '/salesquotes/components/modals/approval-action-modal.html'
 };
 
 /**

@@ -81,7 +81,7 @@ api/src/
 
 src/salesquotes/components/
 ├── styles/         # External CSS
-├── modals/         # 11 modular HTML modals (lazy-loaded)
+├── modals/         # 12 modular HTML modals (lazy-loaded)
 └── assets/         # Static assets (logos, certifications for print)
 ```
 
@@ -142,6 +142,33 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Show animation** (in JS): `modalContent.style.opacity = '1'; modalContent.style.transform = 'translateY(0)';`
 - **Hide animation** (in JS): `modalContent.style.opacity = '0'; modalContent.style.transform = 'translateY(-10px)';`
 - Implementation: See `confirm-new-ser-modal.html` and `showConfirmNewSerModal()` / `hideConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
+
+### Approval Action Modal Pattern
+- **Purpose**: Replaces `window.prompt()` and `window.confirm()` for approval-related user interactions
+- **Features**: Configurable status, title, message, context display, optional comment input, error handling
+- **Z-index**: Uses `z-[160]` for proper stacking over other modals
+- **Animation**: 180ms hide delay for smooth transitions, inline style animations
+- **Usage**: `showApprovalActionModal(options)` returns Promise with `{ confirmed, comment }`
+- **Options**:
+  - `status`: Status text displayed at top (e.g., "Pending Approval", "Revision Request")
+  - `statusTone`: Visual tone - 'danger' (red), 'warning' (amber), 'info' (blue), 'neutral' (gray)
+  - `title`: Modal title text
+  - `message`: Descriptive message explaining the action
+  - `contextLabel`: Label for context value (e.g., "Sales Quote")
+  - `contextValue`: Value to display (e.g., quote number)
+  - `confirmText`: Text for confirm button
+  - `confirmVariant`: Button style - 'primary' (blue), 'danger' (red), 'warning' (amber), 'neutral' (gray)
+  - `requireComment`: Boolean to show/hide comment input
+  - `commentLabel`: Label for comment textarea
+  - `commentPlaceholder`: Placeholder text for textarea
+  - `commentHint`: Helper text below textarea
+  - `commentRows`: Number of rows for textarea (default: 4)
+  - `initialComment`: Pre-filled comment value
+- **Validation**: If `requireComment=true`, empty comments are rejected with error message
+- **Keyboard Support**: Escape key cancels the modal
+- **CSS Classes**: `.sales-alert-modal`, `.sales-alert-dialog`, `.sales-alert-panel`, `.sales-alert-textarea`, `.sales-alert-error`
+- **Implementation**: `src/js/salesquotes/approvals.js` - `showApprovalActionModal()`, `approval-action-modal.html`
+- **Used in**: `cancelApprovalRequest()`, `approveRevisionRequest()`, `rejectQuote()`, `requestApprovedQuoteRevision()`
 
 ### Tailwind CSS Safelist Pattern
 - **Problem**: Tailwind CSS may not generate certain color classes if they're only used in dynamically loaded HTML or specific contexts
@@ -356,7 +383,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Dynamic meta table column adjustment based on address width
 - **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13ch), `shifted` class with differentiated positioning (labels: -21mm left, values: -12mm left), attentionTelBlockOffsetXMm/YMm using relative positioning instead of transform
 - **Delivery Date Field**: Uses `reportContext.deliveryDate` for delivery text in meta table
-- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`
+- **Signature Grid Layout**: Grid columns: 49mm (Salesperson), 57mm (Customer), 60mm (Approver) - updated to provide more space for approver email
+- **Signature Rendering**: `renderApproverSignatureColumn()` function extracts approver signature HTML to reduce code duplication
+- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `renderApproverSignatureColumn()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 - **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content
 
@@ -471,11 +500,14 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - **Ownership-based Revision**: The `ApprovalOwnerEmail` field (defaults to SalespersonEmail) determines who can request revisions on Approved quotes
 - **Frontend Module**: `src/js/salesquotes/approvals.js`
   - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
+  - **Modal Functions**: `showApprovalActionModal()` - Displays configurable approval action modal with optional comment input
   - Helper functions: `hasPendingRevisionRequest()` - Checks if an approval has a pending revision request (uses backend flag first, falls back to client-side calculation)
 - **UI Module**: `src/js/salesquotes/ui.js`
   - Functions: `isCurrentUserApprovalOwner()` - Checks if current user is the approval owner (compares current user email with approval's ApprovalOwnerEmail, falls back to SalespersonEmail)
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
+  - Modal: `approval-action-modal.html` - Configurable modal for approval actions (cancel, approve revision, reject)
   - Styles: `approval-styles.css` - Approval-specific UI styles
+  - Styles: `salesquotes-styles.css` - Includes `.sales-alert-modal`, `.sales-alert-textarea`, `.sales-alert-error` classes for approval action modal
 - **Integration with Quote Creation**:
   - After quote creation/update, approval records are automatically initialized with SubmittedToBC status
   - ApprovalOwnerEmail is set to the salesperson's email during initialization

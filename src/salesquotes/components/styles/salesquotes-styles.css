@@ -1262,6 +1262,46 @@ button:disabled:hover {
   background: #eff6ff;
 }
 
+.sales-alert-textarea {
+  width: 100%;
+  min-height: 7.5rem;
+  margin-top: 0.65rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sales-alert-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.sales-alert-textarea:focus {
+  outline: none;
+  border-color: #0f172a;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+}
+
+.sales-alert-helper,
+.sales-alert-error {
+  margin: 0.6rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.sales-alert-helper {
+  color: #64748b;
+}
+
+.sales-alert-error {
+  color: #b91c1c;
+}
+
 @media (max-width: 640px) {
   .quote-created-dialog,
   .sales-alert-dialog {
@@ -1287,6 +1327,10 @@ button:disabled:hover {
   .sales-alert-body {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+
+  .sales-alert-textarea {
+    min-height: 6.5rem;
   }
 
   .quote-created-actions,

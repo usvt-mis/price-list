@@ -12,7 +12,7 @@ import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCust
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 import { recordQuoteSubmission } from './records.js';
-import { submitForApproval, createApprovalRecord, sendApprovalRequest as sendApprovalRequestModule, checkApprovalStatus, APPROVAL_STATUS, resubmitForApproval, requestRevisionForApprovedQuote } from './approvals.js';
+import { submitForApproval, createApprovalRecord, sendApprovalRequest as sendApprovalRequestModule, checkApprovalStatus, APPROVAL_STATUS, resubmitForApproval, requestRevisionForApprovedQuote, showApprovalActionModal } from './approvals.js';
 import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
 
@@ -2577,13 +2577,27 @@ export async function requestApprovedQuoteRevision() {
     return;
   }
 
-  const comment = window.prompt('Please enter the reason for this revision request:');
-  if (comment === null) {
+  const modalResult = await showApprovalActionModal({
+    status: 'Approved Quote',
+    statusTone: 'warning',
+    title: 'Request a revision for this quote?',
+    message: 'Share what needs to change so the Sales Director can review and unlock this quote for editing.',
+    contextLabel: 'Sales Quote',
+    contextValue: quoteNumber,
+    confirmText: 'Send Request',
+    confirmVariant: 'warning',
+    requireComment: true,
+    commentLabel: 'Reason for revision',
+    commentPlaceholder: 'Describe what you need to update on this quote...',
+    commentHint: 'This comment will be visible to the approver.'
+  });
+
+  if (!modalResult.confirmed) {
     logRequestRevisionActionDecision('cancelled: user dismissed revision request prompt');
     return;
   }
 
-  const normalizedComment = comment.trim();
+  const normalizedComment = modalResult.comment.trim();
   if (!normalizedComment) {
     logRequestRevisionActionDecision('blocked: revision request reason is empty');
     showToast('Please provide a reason for the revision request', 'error');

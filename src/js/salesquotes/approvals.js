@@ -10,6 +10,7 @@ import { GATEWAY_API } from './config.js';
 import { el, show, hide, showToast, showLoading, hideLoading, updateQuoteEditorModeUi } from './ui.js';
 import { fetchSalesDirectorSignature } from './print-quote.js';
 import { canApproveQuotes } from '../auth/mode-detection.js';
+import { loadModal } from './components/modal-loader.js';
 
 // ============================================================
 // Constants
@@ -49,6 +50,23 @@ const STATUS_BADGE_CLASSES = {
 };
 
 const PENDING_REVISION_THRESHOLD_MS = 1000;
+const APPROVAL_ACTION_STATUS_CLASS_MAP = {
+  danger: 'sales-alert-status sales-alert-status-danger',
+  warning: 'sales-alert-status sales-alert-status-warning',
+  info: 'sales-alert-status sales-alert-status-info',
+  neutral: 'sales-alert-status sales-alert-status-neutral'
+};
+
+const APPROVAL_ACTION_CONFIRM_CLASS_MAP = {
+  primary: 'sales-alert-btn sales-alert-btn-primary',
+  danger: 'sales-alert-btn sales-alert-btn-danger',
+  warning: 'sales-alert-btn sales-alert-btn-warning',
+  neutral: 'sales-alert-btn'
+};
+
+let approvalActionModalResolver = null;
+let approvalActionModalConfig = null;
+let approvalActionModalHideTimer = null;
 
 function normalizeTimestamp(value) {
   if (!value) {
@@ -91,6 +109,291 @@ function getApprovalStatusPresentation(approval) {
     label: STATUS_LABELS[approval?.approvalStatus] || approval?.approvalStatus || '-',
     badgeClass: STATUS_BADGE_CLASSES[approval?.approvalStatus] || 'bg-slate-100 text-slate-700'
   };
+}
+
+function getApprovalActionModalElements() {
+  return {
+    modal: el('approvalActionModal'),
+    modalContent: el('approvalActionModalContent'),
+    status: el('approvalActionModalStatus'),
+    title: el('approvalActionModalTitle'),
+    text: el('approvalActionModalText'),
+    contextSection: el('approvalActionModalContextSection'),
+    contextLabel: el('approvalActionModalContextLabel'),
+    contextValue: el('approvalActionModalContextValue'),
+    inputSection: el('approvalActionModalInputSection'),
+    inputLabel: el('approvalActionModalInputLabel'),
+    textarea: el('approvalActionModalTextarea'),
+    inputHint: el('approvalActionModalInputHint'),
+    error: el('approvalActionModalError'),
+    cancelBtn: el('approvalActionModalCancelBtn'),
+    confirmBtn: el('approvalActionModalConfirmBtn')
+  };
+}
+
+function clearApprovalActionModalError() {
+  const { textarea, error } = getApprovalActionModalElements();
+
+  if (textarea) {
+    textarea.setAttribute('aria-invalid', 'false');
+  }
+
+  if (error) {
+    error.textContent = '';
+    error.classList.add('hidden');
+  }
+}
+
+function setApprovalActionModalError(message) {
+  const { textarea, error } = getApprovalActionModalElements();
+
+  if (textarea) {
+    textarea.setAttribute('aria-invalid', 'true');
+  }
+
+  if (error) {
+    error.textContent = message;
+    error.classList.remove('hidden');
+  }
+}
+
+function hideApprovalActionModal() {
+  const { modal, modalContent, textarea, inputHint, inputSection, contextSection } = getApprovalActionModalElements();
+  if (!modal || !modalContent) {
+    return;
+  }
+
+  modalContent.style.opacity = '0';
+  modalContent.style.transform = 'translateY(-10px)';
+
+  if (approvalActionModalHideTimer) {
+    window.clearTimeout(approvalActionModalHideTimer);
+  }
+
+  approvalActionModalHideTimer = window.setTimeout(() => {
+    modal.classList.add('hidden');
+
+    if (textarea) {
+      textarea.value = '';
+    }
+
+    if (inputHint) {
+      inputHint.textContent = '';
+      inputHint.classList.add('hidden');
+    }
+
+    if (inputSection) {
+      inputSection.classList.add('hidden');
+    }
+
+    if (contextSection) {
+      contextSection.classList.add('hidden');
+    }
+
+    clearApprovalActionModalError();
+    approvalActionModalHideTimer = null;
+  }, 180);
+}
+
+function resolveApprovalActionModal(result) {
+  const resolver = approvalActionModalResolver;
+
+  approvalActionModalResolver = null;
+  approvalActionModalConfig = null;
+  hideApprovalActionModal();
+
+  if (typeof resolver === 'function') {
+    resolver(result);
+  }
+}
+
+function handleApprovalActionModalCancel() {
+  if (!approvalActionModalResolver) {
+    return;
+  }
+
+  resolveApprovalActionModal({ confirmed: false, comment: '' });
+}
+
+function handleApprovalActionModalConfirm() {
+  if (!approvalActionModalResolver) {
+    return;
+  }
+
+  const { textarea } = getApprovalActionModalElements();
+  const requireComment = approvalActionModalConfig?.requireComment === true;
+  const comment = textarea?.value?.trim?.() || '';
+
+  if (requireComment && !comment) {
+    setApprovalActionModalError('Please provide a comment before continuing.');
+    textarea?.focus();
+    return;
+  }
+
+  resolveApprovalActionModal({ confirmed: true, comment });
+}
+
+function handleApprovalActionModalKeydown(event) {
+  if (event.key === 'Escape' && approvalActionModalResolver) {
+    event.preventDefault();
+    handleApprovalActionModalCancel();
+  }
+}
+
+function bindApprovalActionModalEvents() {
+  const { modal, cancelBtn, confirmBtn, textarea } = getApprovalActionModalElements();
+
+  if (!modal || modal.dataset.bound === 'true') {
+    return;
+  }
+
+  cancelBtn?.addEventListener('click', handleApprovalActionModalCancel);
+  confirmBtn?.addEventListener('click', handleApprovalActionModalConfirm);
+  textarea?.addEventListener('input', clearApprovalActionModalError);
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      handleApprovalActionModalCancel();
+    }
+  });
+  document.addEventListener('keydown', handleApprovalActionModalKeydown);
+
+  modal.dataset.bound = 'true';
+}
+
+async function ensureApprovalActionModal() {
+  let modal = el('approvalActionModal');
+
+  if (!modal) {
+    try {
+      const loaded = await loadModal('approvalActionModal');
+      if (!loaded) {
+        throw new Error('Modal could not be loaded');
+      }
+      modal = el('approvalActionModal');
+    } catch (error) {
+      console.error('Failed to load approval action modal:', error);
+      showToast('Failed to open approval dialog. Please try again.', 'error');
+      return false;
+    }
+  }
+
+  bindApprovalActionModalEvents();
+  return modal !== null;
+}
+
+export async function showApprovalActionModal(options = {}) {
+  const ready = await ensureApprovalActionModal();
+  if (!ready || approvalActionModalResolver) {
+    return { confirmed: false, comment: '' };
+  }
+
+  const {
+    modal,
+    modalContent,
+    status,
+    title,
+    text,
+    contextSection,
+    contextLabel,
+    contextValue,
+    inputSection,
+    inputLabel,
+    textarea,
+    inputHint,
+    cancelBtn,
+    confirmBtn
+  } = getApprovalActionModalElements();
+
+  if (!modal || !modalContent || !status || !title || !text || !cancelBtn || !confirmBtn) {
+    showToast('Approval dialog is unavailable. Please refresh the page.', 'error');
+    return { confirmed: false, comment: '' };
+  }
+
+  const statusTone = APPROVAL_ACTION_STATUS_CLASS_MAP[options.statusTone] ? options.statusTone : 'neutral';
+  const confirmVariant = APPROVAL_ACTION_CONFIRM_CLASS_MAP[options.confirmVariant] ? options.confirmVariant : 'primary';
+  const normalizedContextValue = String(options.contextValue ?? '').trim();
+  const requireComment = options.requireComment === true;
+
+  approvalActionModalConfig = { requireComment };
+
+  status.className = APPROVAL_ACTION_STATUS_CLASS_MAP[statusTone];
+  status.textContent = options.status || 'Approval Action';
+
+  title.textContent = options.title || 'Confirm action';
+  text.textContent = options.message || 'Please review the details before continuing.';
+
+  if (contextSection && contextLabel && contextValue) {
+    if (normalizedContextValue) {
+      contextLabel.textContent = options.contextLabel || 'Sales Quote';
+      contextValue.textContent = normalizedContextValue;
+      contextSection.className = 'sales-alert-section sales-alert-section-info';
+      contextSection.classList.remove('hidden');
+    } else {
+      contextValue.textContent = '';
+      contextSection.classList.add('hidden');
+    }
+  }
+
+  if (inputSection && inputLabel && textarea) {
+    if (requireComment) {
+      inputLabel.textContent = options.commentLabel || 'Comments';
+      textarea.placeholder = options.commentPlaceholder || 'Enter details...';
+      textarea.rows = Number.isInteger(options.commentRows) && options.commentRows > 1
+        ? options.commentRows
+        : 4;
+      textarea.value = typeof options.initialComment === 'string' ? options.initialComment : '';
+      inputSection.classList.remove('hidden');
+    } else {
+      textarea.value = '';
+      inputSection.classList.add('hidden');
+    }
+  }
+
+  if (inputHint) {
+    const helperText = typeof options.commentHint === 'string' ? options.commentHint.trim() : '';
+    inputHint.textContent = helperText;
+    inputHint.classList.toggle('hidden', helperText.length === 0 || !requireComment);
+  }
+
+  clearApprovalActionModalError();
+  cancelBtn.textContent = options.cancelText || 'Cancel';
+  confirmBtn.textContent = options.confirmText || 'Confirm';
+  confirmBtn.className = APPROVAL_ACTION_CONFIRM_CLASS_MAP[confirmVariant];
+
+  if (approvalActionModalHideTimer) {
+    window.clearTimeout(approvalActionModalHideTimer);
+    approvalActionModalHideTimer = null;
+  }
+
+  const modalContainer = el('modalContainer');
+  if (modalContainer) {
+    modalContainer.appendChild(modal);
+  }
+
+  modal.style.zIndex = '160';
+  modal.classList.remove('hidden');
+  modalContent.style.opacity = '0';
+  modalContent.style.transform = 'translateY(-10px)';
+
+  const resultPromise = new Promise((resolve) => {
+    approvalActionModalResolver = resolve;
+  });
+
+  window.requestAnimationFrame(() => {
+    modalContent.style.opacity = '1';
+    modalContent.style.transform = 'translateY(0)';
+  });
+
+  window.setTimeout(() => {
+    if (requireComment && textarea) {
+      textarea.focus();
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    } else {
+      confirmBtn.focus();
+    }
+  }, 30);
+
+  return resultPromise;
 }
 
 // ============================================================
@@ -612,7 +915,18 @@ export async function submitForApproval(quoteData) {
  * Cancel pending approval request
  */
 export async function cancelApprovalRequest(quoteNumber) {
-  if (!confirm('Are you sure you want to cancel this approval request?')) {
+  const modalResult = await showApprovalActionModal({
+    status: 'Pending Approval',
+    statusTone: 'warning',
+    title: 'Cancel approval request?',
+    message: 'This quote will be removed from the current approval queue. You can send a new request again later.',
+    contextLabel: 'Sales Quote',
+    contextValue: quoteNumber,
+    confirmText: 'Cancel Request',
+    confirmVariant: 'danger'
+  });
+
+  if (!modalResult.confirmed) {
     return false;
   }
 
@@ -820,7 +1134,18 @@ export async function requestRevisionForApprovedQuote(quoteNumber, comment) {
  * Transitions quote from Approved to BeingRevised
  */
 export async function approveRevisionRequest(quoteNumber) {
-  if (!confirm('Approve this revision request? The quote will become editable by the Sales user.')) {
+  const modalResult = await showApprovalActionModal({
+    status: 'Revision Request',
+    statusTone: 'info',
+    title: 'Approve revision request?',
+    message: 'The quote will move to Being Revised and become editable by the Sales user.',
+    contextLabel: 'Sales Quote',
+    contextValue: quoteNumber,
+    confirmText: 'Approve Request',
+    confirmVariant: 'primary'
+  });
+
+  if (!modalResult.confirmed) {
     return false;
   }
 
@@ -1157,10 +1482,29 @@ function renderActionButtons(container, approval) {
   }
 
   if (btnReject) {
-    btnReject.addEventListener('click', () => {
-      const comment = prompt('Please enter rejection comments:');
-      if (comment && currentPreviewQuoteNumber) {
-        rejectQuote(currentPreviewQuoteNumber, comment);
+    btnReject.addEventListener('click', async () => {
+      const quoteNumber = currentPreviewQuoteNumber;
+      if (!quoteNumber) {
+        return;
+      }
+
+      const modalResult = await showApprovalActionModal({
+        status: 'Approval Decision',
+        statusTone: 'danger',
+        title: 'Reject this quote?',
+        message: 'Provide a clear reason so the salesperson knows what to revise before resubmitting.',
+        contextLabel: 'Sales Quote',
+        contextValue: quoteNumber,
+        confirmText: 'Reject Quote',
+        confirmVariant: 'danger',
+        requireComment: true,
+        commentLabel: 'Reason for rejection',
+        commentPlaceholder: 'Explain what should be updated before approval...',
+        commentHint: 'This comment will be shown to the salesperson.'
+      });
+
+      if (modalResult.confirmed) {
+        rejectQuote(quoteNumber, modalResult.comment);
       }
     });
   }

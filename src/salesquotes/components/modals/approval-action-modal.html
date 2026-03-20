@@ -1,0 +1,51 @@
+<!-- Approval Action Modal -->
+<div
+  id="approvalActionModal"
+  class="sales-alert-modal fixed inset-0 hidden z-[160] transition-opacity duration-200"
+  style="z-index: 160;"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="approvalActionModalTitle"
+>
+  <div class="sales-alert-dialog">
+    <div
+      id="approvalActionModalContent"
+      class="sales-alert-panel"
+      style="opacity: 0; transform: translateY(-10px);"
+    >
+      <div class="sales-alert-header">
+        <p id="approvalActionModalStatus" class="sales-alert-status sales-alert-status-neutral">Approval Action</p>
+        <h3 id="approvalActionModalTitle" class="sales-alert-title">Confirm action</h3>
+        <p id="approvalActionModalText" class="sales-alert-text">Please review the details before continuing.</p>
+      </div>
+
+      <div class="sales-alert-body">
+        <div id="approvalActionModalContextSection" class="sales-alert-section sales-alert-section-info hidden">
+          <p id="approvalActionModalContextLabel" class="sales-alert-label">Sales Quote</p>
+          <p id="approvalActionModalContextValue" class="sales-alert-value"></p>
+        </div>
+
+        <div id="approvalActionModalInputSection" class="sales-alert-section hidden">
+          <label id="approvalActionModalInputLabel" class="sales-alert-label" for="approvalActionModalTextarea">Comments</label>
+          <textarea
+            id="approvalActionModalTextarea"
+            class="sales-alert-textarea"
+            rows="4"
+            placeholder="Enter details..."
+          ></textarea>
+          <p id="approvalActionModalInputHint" class="sales-alert-helper hidden"></p>
+          <p id="approvalActionModalError" class="sales-alert-error hidden" role="alert"></p>
+        </div>
+      </div>
+
+      <div class="sales-alert-footer">
+        <button id="approvalActionModalCancelBtn" type="button" class="sales-alert-btn">
+          Cancel
+        </button>
+        <button id="approvalActionModalConfirmBtn" type="button" class="sales-alert-btn sales-alert-btn-primary">
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

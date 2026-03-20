@@ -720,6 +720,36 @@ function renderAddressLines(lines, expected = 2) {
   return normalized;
 }
 
+function renderApproverSignatureColumn(model) {
+  return `
+            <div class="signature-col signature-approver">
+              <div class="signature-sign">
+                ${model.approver.signature ? `<img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">` : ''}
+              </div>
+              <div class="signature-line"></div>
+              <div class="signature-meta">
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Approved</div>
+                    <div class="detail-value">${escapeHtml(model.approver.name)}</div>
+                  </div>
+                </div>
+                <div class="signature-meta-row">
+                  <div class="signature-detail">
+                    <div class="detail-label">Tel</div>
+                    <div class="detail-value">${escapeHtml(model.approver.phone)}</div>
+                  </div>
+                </div>
+                <div class="signature-meta-row">
+                  <div class="signature-detail signature-detail-approver-email">
+                    <div class="detail-label">Email :</div>
+                    <div class="detail-value detail-value-email">${escapeHtml(model.approver.email)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+}
+
 function renderMetaOffsetContent(content, kind = 'value', extraClass = '') {
   const normalized = String(content ?? '').trim();
   if (!normalized) {
@@ -1291,34 +1321,7 @@ function buildPageFooter(model, settings, totals, footerType = 'full') {
                 </div>
               </div>
             </div>
-            ${model.approver.signature ? `
-            <div class="signature-col signature-approver">
-              <div class="signature-sign">
-                <img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">
-              </div>
-              <div class="signature-line"></div>
-              <div class="signature-meta">
-                <div class="signature-meta-row">
-                  <div class="signature-detail">
-                    <div class="detail-label">Approved</div>
-                    <div class="detail-value">${escapeHtml(model.approver.name)}</div>
-                  </div>
-                </div>
-                <div class="signature-meta-row">
-                  <div class="signature-detail">
-                    <div class="detail-label">Tel</div>
-                    <div class="detail-value">${escapeHtml(model.approver.phone)}</div>
-                  </div>
-                </div>
-                <div class="signature-meta-row">
-                  <div class="signature-detail">
-                    <div class="detail-label">Email :</div>
-                    <div class="detail-value">${escapeHtml(model.approver.email)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            ` : ''}
+            ${renderApproverSignatureColumn(model)}
           </div>
 
           <div class="doc-footer">
@@ -1405,34 +1408,7 @@ function buildPageFooter(model, settings, totals, footerType = 'full') {
                 </div>
               </div>
             </div>
-            ${model.approver.signature ? `
-            <div class="signature-col signature-approver">
-              <div class="signature-sign">
-                <img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">
-              </div>
-              <div class="signature-line"></div>
-              <div class="signature-meta">
-                <div class="signature-meta-row">
-                  <div class="signature-detail">
-                    <div class="detail-label">Approved</div>
-                    <div class="detail-value">${escapeHtml(model.approver.name)}</div>
-                  </div>
-                </div>
-                <div class="signature-meta-row">
-                  <div class="signature-detail">
-                    <div class="detail-label">Tel</div>
-                    <div class="detail-value">${escapeHtml(model.approver.phone)}</div>
-                  </div>
-                </div>
-                <div class="signature-meta-row">
-                  <div class="signature-detail">
-                    <div class="detail-label">Email :</div>
-                    <div class="detail-value">${escapeHtml(model.approver.email)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            ` : ''}
+            ${renderApproverSignatureColumn(model)}
           </div>
 
           <div class="doc-footer">
@@ -1705,7 +1681,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     }
     .signature-grid {
       display: grid;
-      grid-template-columns: 49mm 57mm 53mm;
+      grid-template-columns: 49mm 57mm 60mm;
       justify-content: space-between;
       column-gap: 0;
       margin-top: ${settings.signatureGridMarginTopMm}mm;
@@ -1761,6 +1737,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     }
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
+    .signature-approver .signature-detail-approver-email .detail-value-email { white-space: nowrap; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
     .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5mm !important; font-size: ${settings.docFooterFontSize}px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
@@ -1989,7 +1966,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     }
     .signature-grid {
       display: grid;
-      grid-template-columns: 49mm 57mm 53mm;
+      grid-template-columns: 49mm 57mm 60mm;
       justify-content: space-between;
       column-gap: 0;
       margin-top: ${settings.signatureGridMarginTopMm}mm;
@@ -2045,6 +2022,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     }
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
+    .signature-approver .signature-detail-approver-email .detail-value-email { white-space: nowrap; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
     .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5mm !important; font-size: ${settings.docFooterFontSize}px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
@@ -2195,32 +2173,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
               </div>
             </div>
           </div>
-          <div class="signature-col signature-approver">
-            <div class="signature-sign">
-              ${model.approver.signature ? `<img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">` : ''}
-            </div>
-            <div class="signature-line"></div>
-            <div class="signature-meta">
-              <div class="signature-meta-row">
-                <div class="signature-detail">
-                  <div class="detail-label">Approved</div>
-                  <div class="detail-value">${escapeHtml(model.approver.name)}</div>
-                </div>
-              </div>
-              <div class="signature-meta-row">
-                <div class="signature-detail">
-                  <div class="detail-label">Tel</div>
-                  <div class="detail-value">${escapeHtml(model.approver.phone)}</div>
-                </div>
-              </div>
-              <div class="signature-meta-row">
-                <div class="signature-detail">
-                  <div class="detail-label">Email :</div>
-                  <div class="detail-value">${escapeHtml(model.approver.email)}</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          ${renderApproverSignatureColumn(model)}
         </div>
 
         <div class="doc-footer">
