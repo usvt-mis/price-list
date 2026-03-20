@@ -81,7 +81,7 @@ api/src/
 
 src/salesquotes/components/
 ├── styles/         # External CSS
-├── modals/         # 9 modular HTML modals (lazy-loaded)
+├── modals/         # 11 modular HTML modals (lazy-loaded)
 └── assets/         # Static assets (logos, certifications for print)
 ```
 

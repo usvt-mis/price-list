@@ -63,7 +63,7 @@ function getAuthenticatedRole(req) {
  */
 async function getApprovalByQuoteNumber(pool, quoteNumber) {
   const result = await pool.request()
-    .input('quoteNumber', require('mssql')..NVarChar(50), quoteNumber)
+    .input('quoteNumber', require('mssql').NVarChar(50), quoteNumber)
     .query(`
       SELECT * FROM SalesQuoteApprovals
       WHERE SalesQuoteNumber = @quoteNumber
@@ -145,8 +145,8 @@ router.post('/', async (req, res, next) => {
 
     // Insert new approval record
     const result = await pool.request()
-      .input('salesQuoteNumber', require('mssql')..NVarChar(50), salesQuoteNumber)
-      .input('salespersonEmail', require('mssql')..NVarChar(255), clientEmail)
+      .input('salesQuoteNumber', require('mssql').NVarChar(50), salesQuoteNumber)
+      .input('salespersonEmail', require('mssql').NVarChar(255), clientEmail)
       .input('salespersonCode', require('mssql').nvarchar(50), salespersonCode)
       .input('salespersonName', require('mssql').nvarchar(255), salespersonName || null)
       .input('customerName', require('mssql').nvarchar(255), customerName || null)
