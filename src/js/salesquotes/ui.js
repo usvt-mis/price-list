@@ -1457,6 +1457,9 @@ function setCustomerNoFieldLockState(locked) {
  * Update quote editor banner/button state for create vs edit mode
  */
 export async function updateQuoteEditorModeUi() {
+  // Fetch approval status at the top level so it's available for all usage
+  const APPROVAL = await getApprovalStatus();
+  
   const isEditMode = state.quote.mode === 'edit' && Boolean(state.quote.number);
   const isSearchSalesQuoteMode = isSearchSalesQuoteEditorMode();
   const banner = el('quoteEditorModeBanner');
@@ -1494,7 +1497,6 @@ export async function updateQuoteEditorModeUi() {
       metaParts.push(`Status: ${state.quote.status}`);
     }
     if (state.approval.currentStatus) {
-      const APPROVAL = await getApprovalStatus();
       const statusLabel = APPROVAL.SUBMITTED_TO_BC === state.approval.currentStatus ? 'Submitted to BC' :
                         APPROVAL.REVISE === state.approval.currentStatus ? 'Revision Requested' :
                         APPROVAL.PENDING_APPROVAL === state.approval.currentStatus ? 'Pending Approval' :
@@ -1558,8 +1560,6 @@ export async function updateQuoteEditorModeUi() {
   // Show "Send Approval Request" button for all users when quote is loaded
   if (sendApprovalRequestBtn) {
     const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
-
-    const APPROVAL = await getApprovalStatus();
 
     // Calculate total amount from state to check if button should be shown
     const invoiceDiscount = parseFloat(el('invoiceDiscount')?.value || 0);
