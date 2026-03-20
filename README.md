@@ -63,7 +63,8 @@ The Price List Calculator computes total cost based on four components:
     - Signature layout controls: signatureGridMarginTopMm, signatureColMinHeightMm, signatureSignMinHeightMm, signatureBlockOffsetXMm, signatureBlockOffsetYMm
   - **Sales Director Signature Tab**: Fixed signature management for all Sales Directors
     - Upload signature file (PNG/JPG, max 500KB)
-    - View current signature with file info (name, type, size, uploaded by, updated at)
+    - Enter contact information: Full Name (required), Phone No, Email
+    - View current signature with file info (name, type, size, uploaded by, updated at) and contact details
     - Delete signature with confirmation
     - Only one signature allowed (fixed approach - applies to all Sales Directors)
     - Audit log tracks all signature changes (UPLOAD/DELETE actions)
@@ -209,7 +210,7 @@ The application expects these SQL Server tables:
 | `SalesQuoteUserPreferences` | User-specific preferences for Sales Quotes interface (UserEmail, PreferenceKey, PreferenceValue) |
 | `SalespersonSignatures` | Uploaded salesperson signatures (SalespersonCode, SignatureData, FileName, ContentType, FileSizeBytes, UploadedBy, UploadedAt, UpdatedBy, UpdatedAt) |
 | `SalespersonSignatureAudit` | Audit log for signature changes (Id, SalespersonCode, Action, OldSignatureData, NewSignatureData, FileName, FileSizeBytes, ChangedBy, ClientIP, ChangedAt) |
-| `SalesDirectorSignatures` | Fixed Sales Director signature (single row) with SignatureData, FileName, ContentType, FileSizeBytes, UploadedBy, UploadedAt, UpdatedBy, UpdatedAt |
+| `SalesDirectorSignatures` | Fixed Sales Director signature (single row) with SignatureData, FileName, ContentType, FileSizeBytes, FullName, PhoneNo, Email, UploadedBy, UploadedAt, UpdatedBy, UpdatedAt |
 | `SalesDirectorSignatureAudit` | Audit log for Sales Director signature changes (Id, Action, OldSignatureData, NewSignatureData, FileName, FileSizeBytes, ChangedBy, ClientIP, ChangedAt) |
 
 **Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting. Run `database/migrations/calculator_types.sql` to add CalculatorType and type-specific columns. Run `database/migrations/add_scope_column.sql` to add Scope dropdown for Onsite calculator. Run `database/migrations/priority_site_access.sql` to add SiteAccess column for Onsite calculator (PriorityLevel column already exists and is shared with Workshop). Run `database/migrations/add_onsite_cost_per_hour.sql` to add OnsiteCostPerHour column for calculator-specific branch rates. Run `api/src/database/schemas/create-bccustomers-table.sql` to create the BCCustomers table for local customer cache. BackofficeSettings and SalesQuoteUserPreferences tables are auto-created on first use via their respective utility modules.

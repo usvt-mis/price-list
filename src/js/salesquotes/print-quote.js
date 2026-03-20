@@ -186,7 +186,7 @@ export async function fetchSalespersonSignature(salespersonCode) {
 }
 
 /**
- * Fetch Sales Director signature (public endpoint)
+ * Fetch Sales Director signature and contact info (public endpoint)
  * Returns null if no signature is uploaded
  */
 export async function fetchSalesDirectorSignature() {
@@ -197,7 +197,12 @@ export async function fetchSalesDirectorSignature() {
       return null;
     }
     const data = await response.json();
-    return data.signatureData || null;
+    return {
+      signatureData: data.signatureData || null,
+      fullName: data.fullName || 'Supachai Masphui',
+      phoneNo: data.phoneNo || '08-6320-7404',
+      email: data.email || 'supachai@uservices-thailand.com'
+    };
   } catch (error) {
     console.warn('Unable to fetch Sales Director signature:', error);
     return null;
@@ -636,10 +641,10 @@ async function buildModel() {
         // Fetch Sales Director signature
         const directorSignature = await fetchSalesDirectorSignature();
         if (directorSignature) {
-          approverSignature = directorSignature;
-          approverName = '';
-          approverPhone = '08-6320-7404';
-          approverEmail = 'supachai@uservices-thailand.com';
+          approverSignature = directorSignature.signatureData;
+          approverName = directorSignature.fullName;
+          approverPhone = directorSignature.phoneNo;
+          approverEmail = directorSignature.email;
           console.log('[Print] Using Sales Director signature from approval system');
         } else {
           // Fallback to BC approver if director signature not found

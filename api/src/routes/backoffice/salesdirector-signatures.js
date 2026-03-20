@@ -76,6 +76,9 @@ router.get('/', requireBackofficeSession, async (req, res, next) => {
         FileName,
         ContentType,
         FileSizeBytes,
+        FullName,
+        PhoneNo,
+        Email,
         UploadedBy,
         UploadedAt,
         UpdatedBy,
@@ -90,6 +93,9 @@ router.get('/', requireBackofficeSession, async (req, res, next) => {
         fileName: null,
         contentType: null,
         fileSizeBytes: null,
+        fullName: null,
+        phoneNo: null,
+        email: null,
         uploadedBy: null,
         uploadedAt: null,
         updatedBy: null,
@@ -104,6 +110,9 @@ router.get('/', requireBackofficeSession, async (req, res, next) => {
       fileName: signature.FileName,
       contentType: signature.ContentType,
       fileSizeBytes: signature.FileSizeBytes,
+      fullName: signature.FullName,
+      phoneNo: signature.PhoneNo,
+      email: signature.Email,
       uploadedBy: signature.UploadedBy,
       uploadedAt: signature.UploadedAt,
       updatedBy: signature.UpdatedBy,
@@ -130,6 +139,7 @@ router.post('/', requireBackofficeSession, async (req, res, next) => {
   try {
     const session = req.session;
     const signatureFile = req.file;
+    const { fullName, phoneNo, email } = req.body;
 
     if (!signatureFile) {
       return res.status(400).json({ error: 'Signature file is required' });
@@ -167,12 +177,15 @@ router.post('/', requireBackofficeSession, async (req, res, next) => {
       .input('fileName', sql.NVarChar, signatureFile.originalname)
       .input('contentType', sql.NVarChar, signatureFile.mimetype)
       .input('fileSizeBytes', sql.Int, signatureFile.size)
+      .input('fullName', sql.NVarChar, fullName || '')
+      .input('phoneNo', sql.NVarChar, phoneNo || '')
+      .input('email', sql.NVarChar, email || '')
       .input('uploadedBy', sql.NVarChar, session.email)
       .query(`
         INSERT INTO SalesDirectorSignatures (
-          SignatureData, FileName, ContentType, FileSizeBytes, UploadedBy
+          SignatureData, FileName, ContentType, FileSizeBytes, FullName, PhoneNo, Email, UploadedBy
         )
-        VALUES (@signatureData, @fileName, @contentType, @fileSizeBytes, @uploadedBy)
+        VALUES (@signatureData, @fileName, @contentType, @fileSizeBytes, @fullName, @phoneNo, @email, @uploadedBy)
       `);
 
     // Create audit entry

@@ -19,21 +19,30 @@ router.get('/', async (req, res, next) => {
 
     const result = await pool.request().query(`
       SELECT TOP 1
-        SignatureData
+        SignatureData,
+        FullName,
+        PhoneNo,
+        Email
       FROM SalesDirectorSignatures
       ORDER BY UploadedAt DESC
     `);
 
     if (result.recordset.length === 0) {
       return res.status(200).json({
-        signatureData: null
+        signatureData: null,
+        fullName: null,
+        phoneNo: null,
+        email: null
       });
     }
 
     const signature = result.recordset[0];
 
     res.status(200).json({
-      signatureData: signature.SignatureData
+      signatureData: signature.SignatureData,
+      fullName: signature.FullName,
+      phoneNo: signature.PhoneNo,
+      email: signature.Email
     });
   } catch (error) {
     next(error);

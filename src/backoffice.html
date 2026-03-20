@@ -812,10 +812,28 @@
         <!-- Sales Director Signature Tab -->
         <div id="backofficeSalesDirectorSignatureTab" class="hidden">
           <!-- Upload Section -->
-          <div class="flex flex-col sm:flex-row gap-3 mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
-            <div class="flex-1">
-              <input id="salesDirectorSignatureFile" type="file" accept="image/png,image/jpeg"
-                class="w-full px-4 py-2 rounded-lg border border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+          <div class="space-y-4 mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                <input id="salesDirectorFullName" type="text" placeholder="Supachai Masphui"
+                  class="w-full px-4 py-2 rounded-lg border border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Phone No</label>
+                <input id="salesDirectorPhoneNo" type="text" placeholder="08-6320-7404"
+                  class="w-full px-4 py-2 rounded-lg border border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                <input id="salesDirectorEmail" type="email" placeholder="supachai@uservices-thailand.com"
+                  class="w-full px-4 py-2 rounded-lg border border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Signature File</label>
+                <input id="salesDirectorSignatureFile" type="file" accept="image/png,image/jpeg"
+                  class="w-full px-4 py-2 rounded-lg border border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+              </div>
             </div>
             <div class="flex items-center gap-2">
               <span id="salesDirectorSignatureValidation" class="text-sm"></span>
@@ -838,6 +856,8 @@
               <thead class="bg-slate-50 text-slate-600">
                 <tr>
                   <th class="text-left px-4 py-3 font-medium">Signature</th>
+                  <th class="text-left px-4 py-3 font-medium">Full Name</th>
+                  <th class="text-left px-4 py-3 font-medium">Contact</th>
                   <th class="text-left px-4 py-3 font-medium">File Info</th>
                   <th class="text-left px-4 py-3 font-medium">Uploaded By</th>
                   <th class="text-left px-4 py-3 font-medium">Updated At</th>
@@ -846,7 +866,7 @@
               </thead>
               <tbody id="salesDirectorSignatureList" class="divide-y divide-slate-100">
                 <tr>
-                  <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading Sales Director signature...</td>
+                  <td colspan="7" class="px-4 py-8 text-center text-slate-500">Loading Sales Director signature...</td>
                 </tr>
               </tbody>
             </table>
@@ -2752,7 +2772,7 @@
     if (!data.signatureData) {
       container.innerHTML = `
         <tr>
-          <td colspan="5" class="px-4 py-8 text-center text-slate-500">
+          <td colspan="7" class="px-4 py-8 text-center text-slate-500">
             No Sales Director signature uploaded yet.
           </td>
         </tr>
@@ -2772,6 +2792,13 @@
         <td class="px-4 py-3">
           <img src="${escapeHtml(data.signatureData)}" alt="Sales Director Signature" class="h-12 max-w-32 object-contain border border-slate-200 rounded">
         </td>
+        <td class="px-4 py-3 text-sm font-medium text-slate-900">
+          ${escapeHtml(data.fullName || '-')}
+        </td>
+        <td class="px-4 py-3 text-sm text-slate-600">
+          <div>${escapeHtml(data.phoneNo || '-')}</div>
+          <div>${escapeHtml(data.email || '-')}</div>
+        </td>
         <td class="px-4 py-3 text-sm text-slate-600">
           <div>${escapeHtml(data.fileName || '-')}</div>
           <div>${escapeHtml(data.contentType || '-')}</div>
@@ -2789,7 +2816,15 @@
   }
 
   async function uploadSalesDirectorSignature() {
+    const fullName = el('salesDirectorFullName')?.value?.trim();
+    const phoneNo = el('salesDirectorPhoneNo')?.value?.trim();
+    const email = el('salesDirectorEmail')?.value?.trim();
     const fileInput = el('salesDirectorSignatureFile');
+
+    if (!fullName) {
+      showNotification('Please enter the Full Name', 'error');
+      return;
+    }
 
     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
       showNotification('Please select a signature file', 'error');
@@ -2815,6 +2850,9 @@
     try {
       const formData = new FormData();
       formData.append('signatureFile', file);
+      formData.append('fullName', fullName);
+      formData.append('phoneNo', phoneNo);
+      formData.append('email', email);
 
       const response = await fetchWithAuth('/api/backoffice/salesdirector-signature', {
         method: 'POST',
@@ -2835,6 +2873,9 @@
       showNotification(responseData.message, 'success');
 
       // Clear form
+      if (el('salesDirectorFullName')) el('salesDirectorFullName').value = '';
+      if (el('salesDirectorPhoneNo')) el('salesDirectorPhoneNo').value = '';
+      if (el('salesDirectorEmail')) el('salesDirectorEmail').value = '';
       if (el('salesDirectorSignatureFile')) el('salesDirectorSignatureFile').value = '';
 
       // Reload signature display

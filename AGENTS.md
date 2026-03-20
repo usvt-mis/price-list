@@ -324,6 +324,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Signature Priority**: Uploaded signatures (via backoffice) > BC signature data > No signature
   - `fetchSalespersonSignature()` API call checks `SalespersonSignatures` table first
   - Falls back to BC `requestSignature.signature` or `salesperson.signature` if no upload exists
+- **Sales Director Signature**: Fetched from public endpoint with contact information
+  - `fetchSalesDirectorSignature()` API call returns signature data, full name, phone number, and email
+  - Falls back to default values if no signature is uploaded (Supachai Masphui, 08-6320-7404, supachai@uservices-thailand.com)
+  - Used in print quote for Sales Director signature section
 - **Backoffice Signature Upload UI**: Searchable salesperson dropdown with autocomplete
   - Type-to-search with debounced API calls (min 2 chars) to `/api/business-central/salespeople/search`
   - Displays salesperson name and code in dropdown items
@@ -445,6 +449,7 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 - `migrate_branch_to_branchid.sql` - Migrate legacy BRANCH text column to BranchId integer (see `README_BRANCH_MIGRATION.md` for details)
 - `database/migrations/add_salesperson_signatures.sql` - Creates `SalespersonSignatures` and `SalespersonSignatureAudit` tables for signature management
 - `database/migrations/add_salesdirector_signatures.sql` - Creates `SalesDirectorSignatures` and `SalesDirectorSignatureAudit` tables for Sales Director signature management (fixed signature approach)
+- `database/migrations/add_salesdirector_contact_fields.sql` - Adds FullName, PhoneNo, Email columns to SalesDirectorSignatures table
 - `api/src/database/schemas/add_sales_quote_approvals.sql` - Creates `SalesQuoteApprovals` table for approval workflow
 - `api/src/database/schemas/add_salesdirector_role_constraint.sql` - Adds SalesDirector role constraint to UserRoles table
 
@@ -459,12 +464,14 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
   - Pagination support for large user lists
 - **Sales Director Signature Tab**: Fixed signature management for all Sales Directors
   - Upload signature file (PNG/JPG, max 500KB)
-  - View current signature with file info (name, type, size, uploaded by, updated at)
+  - Enter contact information: Full Name (required), Phone No, Email
+  - View current signature with file info (name, type, size, uploaded by, updated at) and contact details
   - Delete signature with confirmation
   - Only one signature allowed (fixed approach - applies to all Sales Directors)
   - Audit log tracks all signature changes (UPLOAD/DELETE actions)
   - API: `GET/POST/DELETE /api/backoffice/salesdirector-signature`
-  - Implementation: `api/src/routes/backoffice/salesdirector-signatures.js`
+  - Public endpoint: `GET /api/business-central/salesdirector-signature-public` - Returns signature data and contact info
+  - Implementation: `api/src/routes/backoffice/salesdirector-signatures.js`, `api/src/routes/salesdirector-signature-public.js`
 - **Role Assignment API**: `POST /api/admin/roles/assign`
   - Requires PriceListExecutive role
   - Supported roles: Executive, Sales, SalesDirector
