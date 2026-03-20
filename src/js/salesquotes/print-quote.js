@@ -106,6 +106,7 @@ const DEFAULT_EFFECTIVE_DATE = '01/04/2023';
 const DEFAULT_DOC_CODE = 'CS-FM-RY-004 Rev.00';
 const DEFAULT_PAGE_LABEL = 'หน้า 1/1';
 const PRINT_LAYOUT_SETTINGS_API = '/api/salesquotes/print-layout-settings';
+const APPROVER_CONTACT_OFFSET_X_MM = 5;
 const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   baseFontSize: 11.4,
   companyThaiFontSize: 15.5,
@@ -1737,6 +1738,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     }
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
+    .signature-approver .signature-meta { transform: translateX(${APPROVER_CONTACT_OFFSET_X_MM}mm); }
     .signature-approver .signature-detail-approver-name .detail-value { padding-left: 0.8mm; }
     .signature-approver .signature-detail-approver-email .detail-value-email { white-space: nowrap; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
@@ -2023,6 +2025,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     }
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
+    .signature-approver .signature-meta { transform: translateX(${APPROVER_CONTACT_OFFSET_X_MM}mm); }
     .signature-approver .signature-detail-approver-name .detail-value { padding-left: 0.8mm; }
     .signature-approver .signature-detail-approver-email .detail-value-email { white-space: nowrap; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }

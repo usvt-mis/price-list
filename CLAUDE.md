@@ -385,6 +385,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Delivery Date Field**: Uses `reportContext.deliveryDate` for delivery text in meta table
 - **Signature Grid Layout**: Grid columns: 49mm (Salesperson), 57mm (Customer), 60mm (Approver) - updated to provide more space for approver email
 - **Signature Rendering**: `renderApproverSignatureColumn()` function extracts approver signature HTML to reduce code duplication
+- **Approver Signature Positioning**: `APPROVER_CONTACT_OFFSET_X_MM` constant (5mm) applies horizontal offset to approver signature metadata section for proper alignment
 - Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `renderApproverSignatureColumn()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 - **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content
