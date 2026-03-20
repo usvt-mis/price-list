@@ -9,10 +9,10 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 Price List Calculator - Web application for calculating service costs.
 
 **Tech Stack:**
-- **Frontend**: Vanilla JavaScript + Tailwind CSS (multi-page HTML apps)
-- **Backend**: Express.js (migrated from Azure Functions v4)
+- **Frontend**: Vanilla JavaScript + Tailwind CSS (single-page HTML apps)
+- **Backend**: Express.js
 - **Database**: Azure SQL Server
-- **Auth**: Azure Easy Auth (App Service) + Two-Factor Auth (Backoffice)
+- **Auth**: Azure Easy Auth (App Service)
 
 **Calculators:**
 
@@ -66,33 +66,18 @@ Final Price = PricePerUnit × (1 + commission%)
 
 ```
 src/js/
-├── state.js        # Global state management
 ├── core/           # Shared utilities (config, utils, calculations)
 ├── auth/           # Authentication (token-handling, mode-detection, ui)
 ├── onsite/         # Onsite calculator modules
 ├── workshop/       # Workshop calculator modules
-├── salesquotes/    # Sales Quotes modules
-└── admin/          # Admin interface modules
+└── salesquotes/    # Sales Quotes modules
 
 api/src/
 ├── routes/         # Express.js route modules
-│   ├── onsite/     # Onsite calculator routes
-│   ├── workshop/   # Workshop calculator routes
-│   ├── business-central/  # Business Central integration
-│   ├── backoffice/  # Backoffice admin routes
-│   ├── admin/      # Admin routes (roles, diagnostics)
-│   └── *.js       # Legacy routes (motorTypes, branches, labor, materials, etc.)
 ├── db.js           # Database connection pool
-├── middleware/     # Express middleware (authExpress, twoFactorAuthExpress, etc.)
+├── middleware/     # Express middleware
 ├── utils/          # Shared utilities (logger, calculator)
 └── jobs/           # Scheduled jobs (node-cron)
-
-src/
-├── index.html      # Main calculator (legacy)
-├── onsite.html     # Onsite calculator
-├── workshop.html   # Workshop calculator
-├── salesquotes.html # Sales Quotes calculator
-└── backoffice.html # Backoffice admin interface
 
 src/salesquotes/components/
 ├── styles/         # External CSS
@@ -158,6 +143,23 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Hide animation** (in JS): `modalContent.style.opacity = '0'; modalContent.style.transform = 'translateY(-10px)';`
 - Implementation: See `confirm-new-ser-modal.html` and `showConfirmNewSerModal()` / `hideConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
 
+### Tailwind CSS Safelist Pattern
+- **Problem**: Tailwind CSS may not generate certain color classes if they're only used in dynamically loaded HTML or specific contexts
+- **Solution**: Use `@layer utilities` in `src/css/input.css` to force-include specific classes
+- **Implementation**: Add explicit class definitions with Tailwind's CSS variables:
+  ```css
+  @layer utilities {
+    .bg-orange-600 {
+      --tw-bg-opacity: 1;
+      background-color: rgb(234 88 12 / var(--tw-bg-opacity, 1));
+    }
+    /* Add other needed classes */
+  }
+  ```
+- **When to use**: When adding new color classes that may not be detected by Tailwind's JIT compiler
+- **Example**: Orange color classes for Sales Director Signature tab (`bg-orange-50`, `bg-orange-200`, `bg-orange-300`, `bg-orange-600`, `bg-orange-700`, `border-orange-*`, `text-orange-*`, `ring-orange-500`)
+- **Documentation**: See `docs/tailwind-orange-color-fix.md` for detailed example
+
 ### Local Dev Mock Middleware
 - `api/src/middleware/localDevMock.js`: Provides mock data for endpoints when database is unavailable
 - **Enable**: Set `LOCAL_DEV_MOCK=true` environment variable
@@ -170,8 +172,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Proxy routes: `/api/business-central/gateway/*`
 - Supports GET/POST; fallback keys for GetSalesQuotesFromNumber/UpdateSalesQuote
 - Config: `GATEWAY_BASE_URL`, `{CSQWN,CSI,CSOFSQ,GSQFN,USQ}_KEY`, `{...}_PATH` overrides
-
--------
+- **Retry Logic**: Automatic retry for GET/HEAD requests on transient failures (network errors, timeouts)
+- **Configurable Timeout**: `GATEWAY_REQUEST_TIMEOUT_MS` (default: 15000ms) for gateway requests
+- **Retry Configuration**: `GATEWAY_FETCH_MAX_ATTEMPTS` (default: 3), `GATEWAY_FETCH_RETRY_DELAY_MS` (default: 400ms)
+- **Error Mapping**: User-friendly error messages for gateway failures (502 for connection issues, 504 for timeouts)
+- **Retryable Errors**: ECONNRESET, ECONNREFUSED, ENOTFOUND, EAI_AGAIN, ETIMEDOUT, UND_ERR_CONNECT_TIMEOUT, UND_ERR_HEADERS_TIMEOUT, UND_ERR_SOCKET
+- Implementation: `api/src/routes/business-central/gateway.js` - `fetchGatewayWithRetry()`, `mapGatewayProxyError()`, `performGatewayFetch()`
 
 ### Motor Drive Type Filtering (Workshop)
 - State: `appState.motorDriveType` ('AC' or 'DC')
@@ -187,7 +193,6 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `isLoading`: Boolean flag for loading state
 - **Import Pattern**: Use `import { authState } from '../../state.js'` from subdirectories (e.g., `src/js/salesquotes/`)
 - **Legacy Note**: Previously `authState` was in `src/js/auth/state.js` but has been consolidated into global state
-- **effectiveRole in req.user**: The `requireAuth()` middleware in `api/src/middleware/authExpress.js` now sets `req.user.effectiveRole` for all authenticated requests, ensuring the effective role is available to all downstream route handlers
 
 ---
 
@@ -309,14 +314,11 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 ### Print Quote
 - A4-optimized print layout from searched quotes
-- **Print Preview**: Opens browser's native print preview window in a new tab
-  - Uses `window.open()` to create a print window with the generated HTML
-  - Includes popup blocking detection with user-friendly error message
-  - Toast notifications show "Opening print preview for {quote number}" on success
-  - **Multi-page mode**: Always uses `buildMultiPageHtml()` for all quotes (handles both single and multi-page scenarios)
-  - **Print media queries**: CSS `@media print` rules ensure proper page breaks and layout when printing
-    - Prevents page breaks inside line table rows, footer stack, and signature grid
-    - Avoids page breaks after topbar, title row, and meta table
+- **PDF Generation**: Uses `html2pdf.js` library to generate and download PDF files directly (no print preview window)
+  - Configuration: A4 portrait format, 2x scale for high quality, JPEG images at 98% quality
+  - Automatic pagination handling by html2pdf.js (avoids manual multi-page detection)
+  - Temporary DOM container created for rendering, cleaned up after PDF generation
+  - Toast notifications show "Generating PDF..." during generation and success message when complete
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
 - **Certification Logos**: Support for multiple certification logos with special styling
@@ -328,8 +330,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Signature Priority**: Uploaded signatures (via backoffice) > BC signature data > No signature
   - `fetchSalespersonSignature()` API call checks `SalespersonSignatures` table first
   - Falls back to BC `requestSignature.signature` or `salesperson.signature` if no upload exists
-  - `fetchSalesDirectorSignature()` API call fetches Sales Director signature from public endpoint for approved quotes
-  - Implementation: `src/js/salesquotes/print-quote.js` - `fetchSalespersonSignature()`, `fetchSalesDirectorSignature()`
+- **Sales Director Signature**: Fetched from public endpoint with contact information
+  - `fetchSalesDirectorSignature()` API call returns signature data, full name, phone number, and email
+  - Falls back to default values if no signature is uploaded (Supachai Masphui, 08-6320-7404, supachai@uservices-thailand.com)
+  - Used in print quote for Sales Director signature section
 - **Backoffice Signature Upload UI**: Searchable salesperson dropdown with autocomplete
   - Type-to-search with debounced API calls (min 2 chars) to `/api/business-central/salespeople/search`
   - Displays salesperson name and code in dropdown items
@@ -340,43 +344,19 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Dynamic meta table column adjustment based on address width
 - **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13ch), `shifted` class with differentiated positioning (labels: -21mm left, values: -12mm left), attentionTelBlockOffsetXMm/YMm using relative positioning instead of transform
 - **Delivery Date Field**: Uses `reportContext.deliveryDate` for delivery text in meta table
-- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `buildMultiPageHtml()`, `chunkLineItemsForPages()`, `calculateRowHeights()`, `calculateAvailablePageHeights()`, `buildPageFooter()`
+- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
-- **Page Chunking Logic**: `chunkLineItemsForPages()` determines how line items are distributed across pages
-  - **All pages have identical structure**: header, meta table, disclaimer, totals, signatures, and document footer
-  - Only line items and page numbers differ between pages
-  - Target line item space: 120mm per page (approximately 14 items at 8.5mm each)
-  - Console logging for debugging: `[Chunk Debug]` prefix shows page calculations
-  - Handles single-page scenarios efficiently with early return
-- **Multi-Page HTML Generation**: `buildMultiPageHtml()` generates HTML for multi-page documents
-  - All pages have full header and meta table
-  - Page break styling: `page-break-after: avoid` (allows browser to handle page breaks naturally)
-  - Margin styling: `margin-top: 11mm` for pages after the first
-  - Combined style attribute applies both page break and margin where needed with proper edge case handling
-- **Footer Types**: `buildPageFooter()` supports 'full' and 'partial' types
-  - 'full': Complete footer with disclaimer, totals, and signatures (used for single-page quotes)
-  - 'partial': Disclaimer + signatures for first/middle pages in multi-page documents
-- **CSS Page Break Rules**: `@media print` and inline styles ensure proper pagination
-  - `.page:last-child` has `page-break-after: auto` to prevent trailing blank pages
-  - Prevents page breaks inside line table rows, footer stack, and signature grid
-  - Doc footer uses `margin-top: 1.5mm !important` for optimal positioning
+- **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content
 
 ### My Records (Submission History)
 - "My Records" tab shows user's submitted quotes with search
 - Table: `SalesQuoteSubmissionRecords` (Id, SalesQuoteNumber, SenderEmail, WorkDescription, ClientIP, SubmittedAt)
 - API: `GET /api/salesquotes/records?search={query}`, `POST /api/salesquotes/records`
 - Backoffice audit log integration: blue badge "Sales Quote Sent"
-- **Loading State**: Shows loading modal "Loading your records..." while fetching data from the API
-  - Uses `showLoading()` and `hideLoading()` functions from `ui.js`
-  - Loading modal is displayed before API call and hidden in `finally` block to ensure cleanup
-  - Implementation: `loadQuoteSubmissionRecords()` function in `src/js/salesquotes/records.js`
 - **Clickable Quote Numbers**: Quote numbers in the table are clickable buttons with a search icon
   - Clicking switches to the Search tab, fills the input with the quote number, and triggers the search
   - Implementation: `loadQuoteFromRecords()` function in `src/js/salesquotes/records.js`
   - Uses `window.switchTab('search')`, fills `searchSalesQuoteNumber` input, and calls `window.searchSalesQuote()` with 50ms delay
-- **Approval Status Column**: Shows current approval status for each quote
-  - Status values: Draft, Pending Approval, Approved, Rejected, Revision Requested, Cancelled
-  - Color-coded badges: Gray (Draft), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Slate (Cancelled)
 
 ### User Preferences API
 - Table: `SalesQuoteUserPreferences` (Id, UserEmail, PreferenceKey, PreferenceValue, CreatedAt, UpdatedAt)
@@ -393,10 +373,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 ### Sales Quotes Approval Workflow
 - Multi-stage approval workflow for Sales Quotes requiring director/executive approval
-- **Approval Statuses**: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled
+- **Approval Statuses**: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised
 - **Roles & Permissions**:
-  - Sales users: Create quotes, initialize approval records, submit for approval, view their requests
-  - Sales Directors: View pending approvals, approve/reject/request revision
+  - Sales users: Create quotes, initialize approval records, submit for approval, request revision on approved quotes, view their requests
+  - Sales Directors: View pending approvals, approve/reject/request revision, approve revision requests from sales users
   - Executives: Full approval access (same as Sales Directors)
 - **Approval Record Initialization**:
   - Quotes are automatically initialized with "SubmittedToBC" status when created/updated
@@ -405,19 +385,37 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Send Approval Request Button**:
   - Visible to all users when viewing a searched quote with total > 0
   - Allows submitting quotes for director/executive approval
-  - Button shown when quote status is Draft or SubmittedToBC AND total amount > 0
+  - Button shown when quote status is Draft, SubmittedToBC, Revise, or BeingRevised AND total amount > 0
   - Hidden for zero or negative total quotes
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()`, `src/salesquotes.html` - button element
+- **Mode Banner Approval Status Display**:
+  - When viewing a searched quote, the mode banner displays the current approval status with user-friendly labels
+  - Status labels: "Submitted to BC", "Revision Requested", "Pending Approval", "Approved", "Rejected", "Being Revised"
+  - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function
+- **Revision Comment Display**:
+  - When a quote is in "Revise" status, a blue-styled comment box displays the director's revision comment
+  - The comment box appears below the mode banner with an edit icon and the comment text
+  - Hidden automatically when not in Revise status
+  - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function creates/updates `#revisionCommentDisplay` element
+- **Revision Request Workflow (Sales Users on Approved Quotes)**:
+  - Sales users can request revision on Approved quotes when they need to make changes
+  - User provides a comment explaining the revision reason
+  - Status remains "Approved" but ActionComment is set with the revision request
+  - Sales Director must approve the revision request before the quote becomes editable
+  - Once approved, status transitions to "BeingRevised" and quote becomes editable by the sales user
+  - API endpoints: `POST /api/salesquotes/approvals/:quoteNumber/request-revision` (Sales), `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` (Director/Executive)
+  - Frontend functions: `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
 - **Approvals Tab**: Visible to all authenticated users (Sales, Sales Directors, Executives)
   - **Pending Approvals Section**: Only visible to Sales Directors and Executives
     - Shows pending approvals list with quote details
     - Badge count shows number of pending approvals
     - Refresh button to reload pending approvals
-    - Actions: Approve, Reject, Request Revision (with comment)
+    - Actions: Approve, Reject, Request Revision (with comment), Approve Revision Request
   - **My Approval Requests Section**: Visible to all authenticated users
     - Shows status of each request with color-coded badges
     - View approval history and director comments
-    - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Slate (Cancelled)
+    - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Purple (Being Revised), Slate (Cancelled)
+    - Edit & Resubmit button available for Revise, Rejected, and BeingRevised statuses
 - **API Endpoints**:
   - `POST /api/salesquotes/approvals/initialize` - Initialize approval record (SubmittedToBC status)
   - `POST /api/salesquotes/approvals` - Submit quote for approval
@@ -426,17 +424,17 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `GET /api/salesquotes/approvals/list/my` - Get current user's approval requests
   - `PUT /api/salesquotes/approvals/:quoteNumber/approve` - Approve a quote
   - `PUT /api/salesquotes/approvals/:quoteNumber/reject` - Reject a quote
-  - `PUT /api/salesquotes/approvals/:quoteNumber/revise` - Request revision
-- **Public Endpoints**:
-  - `GET /api/salesdirector-signature` - Get Sales Director signature (no auth required, used by print functionality)
-  - Implementation: `api/src/routes/salesdirector-signature-public.js`
+  - `PUT /api/salesquotes/approvals/:quoteNumber/revise` - Request revision (Director/Executive)
+  - `POST /api/salesquotes/approvals/:quoteNumber/request-revision` - Request revision on Approved quote (Sales)
+  - `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` - Approve revision request (Director/Executive)
+  - `POST /api/salesquotes/approvals/:quoteNumber/resubmit` - Resubmit after revision (Sales)
 - **Database Schema**: `SalesQuoteApprovals` table
   - Fields: Id, SalesQuoteNumber, SalespersonEmail, SalespersonCode, SalespersonName, CustomerName, WorkDescription, TotalAmount, ApprovalStatus, SubmittedForApprovalAt, SalesDirectorEmail, SalesDirectorActionAt, ActionComment, CreatedAt, UpdatedAt
   - Unique constraint on SalesQuoteNumber
   - Indexes for efficient queries on status and salesperson
-  - CHECK constraint for valid statuses: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled
+  - CHECK constraint for valid statuses: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised
 - **Frontend Module**: `src/js/salesquotes/approvals.js`
-  - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`
+  - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
   - Styles: `approval-styles.css` - Approval-specific UI styles
 - **Integration with Quote Creation**:
@@ -444,6 +442,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Sales users can submit quotes for approval via "Send Approval Request" button
   - Approval workflow is optional - quotes can still be sent without approval
   - Approved quotes can be printed and sent to customer
+  - Sales users can request revision on Approved quotes, requiring SD approval before editing
 - **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
@@ -469,6 +468,8 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 - `migrate_branch_to_branchid.sql` - Migrate legacy BRANCH text column to BranchId integer (see `README_BRANCH_MIGRATION.md` for details)
 - `database/migrations/add_salesperson_signatures.sql` - Creates `SalespersonSignatures` and `SalespersonSignatureAudit` tables for signature management
 - `database/migrations/add_salesdirector_signatures.sql` - Creates `SalesDirectorSignatures` and `SalesDirectorSignatureAudit` tables for Sales Director signature management (fixed signature approach)
+- `database/migrations/add_salesdirector_contact_fields.sql` - Adds FullName, PhoneNo, Email columns to SalesDirectorSignatures table
+- `database/migrations/add_being_revised_approval_status.sql` - Adds "BeingRevised" status to SalesQuoteApprovals table and migrates existing "Revise" quotes
 - `api/src/database/schemas/add_sales_quote_approvals.sql` - Creates `SalesQuoteApprovals` table for approval workflow
 - `api/src/database/schemas/add_salesdirector_role_constraint.sql` - Adds SalesDirector role constraint to UserRoles table
 
@@ -483,12 +484,14 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
   - Pagination support for large user lists
 - **Sales Director Signature Tab**: Fixed signature management for all Sales Directors
   - Upload signature file (PNG/JPG, max 500KB)
-  - View current signature with file info (name, type, size, uploaded by, updated at)
+  - Enter contact information: Full Name (required), Phone No, Email
+  - View current signature with file info (name, type, size, uploaded by, updated at) and contact details
   - Delete signature with confirmation
   - Only one signature allowed (fixed approach - applies to all Sales Directors)
   - Audit log tracks all signature changes (UPLOAD/DELETE actions)
   - API: `GET/POST/DELETE /api/backoffice/salesdirector-signature`
-  - Implementation: `api/src/routes/backoffice/salesdirector-signatures.js`
+  - Public endpoint: `GET /api/business-central/salesdirector-signature-public` - Returns signature data and contact info
+  - Implementation: `api/src/routes/backoffice/salesdirector-signatures.js`, `api/src/routes/salesdirector-signature-public.js`
 - **Role Assignment API**: `POST /api/admin/roles/assign`
   - Requires PriceListExecutive role
   - Supported roles: Executive, Sales, SalesDirector
@@ -517,4 +520,4 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 ## Agent Team & Skills
 
 - [Agent Team System](.claude/agents/TEAM.md)
-- [Custom Skills](.agents/skills/)
+- [Custom Skills](.claude/skills/)
