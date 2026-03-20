@@ -61,6 +61,12 @@ The Price List Calculator computes total cost based on four components:
     - Settings organized into groups: Typography, Content, Branding, Signature
     - Certification logo controls: certsOffsetXMm (horizontal position), certsOffsetYMm (vertical position), certsSizeScale (size scaling)
     - Signature layout controls: signatureGridMarginTopMm, signatureColMinHeightMm, signatureSignMinHeightMm, signatureBlockOffsetXMm, signatureBlockOffsetYMm
+  - **Sales Director Signature Tab**: Fixed signature management for all Sales Directors
+    - Upload signature file (PNG/JPG, max 500KB)
+    - View current signature with file info (name, type, size, uploaded by, updated at)
+    - Delete signature with confirmation
+    - Only one signature allowed (fixed approach - applies to all Sales Directors)
+    - Audit log tracks all signature changes (UPLOAD/DELETE actions)
 
 ### UI Features
 - **Collapsible Section Cards**: Labor, Materials, Travel, and Onsite Options sections can be collapsed/expanded
@@ -203,6 +209,8 @@ The application expects these SQL Server tables:
 | `SalesQuoteUserPreferences` | User-specific preferences for Sales Quotes interface (UserEmail, PreferenceKey, PreferenceValue) |
 | `SalespersonSignatures` | Uploaded salesperson signatures (SalespersonCode, SignatureData, FileName, ContentType, FileSizeBytes, UploadedBy, UploadedAt, UpdatedBy, UpdatedAt) |
 | `SalespersonSignatureAudit` | Audit log for signature changes (Id, SalespersonCode, Action, OldSignatureData, NewSignatureData, FileName, FileSizeBytes, ChangedBy, ClientIP, ChangedAt) |
+| `SalesDirectorSignatures` | Fixed Sales Director signature (single row) with SignatureData, FileName, ContentType, FileSizeBytes, UploadedBy, UploadedAt, UpdatedBy, UpdatedAt |
+| `SalesDirectorSignatureAudit` | Audit log for Sales Director signature changes (Id, Action, OldSignatureData, NewSignatureData, FileName, FileSizeBytes, ChangedBy, ClientIP, ChangedAt) |
 
 **Note**: Run `database/create_app_logs.sql` to create the application logging tables. Run `database/ensure_backoffice_schema.sql` to create backoffice tables (UserRoles, RoleAssignmentAudit). Run `database/migrations/two_factor_auth.sql` to create BackofficeAdmins table (deprecated, kept for rollback). Run `database/migrations/add_grandtotal_column.sql` to add GrandTotal column with index for sorting. Run `database/migrations/calculator_types.sql` to add CalculatorType and type-specific columns. Run `database/migrations/add_scope_column.sql` to add Scope dropdown for Onsite calculator. Run `database/migrations/priority_site_access.sql` to add SiteAccess column for Onsite calculator (PriorityLevel column already exists and is shared with Workshop). Run `database/migrations/add_onsite_cost_per_hour.sql` to add OnsiteCostPerHour column for calculator-specific branch rates. Run `api/src/database/schemas/create-bccustomers-table.sql` to create the BCCustomers table for local customer cache. BackofficeSettings and SalesQuoteUserPreferences tables are auto-created on first use via their respective utility modules.
 
@@ -309,6 +317,10 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/backoffice/salesperson-signatures/:code` | GET | Get signature for a specific salesperson | Backoffice session |
 | `/api/backoffice/salesperson-signatures/:code` | DELETE | Delete a signature | Backoffice session |
 | `/api/backoffice/salesperson-signatures/audit-log` | GET | Get audit log for signature changes (?salespersonCode filter) | Backoffice session |
+| `/api/backoffice/salesdirector-signature` | GET | Get the Sales Director signature (fixed signature) | Backoffice session |
+| `/api/backoffice/salesdirector-signature` | POST | Upload/update the Sales Director signature (signatureFile - max 500KB PNG/JPG) | Backoffice session |
+| `/api/backoffice/salesdirector-signature` | DELETE | Delete the Sales Director signature | Backoffice session |
+| `/api/backoffice/salesdirector-signature/audit-log` | GET | Get audit log for Sales Director signature changes (?page, ?pageSize) | Backoffice session |
 | `/api/business-central/config` | GET | Get Business Central configuration status (public, safe values only) | No |
 | `/api/business-central/customers/search` | GET | Search customers in local database | Yes |
 | `/api/business-central/salespeople/search` | GET | Search salespeople in local database | Yes |

@@ -212,6 +212,9 @@ app.use('/api/backoffice/login', backofficeLoginRouter);
 // This must be registered BEFORE the general backoffice route to ensure multipart/form-data is parsed
 app.use('/api/backoffice/salesperson-signatures', upload.single('signatureFile'));
 
+// Sales Director signature upload (uses same multer configuration)
+app.use('/api/backoffice/salesdirector-signature', upload.single('signatureFile'));
+
 // All other backoffice routes require Azure AD + email authorization
 app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
 

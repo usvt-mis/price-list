@@ -335,6 +335,9 @@
           <button onclick="showBackofficeTab('signatures')" id="backofficeTabSignatures" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
             Signatures <span id="signatureCount" class="ml-1 px-2 py-0.5 text-xs bg-green-200 text-green-700 rounded-full">0</span>
           </button>
+          <button onclick="showBackofficeTab('salesDirectorSignature')" id="backofficeTabSalesDirectorSignature" class="px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
+            Sales Director Signature
+          </button>
         </div>
 
         <!-- Executives Tab -->
@@ -803,6 +806,50 @@
                 Next
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- Sales Director Signature Tab -->
+        <div id="backofficeSalesDirectorSignatureTab" class="hidden">
+          <!-- Upload Section -->
+          <div class="flex flex-col sm:flex-row gap-3 mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <div class="flex-1">
+              <input id="salesDirectorSignatureFile" type="file" accept="image/png,image/jpeg"
+                class="w-full px-4 py-2 rounded-lg border border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="salesDirectorSignatureValidation" class="text-sm"></span>
+              <button id="salesDirectorSignatureUploadBtn" class="px-4 py-2 rounded-lg bg-orange-600 text-white text-sm font-medium hover:bg-orange-700 transition-colors">
+                Upload
+              </button>
+            </div>
+          </div>
+
+          <!-- Info Banner -->
+          <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <p class="text-sm text-blue-700">
+              <strong>Fixed signature for all Sales Directors</strong> (Currently: 1 Sales Director) | <strong>Supported formats:</strong> PNG, JPG | <strong>Max size:</strong> 500KB
+            </p>
+          </div>
+
+          <!-- Signature Display -->
+          <div class="border border-slate-200 rounded-lg overflow-hidden">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="text-left px-4 py-3 font-medium">Signature</th>
+                  <th class="text-left px-4 py-3 font-medium">File Info</th>
+                  <th class="text-left px-4 py-3 font-medium">Uploaded By</th>
+                  <th class="text-left px-4 py-3 font-medium">Updated At</th>
+                  <th class="text-left px-4 py-3 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="salesDirectorSignatureList" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="5" class="px-4 py-8 text-center text-slate-500">Loading Sales Director signature...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -1839,16 +1886,16 @@
     backofficeState.currentTab = tab;
 
     // Reset all tab button styles
-    const tabButtons = ['backofficeTabExecutives', 'backofficeTabSales', 'backofficeTabSalesDirectors', 'backofficeTabCustomers', 'backofficeTabAudit', 'backofficeTabDeletion', 'backofficeTabSettings', 'backofficeTabSignatures'];
+    const tabButtons = ['backofficeTabExecutives', 'backofficeTabSales', 'backofficeTabSalesDirectors', 'backofficeTabCustomers', 'backofficeTabAudit', 'backofficeTabDeletion', 'backofficeTabSettings', 'backofficeTabSignatures', 'backofficeTabSalesDirectorSignature'];
     tabButtons.forEach(btnId => {
       if (el(btnId)) {
-        el(btnId).classList.remove('bg-white', 'shadow-sm', 'text-purple-600', 'text-blue-600', 'text-indigo-600', 'text-gray-600', 'text-green-600');
+        el(btnId).classList.remove('bg-white', 'shadow-sm', 'text-purple-600', 'text-blue-600', 'text-indigo-600', 'text-gray-600', 'text-green-600', 'text-orange-600');
         el(btnId).classList.add('text-slate-600', 'hover:text-slate-900');
       }
     });
 
     // Hide all tab contents
-    const tabContents = ['backofficeExecutivesTab', 'backofficeSalesTab', 'backofficeSalesDirectorsTab', 'backofficeCustomersTab', 'backofficeAuditTab', 'backofficeDeletionTab', 'backofficeSettingsTab', 'backofficeSignaturesTab'];
+    const tabContents = ['backofficeExecutivesTab', 'backofficeSalesTab', 'backofficeSalesDirectorsTab', 'backofficeCustomersTab', 'backofficeAuditTab', 'backofficeDeletionTab', 'backofficeSettingsTab', 'backofficeSignaturesTab', 'backofficeSalesDirectorSignatureTab'];
     tabContents.forEach(contentId => {
       if (el(contentId)) {
         el(contentId).classList.add('hidden');
@@ -1928,6 +1975,15 @@
         el('backofficeSignaturesTab').classList.remove('hidden');
       }
       loadSignatures();
+    } else if (tab === 'salesDirectorSignature') {
+      if (el('backofficeTabSalesDirectorSignature')) {
+        el('backofficeTabSalesDirectorSignature').classList.add('bg-white', 'shadow-sm', 'text-orange-600');
+        el('backofficeTabSalesDirectorSignature').classList.remove('text-slate-600', 'hover:text-slate-900');
+      }
+      if (el('backofficeSalesDirectorSignatureTab')) {
+        el('backofficeSalesDirectorSignatureTab').classList.remove('hidden');
+      }
+      loadSalesDirectorSignature();
     }
   };
 
@@ -2655,6 +2711,176 @@
       backofficeState.currentEmail = null;
     }
   });
+
+  // ========== SALES DIRECTOR SIGNATURE TAB ==========
+
+  async function loadSalesDirectorSignature() {
+    try {
+      const response = await fetchWithAuth('/api/backoffice/salesdirector-signature');
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          showNotification('Access denied. Please log in again.', 'error');
+          setTimeout(() => initializePage(), 2000);
+          return;
+        }
+        throw new Error('Failed to load Sales Director signature');
+      }
+
+      const data = await response.json();
+      renderSalesDirectorSignature(data);
+    } catch (error) {
+      console.error('Failed to load Sales Director signature:', error);
+      const listId = 'salesDirectorSignatureList';
+      const container = el(listId);
+      if (container) {
+        container.innerHTML = `
+          <tr>
+            <td colspan="5" class="px-4 py-8 text-center text-red-500">
+              Failed to load Sales Director signature. ${error.message}
+            </td>
+          </tr>
+        `;
+      }
+    }
+  }
+
+  function renderSalesDirectorSignature(data) {
+    const container = el('salesDirectorSignatureList');
+    if (!container) return;
+
+    if (!data.signatureData) {
+      container.innerHTML = `
+        <tr>
+          <td colspan="5" class="px-4 py-8 text-center text-slate-500">
+            No Sales Director signature uploaded yet.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    const fileSizeText = data.fileSizeBytes
+      ? `${(data.fileSizeBytes / 1024).toFixed(2)} KB`
+      : '-';
+    const updatedAtText = data.updatedAt || data.uploadedAt
+      ? new Date(data.updatedAt || data.uploadedAt).toLocaleString()
+      : '-';
+
+    container.innerHTML = `
+      <tr class="hover:bg-slate-50">
+        <td class="px-4 py-3">
+          <img src="${escapeHtml(data.signatureData)}" alt="Sales Director Signature" class="h-12 max-w-32 object-contain border border-slate-200 rounded">
+        </td>
+        <td class="px-4 py-3 text-sm text-slate-600">
+          <div>${escapeHtml(data.fileName || '-')}</div>
+          <div>${escapeHtml(data.contentType || '-')}</div>
+          <div>${fileSizeText}</div>
+        </td>
+        <td class="px-4 py-3 text-slate-600">${escapeHtml(data.updatedBy || data.uploadedBy || '-')}</td>
+        <td class="px-4 py-3 text-slate-600">${updatedAtText}</td>
+        <td class="px-4 py-3">
+          <button onclick="deleteSalesDirectorSignature()" class="px-3 py-1 text-xs font-medium rounded border border-red-200 text-red-700 hover:bg-red-50 transition-colors">
+            Delete
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+
+  async function uploadSalesDirectorSignature() {
+    const fileInput = el('salesDirectorSignatureFile');
+
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+      showNotification('Please select a signature file', 'error');
+      return;
+    }
+
+    const file = fileInput.files[0];
+
+    // Validate file type
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      showNotification('Only PNG and JPG files are allowed', 'error');
+      return;
+    }
+
+    // Validate file size (500KB)
+    const maxSize = 500 * 1024;
+    if (file.size > maxSize) {
+      showNotification(`File size exceeds maximum of 500KB. Received: ${(file.size / 1024).toFixed(2)}KB`, 'error');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('signatureFile', file);
+
+      const response = await fetchWithAuth('/api/backoffice/salesdirector-signature', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          showNotification('Access denied. Please log in again.', 'error');
+          setTimeout(() => initializePage(), 2000);
+          return;
+        }
+        const responseData = await response.json().catch(() => ({}));
+        throw new Error(responseData.error || 'Failed to upload signature');
+      }
+
+      const responseData = await response.json();
+      showNotification(responseData.message, 'success');
+
+      // Clear form
+      if (el('salesDirectorSignatureFile')) el('salesDirectorSignatureFile').value = '';
+
+      // Reload signature display
+      loadSalesDirectorSignature();
+    } catch (error) {
+      console.error('Failed to upload Sales Director signature:', error);
+      showNotification(error.message || 'Failed to upload signature', 'error');
+    }
+  }
+
+  async function deleteSalesDirectorSignature() {
+    if (!confirm('Are you sure you want to delete the Sales Director signature?')) {
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth('/api/backoffice/salesdirector-signature', {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          showNotification('Access denied. Please log in again.', 'error');
+          setTimeout(() => initializePage(), 2000);
+          return;
+        }
+        throw new Error('Failed to delete signature');
+      }
+
+      const data = await response.json();
+      showNotification(data.message, 'success');
+
+      // Reload signature display
+      loadSalesDirectorSignature();
+    } catch (error) {
+      console.error('Failed to delete Sales Director signature:', error);
+      showNotification(error.message || 'Failed to delete signature', 'error');
+    }
+  }
+
+  // Sales Director Signature tab event listeners
+  const salesDirectorSignatureUploadBtn = el('salesDirectorSignatureUploadBtn');
+
+  if (salesDirectorSignatureUploadBtn) {
+    salesDirectorSignatureUploadBtn.addEventListener('click', uploadSalesDirectorSignature);
+  }
 
   // ========== SIGNATURES TAB ==========
 

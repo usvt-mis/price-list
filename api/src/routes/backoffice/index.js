@@ -15,6 +15,7 @@ const {
   safeParseSettingValue
 } = require('../../utils/backofficeSettings');
 const signaturesRouter = require('./signatures');
+const salesdirectorSignaturesRouter = require('./salesdirector-signatures');
 
 const SALESQUOTE_PRINT_LAYOUT_KEY = 'salesquote-print-layout';
 
@@ -976,5 +977,6 @@ router.get('/repair', async (req, res, next) => {
 
 // Mount signature routes
 router.use('/salesperson-signatures', signaturesRouter);
+router.use('/salesdirector-signature', salesdirectorSignaturesRouter);
 
 module.exports = router;
