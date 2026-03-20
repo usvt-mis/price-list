@@ -702,3 +702,70 @@ body {
     min-width: auto;
   }
 }
+
+/* ========================================
+   Tailwind Safelist - Force include specific classes
+   ======================================== */
+
+@layer utilities {
+  /* Orange colors for Sales Director Signature tab */
+  .bg-orange-50 {
+    --tw-bg-opacity: 1;
+    background-color: rgb(255 247 237 / var(--tw-bg-opacity, 1));
+  }
+  
+  .bg-orange-200 {
+    --tw-bg-opacity: 1;
+    background-color: rgb(254 215 170 / var(--tw-bg-opacity, 1));
+  }
+  
+  .bg-orange-300 {
+    --tw-bg-opacity: 1;
+    background-color: rgb(253 186 116 / var(--tw-bg-opacity, 1));
+  }
+  
+  .bg-orange-600 {
+    --tw-bg-opacity: 1;
+    background-color: rgb(234 88 12 / var(--tw-bg-opacity, 1));
+  }
+  
+  .bg-orange-700 {
+    --tw-bg-opacity: 1;
+    background-color: rgb(194 65 12 / var(--tw-bg-opacity, 1));
+  }
+  
+  .border-orange-200 {
+    --tw-border-opacity: 1;
+    border-color: rgb(254 215 170 / var(--tw-border-opacity, 1));
+  }
+  
+  .border-orange-300 {
+    --tw-border-opacity: 1;
+    border-color: rgb(253 186 116 / var(--tw-border-opacity, 1));
+  }
+  
+  .border-orange-500 {
+    --tw-border-opacity: 1;
+    border-color: rgb(249 115 22 / var(--tw-border-opacity, 1));
+  }
+  
+  .text-orange-600 {
+    --tw-text-opacity: 1;
+    color: rgb(234 88 12 / var(--tw-text-opacity, 1));
+  }
+  
+  .text-orange-700 {
+    --tw-text-opacity: 1;
+    color: rgb(194 65 12 / var(--tw-text-opacity, 1));
+  }
+  
+  .text-orange-800 {
+    --tw-text-opacity: 1;
+    color: rgb(154 52 18 / var(--tw-text-opacity, 1));
+  }
+  
+  .ring-orange-500 {
+    --tw-ring-opacity: 1;
+    --tw-ring-color: rgb(249 115 22 / var(--tw-ring-opacity, 1));
+  }
+}

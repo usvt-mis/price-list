@@ -143,6 +143,23 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Hide animation** (in JS): `modalContent.style.opacity = '0'; modalContent.style.transform = 'translateY(-10px)';`
 - Implementation: See `confirm-new-ser-modal.html` and `showConfirmNewSerModal()` / `hideConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
 
+### Tailwind CSS Safelist Pattern
+- **Problem**: Tailwind CSS may not generate certain color classes if they're only used in dynamically loaded HTML or specific contexts
+- **Solution**: Use `@layer utilities` in `src/css/input.css` to force-include specific classes
+- **Implementation**: Add explicit class definitions with Tailwind's CSS variables:
+  ```css
+  @layer utilities {
+    .bg-orange-600 {
+      --tw-bg-opacity: 1;
+      background-color: rgb(234 88 12 / var(--tw-bg-opacity, 1));
+    }
+    /* Add other needed classes */
+  }
+  ```
+- **When to use**: When adding new color classes that may not be detected by Tailwind's JIT compiler
+- **Example**: Orange color classes for Sales Director Signature tab (`bg-orange-50`, `bg-orange-200`, `bg-orange-300`, `bg-orange-600`, `bg-orange-700`, `border-orange-*`, `text-orange-*`, `ring-orange-500`)
+- **Documentation**: See `docs/tailwind-orange-color-fix.md` for detailed example
+
 ### Local Dev Mock Middleware
 - `api/src/middleware/localDevMock.js`: Provides mock data for endpoints when database is unavailable
 - **Enable**: Set `LOCAL_DEV_MOCK=true` environment variable
