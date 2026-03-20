@@ -386,5 +386,5 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 
 ## Agent Team & Skills
 
-- [Agent Team System](.Codex/agents.md)
-- [Custom Skills](.Codex/skills.md)
+- [Agent Team System](.claude/agents/TEAM.md)
+- [Custom Skills](.claude/skills/)
