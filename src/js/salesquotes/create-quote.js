@@ -47,6 +47,20 @@ function hasPendingRevisionRequestForApprovedQuote() {
     state.approval.hasPendingRevisionRequest === true;
 }
 
+function logRequestRevisionActionDecision(reason, extra = {}) {
+  console.log('[REVISION REQUEST] action decision', {
+    reason,
+    quoteNumber: state.quote.number || '',
+    quoteMode: state.quote.mode || '',
+    approvalStatus: state.quote.approvalStatus || state.approval.currentStatus || null,
+    currentUserEmail: authState.user?.email?.trim().toLowerCase() || '',
+    approvalOwnerEmail: state.approval.salespersonEmail?.trim().toLowerCase() || '',
+    isCurrentUserApprovalOwner: isCurrentUserApprovalOwner(),
+    pendingRevisionRequest: hasPendingRevisionRequestForApprovedQuote(),
+    ...extra
+  });
+}
+
 function ensureQuoteEditableForChanges() {
   if (state.quote.mode === 'edit' && !isQuoteEditable()) {
     showToast(getQuoteEditLockMessage(), 'error');
@@ -2533,37 +2547,50 @@ export async function requestApprovedQuoteRevision() {
   const quoteNumber = state.quote.number;
   const currentStatus = state.quote.approvalStatus || state.approval.currentStatus;
 
+  logRequestRevisionActionDecision('requestApprovedQuoteRevision called');
+
   if (!isCurrentUserApprovalOwner()) {
+    logRequestRevisionActionDecision('blocked: current user is not the approval owner');
     showToast('Only the owner of this approved quote can request a revision.', 'info');
     return;
   }
 
   if (!quoteNumber) {
+    logRequestRevisionActionDecision('blocked: no Sales Quote loaded');
     showToast('No Sales Quote loaded', 'error');
     return;
   }
 
   if (currentStatus !== APPROVAL_STATUS.APPROVED) {
+    logRequestRevisionActionDecision('blocked: quote is not in Approved status', {
+      expectedApprovalStatus: APPROVAL_STATUS.APPROVED
+    });
     showToast('Revise is only available for approved quotes', 'info');
     return;
   }
 
   if (hasPendingRevisionRequestForApprovedQuote()) {
+    logRequestRevisionActionDecision('blocked: pending revision request already exists');
     showToast('Revision request already submitted. Awaiting Sales Director approval.', 'info');
     return;
   }
 
   const comment = window.prompt('Please enter the reason for this revision request:');
   if (comment === null) {
+    logRequestRevisionActionDecision('cancelled: user dismissed revision request prompt');
     return;
   }
 
   const normalizedComment = comment.trim();
   if (!normalizedComment) {
+    logRequestRevisionActionDecision('blocked: revision request reason is empty');
     showToast('Please provide a reason for the revision request', 'error');
     return;
   }
 
+  logRequestRevisionActionDecision('proceed: submitting revision request', {
+    commentLength: normalizedComment.length
+  });
   await requestRevisionForApprovedQuote(quoteNumber, normalizedComment);
 }
 

@@ -436,6 +436,8 @@ function hasPendingRevisionRequestState() {
     state.approval.hasPendingRevisionRequest === true;
 }
 
+let lastRequestRevisionVisibilityLogSignature = '';
+
 export function isCurrentUserApprovalOwner() {
   const currentUserEmail = authState.user?.email?.trim().toLowerCase();
   const approvalOwnerEmail = state.approval.salespersonEmail?.trim().toLowerCase();
@@ -443,6 +445,62 @@ export function isCurrentUserApprovalOwner() {
   return Boolean(currentUserEmail) &&
     Boolean(approvalOwnerEmail) &&
     currentUserEmail === approvalOwnerEmail;
+}
+
+function logRequestRevisionVisibilityDecision({
+  requestRevisionBtn,
+  isSearchSalesQuoteMode,
+  approvalStatus,
+  approvedStatus,
+  canUseRevisionRequest,
+  pendingRevisionRequest,
+  showRequestRevision
+}) {
+  const currentUserEmail = authState.user?.email?.trim().toLowerCase() || '';
+  const approvalOwnerEmail = state.approval.salespersonEmail?.trim().toLowerCase() || '';
+  const reasons = [];
+
+  if (!requestRevisionBtn) {
+    reasons.push('button element not found');
+  }
+  if (!isSearchSalesQuoteMode) {
+    reasons.push('not in searched Sales Quote mode');
+  }
+  if (approvalStatus !== approvedStatus) {
+    reasons.push(`approval status is "${approvalStatus || 'null'}" instead of "${approvedStatus}"`);
+  }
+  if (!canUseRevisionRequest) {
+    reasons.push('current user is not the approval owner');
+  }
+  if (pendingRevisionRequest) {
+    reasons.push('a revision request is already pending approval');
+  }
+  if (showRequestRevision) {
+    reasons.push('all show conditions passed');
+  }
+
+  const payload = {
+    quoteNumber: state.quote.number || '',
+    quoteMode: state.quote.mode || '',
+    buttonFound: Boolean(requestRevisionBtn),
+    isSearchSalesQuoteMode,
+    approvalStatus: approvalStatus || null,
+    expectedApprovalStatus: approvedStatus,
+    currentUserEmail,
+    approvalOwnerEmail,
+    canUseRevisionRequest,
+    pendingRevisionRequest,
+    willShow: showRequestRevision,
+    reasons
+  };
+  const signature = JSON.stringify(payload);
+
+  if (signature === lastRequestRevisionVisibilityLogSignature) {
+    return;
+  }
+
+  lastRequestRevisionVisibilityLogSignature = signature;
+  console.log('[REVISE BUTTON] visibility decision', payload);
 }
 
 export function isQuoteEditable() {
@@ -1742,6 +1800,16 @@ export async function updateQuoteEditorModeUi() {
       approvalStatus === APPROVAL.APPROVED &&
       canUseRevisionRequest &&
       !pendingRevisionRequest;
+
+    logRequestRevisionVisibilityDecision({
+      requestRevisionBtn,
+      isSearchSalesQuoteMode,
+      approvalStatus,
+      approvedStatus: APPROVAL.APPROVED,
+      canUseRevisionRequest,
+      pendingRevisionRequest,
+      showRequestRevision
+    });
 
     if (sendApprovalRequestBtn) {
       sendApprovalRequestBtn.classList.toggle('hidden', !canRequestApproval);

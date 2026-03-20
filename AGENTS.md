@@ -427,6 +427,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Frontend uses `isCurrentUserApprovalOwner()` function to check ownership before allowing revision requests
   - API endpoints: `POST /api/salesquotes/approvals/:quoteNumber/request-revision` (Sales), `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` (Director/Executive)
   - Frontend functions: `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`, `isCurrentUserApprovalOwner()`
+  - **Revision Request Logging**: Detailed logging for debugging revision request actions and button visibility
+    - `logRequestRevisionActionDecision()` in `create-quote.js` logs all decision points in `requestApprovedQuoteRevision()` with context
+    - `logRequestRevisionVisibilityDecision()` in `ui.js` logs "Request Revision" button visibility decisions with deduplication
+    - Logs include: quote number, mode, approval status, user emails, ownership check, pending request status, and reasons for decisions
+    - Signature-based deduplication prevents console spam from repeated visibility checks
+    - Implementation: `src/js/salesquotes/create-quote.js` - `logRequestRevisionActionDecision()`, `src/js/salesquotes/ui.js` - `logRequestRevisionVisibilityDecision()`
 - **Approvals Tab**: Visible to all authenticated users (Sales, Sales Directors, Executives)
   - **Pending Approvals Section**: Only visible to Sales Directors and Executives
     - Shows pending approvals list with quote details
