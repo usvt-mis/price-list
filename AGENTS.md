@@ -81,7 +81,7 @@ api/src/
 
 src/salesquotes/components/
 ├── styles/         # External CSS
-├── modals/         # 8 modular HTML modals (lazy-loaded)
+├── modals/         # 11 modular HTML modals (lazy-loaded)
 └── assets/         # Static assets (logos, certifications for print)
 ```
 
@@ -162,16 +162,32 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Filters jobs at API level (J007=AC only, J017=DC only)
 - API: `GET /api/workshop/labor?motorTypeId={id}&motorDriveType={AC|DC}`
 
+### State Management
+- **Global State**: `src/js/state.js` - Centralized state management for the entire application
+- **Authentication State**: `authState` object (lines 77-81) contains:
+  - `isAuthenticated`: Boolean flag for auth status
+  - `user`: User object with name, email, initials, roles, effectiveRole
+  - `isLoading`: Boolean flag for loading state
+- **Import Pattern**: Use `import { authState } from '../../state.js'` from subdirectories (e.g., `src/js/salesquotes/`)
+- **Legacy Note**: Previously `authState` was in `src/js/auth/state.js` but has been consolidated into global state
+
 ---
 
 ## Authentication & Authorization
 
 | Role | Access |
 |------|--------|
-| **Executive** | Full costs, margins, multipliers |
-| **Sales** | Restricted view (no cost data) |
+| **Executive** | Full costs, margins, multipliers, approve quotes |
+| **Sales Director** | Full costs, margins, multipliers, approve quotes |
+| **Sales** | Restricted view (no cost data), submit quotes for approval |
 | **NoRole** | "Awaiting assignment" screen |
 | **Customer** | View-only via shared links |
+
+**Role Detection:**
+- `isSalesDirector()` - Check if current user is a Sales Director
+- `canApproveQuotes()` - Check if current user can approve quotes (Executive or Sales Director)
+- `isSalesOnly()` - Check if current user is a regular Sales user (not Executive or Director)
+- Implementation: `src/js/auth/mode-detection.js`
 
 [docs/authentication.md](docs/authentication.md) for details.
 

@@ -147,12 +147,12 @@ router.post('/', async (req, res, next) => {
     const result = await pool.request()
       .input('salesQuoteNumber', require('mssql').NVarChar(50), salesQuoteNumber)
       .input('salespersonEmail', require('mssql').NVarChar(255), clientEmail)
-      .input('salespersonCode', require('mssql').nvarchar(50), salespersonCode)
-      .input('salespersonName', require('mssql').nvarchar(255), salespersonName || null)
-      .input('customerName', require('mssql').nvarchar(255), customerName || null)
-      .input('workDescription', require('mssql').nvarchar('max'), workDescription || null)
+      .input('salespersonCode', require('mssql').NVarChar(50), salespersonCode)
+      .input('salespersonName', require('mssql').NVarChar(255), salespersonName || null)
+      .input('customerName', require('mssql').NVarChar(255), customerName || null)
+      .input('workDescription', require('mssql').NVarChar('max'), workDescription || null)
       .input('totalAmount', require('mssql').Decimal(18, 2), amount)
-      .input('approvalStatus', require('mssql').nvarchar(50), finalStatus)
+      .input('approvalStatus', require('mssql').NVarChar(50), finalStatus)
       .input('submittedForApprovalAt', submittedAt ? new Date(submittedAt) : null)
       .query(`
         INSERT INTO SalesQuoteApprovals (
@@ -297,7 +297,7 @@ router.get('/list/my-requests', async (req, res, next) => {
     await ensureApprovalTable(pool);
 
     const result = await pool.request()
-      .input('salespersonEmail', require('mssql').nvarchar(255), clientEmail)
+      .input('salespersonEmail', require('mssql').NVarChar(255), clientEmail)
       .query(`
         SELECT
           Id,
@@ -365,8 +365,8 @@ router.post('/:quoteNumber/approve', async (req, res, next) => {
 
     // Update to Approved
     await pool.request()
-      .input('salesQuoteNumber', require('mssql').nvarchar(50), quoteNumber)
-      .input('salesDirectorEmail', require('mssql').nvarchar(255), clientEmail)
+      .input('salesQuoteNumber', require('mssql').NVarChar(50), quoteNumber)
+      .input('salesDirectorEmail', require('mssql').NVarChar(255), clientEmail)
       .input('actionAt', new Date())
       .query(`
         UPDATE SalesQuoteApprovals
@@ -432,10 +432,10 @@ router.post('/:quoteNumber/reject', async (req, res, next) => {
 
     // Update to Rejected
     await pool.request()
-      .input('salesQuoteNumber', require('mssql').nvarchar(50), quoteNumber)
-      .input('salesDirectorEmail', require('mssql').nvarchar(255), clientEmail)
+      .input('salesQuoteNumber', require('mssql').NVarChar(50), quoteNumber)
+      .input('salesDirectorEmail', require('mssql').NVarChar(255), clientEmail)
       .input('actionAt', new Date())
-      .input('comment', require('mssql').nvarchar('max'), comment || null)
+      .input('comment', require('mssql').NVarChar('max'), comment || null)
       .query(`
         UPDATE SalesQuoteApprovals
         SET ApprovalStatus = 'Rejected',
@@ -506,10 +506,10 @@ router.post('/:quoteNumber/revise', async (req, res, next) => {
 
     // Update to Revise
     await pool.request()
-      .input('salesQuoteNumber', require('mssql').nvarchar(50), quoteNumber)
-      .input('salesDirectorEmail', require('mssql').nvarchar(255), clientEmail)
+      .input('salesQuoteNumber', require('mssql').NVarChar(50), quoteNumber)
+      .input('salesDirectorEmail', require('mssql').NVarChar(255), clientEmail)
       .input('actionAt', new Date())
-      .input('comment', require('mssql').nvarchar('max'), comment.trim())
+      .input('comment', require('mssql').NVarChar('max'), comment.trim())
       .query(`
         UPDATE SalesQuoteApprovals
         SET ApprovalStatus = 'Revise',
@@ -574,7 +574,7 @@ router.post('/:quoteNumber/cancel', async (req, res, next) => {
 
     // Update to Cancelled
     await pool.request()
-      .input('salesQuoteNumber', require('mssql').nvarchar(50), quoteNumber)
+      .input('salesQuoteNumber', require('mssql').NVarChar(50), quoteNumber)
       .query(`
         UPDATE SalesQuoteApprovals
         SET ApprovalStatus = 'Cancelled',
@@ -642,8 +642,8 @@ router.post('/:quoteNumber/resubmit', async (req, res, next) => {
     ];
 
     const request = pool.request()
-      .input('salesQuoteNumber', require('mssql').nvarchar(50), quoteNumber)
-      .input('approvalStatus', require('mssql').nvarchar(50), 'PendingApproval')
+      .input('salesQuoteNumber', require('mssql').NVarChar(50), quoteNumber)
+      .input('approvalStatus', require('mssql').NVarChar(50), 'PendingApproval')
       .input('submittedAt', new Date());
 
     if (totalAmount !== undefined) {
@@ -652,12 +652,12 @@ router.post('/:quoteNumber/resubmit', async (req, res, next) => {
     }
 
     if (customerName !== undefined) {
-      request.input('customerName', require('mssql').nvarchar(255), customerName);
+      request.input('customerName', require('mssql').NVarChar(255), customerName);
       updates.push('CustomerName = @customerName');
     }
 
     if (workDescription !== undefined) {
-      request.input('workDescription', require('mssql').nvarchar('max'), workDescription);
+      request.input('workDescription', require('mssql').NVarChar('max'), workDescription);
       updates.push('WorkDescription = @workDescription');
     }
 
