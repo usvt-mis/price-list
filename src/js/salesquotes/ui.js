@@ -1493,6 +1493,16 @@ export async function updateQuoteEditorModeUi() {
     if (state.quote.status) {
       metaParts.push(`Status: ${state.quote.status}`);
     }
+    if (state.approval.currentStatus) {
+      const APPROVAL = await getApprovalStatus();
+      const statusLabel = APPROVAL.SUBMITTED_TO_BC === state.approval.currentStatus ? 'Submitted to BC' :
+                        APPROVAL.REVISE === state.approval.currentStatus ? 'Revision Requested' :
+                        APPROVAL.PENDING_APPROVAL === state.approval.currentStatus ? 'Pending Approval' :
+                        APPROVAL.APPROVED === state.approval.currentStatus ? 'Approved' :
+                        APPROVAL.REJECTED === state.approval.currentStatus ? 'Rejected' :
+                        state.approval.currentStatus;
+      metaParts.push(`Approval: ${statusLabel}`);
+    }
     if (state.quote.customerName) {
       metaParts.push(`Customer: ${state.quote.customerName}`);
     }
@@ -1500,6 +1510,36 @@ export async function updateQuoteEditorModeUi() {
       metaParts.push(`Branch: ${state.quote.branch}`);
     }
     meta.textContent = metaParts.join(' | ');
+    
+    // Show revision comments if present
+    if (state.approval.actionComment && state.approval.currentStatus === APPROVAL.REVISE) {
+      // Create or update revision comment display
+      let revisionCommentDiv = el('revisionCommentDisplay');
+      if (!revisionCommentDiv) {
+        revisionCommentDiv = document.createElement('div');
+        revisionCommentDiv.id = 'revisionCommentDisplay';
+        revisionCommentDiv.className = 'mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg';
+        banner.appendChild(revisionCommentDiv);
+      }
+      revisionCommentDiv.innerHTML = `
+        <div class="flex items-start gap-2">
+          <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+          </svg>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-blue-900">Revision Requested</p>
+            <p class="text-sm text-blue-700 mt-1 whitespace-pre-wrap">${state.approval.actionComment}</p>
+          </div>
+        </div>
+      `;
+      revisionCommentDiv.classList.remove('hidden');
+    } else {
+      // Hide revision comment display if not in Revise status
+      const revisionCommentDiv = el('revisionCommentDisplay');
+      if (revisionCommentDiv) {
+        revisionCommentDiv.classList.add('hidden');
+      }
+    }
   }
 
   if (sendButton) {
@@ -1539,7 +1579,8 @@ export async function updateQuoteEditorModeUi() {
     const canRequestApproval = isEditMode &&
       (approvalStatus === null ||
        approvalStatus === APPROVAL.DRAFT ||
-       approvalStatus === APPROVAL.SUBMITTED_TO_BC) &&
+       approvalStatus === APPROVAL.SUBMITTED_TO_BC ||
+       approvalStatus === APPROVAL.REVISE) &&
       total > 0; // Hide button for zero or negative totals
 
     // ========================================
@@ -1558,6 +1599,7 @@ export async function updateQuoteEditorModeUi() {
     console.log('  - approvalStatus (used):', approvalStatus);
     console.log('  - APPROVAL.DRAFT:', APPROVAL.DRAFT);
     console.log('  - APPROVAL.SUBMITTED_TO_BC:', APPROVAL.SUBMITTED_TO_BC);
+    console.log('  - APPROVAL.REVISE:', APPROVAL.REVISE);
     console.log('  - subtotal:', subtotal.toFixed(2));
     console.log('  - invoiceDiscount:', invoiceDiscount.toFixed(2));
     console.log('  - afterDiscount:', afterDiscount.toFixed(2));
@@ -1570,6 +1612,7 @@ export async function updateQuoteEditorModeUi() {
       (approvalStatus === null ? '✅ PASS (null)' :
        approvalStatus === APPROVAL.DRAFT ? `✅ PASS (${APPROVAL.DRAFT})` :
        approvalStatus === APPROVAL.SUBMITTED_TO_BC ? `✅ PASS (${APPROVAL.SUBMITTED_TO_BC})` :
+       approvalStatus === APPROVAL.REVISE ? `✅ PASS (${APPROVAL.REVISE})` :
        `❌ FAIL - Invalid status: ${approvalStatus}`));
     console.log('  3. total > 0?', total > 0 ? `✅ PASS (${total.toFixed(2)})` : `❌ FAIL - Total is ${total.toFixed(2)}`);
     console.log('');

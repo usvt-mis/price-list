@@ -375,9 +375,18 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Send Approval Request Button**:
   - Visible to all users when viewing a searched quote with total > 0
   - Allows submitting quotes for director/executive approval
-  - Button shown when quote status is Draft or SubmittedToBC AND total amount > 0
+  - Button shown when quote status is Draft, SubmittedToBC, or Revise AND total amount > 0
   - Hidden for zero or negative total quotes
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()`, `src/salesquotes.html` - button element
+- **Mode Banner Approval Status Display**:
+  - When viewing a searched quote, the mode banner displays the current approval status with user-friendly labels
+  - Status labels: "Submitted to BC", "Revision Requested", "Pending Approval", "Approved", "Rejected"
+  - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function
+- **Revision Comment Display**:
+  - When a quote is in "Revise" status, a blue-styled comment box displays the director's revision comment
+  - The comment box appears below the mode banner with an edit icon and the comment text
+  - Hidden automatically when not in Revise status
+  - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function creates/updates `#revisionCommentDisplay` element
 - **Approvals Tab**: Visible to all authenticated users (Sales, Sales Directors, Executives)
   - **Pending Approvals Section**: Only visible to Sales Directors and Executives
     - Shows pending approvals list with quote details
