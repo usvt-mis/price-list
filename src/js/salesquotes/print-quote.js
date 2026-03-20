@@ -729,7 +729,7 @@ function renderApproverSignatureColumn(model) {
               <div class="signature-line"></div>
               <div class="signature-meta">
                 <div class="signature-meta-row">
-                  <div class="signature-detail">
+                  <div class="signature-detail signature-detail-approver-name">
                     <div class="detail-label">Approved</div>
                     <div class="detail-value">${escapeHtml(model.approver.name)}</div>
                   </div>
@@ -1737,6 +1737,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     }
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
+    .signature-approver .signature-detail-approver-name .detail-value { padding-left: 0.8mm; }
     .signature-approver .signature-detail-approver-email .detail-value-email { white-space: nowrap; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
     .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.5mm !important; font-size: ${settings.docFooterFontSize}px; }
@@ -2022,6 +2023,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     }
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
+    .signature-approver .signature-detail-approver-name .detail-value { padding-left: 0.8mm; }
     .signature-approver .signature-detail-approver-email .detail-value-email { white-space: nowrap; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
     .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.5mm !important; font-size: ${settings.docFooterFontSize}px; }
