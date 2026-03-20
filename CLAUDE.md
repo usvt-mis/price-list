@@ -359,7 +359,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **CSS Page Break Rules**: `@media print` and inline styles ensure proper pagination
   - `.page:last-child` has `page-break-after: auto` to prevent trailing blank pages
   - Prevents page breaks inside line table rows, footer stack, and signature grid
-  - Doc footer uses `margin-top: -2mm !important` for optimal positioning
+  - Doc footer uses `margin-top: 1.5mm !important` for optimal positioning
 
 ### My Records (Submission History)
 - "My Records" tab shows user's submitted quotes with search

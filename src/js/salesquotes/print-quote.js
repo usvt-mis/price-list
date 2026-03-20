@@ -1749,7 +1749,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .signature-detail {
       width: 100%;
       display: grid;
-      grid-template-columns: 12mm 1fr;
+      grid-template-columns: 10mm 1fr;
       column-gap: 1.8mm;
       align-items: baseline;
       font-size: ${settings.signatureFontSize}px;
@@ -1757,7 +1757,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: -2mm !important; font-size: ${settings.docFooterFontSize}px; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5mm !important; font-size: ${settings.docFooterFontSize}px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
 </head>
@@ -2041,7 +2041,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .signature-detail .detail-label { white-space: nowrap; }
     .signature-detail .detail-value { min-width: 0; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
-    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: -2mm !important; font-size: ${settings.docFooterFontSize}px; }
+    .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5mm !important; font-size: ${settings.docFooterFontSize}px; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
 
     @media print {

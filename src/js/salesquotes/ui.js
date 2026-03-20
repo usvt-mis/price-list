@@ -1542,6 +1542,43 @@ export async function updateQuoteEditorModeUi() {
        approvalStatus === APPROVAL.SUBMITTED_TO_BC) &&
       total > 0; // Hide button for zero or negative totals
 
+    // ========================================
+    // DEBUG LOGS: Send Approval Request Button
+    // ========================================
+    console.group('🔍 [Send Approval Request Button] Debug Info');
+    console.log('📍 Current State:');
+    console.log('  - state.quote.mode:', state.quote.mode);
+    console.log('  - state.quote.number:', state.quote.number);
+    console.log('  - state.quote.loadedFromBc:', state.quote.loadedFromBc);
+    console.log('  - state.quote.approvalStatus:', state.quote.approvalStatus);
+    console.log('  - state.approval.currentStatus:', state.approval.currentStatus);
+    console.log('');
+    console.log('📊 Calculated Values:');
+    console.log('  - isEditMode:', isEditMode);
+    console.log('  - approvalStatus (used):', approvalStatus);
+    console.log('  - APPROVAL.DRAFT:', APPROVAL.DRAFT);
+    console.log('  - APPROVAL.SUBMITTED_TO_BC:', APPROVAL.SUBMITTED_TO_BC);
+    console.log('  - subtotal:', subtotal.toFixed(2));
+    console.log('  - invoiceDiscount:', invoiceDiscount.toFixed(2));
+    console.log('  - afterDiscount:', afterDiscount.toFixed(2));
+    console.log('  - vatRate:', (vatRate * 100).toFixed(2) + '%');
+    console.log('  - total:', total.toFixed(2));
+    console.log('');
+    console.log('✅ Conditions Check:');
+    console.log('  1. isEditMode?', isEditMode ? '✅ PASS' : '❌ FAIL - Not in edit mode');
+    console.log('  2. approvalStatus valid?', 
+      (approvalStatus === null ? '✅ PASS (null)' :
+       approvalStatus === APPROVAL.DRAFT ? `✅ PASS (${APPROVAL.DRAFT})` :
+       approvalStatus === APPROVAL.SUBMITTED_TO_BC ? `✅ PASS (${APPROVAL.SUBMITTED_TO_BC})` :
+       `❌ FAIL - Invalid status: ${approvalStatus}`));
+    console.log('  3. total > 0?', total > 0 ? `✅ PASS (${total.toFixed(2)})` : `❌ FAIL - Total is ${total.toFixed(2)}`);
+    console.log('');
+    console.log('🎯 Final Result:');
+    console.log('  - canRequestApproval:', canRequestApproval);
+    console.log('  - Button will be:', canRequestApproval ? 'VISIBLE ✅' : 'HIDDEN ❌');
+    console.groupEnd();
+    // ========================================
+
     if (canRequestApproval) {
       sendApprovalRequestBtn.classList.remove('hidden');
     } else {
