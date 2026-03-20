@@ -13,7 +13,7 @@ import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } 
 import { getUserInfo } from '../auth/ui.js';
 import { recordQuoteSubmission } from './records.js';
 import { submitForApproval, checkApprovalStatus } from './approvals.js';
-import { authState } from '../auth/state.js';
+import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
 
 function normalizeGroupNo(value) {

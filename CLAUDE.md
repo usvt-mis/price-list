@@ -156,11 +156,22 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Supports GET/POST; fallback keys for GetSalesQuotesFromNumber/UpdateSalesQuote
 - Config: `GATEWAY_BASE_URL`, `{CSQWN,CSI,CSOFSQ,GSQFN,USQ}_KEY`, `{...}_PATH` overrides
 
+-------
+
 ### Motor Drive Type Filtering (Workshop)
 - State: `appState.motorDriveType` ('AC' or 'DC')
 - Auto-detects from motor type names; defaults to 'AC'
 - Filters jobs at API level (J007=AC only, J017=DC only)
 - API: `GET /api/workshop/labor?motorTypeId={id}&motorDriveType={AC|DC}`
+
+### State Management
+- **Global State**: `src/js/state.js` - Centralized state management for the entire application
+- **Authentication State**: `authState` object (lines 77-81) contains:
+  - `isAuthenticated`: Boolean flag for auth status
+  - `user`: User object with name, email, initials, roles, effectiveRole
+  - `isLoading`: Boolean flag for loading state
+- **Import Pattern**: Use `import { authState } from '../../state.js'` from subdirectories (e.g., `src/js/salesquotes/`)
+- **Legacy Note**: Previously `authState` was in `src/js/auth/state.js` but has been consolidated into global state
 
 ---
 

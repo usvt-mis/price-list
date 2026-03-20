@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { formatCurrency, getQuoteFormData, showError, showToast } from './ui.js';
 import { checkApprovalStatus, APPROVAL_STATUS } from './approvals.js';
-import { authState } from '../auth/state.js';
+import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
 
 const SIGNATURE_API_BASE = '/api/backoffice/salesperson-signatures';
@@ -165,7 +165,7 @@ let printLayoutSettingsPromise = null;
  * Fetch uploaded signature for a salesperson from backoffice
  * Priority: Uploaded signature > BC signature data > No signature
  */
-async function fetchSalespersonSignature(salespersonCode) {
+export async function fetchSalespersonSignature(salespersonCode) {
   if (!salespersonCode) return null;
 
   try {

@@ -4,7 +4,7 @@
  */
 
 import { state } from './state.js';
-import { authState } from '../auth/state.js';
+import { authState } from '../state.js';
 import { ROLE, MODE } from '../core/config.js';
 import { el, show, hide, showToast, showLoading, hideLoading } from './ui.js';
 import { fetchSalespersonSignature } from './print-quote.js';
