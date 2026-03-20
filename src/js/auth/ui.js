@@ -9,36 +9,23 @@ import { extractInitials, setStatus } from '../core/utils.js';
 import { initializeModeFromRole } from './mode-detection.js';
 
 /**
- * Fetch user info from Static Web Apps (or mock user in local dev)
+ * Fetch user info from the backend auth endpoint.
+ * In local dev, the backend already returns the configured mock user,
+ * which keeps frontend and backend identity in sync.
  * @returns {Promise<Object|null>} User info or null
  */
 export async function getUserInfo() {
   console.log('[AUTH-USERINFO-1] getUserInfo: STARTED');
-  // Local development: return mock user with Executive role
-  if (isLocalDev) {
-    console.log('[AUTH-USERINFO-2] Local dev detected, returning mock user');
-    return {
-      clientPrincipal: {
-        userDetails: 'Dev User',
-        userId: 'dev-user',
-        userRoles: ['PriceListExecutive', 'authenticated'],
-        branchId: 1 // Default to URY (1) for local dev
-      },
-      effectiveRole: 'Executive'
-    };
-  }
-
-  // Production: fetch from App Service Easy Auth API
   try {
-    console.log('[AUTH-USERINFO-3] Fetching from /api/auth/me...');
+    console.log('[AUTH-USERINFO-2] Fetching from /api/auth/me...');
     const response = await fetch('/api/auth/me');
-    console.log('[AUTH-USERINFO-4] Response status:', response.status);
+    console.log('[AUTH-USERINFO-3] Response status:', response.status);
     if (!response.ok) {
-      console.log('[AUTH-USERINFO-5] Response not OK, returning null');
+      console.log('[AUTH-USERINFO-4] Response not OK, returning null');
       return null;
     }
     const data = await response.json();
-    console.log('[AUTH-USERINFO-6] Data received:', data);
+    console.log('[AUTH-USERINFO-5] Data received:', data);
     return data; // Return full response including clientPrincipal AND effectiveRole
   } catch (e) {
     console.error('[AUTH-USERINFO-ERROR] Failed to fetch user info:', e);

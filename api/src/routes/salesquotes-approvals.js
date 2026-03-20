@@ -23,6 +23,7 @@ async function ensureApprovalTable(pool) {
         Id INT IDENTITY(1,1) PRIMARY KEY,
         SalesQuoteNumber NVARCHAR(50) NOT NULL,
         SalespersonEmail NVARCHAR(255) NOT NULL,
+        ApprovalOwnerEmail NVARCHAR(255) NULL,
         SalespersonCode NVARCHAR(50) NOT NULL,
         SalespersonName NVARCHAR(255) NULL,
         CustomerName NVARCHAR(255) NULL,
@@ -47,6 +48,27 @@ async function ensureApprovalTable(pool) {
       CREATE INDEX IX_SalesQuoteApprovals_Salesperson
         ON SalesQuoteApprovals (SalespersonEmail, ApprovalStatus);
     END
+  `);
+
+  await pool.request().query(`
+    IF COL_LENGTH('dbo.SalesQuoteApprovals', 'ApprovalOwnerEmail') IS NULL
+    BEGIN
+      BEGIN TRY
+        ALTER TABLE dbo.SalesQuoteApprovals
+        ADD ApprovalOwnerEmail NVARCHAR(255) NULL;
+      END TRY
+      BEGIN CATCH
+        IF ERROR_NUMBER() <> 2705
+          THROW;
+      END CATCH
+    END;
+  `);
+
+  await pool.request().query(`
+    UPDATE dbo.SalesQuoteApprovals
+    SET ApprovalOwnerEmail = SalespersonEmail
+    WHERE ApprovalOwnerEmail IS NULL
+      AND SalespersonEmail IS NOT NULL;
   `);
 }
 
@@ -80,10 +102,15 @@ function canUserApprove(role) {
 }
 
 /**
- * Helper: Check if user is the salesperson who submitted
+ * Helper: Check if user is the approval owner
  */
-function isSubmittingSalesperson(approval, userEmail) {
-  return approval && approval.SalespersonEmail.toLowerCase() === userEmail.toLowerCase();
+function getApprovalOwnerEmail(record) {
+  return String(record?.ApprovalOwnerEmail || record?.SalespersonEmail || '').trim();
+}
+
+function isApprovalOwner(approval, userEmail) {
+  const approvalOwnerEmail = getApprovalOwnerEmail(approval).toLowerCase();
+  return Boolean(approvalOwnerEmail) && approvalOwnerEmail === userEmail.toLowerCase();
 }
 
 function normalizeTimestamp(value) {
@@ -171,6 +198,7 @@ router.post('/initialize', async (req, res, next) => {
     const result = await pool.request()
       .input('salesQuoteNumber', require('mssql').NVarChar(50), salesQuoteNumber)
       .input('salespersonEmail', require('mssql').NVarChar(255), clientEmail)
+      .input('approvalOwnerEmail', require('mssql').NVarChar(255), clientEmail)
       .input('salespersonCode', require('mssql').NVarChar(50), salespersonCode)
       .input('salespersonName', require('mssql').NVarChar(255), salespersonName || null)
       .input('customerName', require('mssql').NVarChar(255), customerName || null)
@@ -182,6 +210,7 @@ router.post('/initialize', async (req, res, next) => {
         INSERT INTO SalesQuoteApprovals (
           SalesQuoteNumber,
           SalespersonEmail,
+          ApprovalOwnerEmail,
           SalespersonCode,
           SalespersonName,
           CustomerName,
@@ -193,6 +222,7 @@ router.post('/initialize', async (req, res, next) => {
         VALUES (
           @salesQuoteNumber,
           @salespersonEmail,
+          @approvalOwnerEmail,
           @salespersonCode,
           @salespersonName,
           @customerName,
@@ -273,11 +303,13 @@ router.post('/', async (req, res, next) => {
         // Update to PendingApproval
         await pool.request()
           .input('salesQuoteNumber', require('mssql').NVarChar(50), salesQuoteNumber)
+          .input('approvalOwnerEmail', require('mssql').NVarChar(255), clientEmail)
           .input('approvalStatus', require('mssql').NVarChar(50), finalStatus)
           .input('submittedForApprovalAt', submittedAt ? new Date(submittedAt) : null)
           .query(`
             UPDATE SalesQuoteApprovals
             SET ApprovalStatus = @approvalStatus,
+                ApprovalOwnerEmail = @approvalOwnerEmail,
                 SubmittedForApprovalAt = @submittedForApprovalAt,
                 UpdatedAt = GETUTCDATE()
             WHERE SalesQuoteNumber = @salesQuoteNumber
@@ -313,6 +345,7 @@ router.post('/', async (req, res, next) => {
     const result = await pool.request()
       .input('salesQuoteNumber', require('mssql').NVarChar(50), salesQuoteNumber)
       .input('salespersonEmail', require('mssql').NVarChar(255), clientEmail)
+      .input('approvalOwnerEmail', require('mssql').NVarChar(255), clientEmail)
       .input('salespersonCode', require('mssql').NVarChar(50), salespersonCode)
       .input('salespersonName', require('mssql').NVarChar(255), salespersonName || null)
       .input('customerName', require('mssql').NVarChar(255), customerName || null)
@@ -324,6 +357,7 @@ router.post('/', async (req, res, next) => {
         INSERT INTO SalesQuoteApprovals (
           SalesQuoteNumber,
           SalespersonEmail,
+          ApprovalOwnerEmail,
           SalespersonCode,
           SalespersonName,
           CustomerName,
@@ -335,6 +369,7 @@ router.post('/', async (req, res, next) => {
         VALUES (
           @salesQuoteNumber,
           @salespersonEmail,
+          @approvalOwnerEmail,
           @salespersonCode,
           @salespersonName,
           @customerName,
@@ -479,7 +514,7 @@ router.get('/list/my-requests', async (req, res, next) => {
     await ensureApprovalTable(pool);
 
     const result = await pool.request()
-      .input('salespersonEmail', require('mssql').NVarChar(255), clientEmail)
+      .input('approvalOwnerEmail', require('mssql').NVarChar(255), clientEmail)
       .query(`
         SELECT
           Id,
@@ -494,7 +529,7 @@ router.get('/list/my-requests', async (req, res, next) => {
           CreatedAt,
           UpdatedAt
         FROM SalesQuoteApprovals
-        WHERE SalespersonEmail = @salespersonEmail
+        WHERE COALESCE(ApprovalOwnerEmail, SalespersonEmail) = @approvalOwnerEmail
         ORDER BY CreatedAt DESC
       `);
 
@@ -747,8 +782,8 @@ router.post('/:quoteNumber/cancel', async (req, res, next) => {
       return res.status(404).json({ error: 'Approval record not found' });
     }
 
-    // Only the submitting salesperson can cancel
-    if (!isSubmittingSalesperson(approval, clientEmail)) {
+    // Only the approval owner can cancel
+    if (!isApprovalOwner(approval, clientEmail)) {
       return res.status(403).json({ error: 'You can only cancel your own approval requests' });
     }
 
@@ -812,8 +847,8 @@ router.post('/:quoteNumber/request-revision', async (req, res, next) => {
       return res.status(404).json({ error: 'Approval record not found' });
     }
 
-    // Only the submitting salesperson can request revision
-    if (!isSubmittingSalesperson(approval, clientEmail)) {
+    // Only the approval owner can request revision
+    if (!isApprovalOwner(approval, clientEmail)) {
       return res.status(403).json({ error: 'You can only request revision for your own quotes' });
     }
 
@@ -956,8 +991,8 @@ router.post('/:quoteNumber/resubmit', async (req, res, next) => {
       return res.status(404).json({ error: 'Approval record not found' });
     }
 
-    // Only the submitting salesperson can resubmit
-    if (!isSubmittingSalesperson(approval, clientEmail)) {
+    // Only the approval owner can resubmit
+    if (!isApprovalOwner(approval, clientEmail)) {
       return res.status(403).json({ error: 'You can only resubmit your own quotes' });
     }
 
@@ -973,6 +1008,7 @@ router.post('/:quoteNumber/resubmit', async (req, res, next) => {
     // Update provided fields and reset to PendingApproval
     const updates = [
       'ApprovalStatus = @approvalStatus',
+      'ApprovalOwnerEmail = @approvalOwnerEmail',
       'SubmittedForApprovalAt = @submittedAt',
       'ActionComment = NULL',
       'UpdatedAt = GETUTCDATE()'
@@ -981,6 +1017,7 @@ router.post('/:quoteNumber/resubmit', async (req, res, next) => {
     const request = pool.request()
       .input('salesQuoteNumber', require('mssql').NVarChar(50), quoteNumber)
       .input('approvalStatus', require('mssql').NVarChar(50), 'PendingApproval')
+      .input('approvalOwnerEmail', require('mssql').NVarChar(255), clientEmail)
       .input('submittedAt', new Date());
 
     if (totalAmount !== undefined) {
@@ -1030,6 +1067,7 @@ function mapApprovalRecord(record) {
   return {
     id: record.Id,
     salesQuoteNumber: record.SalesQuoteNumber,
+    approvalOwnerEmail: record.ApprovalOwnerEmail || record.SalespersonEmail,
     salespersonEmail: record.SalespersonEmail,
     salespersonCode: record.SalespersonCode,
     salespersonName: record.SalespersonName,

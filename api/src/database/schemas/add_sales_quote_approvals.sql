@@ -15,13 +15,14 @@ BEGIN
     Id INT IDENTITY(1,1) PRIMARY KEY,
     SalesQuoteNumber NVARCHAR(50) NOT NULL,
     SalespersonEmail NVARCHAR(255) NOT NULL,
+    ApprovalOwnerEmail NVARCHAR(255) NULL,
     SalespersonCode NVARCHAR(50) NOT NULL,
     SalespersonName NVARCHAR(255) NULL,
     CustomerName NVARCHAR(255) NULL,
     WorkDescription NVARCHAR(MAX) NULL,
     TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
     ApprovalStatus NVARCHAR(50) NOT NULL DEFAULT 'Draft',
-    -- Status values: Draft, PendingApproval, Approved, Rejected, Revise, Cancelled
+    -- Status values: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised
     SubmittedForApprovalAt DATETIME2 NULL,
     SalesDirectorEmail NVARCHAR(255) NULL,
     SalesDirectorActionAt DATETIME2 NULL,
@@ -30,7 +31,7 @@ BEGIN
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     CONSTRAINT UQ_SalesQuoteApprovals_QuoteNumber UNIQUE (SalesQuoteNumber),
     CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
-      ApprovalStatus IN ('Draft', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled')
+      ApprovalStatus IN ('Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled', 'BeingRevised')
     )
   );
 

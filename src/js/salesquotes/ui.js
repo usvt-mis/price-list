@@ -440,7 +440,9 @@ let lastRequestRevisionVisibilityLogSignature = '';
 
 export function isCurrentUserApprovalOwner() {
   const currentUserEmail = authState.user?.email?.trim().toLowerCase();
-  const approvalOwnerEmail = state.approval.salespersonEmail?.trim().toLowerCase();
+  const approvalOwnerEmail = (state.approval.approvalOwnerEmail || state.approval.salespersonEmail || '')
+    .trim()
+    .toLowerCase();
 
   return Boolean(currentUserEmail) &&
     Boolean(approvalOwnerEmail) &&
@@ -457,7 +459,9 @@ function logRequestRevisionVisibilityDecision({
   showRequestRevision
 }) {
   const currentUserEmail = authState.user?.email?.trim().toLowerCase() || '';
-  const approvalOwnerEmail = state.approval.salespersonEmail?.trim().toLowerCase() || '';
+  const approvalOwnerEmail = (state.approval.approvalOwnerEmail || state.approval.salespersonEmail || '')
+    .trim()
+    .toLowerCase();
   const reasons = [];
 
   if (!requestRevisionBtn) {

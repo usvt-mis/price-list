@@ -121,12 +121,22 @@ function resetApprovalState() {
   state.approval.currentStatus = null;
   state.approval.canEdit = true;
   state.approval.canPrint = true;
+  state.approval.approvalOwnerEmail = null;
   state.approval.salespersonEmail = null;
   state.approval.actionComment = null;
   state.approval.hasPendingRevisionRequest = false;
   state.approval.submittedAt = null;
   state.approval.directorActionAt = null;
   state.approval.updatedAt = null;
+}
+
+function applyApprovalIdentity(approval) {
+  if (!approval) {
+    return;
+  }
+
+  state.approval.approvalOwnerEmail = approval.approvalOwnerEmail || approval.salespersonEmail || null;
+  state.approval.salespersonEmail = approval.salespersonEmail || null;
 }
 
 // ============================================================
@@ -491,6 +501,7 @@ export async function createApprovalRecord(quoteData) {
     });
 
     state.approval.currentStatus = response.approval?.approvalStatus || APPROVAL_STATUS.SUBMITTED_TO_BC;
+    applyApprovalIdentity(response.approval);
 
     console.log('[Approval] Approval record created in SubmittedToBC status');
     return true;
@@ -530,6 +541,7 @@ export async function sendApprovalRequest(quoteData) {
     });
 
     state.approval.currentStatus = response.approval?.approvalStatus || APPROVAL_STATUS.PENDING_APPROVAL;
+    applyApprovalIdentity(response.approval);
 
     hideLoading();
 
@@ -581,6 +593,7 @@ export async function submitForApproval(quoteData) {
     });
 
     state.approval.currentStatus = response.approval?.approvalStatus || APPROVAL_STATUS.PENDING_APPROVAL;
+    applyApprovalIdentity(response.approval);
 
     hideLoading();
 
@@ -651,6 +664,7 @@ export async function resubmitForApproval(quoteNumber, quoteData) {
     showToast('Quote resubmitted for approval', 'success');
 
     state.approval.currentStatus = APPROVAL_STATUS.PENDING_APPROVAL;
+    applyApprovalIdentity(response.approval);
 
     await loadMyApprovalRequests();
     return true;
@@ -1184,7 +1198,7 @@ export async function checkApprovalStatus(quoteNumber) {
     state.approval.canPrint = approval.approvalStatus === APPROVAL_STATUS.APPROVED ||
                              approval.approvalStatus === APPROVAL_STATUS.BEING_REVISED ||
                              authState.user?.effectiveRole === ROLE.EXECUTIVE;
-    state.approval.salespersonEmail = approval.salespersonEmail || null;
+    applyApprovalIdentity(approval);
     state.approval.actionComment = approval.actionComment;
     state.approval.hasPendingRevisionRequest = hasPendingRevisionRequest(approval);
     state.approval.submittedAt = approval.submittedForApprovalAt;

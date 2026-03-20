@@ -54,7 +54,9 @@ function logRequestRevisionActionDecision(reason, extra = {}) {
     quoteMode: state.quote.mode || '',
     approvalStatus: state.quote.approvalStatus || state.approval.currentStatus || null,
     currentUserEmail: authState.user?.email?.trim().toLowerCase() || '',
-    approvalOwnerEmail: state.approval.salespersonEmail?.trim().toLowerCase() || '',
+    approvalOwnerEmail: (state.approval.approvalOwnerEmail || state.approval.salespersonEmail || '')
+      .trim()
+      .toLowerCase(),
     isCurrentUserApprovalOwner: isCurrentUserApprovalOwner(),
     pendingRevisionRequest: hasPendingRevisionRequestForApprovedQuote(),
     ...extra
