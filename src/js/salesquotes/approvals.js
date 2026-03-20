@@ -22,7 +22,8 @@ const APPROVAL_STATUS = {
   APPROVED: 'Approved',
   REJECTED: 'Rejected',
   REVISE: 'Revise',
-  CANCELLED: 'Cancelled'
+  CANCELLED: 'Cancelled',
+  BEING_REVISED: 'BeingRevised'
 };
 
 const STATUS_LABELS = {
@@ -32,7 +33,8 @@ const STATUS_LABELS = {
   Approved: 'Approved',
   Rejected: 'Rejected',
   Revise: 'Revision Requested',
-  Cancelled: 'Cancelled'
+  Cancelled: 'Cancelled',
+  BeingRevised: 'Being Revised'
 };
 
 const STATUS_BADGE_CLASSES = {
@@ -42,7 +44,8 @@ const STATUS_BADGE_CLASSES = {
   Approved: 'bg-green-100 text-green-700',
   Rejected: 'bg-red-100 text-red-700',
   Revise: 'bg-blue-100 text-blue-700',
-  Cancelled: 'bg-slate-100 text-slate-600'
+  Cancelled: 'bg-slate-100 text-slate-600',
+  BeingRevised: 'bg-purple-100 text-purple-700'
 };
 
 // ============================================================
@@ -333,7 +336,9 @@ function renderMyApprovalRow(approval) {
         Cancel
       </button>
     `;
-  } else if (approval.approvalStatus === APPROVAL_STATUS.REVISE) {
+  } else if (approval.approvalStatus === APPROVAL_STATUS.REVISE || 
+             approval.approvalStatus === APPROVAL_STATUS.REJECTED ||
+             approval.approvalStatus === APPROVAL_STATUS.BEING_REVISED) {
     actionButton = `
       <button
         type="button"
@@ -344,8 +349,6 @@ function renderMyApprovalRow(approval) {
         Edit & Resubmit
       </button>
     `;
-  } else if (approval.approvalStatus === APPROVAL_STATUS.REJECTED) {
-    actionButton = '<span class="text-sm text-slate-400">Cannot resubmit</span>';
   }
 
   return `
@@ -650,6 +653,8 @@ export async function rejectQuote(quoteNumber, comment) {
 
 /**
  * Request revision for a quote (Sales Director/Executive only)
+ * NOTE: This function is for SD requesting revision on PendingApproval quotes
+ * For Sales users requesting revision on Approved quotes, use requestRevisionForApprovedQuote()
  */
 export async function requestRevision(quoteNumber, comment) {
   if (!comment || !comment.trim()) {
@@ -677,6 +682,74 @@ export async function requestRevision(quoteNumber, comment) {
     hideLoading();
     console.error('Failed to request revision:', error);
     showToast(`Failed to request revision: ${error.message}`, 'error');
+    return false;
+  }
+}
+
+/**
+ * Request revision for an Approved quote (Sales user)
+ * This is used when Sales user needs to modify an already-approved quote
+ * Requires SD approval to proceed
+ */
+export async function requestRevisionForApprovedQuote(quoteNumber, comment) {
+  if (!comment || !comment.trim()) {
+    showToast('Please provide a reason for the revision request', 'error');
+    return false;
+  }
+
+  showLoading('Submitting revision request...', 'Processing');
+
+  try {
+    const response = await fetchWithAuth(`/api/salesquotes/approvals/${quoteNumber}/request-revision`, {
+      method: 'POST',
+      body: JSON.stringify({ comment: comment.trim() })
+    });
+
+    hideLoading();
+    showToast('Revision request submitted. Awaiting Sales Director approval.', 'success');
+
+    // Refresh approval status
+    if (state.quote.number === quoteNumber) {
+      await checkApprovalStatus(quoteNumber);
+      await updateQuoteEditorModeUi();
+    }
+
+    return true;
+  } catch (error) {
+    hideLoading();
+    console.error('Failed to submit revision request:', error);
+    showToast(`Failed to submit revision request: ${error.message}`, 'error');
+    return false;
+  }
+}
+
+/**
+ * Approve a revision request (Sales Director/Executive only)
+ * Transitions quote from Approved to BeingRevised
+ */
+export async function approveRevisionRequest(quoteNumber) {
+  if (!confirm('Approve this revision request? The quote will become editable by the Sales user.')) {
+    return false;
+  }
+
+  showLoading('Approving revision request...', 'Processing');
+
+  try {
+    const response = await fetchWithAuth(`/api/salesquotes/approvals/${quoteNumber}/approve-revision`, {
+      method: 'POST'
+    });
+
+    hideLoading();
+    showToast('Revision request approved. Quote is now editable.', 'success');
+
+    await loadPendingApprovals();
+    await updatePendingApprovalsBadge();
+
+    return true;
+  } catch (error) {
+    hideLoading();
+    console.error('Failed to approve revision request:', error);
+    showToast(`Failed to approve revision: ${error.message}`, 'error');
     return false;
   }
 }
@@ -1014,6 +1087,8 @@ export async function checkApprovalStatus(quoteNumber) {
       state.approval.currentStatus = approval.approvalStatus;
       state.approval.canEdit = approval.approvalStatus === APPROVAL_STATUS.DRAFT ||
                                approval.approvalStatus === APPROVAL_STATUS.REVISE ||
+                               approval.approvalStatus === APPROVAL_STATUS.REJECTED ||
+                               approval.approvalStatus === APPROVAL_STATUS.BEING_REVISED ||
                                approval.approvalStatus === APPROVAL_STATUS.CANCELLED;
       state.approval.canPrint = approval.approvalStatus === APPROVAL_STATUS.APPROVED ||
                                authState.user?.effectiveRole === ROLE.EXECUTIVE;

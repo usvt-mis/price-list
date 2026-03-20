@@ -1558,7 +1558,7 @@ export async function updateQuoteEditorModeUi() {
   }
 
   // Show "Send Approval Request" button for all users when quote is loaded
-  if (sendApprovalRequestBtn) {
+    if (sendApprovalRequestBtn) {
     const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
 
     // Calculate total amount from state to check if button should be shown
@@ -1580,7 +1580,9 @@ export async function updateQuoteEditorModeUi() {
       (approvalStatus === null ||
        approvalStatus === APPROVAL.DRAFT ||
        approvalStatus === APPROVAL.SUBMITTED_TO_BC ||
-       approvalStatus === APPROVAL.REVISE) &&
+       approvalStatus === APPROVAL.REVISE ||
+       approvalStatus === APPROVAL.BEING_REVISED ||
+       approvalStatus === APPROVAL.REJECTED) &&
       total > 0; // Hide button for zero or negative totals
 
     // ========================================

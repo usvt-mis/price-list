@@ -9,7 +9,7 @@ const { getPool } = require('../db');
 const { validateAuth, extractUserEmail } = require('../middleware/authExpress');
 const logger = require('../utils/logger');
 
-const VALID_STATUSES = ['Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled'];
+const VALID_STATUSES = ['Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled', 'BeingRevised'];
 
 /**
  * Ensure SalesQuoteApprovals table exists
@@ -36,7 +36,7 @@ async function ensureApprovalTable(pool) {
         UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
         CONSTRAINT UQ_SalesQuoteApprovals_QuoteNumber UNIQUE (SalesQuoteNumber),
         CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
-          ApprovalStatus IN ('Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled')
+          ApprovalStatus IN ('Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled', 'BeingRevised')
         )
       );
 
@@ -733,7 +733,152 @@ router.post('/:quoteNumber/cancel', async (req, res, next) => {
 });
 
 // ============================================================
+// POST /api/salesquotes/approvals/:quoteNumber/request-revision - Request revision for Approved quote (Sales only)
+// ============================================================
+
+router.post('/:quoteNumber/request-revision', async (req, res, next) => {
+  const clientEmail = getAuthenticatedEmail(req);
+  if (!clientEmail) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const { quoteNumber } = req.params;
+  const { comment } = req.body || {};
+
+  if (!comment || !comment.trim()) {
+    return res.status(400).json({ error: 'Comment is required when requesting revision' });
+  }
+
+  try {
+    const pool = await getPool();
+    await ensureApprovalTable(pool);
+
+    const approval = await getApprovalByQuoteNumber(pool, quoteNumber);
+
+    if (!approval) {
+      return res.status(404).json({ error: 'Approval record not found' });
+    }
+
+    // Only the submitting salesperson can request revision
+    if (!isSubmittingSalesperson(approval, clientEmail)) {
+      return res.status(403).json({ error: 'You can only request revision for your own quotes' });
+    }
+
+    if (approval.ApprovalStatus !== 'Approved') {
+      return res.status(400).json({
+        error: `Cannot request revision for quote with status: ${approval.ApprovalStatus}. Only 'Approved' quotes can have revision requests.`,
+        currentStatus: approval.ApprovalStatus
+      });
+    }
+
+    // Create revision request - status stays as Approved but with ActionComment set
+    // Sales Director will need to approve the revision request to move to BeingRevised
+    await pool.request()
+      .input('salesQuoteNumber', require('mssql').NVarChar(50), quoteNumber)
+      .input('salespersonEmail', require('mssql').NVarChar(255), clientEmail)
+      .input('comment', require('mssql').NVarChar('max'), comment.trim())
+      .input('actionAt', new Date())
+      .query(`
+        UPDATE SalesQuoteApprovals
+        SET ActionComment = @comment,
+            SalesDirectorEmail = @salespersonEmail,
+            SalesDirectorActionAt = @actionAt,
+            UpdatedAt = GETUTCDATE()
+        WHERE SalesQuoteNumber = @salesQuoteNumber
+      `);
+
+    const updated = await getApprovalByQuoteNumber(pool, quoteNumber);
+
+    logger.info('APPROVALS', 'RevisionRequested', `Quote ${quoteNumber} revision requested by ${clientEmail}`, {
+      salesQuoteNumber: quoteNumber,
+      comment: comment.trim()
+    });
+
+    res.json({
+      message: 'Revision request submitted. Awaiting Sales Director approval.',
+      approval: mapApprovalRecord(updated)
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================================
+// POST /api/salesquotes/approvals/:quoteNumber/approve-revision - Approve revision request (Director/Executive only)
+// ============================================================
+
+router.post('/:quoteNumber/approve-revision', async (req, res, next) => {
+  const clientEmail = getAuthenticatedEmail(req);
+  const userRole = getAuthenticatedRole(req);
+
+  if (!clientEmail) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  if (!canUserApprove(userRole)) {
+    return res.status(403).json({ error: 'Only Sales Directors and Executives can approve revision requests' });
+  }
+
+  const { quoteNumber } = req.params;
+
+  try {
+    const pool = await getPool();
+    await ensureApprovalTable(pool);
+
+    const approval = await getApprovalByQuoteNumber(pool, quoteNumber);
+
+    if (!approval) {
+      return res.status(404).json({ error: 'Approval record not found' });
+    }
+
+    // Only Approved quotes can transition to BeingRevised via revision approval
+    if (approval.ApprovalStatus !== 'Approved') {
+      return res.status(400).json({
+        error: `Cannot approve revision request for quote with status: ${approval.ApprovalStatus}`,
+        currentStatus: approval.ApprovalStatus
+      });
+    }
+
+    // Check if there's a revision request (ActionComment should exist from sales user)
+    if (!approval.ActionComment) {
+      return res.status(400).json({ error: 'No revision request found for this quote' });
+    }
+
+    // Transition to BeingRevised
+    await pool.request()
+      .input('salesQuoteNumber', require('mssql').NVarChar(50), quoteNumber)
+      .input('salesDirectorEmail', require('mssql').NVarChar(255), clientEmail)
+      .input('actionAt', new Date())
+      .query(`
+        UPDATE SalesQuoteApprovals
+        SET ApprovalStatus = 'BeingRevised',
+            SalesDirectorEmail = @salesDirectorEmail,
+            SalesDirectorActionAt = @actionAt,
+            UpdatedAt = GETUTCDATE()
+        WHERE SalesQuoteNumber = @salesQuoteNumber
+      `);
+
+    const updated = await getApprovalByQuoteNumber(pool, quoteNumber);
+
+    logger.info('APPROVALS', 'RevisionApproved', `Quote ${quoteNumber} revision approved by ${clientEmail}`, {
+      salesQuoteNumber: quoteNumber,
+      salespersonEmail: approval.SalespersonEmail
+    });
+
+    res.json({
+      message: 'Revision request approved. Quote is now editable by Sales user.',
+      approval: mapApprovalRecord(updated)
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================================
 // POST /api/salesquotes/approvals/:quoteNumber/resubmit - Resubmit after revision (Sales only)
+// Supports both 'Revise' and 'Rejected' statuses for resubmission
 // ============================================================
 
 router.post('/:quoteNumber/resubmit', async (req, res, next) => {
@@ -760,9 +905,11 @@ router.post('/:quoteNumber/resubmit', async (req, res, next) => {
       return res.status(403).json({ error: 'You can only resubmit your own quotes' });
     }
 
-    if (approval.ApprovalStatus !== 'Revise') {
+    // Allow resubmission from both 'Revise', 'Rejected', and 'BeingRevised' statuses
+    const validResubmitStatuses = ['Revise', 'Rejected', 'BeingRevised'];
+    if (!validResubmitStatuses.includes(approval.ApprovalStatus)) {
       return res.status(400).json({
-        error: `Cannot resubmit quote with status: ${approval.ApprovalStatus}. Only 'Revise' status can be resubmitted.`,
+        error: `Cannot resubmit quote with status: ${approval.ApprovalStatus}. Valid statuses for resubmission: ${validResubmitStatuses.join(', ')}.`,
         currentStatus: approval.ApprovalStatus
       });
     }
@@ -803,8 +950,9 @@ router.post('/:quoteNumber/resubmit', async (req, res, next) => {
 
     const updated = await getApprovalByQuoteNumber(pool, quoteNumber);
 
-    logger.info('APPROVALS', 'Resubmitted', `Quote ${quoteNumber} resubmitted by ${clientEmail}`, {
-      salesQuoteNumber: quoteNumber
+    logger.info('APPROVALS', 'Resubmitted', `Quote ${quoteNumber} resubmitted by ${clientEmail} from ${approval.ApprovalStatus} status`, {
+      salesQuoteNumber: quoteNumber,
+      previousStatus: approval.ApprovalStatus
     });
 
     res.json({

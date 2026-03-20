@@ -367,10 +367,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 ### Sales Quotes Approval Workflow
 - Multi-stage approval workflow for Sales Quotes requiring director/executive approval
-- **Approval Statuses**: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled
+- **Approval Statuses**: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised
 - **Roles & Permissions**:
-  - Sales users: Create quotes, initialize approval records, submit for approval, view their requests
-  - Sales Directors: View pending approvals, approve/reject/request revision
+  - Sales users: Create quotes, initialize approval records, submit for approval, request revision on approved quotes, view their requests
+  - Sales Directors: View pending approvals, approve/reject/request revision, approve revision requests from sales users
   - Executives: Full approval access (same as Sales Directors)
 - **Approval Record Initialization**:
   - Quotes are automatically initialized with "SubmittedToBC" status when created/updated
@@ -379,28 +379,37 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Send Approval Request Button**:
   - Visible to all users when viewing a searched quote with total > 0
   - Allows submitting quotes for director/executive approval
-  - Button shown when quote status is Draft, SubmittedToBC, or Revise AND total amount > 0
+  - Button shown when quote status is Draft, SubmittedToBC, Revise, or BeingRevised AND total amount > 0
   - Hidden for zero or negative total quotes
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()`, `src/salesquotes.html` - button element
 - **Mode Banner Approval Status Display**:
   - When viewing a searched quote, the mode banner displays the current approval status with user-friendly labels
-  - Status labels: "Submitted to BC", "Revision Requested", "Pending Approval", "Approved", "Rejected"
+  - Status labels: "Submitted to BC", "Revision Requested", "Pending Approval", "Approved", "Rejected", "Being Revised"
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function
 - **Revision Comment Display**:
   - When a quote is in "Revise" status, a blue-styled comment box displays the director's revision comment
   - The comment box appears below the mode banner with an edit icon and the comment text
   - Hidden automatically when not in Revise status
   - Implementation: `src/js/salesquotes/ui.js` - `updateQuoteEditorModeUi()` function creates/updates `#revisionCommentDisplay` element
+- **Revision Request Workflow (Sales Users on Approved Quotes)**:
+  - Sales users can request revision on Approved quotes when they need to make changes
+  - User provides a comment explaining the revision reason
+  - Status remains "Approved" but ActionComment is set with the revision request
+  - Sales Director must approve the revision request before the quote becomes editable
+  - Once approved, status transitions to "BeingRevised" and quote becomes editable by the sales user
+  - API endpoints: `POST /api/salesquotes/approvals/:quoteNumber/request-revision` (Sales), `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` (Director/Executive)
+  - Frontend functions: `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
 - **Approvals Tab**: Visible to all authenticated users (Sales, Sales Directors, Executives)
   - **Pending Approvals Section**: Only visible to Sales Directors and Executives
     - Shows pending approvals list with quote details
     - Badge count shows number of pending approvals
     - Refresh button to reload pending approvals
-    - Actions: Approve, Reject, Request Revision (with comment)
+    - Actions: Approve, Reject, Request Revision (with comment), Approve Revision Request
   - **My Approval Requests Section**: Visible to all authenticated users
     - Shows status of each request with color-coded badges
     - View approval history and director comments
-    - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Slate (Cancelled)
+    - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Purple (Being Revised), Slate (Cancelled)
+    - Edit & Resubmit button available for Revise, Rejected, and BeingRevised statuses
 - **API Endpoints**:
   - `POST /api/salesquotes/approvals/initialize` - Initialize approval record (SubmittedToBC status)
   - `POST /api/salesquotes/approvals` - Submit quote for approval
@@ -409,14 +418,17 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `GET /api/salesquotes/approvals/list/my` - Get current user's approval requests
   - `PUT /api/salesquotes/approvals/:quoteNumber/approve` - Approve a quote
   - `PUT /api/salesquotes/approvals/:quoteNumber/reject` - Reject a quote
-  - `PUT /api/salesquotes/approvals/:quoteNumber/revise` - Request revision
+  - `PUT /api/salesquotes/approvals/:quoteNumber/revise` - Request revision (Director/Executive)
+  - `POST /api/salesquotes/approvals/:quoteNumber/request-revision` - Request revision on Approved quote (Sales)
+  - `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` - Approve revision request (Director/Executive)
+  - `POST /api/salesquotes/approvals/:quoteNumber/resubmit` - Resubmit after revision (Sales)
 - **Database Schema**: `SalesQuoteApprovals` table
   - Fields: Id, SalesQuoteNumber, SalespersonEmail, SalespersonCode, SalespersonName, CustomerName, WorkDescription, TotalAmount, ApprovalStatus, SubmittedForApprovalAt, SalesDirectorEmail, SalesDirectorActionAt, ActionComment, CreatedAt, UpdatedAt
   - Unique constraint on SalesQuoteNumber
   - Indexes for efficient queries on status and salesperson
-  - CHECK constraint for valid statuses: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled
+  - CHECK constraint for valid statuses: Draft, SubmittedToBC, PendingApproval, Approved, Rejected, Revise, Cancelled, BeingRevised
 - **Frontend Module**: `src/js/salesquotes/approvals.js`
-  - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`
+  - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
   - Styles: `approval-styles.css` - Approval-specific UI styles
 - **Integration with Quote Creation**:
@@ -424,6 +436,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Sales users can submit quotes for approval via "Send Approval Request" button
   - Approval workflow is optional - quotes can still be sent without approval
   - Approved quotes can be printed and sent to customer
+  - Sales users can request revision on Approved quotes, requiring SD approval before editing
 - **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
@@ -450,6 +463,7 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 - `database/migrations/add_salesperson_signatures.sql` - Creates `SalespersonSignatures` and `SalespersonSignatureAudit` tables for signature management
 - `database/migrations/add_salesdirector_signatures.sql` - Creates `SalesDirectorSignatures` and `SalesDirectorSignatureAudit` tables for Sales Director signature management (fixed signature approach)
 - `database/migrations/add_salesdirector_contact_fields.sql` - Adds FullName, PhoneNo, Email columns to SalesDirectorSignatures table
+- `database/migrations/add_being_revised_approval_status.sql` - Adds "BeingRevised" status to SalesQuoteApprovals table and migrates existing "Revise" quotes
 - `api/src/database/schemas/add_sales_quote_approvals.sql` - Creates `SalesQuoteApprovals` table for approval workflow
 - `api/src/database/schemas/add_salesdirector_role_constraint.sql` - Adds SalesDirector role constraint to UserRoles table
 
