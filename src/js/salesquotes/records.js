@@ -1,5 +1,33 @@
 import { el, showToast } from './ui.js';
 
+// Approval status constants
+const APPROVAL_STATUS = {
+  DRAFT: 'Draft',
+  PENDING_APPROVAL: 'PendingApproval',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+  REVISE: 'Revise',
+  CANCELLED: 'Cancelled'
+};
+
+const STATUS_LABELS = {
+  Draft: 'Draft',
+  PendingApproval: 'Pending',
+  Approved: 'Approved',
+  Rejected: 'Rejected',
+  Revise: 'Revision',
+  Cancelled: 'Cancelled'
+};
+
+const STATUS_BADGE_CLASSES = {
+  Draft: 'bg-gray-100 text-gray-700',
+  PendingApproval: 'bg-amber-100 text-amber-700',
+  Approved: 'bg-green-100 text-green-700',
+  Rejected: 'bg-red-100 text-red-700',
+  Revise: 'bg-blue-100 text-blue-700',
+  Cancelled: 'bg-slate-100 text-slate-600'
+};
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -22,7 +50,35 @@ function formatSubmittedAt(value) {
   return date.toLocaleString();
 }
 
-function renderRecords(records) {
+/**
+ * Fetch approval status for a quote
+ */
+async function fetchApprovalStatus(quoteNumber) {
+  try {
+    const response = await fetch(`/api/salesquotes/approvals/${quoteNumber}`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.approval || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function getApprovalStatusBadge(approval) {
+  if (!approval) {
+    return '<span class="text-xs text-slate-400">No status</span>';
+  }
+
+  const status = approval.approvalStatus || 'Draft';
+  const label = STATUS_LABELS[status] || status;
+  const badgeClass = STATUS_BADGE_CLASSES[status] || 'bg-gray-100 text-gray-700';
+
+  return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badgeClass}">${label}</span>`;
+}
+
+async function renderRecords(records) {
   const container = el('salesQuoteRecordsList');
   const count = el('salesQuoteRecordsCount');
 
@@ -37,7 +93,7 @@ function renderRecords(records) {
   if (!records.length) {
     container.innerHTML = `
       <tr>
-        <td colspan="3" class="px-4 py-10 text-center text-slate-500">
+        <td colspan="4" class="px-4 py-10 text-center text-slate-500">
           No records found for your account yet.
         </td>
       </tr>
@@ -45,9 +101,17 @@ function renderRecords(records) {
     return;
   }
 
-  container.innerHTML = records.map((record, index) => {
+  // Fetch approval status for all records
+  const recordsWithStatus = await Promise.all(
+    records.map(async (record) => {
+      const approval = await fetchApprovalStatus(record.salesQuoteNumber);
+      return { ...record, approval };
+    })
+  );
+
+  container.innerHTML = recordsWithStatus.map((record) => {
     const description = record.workDescription
-      ? `<div class="max-w-2xl whitespace-pre-wrap break-words text-sm text-slate-700">${escapeHtml(record.workDescription)}</div>`
+      ? `<div class="max-w-xl whitespace-pre-wrap break-words text-sm text-slate-700">${escapeHtml(record.workDescription)}</div>`
       : '<span class="text-sm text-slate-400">No work description</span>';
 
     return `
@@ -66,6 +130,7 @@ function renderRecords(records) {
           </button>
         </td>
         <td class="px-4 py-3">${description}</td>
+        <td class="px-4 py-3">${getApprovalStatusBadge(record.approval)}</td>
         <td class="px-4 py-3 whitespace-nowrap text-slate-600">${escapeHtml(formatSubmittedAt(record.submittedAt))}</td>
       </tr>
     `;
@@ -115,7 +180,7 @@ export async function loadQuoteSubmissionRecords() {
 
   container.innerHTML = `
     <tr>
-      <td colspan="3" class="px-4 py-10 text-center text-slate-500">
+      <td colspan="4" class="px-4 py-10 text-center text-slate-500">
         Loading your records...
       </td>
     </tr>
@@ -134,13 +199,13 @@ export async function loadQuoteSubmissionRecords() {
     }
 
     const data = await response.json();
-    renderRecords(Array.isArray(data.records) ? data.records : []);
+    await renderRecords(Array.isArray(data.records) ? data.records : []);
     return true;
   } catch (error) {
     console.error('Failed to load Sales Quote records:', error);
     container.innerHTML = `
       <tr>
-        <td colspan="3" class="px-4 py-10 text-center text-red-500">
+        <td colspan="4" class="px-4 py-10 text-center text-red-500">
           Failed to load records. ${escapeHtml(error.message)}
         </td>
       </tr>

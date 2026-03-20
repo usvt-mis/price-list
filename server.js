@@ -70,6 +70,7 @@ const workshopLaborRouter = require('./api/src/routes/workshop/labor');
 // NEW: Business Central integration routes
 const businessCentralRouter = require('./api/src/routes/business-central');
 const salesQuotesRouter = require('./api/src/routes/salesquotes');
+const salesQuotesApprovalsRouter = require('./api/src/routes/salesquotes-approvals');
 
 // Import authentication middleware
 const { requireAuth } = require('./api/src/middleware/authExpress');
@@ -219,6 +220,9 @@ app.use('/api/auth', authRouter);
 
 // Sales Quote submission records (requires authentication)
 app.use('/api/salesquotes', requireAuth, salesQuotesRouter);
+
+// Sales Quote approvals workflow (requires authentication)
+app.use('/api/salesquotes/approvals', requireAuth, salesQuotesApprovalsRouter);
 
 // Business Central public config endpoint (no auth required - safe values only)
 app.get('/api/business-central/config', (req, res) => {

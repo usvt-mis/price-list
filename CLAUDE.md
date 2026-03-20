@@ -81,7 +81,7 @@ api/src/
 
 src/salesquotes/components/
 ├── styles/         # External CSS
-├── modals/         # 8 modular HTML modals (lazy-loaded)
+├── modals/         # 9 modular HTML modals (lazy-loaded)
 └── assets/         # Static assets (logos, certifications for print)
 ```
 
@@ -168,10 +168,17 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 | Role | Access |
 |------|--------|
-| **Executive** | Full costs, margins, multipliers |
-| **Sales** | Restricted view (no cost data) |
+| **Executive** | Full costs, margins, multipliers, approve quotes |
+| **Sales Director** | Full costs, margins, multipliers, approve quotes |
+| **Sales** | Restricted view (no cost data), submit quotes for approval |
 | **NoRole** | "Awaiting assignment" screen |
 | **Customer** | View-only via shared links |
+
+**Role Detection:**
+- `isSalesDirector()` - Check if current user is a Sales Director
+- `canApproveQuotes()` - Check if current user can approve quotes (Executive or Sales Director)
+- `isSalesOnly()` - Check if current user is a regular Sales user (not Executive or Director)
+- Implementation: `src/js/auth/mode-detection.js`
 
 [docs/authentication.md](docs/authentication.md) for details.
 
@@ -334,6 +341,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Clicking switches to the Search tab, fills the input with the quote number, and triggers the search
   - Implementation: `loadQuoteFromRecords()` function in `src/js/salesquotes/records.js`
   - Uses `window.switchTab('search')`, fills `searchSalesQuoteNumber` input, and calls `window.searchSalesQuote()` with 50ms delay
+- **Approval Status Column**: Shows current approval status for each quote
+  - Status values: Draft, Pending Approval, Approved, Rejected, Revision Requested, Cancelled
+  - Color-coded badges: Gray (Draft), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Slate (Cancelled)
 
 ### User Preferences API
 - Table: `SalesQuoteUserPreferences` (Id, UserEmail, PreferenceKey, PreferenceValue, CreatedAt, UpdatedAt)
@@ -347,6 +357,43 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Persistence to `SalesQuoteUserPreferences` (key: `quote-line-columns`)
 - Reset button, layout hint with status messages
 - Syncs with fullscreen table modal
+
+### Sales Quotes Approval Workflow
+- Multi-stage approval workflow for Sales Quotes requiring director/executive approval
+- **Approval Statuses**: Draft, PendingApproval, Approved, Rejected, Revise, Cancelled
+- **Roles & Permissions**:
+  - Sales users: Create quotes, submit for approval, view their requests
+  - Sales Directors: View pending approvals, approve/reject/request revision
+  - Executives: Full approval access (same as Sales Directors)
+- **Approvals Tab**: Visible only to Sales Directors and Executives
+  - Shows pending approvals list with quote details
+  - Badge count shows number of pending approvals
+  - Refresh button to reload pending approvals
+  - Actions: Approve, Reject, Request Revision (with comment)
+- **My Approval Requests**: Sales users can track their submitted approval requests
+  - Shows status of each request with color-coded badges
+  - View approval history and director comments
+- **API Endpoints**:
+  - `POST /api/salesquotes/approvals` - Submit quote for approval
+  - `GET /api/salesquotes/approvals/:quoteNumber` - Get approval status by quote number
+  - `GET /api/salesquotes/approvals/list/pending` - Get pending approvals list
+  - `GET /api/salesquotes/approvals/list/my` - Get current user's approval requests
+  - `PUT /api/salesquotes/approvals/:quoteNumber/approve` - Approve a quote
+  - `PUT /api/salesquotes/approvals/:quoteNumber/reject` - Reject a quote
+  - `PUT /api/salesquotes/approvals/:quoteNumber/revise` - Request revision
+- **Database Schema**: `SalesQuoteApprovals` table
+  - Fields: Id, SalesQuoteNumber, SalespersonEmail, SalespersonCode, SalespersonName, CustomerName, WorkDescription, TotalAmount, ApprovalStatus, SubmittedForApprovalAt, SalesDirectorEmail, SalesDirectorActionAt, ActionComment, CreatedAt, UpdatedAt
+  - Unique constraint on SalesQuoteNumber
+  - Indexes for efficient queries on status and salesperson
+- **Frontend Module**: `src/js/salesquotes/approvals.js`
+  - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`
+  - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
+  - Styles: `approval-styles.css` - Approval-specific UI styles
+- **Integration with Quote Creation**:
+  - After quote creation, users can submit for approval instead of directly sending to customer
+  - Approval workflow is optional - quotes can still be sent without approval
+  - Approved quotes can be printed and sent to customer
+- **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 
@@ -370,6 +417,7 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 **Available Migrations:**
 - `migrate_branch_to_branchid.sql` - Migrate legacy BRANCH text column to BranchId integer (see `README_BRANCH_MIGRATION.md` for details)
 - `database/migrations/add_salesperson_signatures.sql` - Creates `SalespersonSignatures` and `SalespersonSignatureAudit` tables for signature management
+- `api/src/database/schemas/add_sales_quote_approvals.sql` - Creates `SalesQuoteApprovals` table for approval workflow
 
 ---
 

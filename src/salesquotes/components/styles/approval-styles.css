@@ -1,0 +1,135 @@
+/**
+ * Sales Quotes Approval Workflow Styles
+ * Styles for approval badges, status indicators, and approval-specific UI elements
+ */
+
+/* Approval Status Badges */
+.approval-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.approval-badge-draft {
+  background-color: rgb(243 244 246);
+  color: rgb(55 65 81);
+}
+
+.approval-badge-pending {
+  background-color: rgb(253 230 138);
+  color: rgb(161 98 7);
+}
+
+.approval-badge-approved {
+  background-color: rgb(220 252 231);
+  color: rgb(22 163 74);
+}
+
+.approval-badge-rejected {
+  background-color: rgb(254 226 226);
+  color: rgb(220 38 38);
+}
+
+.approval-badge-revise {
+  background-color: rgb(219 234 254);
+  color: rgb(37 99 235);
+}
+
+.approval-badge-cancelled {
+  background-color: rgb(241 245 249);
+  color: rgb(71 85 105);
+}
+
+/* Approval Preview Modal */
+#approvalPreviewModal {
+  transition: opacity 0.3s ease-in-out;
+}
+
+#approvalPreviewModal .opacity-0 {
+  opacity: 0;
+}
+
+/* Approval Action Buttons */
+.btn-approve {
+  background: linear-gradient(to right, rgb(22 163 74), rgb(21 128 61));
+}
+
+.btn-approve:hover {
+  background: linear-gradient(to right, rgb(21 128 61), rgb(22 101 52));
+}
+
+.btn-revise {
+  background: linear-gradient(to right, rgb(245 158 11), rgb(217 119 6));
+}
+
+.btn-revise:hover {
+  background: linear-gradient(to right, rgb(217 119 6), rgb(194 88 4));
+}
+
+.btn-reject {
+  background: linear-gradient(to right, rgb(220 38 38), rgb(185 28 28));
+}
+
+.btn-reject:hover {
+  background: linear-gradient(to right, rgb(185 28 28), rgb(153 27 27));
+}
+
+/* Approvals Tab */
+#tabApprovals .tab-button {
+  position: relative;
+}
+
+#approvalsBadge {
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  font-size: 0.625rem;
+  line-height: 1.25rem;
+}
+
+/* Approvals List Table */
+.approvals-table tr {
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.approvals-table tr:hover {
+  background-color: rgb(248 250 252);
+}
+
+.approvals-table tr:active {
+  background-color: rgb(243 244 246);
+}
+
+/* Approval Comment Display */
+.approval-comment-box {
+  background-color: rgb(243 244 246);
+  border-left: 4px solid rgb(59 130 246);
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.approval-comment-text {
+  font-size: 0.875rem;
+  color: rgb(55 65 81);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Approval Action Buttons Container */
+.approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+@media (min-width: 640px) {
+  .approval-actions {
+    flex-wrap: nowrap;
+  }
+}

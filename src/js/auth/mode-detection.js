@@ -39,7 +39,14 @@ export async function initializeModeFromRole() {
         console.log('[MODE-10] COMPLETED (NoRole)');
         return ROLE.NO_ROLE;
       }
-      const mode = role === ROLE.EXECUTIVE ? MODE.EXECUTIVE : MODE.SALES;
+      // Map role to mode: Executive and Sales Director both get executive mode (full access)
+      // Sales users get sales mode (restricted access)
+      let mode;
+      if (role === ROLE.EXECUTIVE || role === ROLE.SALES_DIRECTOR) {
+        mode = role === ROLE.SALES_DIRECTOR ? MODE.SALES_DIRECTOR : MODE.EXECUTIVE;
+      } else {
+        mode = MODE.SALES;
+      }
       console.log('[MODE-11] Setting mode:', mode, 'for role:', role);
       setMode(mode);
       console.log('[MODE-12] COMPLETED (mode set from effectiveRole)');
@@ -66,7 +73,14 @@ export async function initializeModeFromRole() {
         const data = await response.json();
         console.log('[MODE-17] Fallback API returned data:', data);
         authState.user.effectiveRole = data.effectiveRole;
-        const mode = data.effectiveRole === ROLE.EXECUTIVE ? MODE.EXECUTIVE : MODE.SALES;
+        let mode;
+        if (data.effectiveRole === ROLE.EXECUTIVE) {
+          mode = MODE.EXECUTIVE;
+        } else if (data.effectiveRole === ROLE.SALES_DIRECTOR) {
+          mode = MODE.SALES_DIRECTOR;
+        } else {
+          mode = MODE.SALES;
+        }
         setMode(mode);
         console.log('[MODE-18] COMPLETED (mode set from fallback API)');
         return data.effectiveRole;
@@ -79,7 +93,14 @@ export async function initializeModeFromRole() {
           setNoRoleState(true);
           showAwaitingAssignmentScreen({ email: authState.user?.email });
         } else {
-          const mode = fallbackRole === ROLE.EXECUTIVE ? MODE.EXECUTIVE : MODE.SALES;
+          let mode;
+          if (fallbackRole === ROLE.EXECUTIVE) {
+            mode = MODE.EXECUTIVE;
+          } else if (fallbackRole === ROLE.SALES_DIRECTOR) {
+            mode = MODE.SALES_DIRECTOR;
+          } else {
+            mode = MODE.SALES;
+          }
           setMode(mode);
         }
         console.log('[MODE-21] COMPLETED (via local detection)');
@@ -94,7 +115,14 @@ export async function initializeModeFromRole() {
         setNoRoleState(true);
         showAwaitingAssignmentScreen({ email: authState.user?.email });
       } else {
-        const mode = fallbackRole === ROLE.EXECUTIVE ? MODE.EXECUTIVE : MODE.SALES;
+        let mode;
+        if (fallbackRole === ROLE.EXECUTIVE) {
+          mode = MODE.EXECUTIVE;
+        } else if (fallbackRole === ROLE.SALES_DIRECTOR) {
+          mode = MODE.SALES_DIRECTOR;
+        } else {
+          mode = MODE.SALES;
+        }
         setMode(mode);
       }
       console.log('[MODE-23] COMPLETED (via local detection after error)');
@@ -124,8 +152,10 @@ function detectLocalRole() {
   // FALLBACK: Azure AD roles (for backwards compatibility)
   const roles = authState.user.roles || [];
   const isExecutive = roles.includes('PriceListExecutive');
+  const isSalesDirector = roles.includes('PriceListSalesDirector');
   const isSales = roles.includes('PriceListSales');
   if (isExecutive) return ROLE.EXECUTIVE;
+  if (isSalesDirector) return ROLE.SALES_DIRECTOR;
   if (isSales) return ROLE.SALES;
   return ROLE.NO_ROLE; // Default to NoRole for unassigned users
 }
@@ -153,4 +183,29 @@ export async function fetchCurrentUserRole() {
     console.error('Failed to fetch user role:', e);
     return detectLocalRole();
   }
+}
+
+/**
+ * Check if current user is a Sales Director
+ * @returns {boolean} True if user has Sales Director role
+ */
+export function isSalesDirector() {
+  return authState.user?.effectiveRole === ROLE.SALES_DIRECTOR;
+}
+
+/**
+ * Check if current user can approve quotes (Executive or Sales Director)
+ * @returns {boolean} True if user can approve quotes
+ */
+export function canApproveQuotes() {
+  const role = authState.user?.effectiveRole;
+  return role === ROLE.EXECUTIVE || role === ROLE.SALES_DIRECTOR;
+}
+
+/**
+ * Check if current user is a regular Sales user (not Executive or Director)
+ * @returns {boolean} True if user is Sales role
+ */
+export function isSalesOnly() {
+  return authState.user?.effectiveRole === ROLE.SALES;
 }

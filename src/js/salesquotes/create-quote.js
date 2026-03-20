@@ -12,6 +12,9 @@ import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCust
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 import { recordQuoteSubmission } from './records.js';
+import { submitForApproval, checkApprovalStatus } from './approvals.js';
+import { authState } from '../auth/state.js';
+import { ROLE } from '../core/config.js';
 
 function normalizeGroupNo(value) {
   if (value === null || value === undefined) {
@@ -2375,6 +2378,30 @@ export async function handleSendQuote() {
       // Show success modal with Quote Number and Service Order Nos
       if (quoteNumber) {
         await showQuoteCreatedSuccess(quoteNumber, serviceOrderNos);
+
+        // Approval workflow: Submit for approval if needed
+        // Only Sales users need approval; Directors and Executives auto-approve
+        const userRole = authState.user?.effectiveRole;
+        const needsApproval = userRole === ROLE.SALES;
+        const totalAmount = calculateTotals().total || '0';
+
+        if (needsApproval && parseFloat(totalAmount.replace(/,/g, '')) > 0) {
+          // Submit for approval after successful BC creation
+          await submitForApproval({
+            salesQuoteNumber: quoteNumber,
+            salespersonCode: sanitizedData.salespersonCode || '',
+            salespersonName: formData.salespersonName || '',
+            customerName: state.quote.customerName || '',
+            workDescription: sanitizedData.workDescription || '',
+            totalAmount: parseFloat(totalAmount.replace(/,/g, ''))
+          });
+        } else if (userRole === ROLE.SALES_DIRECTOR || userRole === ROLE.EXECUTIVE) {
+          // Directors and Executives auto-approve (status already set to Approved in approvals module)
+          console.log('[Approval] User is Director/Executive - quote auto-approved');
+        } else {
+          // Zero-value quotes don't need approval
+          console.log('[Approval] Quote total is zero - no approval needed');
+        }
       } else {
         // Fallback to generic success if no Quote Number returned
         console.warn('No Quote Number in response:', response);

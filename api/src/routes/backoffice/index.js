@@ -250,7 +250,7 @@ router.get('/users', async (req, res, next) => {
 /**
  * POST /api/backoffice/users/:email/role
  * Assign or update a user's role
- * Body: { role: 'NoRole' | 'Sales' | 'Executive' | 'Customer', justification?: string }
+ * Body: { role: 'NoRole' | 'Sales' | 'SalesDirector' | 'Executive' | 'Customer', justification?: string }
  * Requires: Backoffice session token
  */
 router.post('/users/:email/role', async (req, res, next) => {
@@ -263,8 +263,8 @@ router.post('/users/:email/role', async (req, res, next) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    if (!role || !['NoRole', 'Sales', 'Executive', 'Customer'].includes(role)) {
-      return res.status(400).json({ error: "Role must be 'NoRole', 'Sales', 'Executive', or 'Customer'" });
+    if (!role || !['NoRole', 'Sales', 'SalesDirector', 'Executive', 'Customer'].includes(role)) {
+      return res.status(400).json({ error: "Role must be 'NoRole', 'Sales', 'SalesDirector', 'Executive', or 'Customer'" });
     }
 
     console.log(`Backoffice admin ${session.email} assigned ${role} role to ${email}`);

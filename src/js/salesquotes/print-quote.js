@@ -1,5 +1,8 @@
 import { state } from './state.js';
 import { formatCurrency, getQuoteFormData, showError, showToast } from './ui.js';
+import { checkApprovalStatus, APPROVAL_STATUS } from './approvals.js';
+import { authState } from '../auth/state.js';
+import { ROLE } from '../core/config.js';
 
 const SIGNATURE_API_BASE = '/api/backoffice/salesperson-signatures';
 
@@ -594,10 +597,47 @@ async function buildModel() {
   const requestSignature = reportContext.requestSignature || {};
   const uploadedSalespersonSignature = await fetchSalespersonSignature(formData.salespersonCode);
   const salespersonSignature = uploadedSalespersonSignature || normalizeDataUri(requestSignature.signature) || normalizeDataUri(reportContext.salesperson?.signature);
-  const approverSignature = normalizeDataUri(reportContext.approver?.signature);
   const customerName = reportContext.customerName || formData.customerName || '';
   const customerAddressLines = buildCustomerAddressLines(formData, reportContext);
   const deliveryAddressLines = buildDeliveryAddressLines(formData, reportContext, customerName, customerAddressLines);
+
+  // Check approval status for Sales Director signature
+  let approverSignature = normalizeDataUri(reportContext.approver?.signature);
+  let approverName = reportContext.approver?.name || '';
+  let approverPhone = reportContext.approver?.phone || '';
+  let approverEmail = reportContext.approver?.email || '';
+
+  // Only show Sales Director signature if quote is approved
+  const quoteNumber = formData.quoteNumber || state.quote.number;
+  if (quoteNumber) {
+    try {
+      const approval = await checkApprovalStatus(quoteNumber);
+      if (approval && approval.approvalStatus === APPROVAL_STATUS.APPROVED) {
+        // Fetch Sales Director signature
+        const directorSignature = await fetchSalespersonSignature('DIRECTOR');
+        if (directorSignature) {
+          approverSignature = directorSignature;
+          approverName = 'Sales Director';
+          approverPhone = '';
+          approverEmail = '';
+          console.log('[Print] Using Sales Director signature from approval system');
+        } else {
+          // Fallback to BC approver if director signature not found
+          console.log('[Print] Director signature not found, using BC approver');
+        }
+      } else if (approval && approval.approvalStatus !== APPROVAL_STATUS.APPROVED) {
+        // Quote not approved - don't show approver signature
+        console.log('[Print] Quote not approved, hiding approver signature. Status:', approval.approvalStatus);
+        approverSignature = '';
+        approverName = '';
+        approverPhone = '';
+        approverEmail = '';
+      }
+    } catch (error) {
+      console.error('[Print] Failed to check approval status:', error);
+      // Fallback to BC approver signature
+    }
+  }
 
   return {
     title: DEFAULT_TITLE,
@@ -635,9 +675,9 @@ async function buildModel() {
       signature: salespersonSignature
     },
     approver: {
-      name: reportContext.approver?.name || '',
-      phone: reportContext.approver?.phone || '',
-      email: reportContext.approver?.email || '',
+      name: approverName,
+      phone: approverPhone,
+      email: approverEmail,
       signature: approverSignature
     },
     effectiveDate: DEFAULT_EFFECTIVE_DATE,
@@ -1226,9 +1266,10 @@ function buildPageFooter(model, settings, totals, footerType = 'full') {
                 </div>
               </div>
             </div>
+            ${model.approver.signature ? `
             <div class="signature-col signature-approver">
               <div class="signature-sign">
-                ${model.approver.signature ? `<img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">` : ''}
+                <img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">
               </div>
               <div class="signature-line"></div>
               <div class="signature-meta">
@@ -1252,6 +1293,7 @@ function buildPageFooter(model, settings, totals, footerType = 'full') {
                 </div>
               </div>
             </div>
+            ` : ''}
           </div>
 
           <div class="doc-footer">
@@ -1338,9 +1380,10 @@ function buildPageFooter(model, settings, totals, footerType = 'full') {
                 </div>
               </div>
             </div>
+            ${model.approver.signature ? `
             <div class="signature-col signature-approver">
               <div class="signature-sign">
-                ${model.approver.signature ? `<img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">` : ''}
+                <img src="${escapeHtml(model.approver.signature)}" alt="Approved Signature" class="signature-image">
               </div>
               <div class="signature-line"></div>
               <div class="signature-meta">
@@ -1364,6 +1407,7 @@ function buildPageFooter(model, settings, totals, footerType = 'full') {
                 </div>
               </div>
             </div>
+            ` : ''}
           </div>
 
           <div class="doc-footer">

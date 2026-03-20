@@ -587,6 +587,7 @@ function getRoleLabel(role) {
     'PriceListExecutive': 'Executive',
     'PriceListSales': 'Sales',
     'Executive': 'Executive',
+    'SalesDirector': 'Sales Director',
     'Sales': 'Sales',
     'NoRole': 'Unassigned'
   };
@@ -596,13 +597,14 @@ function getRoleLabel(role) {
 /**
  * Map Azure AD role format to effective role format
  * @param {string} mockRole - Azure AD role format (e.g., 'PriceListExecutive')
- * @returns {string} - Effective role ('Executive', 'Sales', or 'NoRole')
+ * @returns {string} - Effective role ('Executive', 'SalesDirector', 'Sales', or 'NoRole')
  */
 function mapMockRoleToEffective(mockRole) {
   const roleMap = {
     'PriceListExecutive': 'Executive',
     'PriceListSales': 'Sales',
     'Executive': 'Executive',
+    'SalesDirector': 'SalesDirector',
     'Sales': 'Sales',
     'NoRole': 'NoRole'
   };

@@ -132,6 +132,17 @@ export const state = {
   validation: {
     isValid: false,
     errors: {}
+  },
+
+  // Approval workflow state
+  approval: {
+    currentStatus: null,  // Draft, PendingApproval, Approved, Rejected, Revise, Cancelled
+    canEdit: true,
+    canPrint: true,
+    directorSignature: null,
+    actionComment: null,
+    submittedAt: null,
+    directorActionAt: null
   }
 };
 

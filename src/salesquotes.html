@@ -15,6 +15,7 @@
 
   <!-- Sales Quotes Page Styles (modular) -->
   <link rel="stylesheet" href="/salesquotes/components/styles/salesquotes-styles.css">
+  <link rel="stylesheet" href="/salesquotes/components/styles/approval-styles.css">
 </head>
 <body class="min-h-screen">
   <!-- Header -->
@@ -64,6 +65,13 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
           </svg>
           My Records
+        </button>
+        <button id="tabApprovals" class="tab-button hidden" onclick="window.switchTab('approvals')">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Approvals
+          <span id="approvalsBadge" class="hidden ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full"></span>
         </button>
       </nav>
     </div>
@@ -732,13 +740,99 @@
               <tr>
                 <th class="px-4 py-3 text-left font-medium">Sales Quote No.</th>
                 <th class="px-4 py-3 text-left font-medium">Work Description</th>
+                <th class="px-4 py-3 text-left font-medium">Approval Status</th>
                 <th class="px-4 py-3 text-left font-medium">Submitted At</th>
               </tr>
             </thead>
             <tbody id="salesQuoteRecordsList" class="divide-y divide-slate-100">
               <tr>
-                <td colspan="3" class="px-4 py-10 text-center text-slate-500">
+                <td colspan="4" class="px-4 py-10 text-center text-slate-500">
                   Open this tab to load your Sales Quote records.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Approvals View (Sales Director/Executive only) -->
+    <div id="approvalsView" class="view hidden">
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <h2 class="text-lg font-semibold text-slate-900">Pending Approvals</h2>
+              <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                <span id="pendingApprovalsCount">0</span>&nbsp;pending
+              </span>
+            </div>
+            <p class="text-sm text-slate-600">Review and approve Sales Quotes submitted by your team.</p>
+          </div>
+          <button
+            id="pendingApprovalsRefreshBtn"
+            class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Refresh
+          </button>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="px-4 py-3 text-left font-medium">Quote No.</th>
+                <th class="px-4 py-3 text-left font-medium">Customer</th>
+                <th class="px-4 py-3 text-left font-medium">Salesperson</th>
+                <th class="px-4 py-3 text-right font-medium">Total Amount</th>
+                <th class="px-4 py-3 text-left font-medium">Submitted At</th>
+                <th class="px-4 py-3 text-left font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody id="pendingApprovalsList" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="6" class="px-4 py-10 text-center text-slate-500">
+                  Loading pending approvals...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- My Approval Requests (Sales users) -->
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mt-6">
+        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <h2 class="text-lg font-semibold text-slate-900">My Approval Requests</h2>
+              <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                <span id="myApprovalsCount">0</span>&nbsp;requests
+              </span>
+            </div>
+            <p class="text-sm text-slate-600">Track the status of your submitted approval requests.</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="px-4 py-3 text-left font-medium">Quote No.</th>
+                <th class="px-4 py-3 text-left font-medium">Customer</th>
+                <th class="px-4 py-3 text-right font-medium">Total Amount</th>
+                <th class="px-4 py-3 text-left font-medium">Status</th>
+                <th class="px-4 py-3 text-left font-medium">Submitted At</th>
+                <th class="px-4 py-3 text-left font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="myApprovalsList" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="6" class="px-4 py-10 text-center text-slate-500">
+                  Loading your requests...
                 </td>
               </tr>
             </tbody>

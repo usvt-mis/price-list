@@ -250,6 +250,27 @@ export function switchTab(tabName) {
   el(`${tabName}View`)?.classList.remove('hidden');
 
   state.currentView = tabName;
+
+  // Load approvals list when approvals tab is activated
+  if (tabName === 'approvals') {
+    // Dynamically import and load approvals
+    import('./approvals.js').then(async (module) => {
+      await module.loadPendingApprovals();
+      await module.loadMyApprovalRequests();
+    }).catch(err => {
+      console.error('Failed to load approvals:', err);
+    });
+  }
+
+  // Load records when records tab is activated
+  if (tabName === 'records') {
+    // Dynamically import and load records
+    import('./records.js').then(async (module) => {
+      await module.loadQuoteSubmissionRecords();
+    }).catch(err => {
+      console.error('Failed to load records:', err);
+    });
+  }
 }
 
 // ============================================================

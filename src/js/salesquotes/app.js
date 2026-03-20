@@ -10,6 +10,7 @@ import { el, show, hide, showToast, initializeQuoteLinePersonalization } from '.
 import { loadInitialData, setupEventListeners } from './create-quote.js';
 import { preloadAllModals } from './components/modal-loader.js';
 import { setupQuoteSubmissionRecordEventListeners } from './records.js';
+import { initializeApprovalsTab } from './approvals.js';
 import './print-quote.js';
 
 // ============================================================
@@ -68,7 +69,11 @@ async function initApp() {
     setupQuoteSubmissionRecordEventListeners();
     console.log('Record event listeners setup');
 
-    // 10. Initialize asterisk state for any default values
+    // 10. Initialize approvals tab (checks role visibility)
+    await initializeApprovalsTab();
+    console.log('Approvals tab initialized');
+
+    // 11. Initialize asterisk state for any default values
     setTimeout(() => {
       ['customerNoSearch', 'orderDate', 'requestedDeliveryDate'].forEach(id => {
         const field = el(id);

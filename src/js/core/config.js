@@ -9,6 +9,7 @@ export const isLocalDev = window.location.hostname === 'localhost' || window.loc
 // Mode constants
 export const MODE = {
   EXECUTIVE: 'executive',
+  SALES_DIRECTOR: 'sales-director',
   SALES: 'sales',
   CUSTOMER: 'customer'
 };
@@ -16,6 +17,7 @@ export const MODE = {
 // Role constants
 export const ROLE = {
   EXECUTIVE: 'Executive',
+  SALES_DIRECTOR: 'SalesDirector',
   SALES: 'Sales',
   NO_ROLE: 'NoRole'
 };
