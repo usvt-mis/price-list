@@ -1637,7 +1637,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .line-section-row td { padding-top: 1.25mm; padding-bottom: 0.8mm; font-weight: 400; }
     .line-section-row .desc-cell { padding-left: 4mm; }
     .line-comment-row td { padding-top: 0.35mm; padding-bottom: 0.7mm; }
-    .line-comment-row .desc-cell { padding-left: 4mm; }
+    .line-comment-row .desc-cell { padding-left: 1.2mm; }
     .line-footer-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
     .footer-label-cell { font-weight: 700; text-align: left; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
@@ -1928,7 +1928,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .line-section-row td { padding-top: 1.25mm; padding-bottom: 0.8mm; font-weight: 400; }
     .line-section-row .desc-cell { padding-left: 4mm; }
     .line-comment-row td { padding-top: 0.35mm; padding-bottom: 0.7mm; }
-    .line-comment-row .desc-cell { padding-left: 4mm; }
+    .line-comment-row .desc-cell { padding-left: 1.2mm; }
     .line-footer-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
     .footer-label-cell { font-weight: 700; text-align: left; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
