@@ -398,6 +398,31 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 - **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content
 
+**Print Flag Controls:**
+- **Line Visibility**: Each quote line has three print control flags:
+  - `showInDocument`: Controls whether the line appears in printed quotes (default: true)
+  - `printHeader`: Marks a line as the group header for print (one per group)
+  - `printFooter`: Marks a line as the group footer for print (one per group)
+- **Group-based Header/Footer**: Lines are grouped by Group No, and each group can have one header and one footer
+  - Header lines appear at the start of each group with bold styling
+  - Footer lines appear at the end of each group with group total calculations
+  - Only one header/footer allowed per group - system enforces uniqueness
+- **UI Controls**: Toggle switches in the quote lines table (Search & Edit mode only)
+  - "Show" column: Toggle line visibility in print
+  - "Header" column: Toggle group header designation
+  - "Footer" column: Toggle group footer designation
+  - Toggles are disabled when quote is locked or line is not visible in print
+- **Data Persistence**: Print flags are saved to Business Central via Azure Function:
+  - `usvtShowInDocument`: Mapped from `showInDocument`
+  - `usvtHeader`: Mapped from `printHeader`
+  - `usvtFooter`: Mapped from `printFooter`
+- **Implementation**:
+  - `normalizePrintFlagValue()` - Normalizes boolean values with fallback
+  - `enforceGroupPrintFlagUniqueness()` - Ensures only one header/footer per group
+  - `toggleQuoteLinePrintFlag()` - Handles toggle changes and enforces rules
+  - `renderQuoteLineFlagToggle()` - Renders toggle switches with proper states
+  - Applied in `applySearchedSalesQuote()`, `handleAddQuoteLine()`, `sendQuoteToAzureFunction()`, `updateQuoteInAzureFunction()`
+
 ### My Records (Submission History)
 - "My Records" tab shows user's submitted quotes with search
 - Table: `SalesQuoteSubmissionRecords` (Id, SalesQuoteNumber, SenderEmail, WorkDescription, ClientIP, SubmittedAt)

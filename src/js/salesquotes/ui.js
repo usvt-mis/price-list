@@ -595,6 +595,27 @@ function updateQuoteEditorFormLockState(locked, title) {
   setActionButtonLocked(el('insertLineAtStartBtn'), locked, title);
 }
 
+function renderQuoteLineFlagToggle(line, fieldName, { disabled = false, title = '' } = {}) {
+  const isChecked = fieldName === 'showInDocument'
+    ? line.showInDocument !== false
+    : Boolean(line[fieldName]);
+  const disabledAttr = disabled ? 'disabled' : '';
+  const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+
+  return `
+    <label class="toggle-switch toggle-switch-sm"${titleAttr} onclick="event.stopPropagation()" ondblclick="event.stopPropagation()">
+      <input
+        type="checkbox"
+        aria-label="${escapeHtml(fieldName)}"
+        ${isChecked ? 'checked' : ''}
+        ${disabledAttr}
+        onchange="window.toggleQuoteLinePrintFlag('${line.id}', '${fieldName}', this.checked)"
+      >
+      <span class="toggle-slider"></span>
+    </label>
+  `;
+}
+
 const QUOTE_LINE_COLUMNS = [
   {
     id: 'sequence',
@@ -632,6 +653,56 @@ const QUOTE_LINE_COLUMNS = [
     headerClass: 'text-center',
     cellClass: 'text-sm text-center',
     render: (line) => line.usvtGroupNo || ''
+  },
+  {
+    id: 'showInDocument',
+    label: 'Show',
+    width: '78px',
+    headerClass: 'text-center',
+    cellClass: 'text-center',
+    isVisible: () => isSearchSalesQuoteEditorMode(),
+    render: (line) => renderQuoteLineFlagToggle(line, 'showInDocument', {
+      disabled: !canModifyQuoteLines(),
+      title: canModifyQuoteLines() ? 'Show or hide this line in print' : getQuoteEditLockMessage()
+    })
+  },
+  {
+    id: 'printHeader',
+    label: 'Header',
+    width: '84px',
+    headerClass: 'text-center',
+    cellClass: 'text-center',
+    isVisible: () => isSearchSalesQuoteEditorMode(),
+    render: (line) => {
+      const editable = canModifyQuoteLines();
+      const isVisibleInPrint = line.showInDocument !== false;
+
+      return renderQuoteLineFlagToggle(line, 'printHeader', {
+        disabled: !editable || !isVisibleInPrint,
+        title: !editable
+          ? getQuoteEditLockMessage()
+          : (isVisibleInPrint ? 'Mark this line as the group header for print' : 'Enable Show before assigning Header')
+      });
+    }
+  },
+  {
+    id: 'printFooter',
+    label: 'Footer',
+    width: '84px',
+    headerClass: 'text-center',
+    cellClass: 'text-center',
+    isVisible: () => isSearchSalesQuoteEditorMode(),
+    render: (line) => {
+      const editable = canModifyQuoteLines();
+      const isVisibleInPrint = line.showInDocument !== false;
+
+      return renderQuoteLineFlagToggle(line, 'printFooter', {
+        disabled: !editable || !isVisibleInPrint,
+        title: !editable
+          ? getQuoteEditLockMessage()
+          : (isVisibleInPrint ? 'Mark this line as the group footer for print' : 'Enable Show before assigning Footer')
+      });
+    }
   },
   {
     id: 'lineObjectNumber',

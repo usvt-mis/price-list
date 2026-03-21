@@ -72,6 +72,91 @@ function ensureQuoteEditableForChanges() {
   return true;
 }
 
+function normalizePrintFlagValue(value, fallback = false) {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  return Boolean(value);
+}
+
+function enforceGroupPrintFlagUniqueness(preferredLineId = null) {
+  const groupedLines = new Map();
+
+  state.quote.lines.forEach(line => {
+    line.showInDocument = normalizePrintFlagValue(line.showInDocument, true);
+    line.printHeader = line.showInDocument ? normalizePrintFlagValue(line.printHeader, false) : false;
+    line.printFooter = line.showInDocument ? normalizePrintFlagValue(line.printFooter, false) : false;
+
+    const groupKey = normalizeGroupNo(line.usvtGroupNo);
+    if (!groupedLines.has(groupKey)) {
+      groupedLines.set(groupKey, []);
+    }
+
+    groupedLines.get(groupKey).push(line);
+  });
+
+  groupedLines.forEach(linesInGroup => {
+    const headerCandidates = linesInGroup.filter(line => line.printHeader);
+    const footerCandidates = linesInGroup.filter(line => line.printFooter);
+
+    if (headerCandidates.length > 1) {
+      const preferredHeader = headerCandidates.find(line => line.id === preferredLineId) || headerCandidates[0];
+      headerCandidates.forEach(line => {
+        line.printHeader = line.id === preferredHeader.id;
+      });
+    }
+
+    if (footerCandidates.length > 1) {
+      const preferredFooter = footerCandidates.find(line => line.id === preferredLineId) || footerCandidates[0];
+      footerCandidates.forEach(line => {
+        line.printFooter = line.id === preferredFooter.id;
+      });
+    }
+  });
+}
+
+function toggleQuoteLinePrintFlag(lineId, fieldName, value) {
+  if (!ensureQuoteEditableForChanges()) {
+    renderQuoteLines();
+    return;
+  }
+
+  const line = state.quote.lines.find(item => item.id === lineId);
+  if (!line) {
+    return;
+  }
+
+  const normalizedValue = Boolean(value);
+  const normalizedGroupNo = normalizeGroupNo(line.usvtGroupNo);
+
+  if (fieldName === 'showInDocument') {
+    line.showInDocument = normalizedValue;
+
+    if (!normalizedValue) {
+      line.printHeader = false;
+      line.printFooter = false;
+    }
+  } else if (fieldName === 'printHeader' || fieldName === 'printFooter') {
+    if (!line.showInDocument && normalizedValue) {
+      line.showInDocument = true;
+    }
+
+    line[fieldName] = normalizedValue;
+  } else {
+    return;
+  }
+
+  enforceGroupPrintFlagUniqueness(lineId);
+  saveState();
+  renderQuoteLines();
+
+  if ((fieldName === 'printHeader' || fieldName === 'printFooter') && normalizedValue) {
+    const flagLabel = fieldName === 'printHeader' ? 'Header' : 'Footer';
+    showToast(`${flagLabel} set for Group No ${normalizedGroupNo || '-'}`, 'success');
+  }
+}
+
 function getGroupServiceItemLockMessage(groupNo) {
   return `Group No ${groupNo} already has a Service Item No. Only one Service Item is allowed per group.`;
 }
@@ -804,6 +889,7 @@ async function applySearchedSalesQuote(payload) {
   clearValidationErrors();
   resetDropdownValidationState();
   state.quote = editableQuote;
+  enforceGroupPrintFlagUniqueness();
   populateQuoteForm(editableQuote);
   renderQuoteLines();
   renderTotals();
@@ -1380,6 +1466,9 @@ export function handleAddQuoteLine() {
     unitPrice: parseFloat(fieldRefs.unitPrice?.value) || 0,
     usvtAddition: fieldRefs.addition?.checked || false,
     usvtRefSalesQuoteno: fieldRefs.refSalesQuote?.value?.trim() || '',
+    showInDocument: true,
+    printHeader: false,
+    printFooter: false,
     discountPercent: sanitizeDiscountInput(fieldRefs.discountPercent?.value || '0', 1),
     discountAmount: sanitizeDiscountInput(fieldRefs.discountAmount?.value || '0', 2)
   };
@@ -2046,6 +2135,9 @@ async function sendQuoteToAzureFunction(quoteData) {
       usvtCreateSv: line.usvtCreateSv || line.createSv || false,  // Support both new and legacy field names
       usvtAddition: line.usvtAddition || false,
       usvtRefSalesQuoteno: line.usvtRefSalesQuoteno || '',
+      usvtShowInDocument: line.showInDocument !== false,
+      usvtHeader: Boolean(line.printHeader),
+      usvtFooter: Boolean(line.printFooter),
       discountAmount: line.discountAmount || 0
     };
   });
@@ -2133,6 +2225,9 @@ async function updateQuoteInAzureFunction(quoteData) {
       usvtAddition: line.usvtAddition || false,
       usvtRefSalesQuoteno: line.usvtRefSalesQuoteno || '',
       usvtRefServiceOrderNo: line.usvtRefServiceOrderNo || '',
+      usvtShowInDocument: line.showInDocument !== false,
+      usvtHeader: Boolean(line.printHeader),
+      usvtFooter: Boolean(line.printFooter),
       discountAmount: line.discountAmount || 0
     };
   });
@@ -3890,6 +3985,9 @@ function saveEditLine() {
     state.quote.lines[lineIndex] = { ...state.quote.lines[lineIndex], ...lineData };
   }
 
+  enforceGroupPrintFlagUniqueness(lineId);
+  saveState();
+
   // Recalculate totals
   calculateTotals();
 
@@ -4418,6 +4516,7 @@ if (typeof window !== 'undefined') {
   window.openEditLineModal = openEditLineModal;
   window.closeEditLineModal = closeEditLineModal;
   window.saveEditLine = saveEditLine;
+  window.toggleQuoteLinePrintFlag = toggleQuoteLinePrintFlag;
   window.sendQuote = handleSendQuote;
   window.sendApprovalRequest = sendApprovalRequest;
   window.requestApprovedQuoteRevision = requestApprovedQuoteRevision;

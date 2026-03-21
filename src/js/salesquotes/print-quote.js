@@ -527,8 +527,76 @@ function buildPrintableLines(formData, reportContext) {
         printHeader: Boolean(line.printHeader || meta.isHeader),
         printFooter: Boolean(line.printFooter || meta.isFooter)
       };
-    })
-    .filter(line => line.showInDocument !== false);
+    });
+}
+
+function buildPrintableRenderRows(lines) {
+  const groups = new Map();
+
+  lines.forEach((line, index) => {
+    const groupKey = String(line.groupNo || '').trim();
+    const groupState = groups.get(groupKey) || {
+      total: 0,
+      headerIndex: null,
+      footerIndex: null
+    };
+
+    groupState.total += resolveLineAmount(line, 0);
+
+    if (line.showInDocument !== false && line.printHeader && groupState.headerIndex === null) {
+      groupState.headerIndex = index;
+    }
+
+    if (line.showInDocument !== false && line.printFooter && groupState.footerIndex === null) {
+      groupState.footerIndex = index;
+    }
+
+    groups.set(groupKey, groupState);
+  });
+
+  let headerCounter = 0;
+
+  return lines.flatMap((line, index) => {
+    const groupKey = String(line.groupNo || '').trim();
+    const groupState = groups.get(groupKey) || {
+      total: resolveLineAmount(line, 0),
+      headerIndex: null,
+      footerIndex: null
+    };
+    const footerIndex = Number.isInteger(groupState.footerIndex) ? groupState.footerIndex : null;
+    const isHiddenByFooter = footerIndex !== null && index > footerIndex;
+
+    if (line.showInDocument === false || isHiddenByFooter) {
+      return [];
+    }
+
+    const isHeader = groupState.headerIndex === index;
+    const isFooter = groupState.footerIndex === index;
+    const isChild = Number.isInteger(groupState.headerIndex) && index > groupState.headerIndex;
+
+    const baseRow = {
+      ...line,
+      rowType: 'line',
+      itemLabel: isHeader ? String(++headerCounter) : '',
+      printIsHeader: isHeader,
+      printIsFooter: isFooter,
+      printIsChild: isChild,
+      groupTotal: groupState.total
+    };
+
+    if (!isFooter) {
+      return [baseRow];
+    }
+
+    return [
+      baseRow,
+      {
+        rowType: 'groupTotal',
+        groupNo: line.groupNo || '',
+        groupTotal: groupState.total
+      }
+    ];
+  });
 }
 
 function buildTotals(formData, reportContext = {}) {
@@ -626,6 +694,7 @@ async function buildModel() {
   const customerName = reportContext.customerName || formData.customerName || '';
   const customerAddressLines = buildCustomerAddressLines(formData, reportContext);
   const deliveryAddressLines = buildDeliveryAddressLines(formData, reportContext, customerName, customerAddressLines);
+  const printableLines = buildPrintableLines(formData, reportContext);
 
   // Check approval status for Sales Director signature
   let approverSignature = normalizeDataUri(reportContext.approver?.signature);
@@ -688,7 +757,7 @@ async function buildModel() {
     phone: state.quote.customer?.phone || reportContext.sellToPhoneNo || '',
     taxId: formData.sellTo?.vatRegNo || reportContext.vatRegistrationNo || '',
     deliveryAddressLines,
-    lineItems: buildPrintableLines(formData, reportContext),
+    lineItems: buildPrintableRenderRows(printableLines),
     detailNotes: [],
     bottomRemark: detailNotes.join(' '),
     jobNo: documentRef,
@@ -880,20 +949,18 @@ function resolveMetaTableColumnWidths(layoutSettings) {
 }
 
 function renderLineRows(lines) {
-  const printableLines = lines.filter(line => line.showInDocument !== false);
-
-  if (!printableLines.length) {
+  if (!lines.length) {
     return '<tr><td colspan="7" class="empty-row">No printable lines available.</td></tr>';
   }
 
-  const renderContinuationRows = (description) => {
+  const renderContinuationRows = (description, rowClassName = '') => {
     return compactLines(
       Array.isArray(description)
         ? description.flatMap(text => String(text || '').split(/\r?\n/))
         : String(description || '').split(/\r?\n/)
     )
       .map(text => `
-        <tr class="line-comment-row">
+        <tr class="${['line-comment-row', rowClassName].filter(Boolean).join(' ')}">
           <td class="item-cell"></td>
           <td class="desc-cell">${escapeHtml(text)}</td>
           <td class="qty-cell"></td>
@@ -906,14 +973,42 @@ function renderLineRows(lines) {
       .join('');
   };
 
-  return printableLines.map(line => {
+  return lines.map(line => {
+    if (line.rowType === 'groupTotal') {
+      return `
+        <tr class="line-group-total-row">
+          <td class="item-cell"></td>
+          <td class="desc-cell"></td>
+          <td class="qty-cell"></td>
+          <td class="unit-cell"></td>
+          <td class="num-cell"></td>
+          <td class="group-total-label-cell">Total</td>
+          <td class="group-total-amount-cell"><span class="group-total-amount">${escapeHtml(formatCurrency(asNumber(line.groupTotal, 0)))}</span></td>
+        </tr>
+      `;
+    }
+
     const descriptionLines = compactLines(String(line.description || '').split(/\r?\n/));
     const primaryDescription = descriptionLines.shift() || '';
-    const continuationMarkup = renderContinuationRows([
+    const continuationLines = [
       ...descriptionLines,
       ...compactLines(String(line.description2 || '').split(/\r?\n/))
-    ]);
-    const isCommentLine = line.lineType === 'Comment';
+    ];
+    const rowClassNames = ['line-main-row'];
+
+    if (line.printIsHeader) {
+      rowClassNames.push('line-group-header');
+    }
+
+    if (line.printIsChild) {
+      rowClassNames.push('line-group-child');
+    }
+
+    if (line.printIsFooter) {
+      rowClassNames.push('line-group-footer');
+    }
+
+    const rowClassName = rowClassNames.join(' ');
     const hasLineAmounts = Boolean(
       line.itemNo
       || asNumber(line.quantity, 0) !== 0
@@ -921,55 +1016,24 @@ function renderLineRows(lines) {
       || asNumber(line.discountAmount, 0) !== 0
       || asNumber(line.lineTotal, 0) !== 0
     );
-
-    if (line.printFooter) {
-      return `
-        <tr class="line-footer-row">
-          <td class="item-cell"></td>
-          <td class="desc-cell">${primaryDescription ? escapeHtml(primaryDescription) : '&nbsp;'}</td>
-          <td class="qty-cell"></td>
-          <td class="unit-cell"></td>
-          <td class="num-cell"></td>
-          <td class="footer-label-cell">Total</td>
-          <td class="num-cell">${escapeHtml(formatMoneyOrIncluded(resolveLineAmount(line, 0)))}</td>
-        </tr>
-      `;
-    }
-
-    if (line.printHeader && !hasLineAmounts) {
-      return `
-        <tr class="line-section-row">
-          <td class="item-cell"></td>
-          <td class="desc-cell">${escapeHtml(primaryDescription)}</td>
-          <td class="qty-cell"></td>
-          <td class="unit-cell"></td>
-          <td class="num-cell"></td>
-          <td class="num-cell"></td>
-          <td class="num-cell"></td>
-        </tr>
-        ${continuationMarkup}
-      `;
-    }
-
-    if (isCommentLine && !hasLineAmounts) {
-      return renderContinuationRows([
-        primaryDescription,
-        ...descriptionLines,
-        ...compactLines(String(line.description2 || '').split(/\r?\n/))
-      ]);
-    }
+    const hasVisibleQuantity = asNumber(line.quantity, 0) !== 0;
+    const qtyText = hasVisibleQuantity ? formatQty(line.quantity) : '';
+    const unitText = hasVisibleQuantity ? formatUnitOfMeasure(line.unitOfMeasure) : '';
+    const unitPriceText = hasLineAmounts ? formatMisRdlUnitPrice(line) : '';
+    const discountText = hasLineAmounts ? formatCurrency(line.discountAmount) : '';
+    const totalText = hasLineAmounts ? formatMoneyOrIncluded(resolveLineAmount(line, 0)) : '';
 
     return `
-      <tr class="line-main-row">
-        <td class="item-cell">&nbsp;</td>
+      <tr class="${rowClassName}">
+        <td class="item-cell">${escapeHtml(line.itemLabel || '')}</td>
         <td class="desc-cell">${escapeHtml(primaryDescription)}</td>
-        <td class="qty-cell">${escapeHtml(formatQty(line.quantity))}</td>
-        <td class="unit-cell">${escapeHtml(formatUnitOfMeasure(line.unitOfMeasure))}</td>
-        <td class="num-cell">${escapeHtml(formatMisRdlUnitPrice(line))}</td>
-        <td class="num-cell">${escapeHtml(formatCurrency(line.discountAmount))}</td>
-        <td class="num-cell">${escapeHtml(formatMoneyOrIncluded(resolveLineAmount(line, 0)))}</td>
+        <td class="qty-cell">${escapeHtml(qtyText)}</td>
+        <td class="unit-cell">${escapeHtml(unitText)}</td>
+        <td class="num-cell">${escapeHtml(unitPriceText)}</td>
+        <td class="num-cell">${escapeHtml(discountText)}</td>
+        <td class="num-cell">${escapeHtml(totalText)}</td>
       </tr>
-      ${continuationMarkup}
+      ${renderContinuationRows(continuationLines, line.printIsChild ? 'line-group-child' : '')}
     `;
   }).join('');
 }
@@ -979,87 +1043,36 @@ function renderLineRows(lines) {
  * Accounts for base row height, description continuations, and special row types
  */
 function calculateRowHeights(lines, settings) {
-  const baseRowHeightMm = 8.5; // Calibrated to match BC's 17 items per page (146.5mm / 17 ≈ 8.6mm)
-  const commentRowHeightMm = 4.5; // Approximate for continuation rows (scaled proportionally)
-  const sectionRowHeightMm = 5.0; // Section header/footer rows
-  const descriptionCharsPerMm = 5.5; // Approximate characters per mm at current font size
+  const baseRowHeightMm = 8.5;
+  const commentRowHeightMm = 4.5;
+  const groupTotalRowHeightMm = 5.6;
+  const descWidthChars = Math.max(28, Math.floor(95 * settings.baseFontSize / 11));
 
   const heights = [];
 
   for (const line of lines) {
-    let rowHeight = 0;
-
-    // Section footer row (printFooter)
-    if (line.printFooter) {
-      rowHeight = sectionRowHeightMm;
-      heights.push(rowHeight);
+    if (line.rowType === 'groupTotal') {
+      heights.push(groupTotalRowHeightMm);
       continue;
     }
 
-    // Section header row (printHeader without amounts)
-    if (line.printHeader) {
-      const descriptionLines = compactLines(String(line.description || '').split(/\r?\n/));
-      const primaryDesc = descriptionLines.shift() || '';
-      const continuations = [
-        ...descriptionLines,
-        ...compactLines(String(line.description2 || '').split(/\r?\n/))
-      ];
-
-      // Main header row
-      rowHeight = sectionRowHeightMm;
-
-      // Continuation rows
-      for (const cont of continuations) {
-        if (cont) {
-          const estLines = Math.max(1, Math.ceil(cont.length / (95 * descriptionCharsPerMm / settings.baseFontSize * 11)));
-          rowHeight += estLines * commentRowHeightMm;
-        }
-      }
-      heights.push(rowHeight);
-      continue;
-    }
-
-    // Comment lines (no amounts)
-    const isCommentLine = line.lineType === 'Comment';
-    const hasLineAmounts = Boolean(
-      line.itemNo
-      || asNumber(line.quantity, 0) !== 0
-      || asNumber(line.unitPrice, 0) !== 0
-      || asNumber(line.discountAmount, 0) !== 0
-      || asNumber(line.lineTotal, 0) !== 0
-    );
-
-    if (isCommentLine && !hasLineAmounts) {
-      const allDescLines = compactLines([
-        String(line.description || '').split(/\r?\n/),
-        String(line.description2 || '').split(/\r?\n/)
-      ].flat());
-
-      for (const descLine of allDescLines) {
-        const estLines = Math.max(1, Math.ceil(descLine.length / (95 * descriptionCharsPerMm / settings.baseFontSize * 11)));
-        rowHeight += estLines * commentRowHeightMm;
-      }
-      heights.push(Math.max(rowHeight, commentRowHeightMm));
-      continue;
-    }
-
-    // Standard line item
     const descriptionLines = compactLines(String(line.description || '').split(/\r?\n/));
     const primaryDescription = descriptionLines.shift() || '';
-    const continuationText = [
+    const continuationLines = [
       ...descriptionLines,
       ...compactLines(String(line.description2 || '').split(/\r?\n/))
-    ].join(' ');
+    ];
+    let rowHeight = baseRowHeightMm;
 
-    // Main row height
-    rowHeight = baseRowHeightMm;
+    const primaryDescriptionLineCount = primaryDescription
+      ? Math.max(1, Math.ceil(primaryDescription.length / descWidthChars))
+      : 1;
+    rowHeight += Math.max(0, primaryDescriptionLineCount - 1) * commentRowHeightMm;
 
-    // Add continuation row height if there's additional description
-    if (continuationText.trim()) {
-      const descWidthChars = Math.floor(95 * settings.baseFontSize / 11); // Approximate character width
-      const estLines = Math.max(1, Math.ceil(continuationText.length / descWidthChars));
-      rowHeight += estLines * commentRowHeightMm;
-    }
+    continuationLines.forEach(text => {
+      const estimatedLineCount = Math.max(1, Math.ceil(String(text || '').length / descWidthChars));
+      rowHeight += estimatedLineCount * commentRowHeightMm;
+    });
 
     heights.push(rowHeight);
   }
@@ -1634,12 +1647,14 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .num-cell { text-align: right; white-space: nowrap; }
     .unit-cell { text-align: center; white-space: nowrap; }
     .line-main-row td { min-height: 6.8mm; }
-    .line-section-row td { padding-top: 1.25mm; padding-bottom: 0.8mm; font-weight: 400; }
-    .line-section-row .desc-cell { padding-left: 4mm; }
     .line-comment-row td { padding-top: 0.35mm; padding-bottom: 0.7mm; }
     .line-comment-row .desc-cell { padding-left: 1.2mm; }
-    .line-footer-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
-    .footer-label-cell { font-weight: 700; text-align: left; }
+    .line-group-child .desc-cell { padding-left: 8mm; }
+    .line-comment-row.line-group-child .desc-cell { padding-left: 8mm; }
+    .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
+    .group-total-label-cell { font-weight: 700; text-align: left; }
+    .group-total-amount-cell { text-align: right; }
+    .group-total-amount { display: inline-block; min-width: 32mm; padding-bottom: 0.7mm; border-bottom: 3px double #000; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
     .footer-stack--partial {
       margin-top: 3mm;
@@ -1925,12 +1940,14 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .num-cell { text-align: right; white-space: nowrap; }
     .unit-cell { text-align: center; white-space: nowrap; }
     .line-main-row td { min-height: 6.8mm; }
-    .line-section-row td { padding-top: 1.25mm; padding-bottom: 0.8mm; font-weight: 400; }
-    .line-section-row .desc-cell { padding-left: 4mm; }
     .line-comment-row td { padding-top: 0.35mm; padding-bottom: 0.7mm; }
     .line-comment-row .desc-cell { padding-left: 1.2mm; }
-    .line-footer-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
-    .footer-label-cell { font-weight: 700; text-align: left; }
+    .line-group-child .desc-cell { padding-left: 8mm; }
+    .line-comment-row.line-group-child .desc-cell { padding-left: 8mm; }
+    .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
+    .group-total-label-cell { font-weight: 700; text-align: left; }
+    .group-total-amount-cell { text-align: right; }
+    .group-total-amount { display: inline-block; min-width: 32mm; padding-bottom: 0.7mm; border-bottom: 3px double #000; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
     .footer-summary-block {
       transform: translate(${settings.footerSummaryBlockOffsetXMm}mm, ${settings.footerSummaryBlockOffsetYMm}mm);
