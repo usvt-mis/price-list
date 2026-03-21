@@ -409,6 +409,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Signature Grid Layout**: Grid columns: 49mm (Salesperson), 57mm (Customer), 60mm (Approver) - updated to provide more space for approver email
 - **Signature Rendering**: `renderApproverSignatureColumn()` function extracts approver signature HTML to reduce code duplication
 - **Approver Signature Positioning**: `APPROVER_DETAIL_COLUMN_GAP_MM` constant (6.8mm) applies column gap spacing to approver signature detail rows for proper alignment
+- **Group Header Styling**: `.line-group-header` CSS class centers the item cell and removes padding for group header rows. Header description cells also have no padding for clean presentation.
+- **Group Total Styling**: `.group-total-amount` class uses 4px double border with 0.95mm padding-bottom for enhanced visual separation of group totals.
+- **Continuation Row Class Handling**: `continuationRowClassName` variable in `renderLineRows()` applies appropriate class to continuation rows based on whether the parent line is a header or child line.
 - Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `renderApproverSignatureColumn()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 - **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content

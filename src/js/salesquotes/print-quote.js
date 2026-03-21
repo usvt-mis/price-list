@@ -1023,6 +1023,10 @@ function renderLineRows(lines) {
     const discountText = hasLineAmounts ? formatCurrency(line.discountAmount) : '';
     const totalText = hasLineAmounts ? formatMoneyOrIncluded(resolveLineAmount(line, 0)) : '';
 
+    const continuationRowClassName = line.printIsHeader
+      ? 'line-group-header'
+      : (line.printIsChild ? 'line-group-child' : '');
+
     return `
       <tr class="${rowClassName}">
         <td class="item-cell">${escapeHtml(line.itemLabel || '')}</td>
@@ -1033,7 +1037,7 @@ function renderLineRows(lines) {
         <td class="num-cell">${escapeHtml(discountText)}</td>
         <td class="num-cell">${escapeHtml(totalText)}</td>
       </tr>
-      ${renderContinuationRows(continuationLines, line.printIsChild ? 'line-group-child' : '')}
+      ${renderContinuationRows(continuationLines, continuationRowClassName)}
     `;
   }).join('');
 }
@@ -1649,12 +1653,15 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .line-main-row td { min-height: 6.8mm; }
     .line-comment-row td { padding-top: 0.35mm; padding-bottom: 0.7mm; }
     .line-comment-row .desc-cell { padding-left: 1.2mm; }
+    .line-group-header .item-cell { text-align: center; padding-left: 0; padding-right: 0; }
+    .line-group-header .desc-cell,
+    .line-comment-row.line-group-header .desc-cell { padding-left: 0; }
     .line-group-child .desc-cell { padding-left: 8mm; }
     .line-comment-row.line-group-child .desc-cell { padding-left: 8mm; }
     .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
     .group-total-label-cell { font-weight: 700; text-align: left; }
     .group-total-amount-cell { text-align: right; }
-    .group-total-amount { display: inline-block; min-width: 32mm; padding-bottom: 0.7mm; border-bottom: 3px double #000; }
+    .group-total-amount { display: inline-block; min-width: 32mm; padding-bottom: 0.95mm; border-bottom: 4px double #000; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
     .footer-stack--partial {
       margin-top: 3mm;
@@ -1942,12 +1949,15 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .line-main-row td { min-height: 6.8mm; }
     .line-comment-row td { padding-top: 0.35mm; padding-bottom: 0.7mm; }
     .line-comment-row .desc-cell { padding-left: 1.2mm; }
+    .line-group-header .item-cell { text-align: center; padding-left: 0; padding-right: 0; }
+    .line-group-header .desc-cell,
+    .line-comment-row.line-group-header .desc-cell { padding-left: 0; }
     .line-group-child .desc-cell { padding-left: 8mm; }
     .line-comment-row.line-group-child .desc-cell { padding-left: 8mm; }
     .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
     .group-total-label-cell { font-weight: 700; text-align: left; }
     .group-total-amount-cell { text-align: right; }
-    .group-total-amount { display: inline-block; min-width: 32mm; padding-bottom: 0.7mm; border-bottom: 3px double #000; }
+    .group-total-amount { display: inline-block; min-width: 32mm; padding-bottom: 0.95mm; border-bottom: 4px double #000; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
     .footer-summary-block {
       transform: translate(${settings.footerSummaryBlockOffsetXMm}mm, ${settings.footerSummaryBlockOffsetYMm}mm);
