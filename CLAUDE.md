@@ -143,33 +143,6 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Hide animation** (in JS): `modalContent.style.opacity = '0'; modalContent.style.transform = 'translateY(-10px)';`
 - Implementation: See `confirm-new-ser-modal.html` and `showConfirmNewSerModal()` / `hideConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
 
-### Approval Action Modal Pattern
-- **Purpose**: Replaces `window.prompt()` and `window.confirm()` for approval-related user interactions
-- **Features**: Configurable status, title, message, context display, optional comment input, error handling
-- **Z-index**: Uses `z-[160]` for proper stacking over other modals
-- **Animation**: 180ms hide delay for smooth transitions, inline style animations
-- **Usage**: `showApprovalActionModal(options)` returns Promise with `{ confirmed, comment }`
-- **Options**:
-  - `status`: Status text displayed at top (e.g., "Pending Approval", "Revision Request")
-  - `statusTone`: Visual tone - 'danger' (red), 'warning' (amber), 'info' (blue), 'neutral' (gray)
-  - `title`: Modal title text
-  - `message`: Descriptive message explaining the action
-  - `contextLabel`: Label for context value (e.g., "Sales Quote")
-  - `contextValue`: Value to display (e.g., quote number)
-  - `confirmText`: Text for confirm button
-  - `confirmVariant`: Button style - 'primary' (blue), 'danger' (red), 'warning' (amber), 'neutral' (gray)
-  - `requireComment`: Boolean to show/hide comment input
-  - `commentLabel`: Label for comment textarea
-  - `commentPlaceholder`: Placeholder text for textarea
-  - `commentHint`: Helper text below textarea
-  - `commentRows`: Number of rows for textarea (default: 4)
-  - `initialComment`: Pre-filled comment value
-- **Validation**: If `requireComment=true`, empty comments are rejected with error message
-- **Keyboard Support**: Escape key cancels the modal
-- **CSS Classes**: `.sales-alert-modal`, `.sales-alert-dialog`, `.sales-alert-panel`, `.sales-alert-textarea`, `.sales-alert-error`
-- **Implementation**: `src/js/salesquotes/approvals.js` - `showApprovalActionModal()`, `approval-action-modal.html`
-- **Used in**: `cancelApprovalRequest()`, `approveRevisionRequest()`, `rejectQuote()`, `requestApprovedQuoteRevision()`
-
 ### Modal Shell Pattern
 - **Purpose**: Provides consistent overflow handling and corner radius for Sales Quotes modals
 - **CSS Class**: `.salesquotes-modal-shell` with `overflow: hidden`
@@ -184,6 +157,29 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   ```html
   <div id="addLineModalContent" class="salesquotes-modal-shell bg-white rounded-2xl shadow-2xl max-w-4xl w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
   ```
+
+### Sales Quotes CSS Variable Design System
+- **Purpose**: Provides consistent theming and maintainability across the Sales Quotes interface
+- **Implementation**: CSS variables defined in `src/salesquotes/components/styles/salesquotes-styles.css` with `--sq-*` prefix
+- **Variable Categories**:
+  - **Colors**: `--sq-accent`, `--sq-accent-soft`, `--sq-accent-strong`, `--sq-success`, `--sq-danger`, `--sq-warning`, `--sq-info`
+  - **Surfaces**: `--sq-surface`, `--sq-surface-muted`, `--sq-surface-subtle`
+  - **Text**: `--sq-text`, `--sq-text-muted`, `--sq-text-soft`
+  - **Borders**: `--sq-border`, `--sq-border-strong`, `--sq-border-subtle`
+  - **Shadows**: `--sq-shadow-sm`, `--sq-shadow-md`, `--sq-shadow-lg`
+  - **Effects**: `--sq-ring`, `--sq-accent-gradient`, `--sq-danger-gradient`
+- **Component Classes**:
+  - **Status Badges**: `.sq-status-badge-*` (draft, submitted, pending, approved, rejected, revise, cancelled, being-revised, pending-revision)
+  - **Links/Actions**: `.sq-link-action` for clickable elements
+  - **Chips**: `.sq-chip`, `.sq-chip-warning` for status indicators
+  - **Buttons**: `.sq-btn-primary`, `.sq-btn-secondary`, `.sq-btn-danger` with hover states
+  - **Toasts**: `.toast`, `.toast-success`, `.toast-error`, `.toast-info` for notifications
+- **Benefits**:
+  - Centralized theme management - change colors in one place
+  - Consistent visual language across all Sales Quotes components
+  - Easy to add dark mode or theme switching in the future
+  - Reduces Tailwind class bloat and improves maintainability
+- **Implementation**: `src/salesquotes/components/styles/salesquotes-styles.css` - CSS variable definitions and component classes
 
 ### Tailwind CSS Safelist Pattern
 - **Problem**: Tailwind CSS may not generate certain color classes if they're only used in dynamically loaded HTML or specific contexts
@@ -309,18 +305,6 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Includes fallback mechanism to load modal dynamically if preload fails
 - Implementation: `src/js/salesquotes/create-quote.js` - `initializeBranchFields()`, `src/js/salesquotes/ui.js` - `showNoBranchModal()`
 
-**Branch Mismatch Validation for Searched Quotes:**
-- **Policy**: Users can only view/edit Sales Quotes that belong to their assigned branch
-- When searching for a Sales Quote, the system validates that the quote's branch matches the user's assigned branch
-- Branch detection uses multiple fallback fields: `branch`, `branchCode`, `responsibilityCenter`, `shortcutDimension1Code`
-- User branch resolution: First checks `state.ui.branchDefaults.branch`, then falls back to `authState.user.branchId` → `getBranchCode(branchId)`
-- If branches don't match, a modal is displayed showing the quote number, quote branch, and user branch
-- The modal prevents loading the quote and requires the user to search for a different quote
-- Modal includes fallback mechanism to load dynamically if not preloaded, with `alert()` as last resort
-- Implementation: `src/js/salesquotes/create-quote.js` - `normalizeBranchCode()`, `getSearchQuoteBranchContext()`, `resolveCurrentUserBranchCode()`, `validateSearchedQuoteBranchAccess()`, `handleSearchSalesQuote()`
-- UI Functions: `src/js/salesquotes/ui.js` - `showBranchMismatchModal()`, `hideBranchMismatchModal()`, `updateBranchMismatchModalDetails()`, `getBranchCode()`
-- Modal: `src/salesquotes/components/modals/branch-mismatch-modal.html`
-
 **Edit Line Modal - Type Field Behavior:**
 - **Comment Type**: When Type is set to "Comment" (on change or when opening an existing Comment line), the following fields are disabled and cleared:
   - No (Material No.) - cleared (not required on save)
@@ -410,16 +394,34 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Dynamic meta table column adjustment based on address width
 - **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13ch), `shifted` class with differentiated positioning (labels: -21mm left, values: -12mm left), attentionTelBlockOffsetXMm/YMm using relative positioning instead of transform
 - **Delivery Date Field**: Uses `reportContext.deliveryDate` for delivery text in meta table
-- **Signature Grid Layout**: Grid columns: 49mm (Salesperson), 57mm (Customer), 60mm (Approver) - updated to provide more space for approver email
-- **Signature Rendering**: `renderApproverSignatureColumn()` function extracts approver signature HTML to reduce code duplication
-- **Approver Signature Positioning**: `APPROVER_DETAIL_COLUMN_GAP_MM` constant (6.8mm) applies column gap spacing to approver signature detail rows for proper alignment
-- **Group Header Styling**: `.line-group-header` CSS class centers the item cell and removes padding for group header rows. Header description cells also have no padding for clean presentation. Line comment rows with group header class also have `padding-right: 0` for consistent layout.
-- **Line Group Child Styling**: `.line-group-child .desc-cell` uses `padding-left: 8mm` for proper indentation of child line descriptions within groups.
-- **Group Total Styling**: `.group-total-amount` class uses 4px double border with 0.95mm padding-bottom for enhanced visual separation of group totals. `.group-total-label-cell` uses `padding-left: 0` and `.group-total-label-text` uses `display: block` with `width: 100%` for proper label positioning without transform.
-- **Continuation Row Class Handling**: `continuationRowClassName` variable in `renderLineRows()` applies appropriate class to continuation rows based on whether the parent line is a header or child line.
-- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `renderApproverSignatureColumn()`
+- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 - **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content
+
+**Print Flag Controls:**
+- **Line Visibility**: Each quote line has three print control flags:
+  - `showInDocument`: Controls whether the line appears in printed quotes (default: true)
+  - `printHeader`: Marks a line as the group header for print (one per group)
+  - `printFooter`: Marks a line as the group footer for print (one per group)
+- **Group-based Header/Footer**: Lines are grouped by Group No, and each group can have one header and one footer
+  - Header lines appear at the start of each group with bold styling
+  - Footer lines appear at the end of each group with group total calculations
+  - Only one header/footer allowed per group - system enforces uniqueness
+- **UI Controls**: Toggle switches in the quote lines table (Search & Edit mode only)
+  - "Show" column: Toggle line visibility in print
+  - "Header" column: Toggle group header designation
+  - "Footer" column: Toggle group footer designation
+  - Toggles are disabled when quote is locked or line is not visible in print
+- **Data Persistence**: Print flags are saved to Business Central via Azure Function:
+  - `usvtShowInDocument`: Mapped from `showInDocument`
+  - `usvtHeader`: Mapped from `printHeader`
+  - `usvtFooter`: Mapped from `printFooter`
+- **Implementation**:
+  - `normalizePrintFlagValue()` - Normalizes boolean values with fallback
+  - `enforceGroupPrintFlagUniqueness()` - Ensures only one header/footer per group
+  - `toggleQuoteLinePrintFlag()` - Handles toggle changes and enforces rules
+  - `renderQuoteLineFlagToggle()` - Renders toggle switches with proper states
+  - Applied in `applySearchedSalesQuote()`, `handleAddQuoteLine()`, `sendQuoteToAzureFunction()`, `updateQuoteInAzureFunction()`
 
 ### My Records (Submission History)
 - "My Records" tab shows user's submitted quotes with search
@@ -532,14 +534,11 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - **Ownership-based Revision**: The `ApprovalOwnerEmail` field (defaults to SalespersonEmail) determines who can request revisions on Approved quotes
 - **Frontend Module**: `src/js/salesquotes/approvals.js`
   - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
-  - **Modal Functions**: `showApprovalActionModal()` - Displays configurable approval action modal with optional comment input
   - Helper functions: `hasPendingRevisionRequest()` - Checks if an approval has a pending revision request (uses backend flag first, falls back to client-side calculation)
 - **UI Module**: `src/js/salesquotes/ui.js`
   - Functions: `isCurrentUserApprovalOwner()` - Checks if current user is the approval owner (compares current user email with approval's ApprovalOwnerEmail, falls back to SalespersonEmail)
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
-  - Modal: `approval-action-modal.html` - Configurable modal for approval actions (cancel, approve revision, reject)
   - Styles: `approval-styles.css` - Approval-specific UI styles
-  - Styles: `salesquotes-styles.css` - Includes `.sales-alert-modal`, `.sales-alert-textarea`, `.sales-alert-error` classes for approval action modal
 - **Integration with Quote Creation**:
   - After quote creation/update, approval records are automatically initialized with SubmittedToBC status
   - ApprovalOwnerEmail is set to the salesperson's email during initialization
