@@ -1658,11 +1658,11 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .line-group-header .item-cell .item-cell-value { min-width: 4.6mm; text-align: center; transform: translateX(1.15mm); }
     .line-group-header .desc-cell,
     .line-comment-row.line-group-header .desc-cell { padding-left: 0; }
-    .line-group-child .desc-cell { padding-left: 8mm; }
-    .line-comment-row.line-group-child .desc-cell { padding-left: 8mm; }
+    .line-group-child .desc-cell { padding-left: 1.2mm; }
+    .line-comment-row.line-group-child .desc-cell { padding-left: 1.2mm; }
     .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
-    .group-total-label-cell { font-weight: 700; text-align: left; }
-    .group-total-label-text { display: inline-block; white-space: nowrap; transform: translateX(-10mm); }
+    .group-total-label-cell { font-weight: 700; text-align: left; padding-left: 0; }
+    .group-total-label-text { display: block; width: 100%; white-space: nowrap; transform: none; }
     .group-total-amount-cell { text-align: right; }
     .group-total-amount { display: block; width: 100%; max-width: 100%; box-sizing: border-box; padding-bottom: 0.95mm; text-align: right; border-bottom: 4px double #000; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
@@ -1957,11 +1957,11 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .line-group-header .item-cell .item-cell-value { min-width: 4.6mm; text-align: center; transform: translateX(1.15mm); }
     .line-group-header .desc-cell,
     .line-comment-row.line-group-header .desc-cell { padding-left: 0; }
-    .line-group-child .desc-cell { padding-left: 8mm; }
-    .line-comment-row.line-group-child .desc-cell { padding-left: 8mm; }
+    .line-group-child .desc-cell { padding-left: 1.2mm; }
+    .line-comment-row.line-group-child .desc-cell { padding-left: 1.2mm; }
     .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
-    .group-total-label-cell { font-weight: 700; text-align: left; }
-    .group-total-label-text { display: inline-block; white-space: nowrap; transform: translateX(-10mm); }
+    .group-total-label-cell { font-weight: 700; text-align: left; padding-left: 0; }
+    .group-total-label-text { display: block; width: 100%; white-space: nowrap; transform: none; }
     .group-total-amount-cell { text-align: right; }
     .group-total-amount { display: block; width: 100%; max-width: 100%; box-sizing: border-box; padding-bottom: 0.95mm; text-align: right; border-bottom: 4px double #000; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
