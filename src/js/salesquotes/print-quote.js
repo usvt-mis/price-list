@@ -1488,8 +1488,8 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     <table class="line-table">
       <thead>
         <tr>
-          <th style="width: 11%;">Item</th>
-          <th style="width: 39%;">Description</th>
+          <th style="width: 6.5%;">Item</th>
+          <th style="width: 38.5%;">Description</th>
           <th style="width: 8.5%;">Qty</th>
           <th style="width: 6%;">@</th>
           <th style="width: 15.5%;">Unit/Price</th>
@@ -1657,7 +1657,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .line-group-header .item-cell { padding-left: 0.85mm; padding-right: 0; }
     .line-group-header .item-cell .item-cell-value { min-width: 4.6mm; text-align: center; transform: translateX(1.15mm); }
     .line-group-header .desc-cell,
-    .line-comment-row.line-group-header .desc-cell { padding-left: 0; }
+    .line-comment-row.line-group-header .desc-cell { padding-left: 0; padding-right: 0; }
     .line-group-child .desc-cell { padding-left: 1.2mm; }
     .line-comment-row.line-group-child .desc-cell { padding-left: 1.2mm; }
     .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
@@ -1956,7 +1956,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .line-group-header .item-cell { padding-left: 0.85mm; padding-right: 0; }
     .line-group-header .item-cell .item-cell-value { min-width: 4.6mm; text-align: center; transform: translateX(1.15mm); }
     .line-group-header .desc-cell,
-    .line-comment-row.line-group-header .desc-cell { padding-left: 0; }
+    .line-comment-row.line-group-header .desc-cell { padding-left: 0; padding-right: 0; }
     .line-group-child .desc-cell { padding-left: 1.2mm; }
     .line-comment-row.line-group-child .desc-cell { padding-left: 1.2mm; }
     .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
@@ -2122,8 +2122,8 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     <table class="line-table">
       <thead>
         <tr>
-          <th style="width: 11%;">Item</th>
-          <th style="width: 39%;">Description</th>
+          <th style="width: 6.5%;">Item</th>
+          <th style="width: 38.5%;">Description</th>
           <th style="width: 8.5%;">Qty</th>
           <th style="width: 6%;">@</th>
           <th style="width: 15.5%;">Unit/Price</th>
