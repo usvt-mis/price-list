@@ -31,7 +31,7 @@
           <div>
             <div class="flex items-center gap-2">
               <h1 class="text-xl font-semibold text-gray-900">Sales Quotes</h1>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+              <span class="sq-chip sq-chip-neutral">
                 Business Central
               </span>
             </div>
@@ -80,18 +80,18 @@
     <div id="createView" class="view">
       <div
         id="quoteEditorModeBanner"
-        class="hidden mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 shadow-sm"
+        class="sq-editor-banner hidden mb-6 px-5 py-4"
       >
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p id="quoteEditorModeTitle" class="text-sm font-semibold text-amber-900">Create a new Sales Quote</p>
-            <p id="quoteEditorModeMeta" class="mt-1 text-sm text-amber-800"></p>
+            <p id="quoteEditorModeTitle" class="text-sm font-semibold text-slate-900">Create a new Sales Quote</p>
+            <p id="quoteEditorModeMeta" class="mt-1 text-sm text-slate-600"></p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button
               id="printQuoteBtn"
               type="button"
-              class="hidden inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-100"
+              class="hidden sq-btn sq-btn-secondary"
               onclick="window.printSearchedSalesQuote()"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +102,7 @@
             <button
               id="sendApprovalRequestBtn"
               type="button"
-              class="hidden inline-flex items-center justify-center gap-2 rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-800 transition-colors hover:bg-purple-100"
+              class="hidden sq-btn sq-btn-primary-soft"
               onclick="window.sendApprovalRequest()"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,7 +113,7 @@
             <button
               id="requestRevisionBtn"
               type="button"
-              class="hidden inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-100"
+              class="hidden sq-btn sq-btn-warning"
               onclick="window.requestApprovedQuoteRevision()"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,7 +124,7 @@
             <button
               id="resetQuoteEditorBtn"
               type="button"
-              class="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-100"
+              class="sq-btn sq-btn-secondary"
               onclick="window.startNewSalesQuote()"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,10 +137,10 @@
       </div>
 
       <!-- Quote Header Card -->
-      <div class="bg-white rounded-2xl shadow-lg hover:shadow-xl border border-blue-100 p-6 mb-6 transition-all duration-300">
+      <div class="sq-card p-6 mb-6">
         <div class="flex items-center gap-3 mb-6">
-          <div class="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-xl">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="sq-section-icon">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
           </div>
@@ -357,7 +357,7 @@
             rows="3"
             placeholder="Work description..."
           ></textarea>
-          <p class="mt-1 text-xs text-amber-600">Optional but recommended - helps provide context for the quote</p>
+          <p class="mt-1 text-xs text-slate-500">Optional but recommended - helps provide context for the quote</p>
         </div>
 
         <!-- Sell-to Subsection (Read-only, auto-filled) -->
@@ -430,11 +430,11 @@
       </div>
 
       <!-- Quote Lines Card -->
-      <div class="bg-white rounded-2xl shadow-lg hover:shadow-xl border border-indigo-100 p-6 mb-6 transition-all duration-300">
+      <div class="sq-card p-6 mb-6">
         <div class="flex justify-between items-center mb-6">
           <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center w-10 h-10 bg-indigo-50 rounded-xl">
-              <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="sq-section-icon">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
               </svg>
             </div>
@@ -446,8 +446,7 @@
           <div class="flex gap-2">
             <button
               id="expandTableBtn"
-              class="flex items-center gap-2 text-white rounded-lg px-4 py-2.5 font-semibold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
-              style="background: linear-gradient(to right, #059669, #047857);"
+              class="sq-btn sq-btn-secondary"
               onclick="window.openFullscreenTable()"
               title="View Fullscreen"
             >
@@ -458,7 +457,7 @@
             </button>
             <button
               id="addLineBtn"
-              class="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg px-4 py-2.5 font-semibold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+              class="sq-btn sq-btn-primary"
               onclick="window.openAddLineModal()"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -474,7 +473,7 @@
           <div class="flex gap-2">
             <button
               id="insertLineAtStartBtn"
-              class="flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-800 font-medium px-3 py-2 rounded-lg hover:bg-emerald-50 transition-all duration-200"
+              class="sq-inline-action text-sm font-medium"
               onclick="window.openInsertLineModal(0)"
               title="Insert at the beginning"
             >
@@ -521,10 +520,10 @@
       </div>
 
       <!-- Totals Card -->
-      <div class="bg-white rounded-2xl shadow-lg hover:shadow-xl border border-emerald-100 p-6 mb-6 transition-all duration-300">
+      <div class="sq-card p-6 mb-6">
         <div class="flex items-center gap-3 mb-6">
-          <div class="flex items-center justify-center w-10 h-10 bg-emerald-50 rounded-xl">
-            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="sq-section-icon">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
             </svg>
           </div>
@@ -545,7 +544,7 @@
                     type="text"
                     id="invoiceDiscount"
                     inputmode="decimal"
-                    class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all duration-200"
+                    class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
                     value="0"
                     placeholder="0"
                   />
@@ -557,7 +556,7 @@
                     id="invoiceDiscountPercent"
                     inputmode="decimal"
                     pattern="[0-9]*\.?[0-9]{0,1}"
-                    class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all duration-200"
+                    class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
                     value="0.0"
                     placeholder="0.0"
                   />
@@ -579,7 +578,7 @@
             </div>
           </div>
 
-          <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-4 space-y-3">
+          <div class="sq-summary-card p-4 space-y-3">
             <div class="flex justify-between">
               <span class="text-gray-600">Subtotal:</span>
               <span id="subtotal" class="font-semibold text-gray-900">0.00</span>
@@ -596,9 +595,9 @@
               <span class="text-gray-600">VAT (<span id="vatRateDisplay">7</span>%):</span>
               <span id="vatAmount" class="font-semibold text-gray-900">0.00</span>
             </div>
-            <div class="flex justify-between text-lg font-bold border-t border-emerald-300 pt-3">
-              <span class="text-emerald-900">Total:</span>
-              <span id="totalAmount" class="text-emerald-600">0.00</span>
+            <div class="flex justify-between text-lg font-bold border-t border-slate-200 pt-3">
+              <span class="text-slate-900">Total:</span>
+              <span id="totalAmount" class="text-blue-700">0.00</span>
             </div>
           </div>
         </div>
@@ -608,7 +607,7 @@
       <div class="flex flex-col sm:flex-row justify-end gap-3">
         <button
           id="clearBtn"
-          class="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 text-slate-700 rounded-lg px-4 py-2.5 font-medium hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
+          class="sq-btn sq-btn-secondary"
           onclick="window.clearQuote()"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -618,7 +617,7 @@
         </button>
         <button
           id="saveDraftBtn"
-          class="hidden inline-flex items-center justify-center gap-2 bg-white border border-slate-300 text-slate-700 rounded-lg px-4 py-2.5 font-medium hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
+          class="hidden sq-btn sq-btn-secondary"
           onclick="window.saveDraft()"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -628,7 +627,7 @@
         </button>
         <button
           id="sendQuoteBtn"
-          class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg px-6 py-2.5 font-semibold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+          class="sq-btn sq-btn-primary"
           onclick="window.sendQuote()"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -642,7 +641,7 @@
       <div class="md:hidden fixed bottom-6 right-6 flex flex-col gap-3 z-40">
         <button
           id="fabSaveDraft"
-          class="hidden bg-white shadow-lg rounded-full p-4 flex items-center justify-center hover:shadow-xl transition-all duration-200"
+          class="hidden sq-fab sq-fab-secondary"
           onclick="window.saveDraft()"
           title="Save Draft"
         >
@@ -652,7 +651,7 @@
         </button>
         <button
           id="fabAddLine"
-          class="bg-gradient-to-r from-indigo-500 to-indigo-600 shadow-lg rounded-full p-4 flex items-center justify-center hover:shadow-xl transition-all duration-200"
+          class="sq-fab sq-fab-primary"
           onclick="window.openAddLineModal()"
           title="Add Line"
         >
@@ -665,10 +664,10 @@
 
     <!-- Search Quotes View -->
     <div id="searchView" class="view hidden">
-      <div class="bg-white rounded-2xl shadow-lg border border-amber-100 p-6">
+      <div class="sq-card p-6">
         <div class="flex items-center gap-3 mb-4">
-          <div class="flex items-center justify-center w-10 h-10 bg-amber-50 rounded-xl">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="sq-section-icon">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
           </div>
@@ -685,14 +684,14 @@
               id="searchSalesQuoteNumber"
               type="text"
               placeholder="Enter Sales Quote number, e.g. SQRY2603-0040"
-              class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+              class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
               autocomplete="off"
             />
           </div>
           <button
             id="searchSalesQuoteBtn"
             type="button"
-            class="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
+            class="sq-btn sq-btn-primary"
             onclick="window.searchSalesQuote()"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -718,12 +717,12 @@
 
     <!-- My Records View -->
     <div id="recordsView" class="view hidden">
-      <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+      <div class="sq-card p-6">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
           <div>
             <div class="flex items-center gap-2 mb-2">
               <h2 class="text-lg font-semibold text-slate-900">My Records</h2>
-              <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+              <span class="sq-chip sq-chip-neutral">
                 <span id="salesQuoteRecordsCount">0</span>&nbsp;records
               </span>
             </div>
@@ -731,7 +730,7 @@
           </div>
           <button
             id="salesQuoteRecordsRefreshBtn"
-            class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+            class="sq-btn sq-btn-secondary"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -751,7 +750,7 @@
           </div>
           <button
             id="salesQuoteRecordsSearchBtn"
-            class="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+            class="sq-btn sq-btn-primary"
           >
             Search
           </button>
@@ -782,12 +781,12 @@
     <!-- Approvals View -->
     <div id="approvalsView" class="view hidden">
       <!-- Pending Approvals Section (Sales Director/Executive only) -->
-      <div id="pendingApprovalsSection" class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+      <div id="pendingApprovalsSection" class="sq-card p-6">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
           <div>
             <div class="flex items-center gap-2 mb-2">
               <h2 class="text-lg font-semibold text-slate-900">Pending Approvals</h2>
-              <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">
+              <span class="sq-chip sq-chip-warning">
                 <span id="pendingApprovalsCount">0</span>&nbsp;pending
               </span>
             </div>
@@ -795,7 +794,7 @@
           </div>
           <button
             id="pendingApprovalsRefreshBtn"
-            class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+            class="sq-btn sq-btn-secondary"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -828,12 +827,12 @@
       </div>
 
       <!-- My Approval Requests Section (All authenticated users) -->
-      <div id="myApprovalsSection" class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mt-6">
+      <div id="myApprovalsSection" class="sq-card p-6 mt-6">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
           <div>
             <div class="flex items-center gap-2 mb-2">
               <h2 class="text-lg font-semibold text-slate-900">My Approval Requests</h2>
-              <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+              <span class="sq-chip sq-chip-neutral">
                 <span id="myApprovalsCount">0</span>&nbsp;requests
               </span>
             </div>
@@ -880,7 +879,7 @@
     aria-live="polite"
     aria-busy="true"
   >
-    <div class="bg-white rounded-2xl shadow-2xl p-8 flex items-center gap-4">
+    <div class="sq-card p-8 flex items-center gap-4">
       <div class="spinner"></div>
       <div>
         <h3 class="text-lg font-semibold text-gray-900" id="loadingTitle">Processing</h3>

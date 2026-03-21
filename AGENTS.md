@@ -158,6 +158,29 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   <div id="addLineModalContent" class="salesquotes-modal-shell bg-white rounded-2xl shadow-2xl max-w-4xl w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
   ```
 
+### Sales Quotes CSS Variable Design System
+- **Purpose**: Provides consistent theming and maintainability across the Sales Quotes interface
+- **Implementation**: CSS variables defined in `src/salesquotes/components/styles/salesquotes-styles.css` with `--sq-*` prefix
+- **Variable Categories**:
+  - **Colors**: `--sq-accent`, `--sq-accent-soft`, `--sq-accent-strong`, `--sq-success`, `--sq-danger`, `--sq-warning`, `--sq-info`
+  - **Surfaces**: `--sq-surface`, `--sq-surface-muted`, `--sq-surface-subtle`
+  - **Text**: `--sq-text`, `--sq-text-muted`, `--sq-text-soft`
+  - **Borders**: `--sq-border`, `--sq-border-strong`, `--sq-border-subtle`
+  - **Shadows**: `--sq-shadow-sm`, `--sq-shadow-md`, `--sq-shadow-lg`
+  - **Effects**: `--sq-ring`, `--sq-accent-gradient`, `--sq-danger-gradient`
+- **Component Classes**:
+  - **Status Badges**: `.sq-status-badge-*` (draft, submitted, pending, approved, rejected, revise, cancelled, being-revised, pending-revision)
+  - **Links/Actions**: `.sq-link-action` for clickable elements
+  - **Chips**: `.sq-chip`, `.sq-chip-warning` for status indicators
+  - **Buttons**: `.sq-btn-primary`, `.sq-btn-secondary`, `.sq-btn-danger` with hover states
+  - **Toasts**: `.toast`, `.toast-success`, `.toast-error`, `.toast-info` for notifications
+- **Benefits**:
+  - Centralized theme management - change colors in one place
+  - Consistent visual language across all Sales Quotes components
+  - Easy to add dark mode or theme switching in the future
+  - Reduces Tailwind class bloat and improves maintainability
+- **Implementation**: `src/salesquotes/components/styles/salesquotes-styles.css` - CSS variable definitions and component classes
+
 ### Tailwind CSS Safelist Pattern
 - **Problem**: Tailwind CSS may not generate certain color classes if they're only used in dynamically loaded HTML or specific contexts
 - **Solution**: Use `@layer utilities` in `src/css/input.css` to force-include specific classes

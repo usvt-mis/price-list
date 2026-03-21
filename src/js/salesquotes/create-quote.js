@@ -465,28 +465,28 @@ function setSearchSalesQuoteFeedback(type, title, message) {
     'hidden',
     'border-slate-200',
     'bg-slate-50',
-    'border-emerald-200',
-    'bg-emerald-50',
+    'border-blue-200',
+    'bg-blue-50',
     'border-rose-200',
     'bg-rose-50',
     'border-amber-200',
     'bg-amber-50'
   );
-  titleEl.classList.remove('text-slate-900', 'text-emerald-900', 'text-rose-900', 'text-amber-900');
-  messageEl.classList.remove('text-slate-600', 'text-emerald-800', 'text-rose-800', 'text-amber-800');
+  titleEl.classList.remove('text-slate-900', 'text-blue-900', 'text-rose-900', 'text-amber-900');
+  messageEl.classList.remove('text-slate-600', 'text-blue-700', 'text-rose-800', 'text-amber-800');
 
   if (type === 'success') {
-    container.classList.add('border-emerald-200', 'bg-emerald-50');
-    titleEl.classList.add('text-emerald-900');
-    messageEl.classList.add('text-emerald-800');
+    container.classList.add('border-blue-200', 'bg-blue-50');
+    titleEl.classList.add('text-blue-900');
+    messageEl.classList.add('text-blue-700');
   } else if (type === 'error') {
     container.classList.add('border-rose-200', 'bg-rose-50');
     titleEl.classList.add('text-rose-900');
     messageEl.classList.add('text-rose-800');
   } else if (type === 'loading') {
-    container.classList.add('border-amber-200', 'bg-amber-50');
-    titleEl.classList.add('text-amber-900');
-    messageEl.classList.add('text-amber-800');
+    container.classList.add('border-slate-200', 'bg-slate-50');
+    titleEl.classList.add('text-slate-900');
+    messageEl.classList.add('text-slate-600');
   } else {
     container.classList.add('border-slate-200', 'bg-slate-50');
     titleEl.classList.add('text-slate-900');

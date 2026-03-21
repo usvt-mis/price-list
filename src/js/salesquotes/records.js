@@ -22,13 +22,13 @@ const STATUS_LABELS = {
 };
 
 const STATUS_BADGE_CLASSES = {
-  Draft: 'bg-gray-100 text-gray-700',
-  SubmittedToBC: 'bg-blue-50 text-blue-700',
-  PendingApproval: 'bg-amber-100 text-amber-700',
-  Approved: 'bg-green-100 text-green-700',
-  Rejected: 'bg-red-100 text-red-700',
-  Revise: 'bg-blue-100 text-blue-700',
-  Cancelled: 'bg-slate-100 text-slate-600'
+  Draft: 'sq-status-badge-draft',
+  SubmittedToBC: 'sq-status-badge-submitted',
+  PendingApproval: 'sq-status-badge-pending',
+  Approved: 'sq-status-badge-approved',
+  Rejected: 'sq-status-badge-rejected',
+  Revise: 'sq-status-badge-revise',
+  Cancelled: 'sq-status-badge-cancelled'
 };
 
 function escapeHtml(value) {
@@ -76,7 +76,7 @@ function getApprovalStatusBadge(approval) {
 
   const status = approval.approvalStatus || 'Draft';
   const label = STATUS_LABELS[status] || status;
-  const badgeClass = STATUS_BADGE_CLASSES[status] || 'bg-gray-100 text-gray-700';
+  const badgeClass = STATUS_BADGE_CLASSES[status] || 'sq-status-badge-draft';
 
   return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badgeClass}">${label}</span>`;
 }
@@ -122,7 +122,7 @@ async function renderRecords(records) {
         <td class="px-4 py-3 font-medium">
           <button
             type="button"
-            class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+            class="inline-flex items-center gap-1 sq-link-action hover:underline transition-colors cursor-pointer"
             data-quote-number="${escapeHtml(record.salesQuoteNumber)}"
             data-action="load-quote"
           >

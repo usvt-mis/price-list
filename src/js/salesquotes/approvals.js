@@ -39,14 +39,14 @@ const STATUS_LABELS = {
 };
 
 const STATUS_BADGE_CLASSES = {
-  Draft: 'bg-gray-100 text-gray-700',
-  SubmittedToBC: 'bg-blue-50 text-blue-700',
-  PendingApproval: 'bg-amber-100 text-amber-700',
-  Approved: 'bg-green-100 text-green-700',
-  Rejected: 'bg-red-100 text-red-700',
-  Revise: 'bg-blue-100 text-blue-700',
-  Cancelled: 'bg-slate-100 text-slate-600',
-  BeingRevised: 'bg-purple-100 text-purple-700'
+  Draft: 'sq-status-badge-draft',
+  SubmittedToBC: 'sq-status-badge-submitted',
+  PendingApproval: 'sq-status-badge-pending',
+  Approved: 'sq-status-badge-approved',
+  Rejected: 'sq-status-badge-rejected',
+  Revise: 'sq-status-badge-revise',
+  Cancelled: 'sq-status-badge-cancelled',
+  BeingRevised: 'sq-status-badge-being-revised'
 };
 
 const PENDING_REVISION_THRESHOLD_MS = 1000;
@@ -101,13 +101,13 @@ function getApprovalStatusPresentation(approval) {
   if (hasPendingRevisionRequest(approval)) {
     return {
       label: 'Revision Request Pending',
-      badgeClass: 'bg-orange-100 text-orange-700'
+      badgeClass: 'sq-status-badge-pending-revision'
     };
   }
 
   return {
     label: STATUS_LABELS[approval?.approvalStatus] || approval?.approvalStatus || '-',
-    badgeClass: STATUS_BADGE_CLASSES[approval?.approvalStatus] || 'bg-slate-100 text-slate-700'
+    badgeClass: STATUS_BADGE_CLASSES[approval?.approvalStatus] || 'sq-status-badge-draft'
   };
 }
 
@@ -678,8 +678,8 @@ function renderApprovalRow(approval) {
 
   return `
     <tr class="hover:bg-slate-50 cursor-pointer" data-action="open-approval-preview" data-quote-number="${escapeHtml(approval.salesQuoteNumber)}">
-      <td class="px-4 py-3 font-medium text-blue-600">
-        ${escapeHtml(approval.salesQuoteNumber)}
+      <td class="px-4 py-3 font-medium">
+        <span class="sq-link-action">${escapeHtml(approval.salesQuoteNumber)}</span>
       </td>
       <td class="px-4 py-3">${escapeHtml(approval.customerName || '-')}</td>
       <td class="px-4 py-3">${escapeHtml(approval.salespersonName || approval.salespersonEmail)}</td>
@@ -725,7 +725,7 @@ function renderMyApprovalRow(approval) {
     actionButton = `
       <button
         type="button"
-        class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+        class="text-sm sq-link-action hover:underline"
         data-action="view-quote"
         data-quote-number="${escapeHtml(approval.salesQuoteNumber)}"
       >
@@ -734,7 +734,7 @@ function renderMyApprovalRow(approval) {
     `;
   } else if (pendingRevisionRequest) {
     actionButton = `
-      <span class="text-sm font-medium text-orange-700">
+      <span class="sq-chip sq-chip-warning">
         Awaiting revision approval
       </span>
     `;
@@ -745,7 +745,7 @@ function renderMyApprovalRow(approval) {
       <td class="px-4 py-3 font-medium">
         <button
           type="button"
-          class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline"
+          class="inline-flex items-center gap-1 sq-link-action hover:underline"
           data-action="view-quote"
           data-quote-number="${escapeHtml(approval.salesQuoteNumber)}"
         >
@@ -1410,7 +1410,7 @@ function renderActionButtons(container, approval) {
       <button
         id="btnApproveQuote"
         type="button"
-        class="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+        class="sq-btn sq-btn-success"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -1420,7 +1420,7 @@ function renderActionButtons(container, approval) {
       <button
         id="btnRejectQuote"
         type="button"
-        class="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors"
+        class="sq-btn sq-btn-danger"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -1433,7 +1433,7 @@ function renderActionButtons(container, approval) {
       <button
         id="btnApproveRevisionRequest"
         type="button"
-        class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+        class="sq-btn sq-btn-primary"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -1447,7 +1447,7 @@ function renderActionButtons(container, approval) {
     <button
       id="btnClosePreview"
       type="button"
-      class="inline-flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium hover:bg-slate-300 transition-colors"
+      class="sq-btn sq-btn-secondary"
     >
       Close
     </button>

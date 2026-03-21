@@ -723,9 +723,9 @@ const QUOTE_LINE_COLUMNS = [
     render: (line, index) => canModifyQuoteLines()
       ? `
         <div class="flex gap-1">
-          <button class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1" onclick="window.openEditLineModal('${line.id}')">Edit</button>
-          <button class="text-emerald-600 hover:text-emerald-800 text-xs font-medium px-2 py-1" onclick="window.openInsertLineModal(${index})">Insert</button>
-          <button class="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1" onclick="window.removeQuoteLine(${index})">Remove</button>
+          <button class="sq-inline-action text-xs font-medium" onclick="window.openEditLineModal('${line.id}')">Edit</button>
+          <button class="sq-inline-action text-xs font-medium" onclick="window.openInsertLineModal(${index})">Insert</button>
+          <button class="sq-inline-action sq-inline-action-danger text-xs font-medium" onclick="window.removeQuoteLine(${index})">Remove</button>
         </div>
       `
       : '<span class="text-xs font-medium text-slate-400">Locked</span>'
