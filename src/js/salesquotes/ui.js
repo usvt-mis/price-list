@@ -2695,6 +2695,101 @@ export function hideNoBranchModal() {
   }
 }
 
+function updateBranchMismatchModalDetails({ quoteNumber = '', quoteBranch = '', userBranch = '' } = {}) {
+  const quoteNumberText = typeof quoteNumber === 'string' ? quoteNumber.trim() : '';
+  const quoteBranchText = typeof quoteBranch === 'string' ? quoteBranch.trim() : '';
+  const userBranchText = typeof userBranch === 'string' ? userBranch.trim() : '';
+
+  const quoteNumberEl = el('branchMismatchQuoteNumber');
+  const quoteBranchEl = el('branchMismatchQuoteBranch');
+  const userBranchEl = el('branchMismatchUserBranch');
+
+  if (quoteNumberEl) {
+    quoteNumberEl.textContent = quoteNumberText || '-';
+  }
+
+  if (quoteBranchEl) {
+    quoteBranchEl.textContent = quoteBranchText || '-';
+  }
+
+  if (userBranchEl) {
+    userBranchEl.textContent = userBranchText || '-';
+  }
+}
+
+export async function showBranchMismatchModal({ quoteNumber = '', quoteBranch = '', userBranch = '' } = {}) {
+  let modal = el('branchMismatchModal');
+  let modalContent = el('branchMismatchModalContent');
+
+  if (!modal || !modalContent) {
+    console.warn('[BRANCH-MISMATCH-MODAL] Modal not found in DOM, loading dynamically...');
+    try {
+      const { loadModal } = await import('./components/modal-loader.js');
+      await loadModal('branchMismatchModal');
+      modal = el('branchMismatchModal');
+      modalContent = el('branchMismatchModalContent');
+    } catch (error) {
+      console.error('[BRANCH-MISMATCH-MODAL] Failed to load modal:', error);
+      alert(
+        `Sales Quote นี้อยู่คนละสาขา\nSales Quote No.: ${quoteNumber || '-'}\nBranch ของเอกสาร: ${quoteBranch || '-'}\nBranch ของผู้ใช้งาน: ${userBranch || '-'}`
+      );
+      return false;
+    }
+  }
+
+  if (!modal || !modalContent) {
+    console.error('[BRANCH-MISMATCH-MODAL] Modal still not available after loading');
+    alert(
+      `Sales Quote นี้อยู่คนละสาขา\nSales Quote No.: ${quoteNumber || '-'}\nBranch ของเอกสาร: ${quoteBranch || '-'}\nBranch ของผู้ใช้งาน: ${userBranch || '-'}`
+    );
+    return false;
+  }
+
+  updateBranchMismatchModalDetails({ quoteNumber, quoteBranch, userBranch });
+
+  if (modal.dataset.bound !== 'true') {
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        hideBranchMismatchModal();
+      }
+    });
+    modal.dataset.bound = 'true';
+  }
+
+  const modalContainer = el('modalContainer');
+  if (modalContainer) {
+    modalContainer.appendChild(modal);
+  }
+
+  modal.classList.remove('hidden');
+  modal.style.zIndex = '180';
+  modalContent.style.opacity = '0';
+  modalContent.style.transform = 'translateY(-10px)';
+
+  setTimeout(() => {
+    modalContent.style.opacity = '1';
+    modalContent.style.transform = 'translateY(0)';
+  }, 10);
+
+  return true;
+}
+
+export function hideBranchMismatchModal() {
+  const modal = el('branchMismatchModal');
+  const modalContent = el('branchMismatchModalContent');
+
+  if (!modal || !modalContent) {
+    return;
+  }
+
+  modalContent.style.opacity = '0';
+  modalContent.style.transform = 'translateY(-10px)';
+
+  setTimeout(() => {
+    modal.classList.add('hidden');
+  }, 300);
+}
+
 // ============================================================
 // Export functions to window for onclick handlers
 // ============================================================
@@ -2715,4 +2810,5 @@ if (typeof window !== 'undefined') {
   window.showConfirmClearQuoteModal = showConfirmClearQuoteModal;
   window.hideConfirmClearQuoteModal = hideConfirmClearQuoteModal;
   window.closeNoBranchModal = hideNoBranchModal;
+  window.closeBranchMismatchModal = hideBranchMismatchModal;
 }

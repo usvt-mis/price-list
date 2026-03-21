@@ -8,7 +8,7 @@ import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteUpdatedSuccess, showQuoteSendFailure } from './ui.js';
-import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 import { recordQuoteSubmission } from './records.js';
@@ -347,6 +347,104 @@ function normalizeSalesQuoteNumberInput(value) {
   return String(value || '').trim().toUpperCase();
 }
 
+function normalizeBranchCode(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  return String(value).trim().toUpperCase();
+}
+
+function getSearchQuoteBranchContext(payload) {
+  const data = payload?.data || payload?.result?.data || payload?.result;
+  if (!data || typeof data !== 'object') {
+    return {
+      quoteBranch: '',
+      responsibilityCenter: ''
+    };
+  }
+
+  const { headerSources } = buildReportLookupSources(data);
+  const quoteBranch = pickSourceValueFromSources(
+    headerSources,
+    ['branch', 'branchCode', 'responsibilityCenter', 'shortcutDimension1Code'],
+    ''
+  );
+  const responsibilityCenter = pickSourceValueFromSources(
+    headerSources,
+    ['responsibilityCenter', 'branch', 'branchCode', 'shortcutDimension1Code'],
+    quoteBranch
+  );
+
+  return {
+    quoteBranch,
+    responsibilityCenter
+  };
+}
+
+function resolveCurrentUserBranchCode() {
+  const defaultBranchCode = normalizeBranchCode(state.ui.branchDefaults.branch);
+  if (defaultBranchCode) {
+    return {
+      normalized: defaultBranchCode,
+      display: state.ui.branchDefaults.branch
+    };
+  }
+
+  const branchId = authState.user?.branchId;
+  if (branchId || branchId === 0) {
+    const branchCode = getBranchCode(branchId);
+    const normalizedBranchCode = normalizeBranchCode(branchCode);
+    if (normalizedBranchCode) {
+      return {
+        normalized: normalizedBranchCode,
+        display: branchCode
+      };
+    }
+  }
+
+  return {
+    normalized: '',
+    display: ''
+  };
+}
+
+function validateSearchedQuoteBranchAccess(payload) {
+  const userBranch = resolveCurrentUserBranchCode();
+  if (!userBranch.normalized) {
+    return {
+      matches: true,
+      userBranch
+    };
+  }
+
+  const searchQuoteBranchContext = getSearchQuoteBranchContext(payload);
+  const quoteBranchDisplay = String(
+    searchQuoteBranchContext.quoteBranch || searchQuoteBranchContext.responsibilityCenter || ''
+  ).trim();
+  const normalizedQuoteBranch = normalizeBranchCode(quoteBranchDisplay);
+
+  if (!normalizedQuoteBranch) {
+    return {
+      matches: true,
+      quoteBranch: {
+        normalized: '',
+        display: ''
+      },
+      userBranch
+    };
+  }
+
+  return {
+    matches: normalizedQuoteBranch === userBranch.normalized,
+    quoteBranch: {
+      normalized: normalizedQuoteBranch,
+      display: quoteBranchDisplay || normalizedQuoteBranch
+    },
+    userBranch
+  };
+}
+
 function setSearchSalesQuoteFeedback(type, title, message) {
   const container = el('searchSalesQuoteResult');
   const titleEl = el('searchSalesQuoteResultTitle');
@@ -638,10 +736,10 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     fetchSalespersonDisplayName(salespersonCode)
   ]);
 
-  const branchCode = pickSourceValueFromSources(headerSources, ['branchCode', 'responsibilityCenter', 'shortcutDimension1Code'], '')
+  const branchCode = pickSourceValueFromSources(headerSources, ['branch', 'branchCode', 'responsibilityCenter', 'shortcutDimension1Code'], '')
     || state.ui.branchDefaults.branch
     || '';
-  const responsibilityCenter = pickSourceValueFromSources(headerSources, ['responsibilityCenter', 'branchCode', 'shortcutDimension1Code'], branchCode);
+  const responsibilityCenter = pickSourceValueFromSources(headerSources, ['responsibilityCenter', 'branch', 'branchCode', 'shortcutDimension1Code'], branchCode);
   const locationCode = pickSourceValueFromSources(headerSources, ['locationCode'], '');
   const reportContext = buildSearchQuoteReportContext(data, salespersonName, sourceContext);
   const customerName = reportContext.customerName
@@ -1886,6 +1984,25 @@ export async function handleSearchSalesQuote() {
 
   try {
     const responseData = await fetchSalesQuoteByNumber(salesQuoteNumber);
+    const branchAccess = validateSearchedQuoteBranchAccess(responseData);
+
+    if (!branchAccess.matches) {
+      const quoteBranchLabel = branchAccess.quoteBranch?.display || branchAccess.quoteBranch?.normalized || '-';
+      const userBranchLabel = branchAccess.userBranch?.display || branchAccess.userBranch?.normalized || '-';
+
+      setSearchSalesQuoteFeedback(
+        'error',
+        `Branch mismatch for ${salesQuoteNumber}`,
+        `This Sales Quote belongs to branch ${quoteBranchLabel}, but your assigned branch is ${userBranchLabel}.`
+      );
+      await showBranchMismatchModal({
+        quoteNumber: salesQuoteNumber,
+        quoteBranch: quoteBranchLabel,
+        userBranch: userBranchLabel
+      });
+      return;
+    }
+
     await applySearchedSalesQuote(responseData);
     showSuccess(`Loaded ${salesQuoteNumber} from Business Central`);
   } catch (error) {

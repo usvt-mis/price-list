@@ -81,7 +81,7 @@ api/src/
 
 src/salesquotes/components/
 ├── styles/         # External CSS
-├── modals/         # 12 modular HTML modals (lazy-loaded)
+├── modals/         # 13 modular HTML modals (lazy-loaded)
 └── assets/         # Static assets (logos, certifications for print)
 ```
 
@@ -294,6 +294,18 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Includes fallback mechanism to load modal dynamically if preload fails
 - Implementation: `src/js/salesquotes/create-quote.js` - `initializeBranchFields()`, `src/js/salesquotes/ui.js` - `showNoBranchModal()`
 
+**Branch Mismatch Validation for Searched Quotes:**
+- **Policy**: Users can only view/edit Sales Quotes that belong to their assigned branch
+- When searching for a Sales Quote, the system validates that the quote's branch matches the user's assigned branch
+- Branch detection uses multiple fallback fields: `branch`, `branchCode`, `responsibilityCenter`, `shortcutDimension1Code`
+- User branch resolution: First checks `state.ui.branchDefaults.branch`, then falls back to `authState.user.branchId` → `getBranchCode(branchId)`
+- If branches don't match, a modal is displayed showing the quote number, quote branch, and user branch
+- The modal prevents loading the quote and requires the user to search for a different quote
+- Modal includes fallback mechanism to load dynamically if not preloaded, with `alert()` as last resort
+- Implementation: `src/js/salesquotes/create-quote.js` - `normalizeBranchCode()`, `getSearchQuoteBranchContext()`, `resolveCurrentUserBranchCode()`, `validateSearchedQuoteBranchAccess()`, `handleSearchSalesQuote()`
+- UI Functions: `src/js/salesquotes/ui.js` - `showBranchMismatchModal()`, `hideBranchMismatchModal()`, `updateBranchMismatchModalDetails()`, `getBranchCode()`
+- Modal: `src/salesquotes/components/modals/branch-mismatch-modal.html`
+
 **Edit Line Modal - Type Field Behavior:**
 - **Comment Type**: When Type is set to "Comment" (on change or when opening an existing Comment line), the following fields are disabled and cleared:
   - No (Material No.) - cleared (not required on save)
@@ -385,7 +397,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Delivery Date Field**: Uses `reportContext.deliveryDate` for delivery text in meta table
 - **Signature Grid Layout**: Grid columns: 49mm (Salesperson), 57mm (Customer), 60mm (Approver) - updated to provide more space for approver email
 - **Signature Rendering**: `renderApproverSignatureColumn()` function extracts approver signature HTML to reduce code duplication
-- **Approver Signature Positioning**: `APPROVER_CONTACT_OFFSET_X_MM` constant (5mm) applies horizontal offset to approver signature metadata section for proper alignment
+- **Approver Signature Positioning**: `APPROVER_DETAIL_COLUMN_GAP_MM` constant (6.8mm) applies column gap spacing to approver signature detail rows for proper alignment
 - Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `renderApproverSignatureColumn()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 - **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content

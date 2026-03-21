@@ -1,0 +1,50 @@
+<!-- Branch Mismatch Modal -->
+<div
+  id="branchMismatchModal"
+  class="sales-alert-modal fixed inset-0 hidden z-[180] transition-opacity duration-200"
+  style="z-index: 180;"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="branchMismatchModalTitle"
+>
+  <div class="sales-alert-dialog">
+    <div
+      id="branchMismatchModalContent"
+      class="sales-alert-panel"
+      style="opacity: 0; transform: translateY(-10px);"
+    >
+      <div class="sales-alert-header">
+        <p class="sales-alert-status sales-alert-status-warning">Branch Validation</p>
+        <h3 id="branchMismatchModalTitle" class="sales-alert-title">Sales Quote คนละสาขา</h3>
+        <p class="sales-alert-text">ไม่สามารถเปิด Sales Quote นี้ได้ เนื่องจาก Branch ของเอกสารไม่ตรงกับ Branch ของผู้ใช้งาน</p>
+      </div>
+
+      <div class="sales-alert-body">
+        <div class="sales-alert-section sales-alert-section-info">
+          <p class="sales-alert-label">Sales Quote No.</p>
+          <p id="branchMismatchQuoteNumber" class="sales-alert-value">-</p>
+        </div>
+
+        <div class="sales-alert-section">
+          <p class="sales-alert-label">Branch ของเอกสาร</p>
+          <p id="branchMismatchQuoteBranch" class="sales-alert-value">-</p>
+        </div>
+
+        <div class="sales-alert-section sales-alert-section-warning">
+          <p class="sales-alert-label">Branch ของผู้ใช้งาน</p>
+          <p id="branchMismatchUserBranch" class="sales-alert-value">-</p>
+        </div>
+      </div>
+
+      <div class="sales-alert-footer sales-alert-footer-centered">
+        <button
+          type="button"
+          class="sales-alert-btn sales-alert-btn-primary"
+          onclick="window.closeBranchMismatchModal()"
+        >
+          รับทราบ
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
