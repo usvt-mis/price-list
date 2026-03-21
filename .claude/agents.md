@@ -13,13 +13,9 @@ See [`.claude/agents/TEAM.md`](.claude/agents/TEAM.md) for complete coordination
 
 ## Agent Categories
 
-### Translation Agents
-- `english-to-chinese-translator.md` (FanYi) - Translates between English and Chinese
-
 ### Coordination Agents
 - `orchestrator.md` - Top-level coordinator for the Price List Calculator agent team
 - `planner.md` - Implementation lead for detailed implementation planning and task breakdown
-- `chinese-foreman.md` (工头/Gongtou) - Chinese project foreman agent
 
 ### Leadership Agents
 - `architect.md` - Technical lead for system architecture and technical decisions
@@ -31,12 +27,8 @@ See [`.claude/agents/TEAM.md`](.claude/agents/TEAM.md) for complete coordination
 - `auth.md` - Authentication systems, authorization, security policies, and access control
 - `database.md` - SQL Server schema, queries, and data integrity
 - `calculation.md` - Pricing calculations, commission logic, and cost multipliers
-- `deployment.md` - Azure deployment, CI/CD, and configuration
+- `deploy.md` - Azure deployment, CI/CD, and configuration
 - `logging.md` - Application logging, performance tracking, system monitoring, and diagnostics
-
-### Utility Agents
-- `internet-researcher.md` (Scout) - Web research and information gathering
-- `Template.md` - Base template for creating new agents
 
 ## Skill Template System
 
@@ -45,6 +37,13 @@ The system includes templates for creating new skills and agents:
 - `.claude/skills/template/` - Base template for creating new skills
 - `.claude/skills/add-agents/` - Template for creating new agents
 - `.claude/skills/add-skills/` - Template for creating new skills
+
+## Available Skills
+
+- `update` - Automatically updates project documentation based on code changes and creates a git commit
+- `bs` - Coordinates brainstorming sessions across multiple agents to generate multi-perspective solutions
+- `fix` - Professionally diagnose and fix issues in the application with systematic analysis
+- `start` - Start the Express.js application locally for development
 
 ## Usage
 

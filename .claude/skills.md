@@ -36,20 +36,6 @@ Coordinates brainstorming sessions across multiple agents to generate multi-pers
 - Synthesizes insights from different domains
 - Provides comprehensive solutions that consider multiple viewpoints
 
-### `/deploy` Skill
-Deploys the application to Azure App Service Production environment.
-
-**Usage:**
-```
-/deploy
-```
-
-**What it does:**
-- Coordinates with the Deployment agent
-- Handles Azure deployment procedures
-- Manages CI/CD processes
-- Ensures proper configuration for production environment
-
 ### `/fix` Skill
 Professionally diagnose and fix issues in the application with systematic analysis and proper resolution.
 
