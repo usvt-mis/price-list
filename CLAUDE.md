@@ -410,7 +410,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Signature Rendering**: `renderApproverSignatureColumn()` function extracts approver signature HTML to reduce code duplication
 - **Approver Signature Positioning**: `APPROVER_DETAIL_COLUMN_GAP_MM` constant (6.8mm) applies column gap spacing to approver signature detail rows for proper alignment
 - **Group Header Styling**: `.line-group-header` CSS class centers the item cell and removes padding for group header rows. Header description cells also have no padding for clean presentation. Line comment rows with group header class also have `padding-right: 0` for consistent layout.
-- **Line Group Child Styling**: `.line-group-child .desc-cell` uses `padding-left: 1.2mm` for proper indentation of child line descriptions within groups.
+- **Line Group Child Styling**: `.line-group-child .desc-cell` uses `padding-left: 8mm` for proper indentation of child line descriptions within groups.
 - **Group Total Styling**: `.group-total-amount` class uses 4px double border with 0.95mm padding-bottom for enhanced visual separation of group totals. `.group-total-label-cell` uses `padding-left: 0` and `.group-total-label-text` uses `display: block` with `width: 100%` for proper label positioning without transform.
 - **Continuation Row Class Handling**: `continuationRowClassName` variable in `renderLineRows()` applies appropriate class to continuation rows based on whether the parent line is a header or child line.
 - Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`, `renderApproverSignatureColumn()`

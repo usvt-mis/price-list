@@ -998,9 +998,7 @@ function renderLineRows(lines) {
 
     if (line.printIsHeader) {
       rowClassNames.push('line-group-header');
-    }
-
-    if (line.printIsChild) {
+    } else {
       rowClassNames.push('line-group-child');
     }
 
@@ -1025,7 +1023,7 @@ function renderLineRows(lines) {
 
     const continuationRowClassName = line.printIsHeader
       ? 'line-group-header'
-      : (line.printIsChild ? 'line-group-child' : '');
+      : 'line-group-child';
 
     return `
       <tr class="${rowClassName}">
@@ -1658,8 +1656,8 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .line-group-header .item-cell .item-cell-value { min-width: 4.6mm; text-align: center; transform: translateX(1.15mm); }
     .line-group-header .desc-cell,
     .line-comment-row.line-group-header .desc-cell { padding-left: 0; padding-right: 0; }
-    .line-group-child .desc-cell { padding-left: 1.2mm; }
-    .line-comment-row.line-group-child .desc-cell { padding-left: 1.2mm; }
+    .line-group-child .desc-cell { padding-left: 8mm; }
+    .line-comment-row.line-group-child .desc-cell { padding-left: 8mm; }
     .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
     .group-total-label-cell { font-weight: 700; text-align: left; padding-left: 0; }
     .group-total-label-text { display: block; width: 100%; white-space: nowrap; transform: none; }
@@ -1957,8 +1955,8 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .line-group-header .item-cell .item-cell-value { min-width: 4.6mm; text-align: center; transform: translateX(1.15mm); }
     .line-group-header .desc-cell,
     .line-comment-row.line-group-header .desc-cell { padding-left: 0; padding-right: 0; }
-    .line-group-child .desc-cell { padding-left: 1.2mm; }
-    .line-comment-row.line-group-child .desc-cell { padding-left: 1.2mm; }
+    .line-group-child .desc-cell { padding-left: 8mm; }
+    .line-comment-row.line-group-child .desc-cell { padding-left: 8mm; }
     .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
     .group-total-label-cell { font-weight: 700; text-align: left; padding-left: 0; }
     .group-total-label-text { display: block; width: 100%; white-space: nowrap; transform: none; }
