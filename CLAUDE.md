@@ -170,6 +170,17 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Implementation**: `src/js/salesquotes/approvals.js` - `showApprovalActionModal()`, `approval-action-modal.html`
 - **Used in**: `cancelApprovalRequest()`, `approveRevisionRequest()`, `rejectQuote()`, `requestApprovedQuoteRevision()`
 
+### Modal Shell Pattern
+- **Purpose**: Provides consistent overflow handling for Sales Quotes modals
+- **CSS Class**: `.salesquotes-modal-shell` with `overflow: hidden`
+- **Usage**: Add `salesquotes-modal-shell` class to modal content divs to prevent content overflow
+- **Applied to**: Add Line Modal, Edit Line Modal, Approval Preview Modal, Fullscreen Table Modal
+- **Implementation**: `src/salesquotes/components/styles/salesquotes-styles.css` - `.salesquotes-modal-shell` rule
+- **HTML Example**:
+  ```html
+  <div id="addLineModalContent" class="salesquotes-modal-shell bg-white rounded-2xl shadow-2xl max-w-4xl w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
+  ```
+
 ### Tailwind CSS Safelist Pattern
 - **Problem**: Tailwind CSS may not generate certain color classes if they're only used in dynamically loaded HTML or specific contexts
 - **Solution**: Use `@layer utilities` in `src/css/input.css` to force-include specific classes

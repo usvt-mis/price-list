@@ -915,6 +915,10 @@ button:disabled:hover {
 }
 
 /* Minimal alert modal overrides */
+.salesquotes-modal-shell {
+  overflow: hidden;
+}
+
 .quote-created-modal,
 .sales-alert-modal {
   background: rgba(15, 23, 42, 0.42);
