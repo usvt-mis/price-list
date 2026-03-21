@@ -171,11 +171,15 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Used in**: `cancelApprovalRequest()`, `approveRevisionRequest()`, `rejectQuote()`, `requestApprovedQuoteRevision()`
 
 ### Modal Shell Pattern
-- **Purpose**: Provides consistent overflow handling for Sales Quotes modals
+- **Purpose**: Provides consistent overflow handling and corner radius for Sales Quotes modals
 - **CSS Class**: `.salesquotes-modal-shell` with `overflow: hidden`
-- **Usage**: Add `salesquotes-modal-shell` class to modal content divs to prevent content overflow
-- **Applied to**: Add Line Modal, Edit Line Modal, Approval Preview Modal, Fullscreen Table Modal
-- **Implementation**: `src/salesquotes/components/styles/salesquotes-styles.css` - `.salesquotes-modal-shell` rule
+- **Corner Radius Fix**: CSS rules ensure all children respect parent's border-radius:
+  - First and last children inherit border-radius from parent
+  - Modal header/footer divs have explicit border-radius set (1rem)
+  - Border overrides on children are reset to 0 to prevent conflicts
+- **Usage**: Add `salesquotes-modal-shell` class to modal content divs to prevent content overflow and ensure consistent corner radius
+- **Applied to**: Add Line Modal, Edit Line Modal, Approval Preview Modal, Fullscreen Table Modal, Quote Created Modal
+- **Implementation**: `src/salesquotes/components/styles/salesquotes-styles.css` - `.salesquotes-modal-shell` rule and corner radius fix rules
 - **HTML Example**:
   ```html
   <div id="addLineModalContent" class="salesquotes-modal-shell bg-white rounded-2xl shadow-2xl max-w-4xl w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
