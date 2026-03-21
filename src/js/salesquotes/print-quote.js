@@ -982,7 +982,7 @@ function renderLineRows(lines) {
           <td class="qty-cell"></td>
           <td class="unit-cell"></td>
           <td class="num-cell"></td>
-          <td class="group-total-label-cell">Total</td>
+          <td class="group-total-label-cell"><span class="group-total-label-text">Total</span></td>
           <td class="group-total-amount-cell"><span class="group-total-amount">${escapeHtml(formatCurrency(asNumber(line.groupTotal, 0)))}</span></td>
         </tr>
       `;
@@ -1029,7 +1029,7 @@ function renderLineRows(lines) {
 
     return `
       <tr class="${rowClassName}">
-        <td class="item-cell">${escapeHtml(line.itemLabel || '')}</td>
+        <td class="item-cell"><span class="item-cell-value">${escapeHtml(line.itemLabel || '')}</span></td>
         <td class="desc-cell">${escapeHtml(primaryDescription)}</td>
         <td class="qty-cell">${escapeHtml(qtyText)}</td>
         <td class="unit-cell">${escapeHtml(unitText)}</td>
@@ -1646,6 +1646,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     }
     .line-table tr { page-break-inside: avoid; }
     .item-cell { white-space: nowrap; text-align: left; padding-right: 1.6mm; }
+    .item-cell-value { display: inline-block; }
     .desc-cell { word-break: break-word; padding-left: 1.2mm; }
     .qty-cell,
     .num-cell { text-align: right; white-space: nowrap; }
@@ -1653,15 +1654,17 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .line-main-row td { min-height: 6.8mm; }
     .line-comment-row td { padding-top: 0.35mm; padding-bottom: 0.7mm; }
     .line-comment-row .desc-cell { padding-left: 1.2mm; }
-    .line-group-header .item-cell { text-align: center; padding-left: 0; padding-right: 0; }
+    .line-group-header .item-cell { padding-left: 0.85mm; padding-right: 0; }
+    .line-group-header .item-cell .item-cell-value { min-width: 4.6mm; text-align: center; transform: translateX(1.15mm); }
     .line-group-header .desc-cell,
     .line-comment-row.line-group-header .desc-cell { padding-left: 0; }
     .line-group-child .desc-cell { padding-left: 8mm; }
     .line-comment-row.line-group-child .desc-cell { padding-left: 8mm; }
     .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
     .group-total-label-cell { font-weight: 700; text-align: left; }
+    .group-total-label-text { display: inline-block; white-space: nowrap; transform: translateX(-10mm); }
     .group-total-amount-cell { text-align: right; }
-    .group-total-amount { display: inline-block; min-width: 32mm; padding-bottom: 0.95mm; border-bottom: 4px double #000; }
+    .group-total-amount { display: block; width: 100%; max-width: 100%; box-sizing: border-box; padding-bottom: 0.95mm; text-align: right; border-bottom: 4px double #000; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
     .footer-stack--partial {
       margin-top: 3mm;
@@ -1942,6 +1945,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     }
     .line-table tr { page-break-inside: avoid; }
     .item-cell { white-space: nowrap; text-align: left; padding-right: 1.6mm; }
+    .item-cell-value { display: inline-block; }
     .desc-cell { word-break: break-word; padding-left: 1.2mm; }
     .qty-cell,
     .num-cell { text-align: right; white-space: nowrap; }
@@ -1949,15 +1953,17 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .line-main-row td { min-height: 6.8mm; }
     .line-comment-row td { padding-top: 0.35mm; padding-bottom: 0.7mm; }
     .line-comment-row .desc-cell { padding-left: 1.2mm; }
-    .line-group-header .item-cell { text-align: center; padding-left: 0; padding-right: 0; }
+    .line-group-header .item-cell { padding-left: 0.85mm; padding-right: 0; }
+    .line-group-header .item-cell .item-cell-value { min-width: 4.6mm; text-align: center; transform: translateX(1.15mm); }
     .line-group-header .desc-cell,
     .line-comment-row.line-group-header .desc-cell { padding-left: 0; }
     .line-group-child .desc-cell { padding-left: 8mm; }
     .line-comment-row.line-group-child .desc-cell { padding-left: 8mm; }
     .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
     .group-total-label-cell { font-weight: 700; text-align: left; }
+    .group-total-label-text { display: inline-block; white-space: nowrap; transform: translateX(-10mm); }
     .group-total-amount-cell { text-align: right; }
-    .group-total-amount { display: inline-block; min-width: 32mm; padding-bottom: 0.95mm; border-bottom: 4px double #000; }
+    .group-total-amount { display: block; width: 100%; max-width: 100%; box-sizing: border-box; padding-bottom: 0.95mm; text-align: right; border-bottom: 4px double #000; }
     .footer-stack { margin-top: auto; padding-top: 6.6mm; }
     .footer-summary-block {
       transform: translate(${settings.footerSummaryBlockOffsetXMm}mm, ${settings.footerSummaryBlockOffsetYMm}mm);
