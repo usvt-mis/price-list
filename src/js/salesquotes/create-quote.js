@@ -2111,6 +2111,39 @@ export async function handleSearchSalesQuote() {
  * @param {Object} quoteData - Sanitized quote form data
  * @returns {Promise<Object>} API response
  */
+function buildGatewayQuoteLineItem(line) {
+  const parsedQuantity = parseFloat(line?.quantity);
+  const showInDocument = normalizePrintFlagValue(line?.showInDocument, true);
+  const printHeader = showInDocument
+    ? normalizePrintFlagValue(line?.printHeader ?? line?.isHeader, false)
+    : false;
+  const printFooter = showInDocument
+    ? normalizePrintFlagValue(line?.printFooter ?? line?.isFooter, false)
+    : false;
+
+  return {
+    lineObjectNumber: line?.lineObjectNumber || '',
+    description: line?.description || '',
+    quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
+    unitPrice: line?.unitPrice || 0,
+    lineType: normalizeLineType(line?.lineType),
+    discountPercent: line?.discountPercent || 0,
+    usvtGroupNo: normalizeGroupNo(line?.usvtGroupNo),
+    usvtServiceItemNo: line?.usvtServiceItemNo || '',
+    usvtServiceItemDescription: line?.usvtServiceItemDescription || '',
+    usvtUServiceStatus: line?.usvtUServiceStatus ?? null,
+    usvtCreateSv: line?.usvtCreateSv || line?.createSv || false,
+    usvtAddition: line?.usvtAddition || false,
+    usvtRefSalesQuoteno: line?.usvtRefSalesQuoteno || '',
+    usvtRefServiceOrderNo: line?.usvtRefServiceOrderNo || '',
+    usvtShowInDocument: showInDocument,
+    usvtHeader: printHeader,
+    usvtFooter: printFooter,
+    discountAmount: line?.discountAmount || 0,
+    externalLineId: line?.externalLineId ?? null
+  };
+}
+
 async function sendQuoteToAzureFunction(quoteData) {
   const API_URL = GATEWAY_API.CREATE_SALES_QUOTE_WITHOUT_NUMBER;
 
@@ -2119,28 +2152,7 @@ async function sendQuoteToAzureFunction(quoteData) {
   const discountAmount = parseFloat(invoiceDiscountElement?.value) || 0;
 
   // Transform line items to API format
-  const lineItems = state.quote.lines.map(line => {
-    const parsedQuantity = parseFloat(line.quantity);
-
-    return {
-      lineObjectNumber: line.lineObjectNumber || '',
-      description: line.description || '',
-      quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
-      unitPrice: line.unitPrice || 0,
-      lineType: normalizeLineType(line.lineType),
-      discountPercent: line.discountPercent || 0,
-      usvtGroupNo: normalizeGroupNo(line.usvtGroupNo),
-      usvtServiceItemNo: line.usvtServiceItemNo || '',
-      usvtServiceItemDescription: line.usvtServiceItemDescription || '',
-      usvtCreateSv: line.usvtCreateSv || line.createSv || false,  // Support both new and legacy field names
-      usvtAddition: line.usvtAddition || false,
-      usvtRefSalesQuoteno: line.usvtRefSalesQuoteno || '',
-      usvtShowInDocument: line.showInDocument !== false,
-      usvtHeader: Boolean(line.printHeader),
-      usvtFooter: Boolean(line.printFooter),
-      discountAmount: line.discountAmount || 0
-    };
-  });
+  const lineItems = state.quote.lines.map(buildGatewayQuoteLineItem);
 
   // Prepare request body
   const requestBody = {
@@ -2208,29 +2220,7 @@ async function updateQuoteInAzureFunction(quoteData) {
     throw new Error('Sales Quote identifier is missing. Please search for the quote again before updating.');
   }
 
-  const lineItems = state.quote.lines.map(line => {
-    const parsedQuantity = parseFloat(line.quantity);
-
-    return {
-      lineObjectNumber: line.lineObjectNumber || '',
-      description: line.description || '',
-      quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
-      unitPrice: line.unitPrice || 0,
-      lineType: normalizeLineType(line.lineType),
-      discountPercent: line.discountPercent || 0,
-      usvtGroupNo: normalizeGroupNo(line.usvtGroupNo),
-      usvtServiceItemNo: line.usvtServiceItemNo || '',
-      usvtServiceItemDescription: line.usvtServiceItemDescription || '',
-      usvtCreateSv: line.usvtCreateSv || line.createSv || false,
-      usvtAddition: line.usvtAddition || false,
-      usvtRefSalesQuoteno: line.usvtRefSalesQuoteno || '',
-      usvtRefServiceOrderNo: line.usvtRefServiceOrderNo || '',
-      usvtShowInDocument: line.showInDocument !== false,
-      usvtHeader: Boolean(line.printHeader),
-      usvtFooter: Boolean(line.printFooter),
-      discountAmount: line.discountAmount || 0
-    };
-  });
+  const lineItems = state.quote.lines.map(buildGatewayQuoteLineItem);
 
   const requestBody = {
     id: salesQuoteId,
@@ -2260,7 +2250,7 @@ async function updateQuoteInAzureFunction(quoteData) {
     lineItems
   };
 
-  console.log('Updating quote in Azure Function:', requestBody);
+  console.log('Updating quote in Azure Function payload:', JSON.stringify(requestBody, null, 2));
 
   try {
     const response = await fetch(API_URL, {

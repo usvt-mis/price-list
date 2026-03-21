@@ -329,6 +329,22 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Modal Material No Fields**: The Material No. field in both Add Line (`materialNo`) and Edit Line (`editMaterialNo`) modals also enforces dropdown-only selection
 - Implementation: `src/js/salesquotes/state.js` - `dropdownFields` state object, `src/js/salesquotes/create-quote.js` - blur event handlers and save validation in `handleAddQuoteLine()`, `saveEditLine()` for `customerNoSearch`, `salespersonCodeSearch`, `assignedUserIdSearch`, `lineObjectNumberSearch`, `editLineObjectNumberSearch`
 
+**Quote Line Item Transformation:**
+- **Consolidated Logic**: `buildGatewayQuoteLineItem()` function consolidates line item transformation for both create and update operations
+- **Implementation**: Used in `sendQuoteToAzureFunction()` and `updateQuoteInAzureFunction()` to transform quote lines to API format
+- **Field Mapping**: Maps all line item fields including:
+  - `lineObjectNumber`, `description`, `quantity`, `unitPrice`, `lineType`
+  - `discountPercent`, `discountAmount`
+  - `usvtGroupNo`, `usvtServiceItemNo`, `usvtServiceItemDescription`
+  - `usvtUServiceStatus` (new field - service status)
+  - `usvtCreateSv`, `usvtAddition`
+  - `usvtRefSalesQuoteno`, `usvtRefServiceOrderNo` (Service Order reference)
+  - `usvtShowInDocument`, `usvtHeader`, `usvtFooter` (print flags)
+  - `externalLineId` (new field - external line identifier)
+- **Print Flag Handling**: Uses `normalizePrintFlagValue()` with proper fallback logic
+- **Purpose**: Ensures consistent line item transformation across create and update operations, reduces code duplication
+- Implementation: `src/js/salesquotes/create-quote.js` - `buildGatewayQuoteLineItem()` function
+
 **Update Quote - Service Order Reference:**
 - **Policy**: When updating an existing Sales Quote, the `usvtRefServiceOrderNo` field is included in the payload to maintain Service Order references
 - **Implementation**: The `updateQuoteInAzureFunction()` function in `src/js/salesquotes/create-quote.js` includes `usvtRefServiceOrderNo` in the line payload for each quote line
@@ -407,6 +423,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Header lines appear at the start of each group with bold styling
   - Footer lines appear at the end of each group with group total calculations
   - Only one header/footer allowed per group - system enforces uniqueness
+- **Header Line Amount Hiding**: When a line is marked as a header (`printIsHeader`), the following amounts are hidden in the printed quote:
+  - Unit Price
+  - Discount Amount
+  - Total Amount
+  - This ensures header lines display only the description without monetary values
+  - Implementation: `src/js/salesquotes/print-quote.js` - `renderLineRows()` function checks `line.printIsHeader` and conditionally renders amounts
 - **UI Controls**: Toggle switches in the quote lines table (Search & Edit mode only)
   - "Show" column: Toggle line visibility in print
   - "Header" column: Toggle group header designation

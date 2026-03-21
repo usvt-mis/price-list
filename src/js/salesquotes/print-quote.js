@@ -1017,9 +1017,10 @@ function renderLineRows(lines) {
     const hasVisibleQuantity = asNumber(line.quantity, 0) !== 0;
     const qtyText = hasVisibleQuantity ? formatQty(line.quantity) : '';
     const unitText = hasVisibleQuantity ? formatUnitOfMeasure(line.unitOfMeasure) : '';
-    const unitPriceText = hasLineAmounts ? formatMisRdlUnitPrice(line) : '';
-    const discountText = hasLineAmounts ? formatCurrency(line.discountAmount) : '';
-    const totalText = hasLineAmounts ? formatMoneyOrIncluded(resolveLineAmount(line, 0)) : '';
+    const shouldHideHeaderAmounts = line.printIsHeader;
+    const unitPriceText = !shouldHideHeaderAmounts && hasLineAmounts ? formatMisRdlUnitPrice(line) : '';
+    const discountText = !shouldHideHeaderAmounts && hasLineAmounts ? formatCurrency(line.discountAmount) : '';
+    const totalText = !shouldHideHeaderAmounts && hasLineAmounts ? formatMoneyOrIncluded(resolveLineAmount(line, 0)) : '';
 
     const continuationRowClassName = line.printIsHeader
       ? 'line-group-header'
