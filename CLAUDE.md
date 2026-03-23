@@ -258,7 +258,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - **Buttons**: `.sq-btn-primary`, `.sq-btn-secondary`, `.sq-btn-danger` with hover states
   - **Toasts**: `.toast`, `.toast-success`, `.toast-error`, `.toast-info` for notifications
   - **Modals**: `.sq-modal-overlay`, `.sq-modal-panel`, `.sq-modal-header`, `.sq-modal-body`, `.sq-modal-footer`
-  - **Loading**: `.sq-loading-panel`, `.sq-loading-eyebrow`, `.sq-spinner`, `.sq-inline-loading`
+  - **Loading**: `.sq-loading-panel`, `.sq-loading-eyebrow`, `.sq-spinner`, `.sq-inline-loading`, `.sq-create-inline-spinner`, `.sq-create-loading-panel`, `.sq-approvals-inline-spinner`, `.sq-records-skeleton-line`
 - **Benefits**:
   - Centralized theme management - change colors in one place
   - Consistent visual language across all Sales Quotes components
@@ -275,13 +275,36 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `.sq-records-skeleton-line` - Skeleton lines with shimmer effect (sm: 38%, md: 62%, lg: 82% width)
   - `@keyframes sq-spin` - 360° rotation animation for spinners
   - `@keyframes sq-shimmer` - Gradient shimmer animation for skeleton lines
+  - `.sq-create-inline-spinner` - Green spinner for create view loading (2.5rem × 2.5rem)
+  - `.sq-approvals-inline-spinner` - Amber spinner for approvals loading
 - **Usage**:
   - Render skeleton placeholder rows before data arrives
-  - Use sequence tracking to prevent race conditions (`recordsLoadSequence`)
-  - Manage loading state with `setRecordsLoadingState()` function
+  - Use sequence tracking to prevent race conditions (`recordsLoadSequence`, `pendingApprovalsLoadSequence`, `myApprovalsLoadSequence`)
+  - Manage loading state with `setRecordsLoadingState()`, `setPendingApprovalsLoadingState()`, `setMyApprovalsLoadingState()` functions
   - Replace modal loading with inline skeleton loading for better UX
-- **Applied to**: Sales Quotes "My Records" tab loading states
-- **Implementation**: `src/js/salesquotes/records.js` - `renderRecordsSkeleton()`, `setRecordsLoadingState()`, `loadQuoteSubmissionRecords()`, `src/salesquotes/components/styles/salesquotes-styles.css` - skeleton loading styles
+- **Applied to**: Sales Quotes "My Records" tab, "Approvals" tab (Pending Approvals and My Approval Requests sections)
+- **Implementation**:
+  - `src/js/salesquotes/records.js` - `renderRecordsSkeleton()`, `setRecordsLoadingState()`, `loadQuoteSubmissionRecords()`
+  - `src/js/salesquotes/approvals.js` - `renderApprovalRowsSkeleton()`, `setPendingApprovalsLoadingState()`, `setMyApprovalsLoadingState()`, `loadPendingApprovals()`, `loadMyApprovalRequests()`
+  - `src/salesquotes/components/styles/salesquotes-styles.css` - skeleton loading styles and spinner variants
+
+### Initial Loading Banner Pattern
+- **Purpose**: Provides a non-blocking loading indicator for initial page load in Sales Quotes
+- **Design**: Banner-style loading with inline spinner and descriptive text (replaces full-page overlay)
+- **Components**:
+  - `.sq-create-inline-spinner` - Green spinner with ambient glow effect
+  - `.sq-create-loading-panel` - Loading panel with rounded corners and subtle shadow
+  - `.sq-create-loading-eyebrow` - Uppercase label with letter spacing
+  - `.sq-create-loading-title` - Bold title text
+  - `.sq-create-loading-message` - Descriptive message text
+  - `.sq-create-loading-checklist` - Optional checklist items for loading steps
+- **Usage**:
+  - Display banner after 350ms delay (`INITIAL_LOAD_DELAY_MS`)
+  - Use `aria-busy` attribute on create view for accessibility
+  - Hide banner when loading completes
+  - Provide clear, user-friendly loading messages
+- **Applied to**: Sales Quotes create view initial loading
+- **Implementation**: `src/salesquotes.html` - `salesQuoteCreateInitialLoading` banner element, `setInitialBannerVisibility()` function; `src/salesquotes/components/styles/salesquotes-styles.css` - loading banner styles
 
 ### Tailwind CSS Safelist Pattern
 - **Problem**: Tailwind CSS may not generate certain color classes if they're only used in dynamically loaded HTML or specific contexts
@@ -658,11 +681,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - Badge count shows number of pending approvals
     - Refresh button to reload pending approvals
     - Actions: Approve, Reject, Request Revision (with comment), Approve Revision Request
+    - **Loading States**: Skeleton loading rows with shimmer effect during data fetch, loading banner with inline spinner and descriptive message
   - **My Approval Requests Section**: Visible to all authenticated users
     - Shows status of each request with color-coded badges
     - View approval history and director comments
     - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Purple (Being Revised), Slate (Cancelled)
     - Edit & Resubmit button available for Revise, Rejected, and BeingRevised statuses
+    - **Loading States**: Skeleton loading rows with shimmer effect during data fetch, loading banner with inline spinner and descriptive message
 - **API Endpoints**:
   - `POST /api/salesquotes/approvals/initialize` - Initialize approval record (SubmittedToBC status)
   - `POST /api/salesquotes/approvals` - Submit quote for approval

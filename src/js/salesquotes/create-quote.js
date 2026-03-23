@@ -935,18 +935,13 @@ async function applySearchedSalesQuote(payload) {
  */
 export async function loadInitialData() {
   try {
-    showLoading('Initializing...');
-
     // Initialize BC client (just logs init message, no actual config needed)
     await bcClient.initialize();
 
     // Initialize branch fields
     await initializeBranchFields();
 
-    hideLoading();
-
   } catch (error) {
-    hideLoading();
     console.error('Failed to initialize:', error);
     showError('Failed to initialize. Please refresh the page.');
   }

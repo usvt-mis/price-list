@@ -87,6 +87,23 @@
     <!-- Create Quote View -->
     <div id="createView" class="view">
       <div
+        id="salesQuoteCreateInitialLoading"
+        class="sq-create-loading-panel hidden mb-4 px-4 py-3"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="flex items-start gap-3">
+          <div class="sq-create-inline-spinner mt-0.5" aria-hidden="true"></div>
+          <div>
+            <p class="sq-create-loading-eyebrow text-sm font-semibold">Loading Create Sales Quote...</p>
+            <p id="salesQuoteCreateInitialLoadingMessage" class="sq-create-loading-message text-xs">
+              Preparing your form, branch defaults, and editor tools. You can stay on this page while setup completes.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
         id="quoteEditorModeBanner"
         class="sq-editor-banner hidden mb-6 px-5 py-4"
       >
@@ -826,6 +843,21 @@
           </button>
         </div>
 
+        <div
+          id="pendingApprovalsLoadingBanner"
+          class="hidden mb-4 rounded-2xl border border-amber-200 bg-amber-50/95 px-4 py-3 text-amber-900 shadow-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="flex items-start gap-3">
+            <div class="sq-records-inline-spinner sq-approvals-inline-spinner mt-0.5" aria-hidden="true"></div>
+            <div>
+              <p class="text-sm font-semibold">Loading Pending Approvals...</p>
+              <p class="text-xs text-amber-800/80">Fetching the latest quotes that need review. You can stay on this page while the queue updates.</p>
+            </div>
+          </div>
+        </div>
+
         <div class="overflow-x-auto rounded-xl border border-slate-200">
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-slate-600">
@@ -860,6 +892,21 @@
               </span>
             </div>
             <p class="text-sm text-slate-600">Track the status of your submitted approval requests.</p>
+          </div>
+        </div>
+
+        <div
+          id="myApprovalsLoadingBanner"
+          class="hidden mb-4 rounded-2xl border border-sky-200 bg-sky-50/95 px-4 py-3 text-sky-900 shadow-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="flex items-start gap-3">
+            <div class="sq-records-inline-spinner mt-0.5" aria-hidden="true"></div>
+            <div>
+              <p class="text-sm font-semibold">Loading My Approval Requests...</p>
+              <p class="text-xs text-sky-800/80">Refreshing the status of your submitted approval requests so the list reflects the latest workflow state.</p>
+            </div>
           </div>
         </div>
 
@@ -925,22 +972,23 @@
 
   <script>
     (() => {
-      const INITIAL_LOAD_DELAY_MS = 700;
+      const INITIAL_LOAD_DELAY_MS = 350;
       const initialLoadingCopy = {
-        title: 'Opening Sales Quotes',
-        message: 'Internet seems slow. Please wait a moment while the page loads...'
+        title: 'Loading Create Sales Quote...',
+        message: 'Preparing your form, branch defaults, and editor tools. You can stay on this page while setup completes.'
       };
       const state = {
         done: false,
         timerId: null
       };
 
-      function setOverlayVisibility(visible, title, message) {
-        const overlay = document.getElementById('loadingOverlay');
-        const titleEl = document.getElementById('loadingTitle');
-        const messageEl = document.getElementById('loadingMessage');
+      function setInitialBannerVisibility(visible, title, message) {
+        const banner = document.getElementById('salesQuoteCreateInitialLoading');
+        const titleEl = banner?.querySelector('.sq-create-loading-eyebrow');
+        const messageEl = document.getElementById('salesQuoteCreateInitialLoadingMessage');
+        const createView = document.getElementById('createView');
 
-        if (!overlay) {
+        if (!banner) {
           return;
         }
 
@@ -953,11 +1001,11 @@
         }
 
         if (visible) {
-          overlay.classList.remove('hidden');
-          overlay.classList.add('flex');
-          overlay.style.zIndex = '150';
+          banner.classList.remove('hidden');
+          createView?.setAttribute('aria-busy', 'true');
         } else {
-          overlay.classList.add('hidden');
+          banner.classList.add('hidden');
+          createView?.setAttribute('aria-busy', 'false');
         }
       }
 
@@ -970,7 +1018,7 @@
             state.timerId = null;
           }
 
-          setOverlayVisibility(false);
+          setInitialBannerVisibility(false);
         }
       };
 
@@ -979,7 +1027,7 @@
           return;
         }
 
-        setOverlayVisibility(true, initialLoadingCopy.title, initialLoadingCopy.message);
+        setInitialBannerVisibility(true, initialLoadingCopy.title, initialLoadingCopy.message);
       }, INITIAL_LOAD_DELAY_MS);
     })();
   </script>

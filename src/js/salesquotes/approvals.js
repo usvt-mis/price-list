@@ -67,6 +67,8 @@ const APPROVAL_ACTION_CONFIRM_CLASS_MAP = {
 let approvalActionModalResolver = null;
 let approvalActionModalConfig = null;
 let approvalActionModalHideTimer = null;
+let pendingApprovalsLoadSequence = 0;
+let myApprovalsLoadSequence = 0;
 
 function normalizeTimestamp(value) {
   if (!value) {
@@ -109,6 +111,48 @@ function getApprovalStatusPresentation(approval) {
     label: STATUS_LABELS[approval?.approvalStatus] || approval?.approvalStatus || '-',
     badgeClass: STATUS_BADGE_CLASSES[approval?.approvalStatus] || 'sq-status-badge-draft'
   };
+}
+
+function renderApprovalRowsSkeleton(rowCount = 4) {
+  return Array.from({ length: rowCount }, (_, index) => `
+    <tr class="${index % 2 === 0 ? 'bg-white/70' : 'bg-slate-50/40'}">
+      <td class="px-4 py-4"><span class="sq-records-skeleton-line sq-records-skeleton-line-sm"></span></td>
+      <td class="px-4 py-4"><span class="sq-records-skeleton-line sq-records-skeleton-line-md"></span></td>
+      <td class="px-4 py-4"><span class="sq-records-skeleton-line sq-records-skeleton-line-md"></span></td>
+      <td class="px-4 py-4"><span class="sq-records-skeleton-line sq-records-skeleton-line-sm ml-auto"></span></td>
+      <td class="px-4 py-4"><span class="sq-records-skeleton-line sq-records-skeleton-line-md"></span></td>
+      <td class="px-4 py-4"><span class="sq-records-skeleton-line sq-records-skeleton-line-sm"></span></td>
+    </tr>
+  `).join('');
+}
+
+function setPendingApprovalsLoadingState(isLoading) {
+  const banner = el('pendingApprovalsLoadingBanner');
+  const countEl = el('pendingApprovalsCount');
+  const refreshButton = el('pendingApprovalsRefreshBtn');
+
+  banner?.classList.toggle('hidden', !isLoading);
+
+  if (countEl) {
+    countEl.textContent = isLoading ? 'Loading...' : '0';
+  }
+
+  if (refreshButton) {
+    refreshButton.disabled = isLoading;
+    refreshButton.classList.toggle('opacity-60', isLoading);
+    refreshButton.classList.toggle('cursor-not-allowed', isLoading);
+  }
+}
+
+function setMyApprovalsLoadingState(isLoading) {
+  const banner = el('myApprovalsLoadingBanner');
+  const countEl = el('myApprovalsCount');
+
+  banner?.classList.toggle('hidden', !isLoading);
+
+  if (countEl) {
+    countEl.textContent = isLoading ? 'Loading...' : '0';
+  }
 }
 
 function getApprovalActionModalElements() {
@@ -540,22 +584,20 @@ export async function updatePendingApprovalsBadge() {
  */
 export async function loadPendingApprovals() {
   const container = el('pendingApprovalsList');
-  const countEl = el('pendingApprovalsCount');
+  const currentLoadSequence = ++pendingApprovalsLoadSequence;
 
   if (!container) return;
 
-  if (countEl) countEl.textContent = '0';
-
-  container.innerHTML = `
-    <tr>
-      <td colspan="6" class="px-4 py-10 text-center text-slate-500">
-        Loading pending approvals...
-      </td>
-    </tr>
-  `;
+  setPendingApprovalsLoadingState(true);
+  container.innerHTML = renderApprovalRowsSkeleton();
 
   try {
     const response = await fetchWithAuth('/api/salesquotes/approvals/list/pending');
+    if (currentLoadSequence !== pendingApprovalsLoadSequence) {
+      return;
+    }
+
+    const countEl = el('pendingApprovalsCount');
 
     if (countEl) countEl.textContent = `${response.count || 0}`;
 
@@ -581,6 +623,10 @@ export async function loadPendingApprovals() {
     });
 
   } catch (error) {
+    if (currentLoadSequence !== pendingApprovalsLoadSequence) {
+      return;
+    }
+
     console.error('Failed to load pending approvals:', error);
     container.innerHTML = `
       <tr>
@@ -589,6 +635,10 @@ export async function loadPendingApprovals() {
         </td>
       </tr>
     `;
+  } finally {
+    if (currentLoadSequence === pendingApprovalsLoadSequence) {
+      setPendingApprovalsLoadingState(false);
+    }
   }
 }
 
@@ -597,22 +647,20 @@ export async function loadPendingApprovals() {
  */
 export async function loadMyApprovalRequests() {
   const container = el('myApprovalsList');
-  const countEl = el('myApprovalsCount');
+  const currentLoadSequence = ++myApprovalsLoadSequence;
 
   if (!container) return;
 
-  if (countEl) countEl.textContent = '0';
-
-  container.innerHTML = `
-    <tr>
-      <td colspan="6" class="px-4 py-10 text-center text-slate-500">
-        Loading your approval requests...
-      </td>
-    </tr>
-  `;
+  setMyApprovalsLoadingState(true);
+  container.innerHTML = renderApprovalRowsSkeleton();
 
   try {
     const response = await fetchWithAuth('/api/salesquotes/approvals/list/my-requests');
+    if (currentLoadSequence !== myApprovalsLoadSequence) {
+      return;
+    }
+
+    const countEl = el('myApprovalsCount');
 
     if (countEl) countEl.textContent = `${response.count || 0}`;
 
@@ -654,6 +702,10 @@ export async function loadMyApprovalRequests() {
     });
 
   } catch (error) {
+    if (currentLoadSequence !== myApprovalsLoadSequence) {
+      return;
+    }
+
     console.error('Failed to load my approval requests:', error);
     container.innerHTML = `
       <tr>
@@ -662,6 +714,10 @@ export async function loadMyApprovalRequests() {
         </td>
       </tr>
     `;
+  } finally {
+    if (currentLoadSequence === myApprovalsLoadSequence) {
+      setMyApprovalsLoadingState(false);
+    }
   }
 }
 
