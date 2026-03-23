@@ -638,6 +638,11 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 
 ### Backoffice User Management
 - Backoffice interface for managing user roles and permissions
+- **Modal Visibility Pattern**: Backoffice modals use conditional CSS for visibility control
+  - Base class `.backoffice-modal-overlay` has positioning and styling without `display: flex`
+  - `.backoffice-modal-overlay:not(.hidden)` rule adds `display: flex` only when modal is visible
+  - This prevents modal from showing when hidden class is present
+  - Implementation: `src/backoffice.html` - CSS rules for modal overlay
 - **Theming System**: CSS variable-based design system with `--bo-*` prefix for consistent theming
   - Colors: `--bo-bg`, `--bo-surface`, `--bo-accent`, `--bo-text`, `--bo-border`, etc.
   - Surfaces: Gradients and blur effects for modern glassmorphism look
