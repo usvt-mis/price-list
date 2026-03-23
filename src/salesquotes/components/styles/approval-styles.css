@@ -54,6 +54,7 @@
 }
 
 .approval-preview-panel {
+  overflow: hidden;
   background:
     radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 22%),
     linear-gradient(180deg, #f8fbff 0%, #ffffff 18%, #f8fafc 100%);
@@ -75,6 +76,9 @@
 }
 
 .approval-preview-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   padding: 0.75rem 1rem 1rem;
 }
 
@@ -96,6 +100,7 @@
 }
 
 .approval-preview-sheet {
+  min-height: 0;
   border-radius: 1.25rem;
   overflow: hidden;
   border: 1px solid rgba(203, 213, 225, 0.85);
@@ -154,12 +159,19 @@
 .approval-preview-table-wrap {
   flex: 1;
   min-height: 0;
+  height: 100%;
+  max-height: 100%;
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .approval-preview-table th,
 .approval-preview-table td {
   white-space: nowrap;
+}
+
+.approval-preview-table {
+  min-width: max-content;
 }
 
 .approval-preview-table thead th {
