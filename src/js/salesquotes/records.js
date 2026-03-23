@@ -1,4 +1,4 @@
-import { el, showToast, showLoading, hideLoading } from './ui.js';
+import { el, showToast } from './ui.js';
 
 // Approval status constants
 const APPROVAL_STATUS = {
@@ -30,6 +30,8 @@ const STATUS_BADGE_CLASSES = {
   Revise: 'sq-status-badge-revise',
   Cancelled: 'sq-status-badge-cancelled'
 };
+
+let recordsLoadSequence = 0;
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -79,6 +81,56 @@ function getApprovalStatusBadge(approval) {
   const badgeClass = STATUS_BADGE_CLASSES[status] || 'sq-status-badge-draft';
 
   return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badgeClass}">${label}</span>`;
+}
+
+function renderRecordsSkeleton() {
+  return Array.from({ length: 4 }, (_, index) => `
+    <tr class="${index % 2 === 0 ? 'bg-white/70' : 'bg-slate-50/40'}">
+      <td class="px-4 py-4">
+        <span class="sq-records-skeleton-line sq-records-skeleton-line-sm"></span>
+      </td>
+      <td class="px-4 py-4">
+        <div class="space-y-2">
+          <span class="sq-records-skeleton-line sq-records-skeleton-line-lg"></span>
+          <span class="sq-records-skeleton-line sq-records-skeleton-line-md"></span>
+        </div>
+      </td>
+      <td class="px-4 py-4">
+        <span class="sq-records-skeleton-line sq-records-skeleton-line-sm"></span>
+      </td>
+      <td class="px-4 py-4">
+        <span class="sq-records-skeleton-line sq-records-skeleton-line-md"></span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function setRecordsLoadingState(isLoading) {
+  const banner = el('salesQuoteRecordsLoadingBanner');
+  const count = el('salesQuoteRecordsCount');
+  const refreshButton = el('salesQuoteRecordsRefreshBtn');
+  const searchButton = el('salesQuoteRecordsSearchBtn');
+  const searchInput = el('salesQuoteRecordsSearch');
+
+  banner?.classList.toggle('hidden', !isLoading);
+
+  if (count) {
+    count.textContent = isLoading ? 'Loading...' : '0';
+  }
+
+  [refreshButton, searchButton].forEach((button) => {
+    if (!button) {
+      return;
+    }
+
+    button.disabled = isLoading;
+    button.classList.toggle('opacity-60', isLoading);
+    button.classList.toggle('cursor-not-allowed', isLoading);
+  });
+
+  if (searchInput) {
+    searchInput.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+  }
 }
 
 async function renderRecords(records) {
@@ -171,26 +223,14 @@ function loadQuoteFromRecords(salesQuoteNumber) {
 export async function loadQuoteSubmissionRecords() {
   const container = el('salesQuoteRecordsList');
   const search = el('salesQuoteRecordsSearch')?.value?.trim() || '';
-  const count = el('salesQuoteRecordsCount');
+  const currentLoadSequence = ++recordsLoadSequence;
 
   if (!container) {
     return false;
   }
 
-  if (count) {
-    count.textContent = '0';
-  }
-
-  container.innerHTML = `
-    <tr>
-      <td colspan="4" class="px-4 py-10 text-center text-slate-500">
-        Loading your records...
-      </td>
-    </tr>
-  `;
-
-  // Show loading modal
-  showLoading('Loading your records...', 'Loading My Records');
+  setRecordsLoadingState(true);
+  container.innerHTML = renderRecordsSkeleton();
 
   try {
     const url = new URL('/api/salesquotes/records', window.location.origin);
@@ -205,9 +245,17 @@ export async function loadQuoteSubmissionRecords() {
     }
 
     const data = await response.json();
+    if (currentLoadSequence !== recordsLoadSequence) {
+      return false;
+    }
+
     await renderRecords(Array.isArray(data.records) ? data.records : []);
     return true;
   } catch (error) {
+    if (currentLoadSequence !== recordsLoadSequence) {
+      return false;
+    }
+
     console.error('Failed to load Sales Quote records:', error);
     container.innerHTML = `
       <tr>
@@ -218,8 +266,9 @@ export async function loadQuoteSubmissionRecords() {
     `;
     return false;
   } finally {
-    // Hide loading modal
-    hideLoading();
+    if (currentLoadSequence === recordsLoadSequence) {
+      setRecordsLoadingState(false);
+    }
   }
 }
 
@@ -245,10 +294,6 @@ export async function recordQuoteSubmission({ salesQuoteNumber, workDescription 
 }
 
 export function setupQuoteSubmissionRecordEventListeners() {
-  el('tabRecords')?.addEventListener('click', () => {
-    loadQuoteSubmissionRecords();
-  });
-
   el('salesQuoteRecordsRefreshBtn')?.addEventListener('click', async () => {
     const loaded = await loadQuoteSubmissionRecords();
     if (loaded) {

@@ -171,6 +171,52 @@ body {
   color: var(--sq-text-muted);
 }
 
+.sq-records-inline-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(14, 116, 144, 0.18);
+  border-top-color: rgba(14, 116, 144, 0.9);
+  border-radius: 999px;
+  animation: sq-spin 0.8s linear infinite;
+}
+
+.sq-records-skeleton-line {
+  display: block;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(226, 232, 240, 0.85) 25%, rgba(241, 245, 249, 0.95) 50%, rgba(226, 232, 240, 0.85) 75%);
+  background-size: 200% 100%;
+  animation: sq-shimmer 1.25s ease-in-out infinite;
+}
+
+.sq-records-skeleton-line-sm {
+  width: 38%;
+}
+
+.sq-records-skeleton-line-md {
+  width: 62%;
+}
+
+.sq-records-skeleton-line-lg {
+  width: 82%;
+}
+
+@keyframes sq-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sq-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 .sq-icon-btn {
   display: inline-flex;
   align-items: center;

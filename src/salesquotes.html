@@ -764,6 +764,21 @@
           </button>
         </div>
 
+        <div
+          id="salesQuoteRecordsLoadingBanner"
+          class="hidden mb-4 rounded-2xl border border-sky-200 bg-sky-50/95 px-4 py-3 text-sky-900 shadow-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="flex items-start gap-3">
+            <div class="sq-records-inline-spinner mt-0.5" aria-hidden="true"></div>
+            <div>
+              <p class="text-sm font-semibold">Loading My Records...</p>
+              <p class="text-xs text-sky-800/80">Fetching your latest Sales Quote submissions. You can stay on this page while the list updates.</p>
+            </div>
+          </div>
+        </div>
+
         <div class="overflow-x-auto rounded-xl border border-slate-200">
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-slate-600">

@@ -267,6 +267,22 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Calm operational theme with green/teal color palette for reduced visual stress
 - **Implementation**: `src/salesquotes/components/styles/salesquotes-styles.css` - CSS variable definitions and component classes
 
+### Skeleton Loading Pattern
+- **Purpose**: Provides skeleton loading states for improved UX during data fetching
+- **Implementation**: Uses shimmer animation and inline spinners for loading feedback
+- **Components**:
+  - `.sq-records-inline-spinner` - Small inline spinner (1rem × 1rem) with rotation animation
+  - `.sq-records-skeleton-line` - Skeleton lines with shimmer effect (sm: 38%, md: 62%, lg: 82% width)
+  - `@keyframes sq-spin` - 360° rotation animation for spinners
+  - `@keyframes sq-shimmer` - Gradient shimmer animation for skeleton lines
+- **Usage**:
+  - Render skeleton placeholder rows before data arrives
+  - Use sequence tracking to prevent race conditions (`recordsLoadSequence`)
+  - Manage loading state with `setRecordsLoadingState()` function
+  - Replace modal loading with inline skeleton loading for better UX
+- **Applied to**: Sales Quotes "My Records" tab loading states
+- **Implementation**: `src/js/salesquotes/records.js` - `renderRecordsSkeleton()`, `setRecordsLoadingState()`, `loadQuoteSubmissionRecords()`, `src/salesquotes/components/styles/salesquotes-styles.css` - skeleton loading styles
+
 ### Tailwind CSS Safelist Pattern
 - **Problem**: Tailwind CSS may not generate certain color classes if they're only used in dynamically loaded HTML or specific contexts
 - **Solution**: Use `@layer utilities` in `src/css/input.css` to force-include specific classes
