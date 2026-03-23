@@ -1446,6 +1446,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
   const metaRowsMarkup = renderMetaRows(model, customerAddressLines, deliveryAddressLines);
   const metaColumnWidths = resolveMetaTableColumnWidths(settings);
   const signatureSignHeightMm = Math.max(settings.signatureSignMinHeightMm, 22);
+  const reservedFooterHeightMm = 102;
 
   // Chunk line items into pages
   const pageChunks = chunkLineItemsForPages(model.lineItems, settings, true);
@@ -1464,40 +1465,38 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     console.log(`[Multi-Page Debug] Page ${pageNumber}: items=${chunk.lines.length}`);
 
     // Build page - all pages have full header and meta table
-    const pageBreakStyle = isLastPage ? '' : 'page-break-after: avoid';
-    const marginTopStyle = pageNumber > 1 ? 'margin-top: 11mm;' : '';
-    const combinedStyle = (pageBreakStyle || marginTopStyle) ? `style="${pageBreakStyle} ${marginTopStyle}"` : (pageBreakStyle || marginTopStyle ? `style="${pageBreakStyle}${marginTopStyle}"` : '');
-
     pagesHtml += `
-  <div class="page"${combinedStyle ? ` ${combinedStyle}` : ''}>
-    ${buildPageHeader(model, settings, pageNumber, totalPages, 'full')}
+  <div class="page">
+    <div class="page-body">
+      ${buildPageHeader(model, settings, pageNumber, totalPages, 'full')}
 
-    <table class="meta-table">
-      <colgroup>
-        <col style="width: ${metaColumnWidths.label}mm;">
-        <col style="width: ${metaColumnWidths.address}mm;">
-        <col style="width: ${metaColumnWidths.midLabel}mm;">
-        <col style="width: ${metaColumnWidths.midValue}mm;">
-        <col style="width: ${metaColumnWidths.rightLabel}mm;">
-        <col style="width: ${metaColumnWidths.rightValue}mm;">
-      </colgroup>
-      ${metaRowsMarkup}
-    </table>
+      <table class="meta-table">
+        <colgroup>
+          <col style="width: ${metaColumnWidths.label}mm;">
+          <col style="width: ${metaColumnWidths.address}mm;">
+          <col style="width: ${metaColumnWidths.midLabel}mm;">
+          <col style="width: ${metaColumnWidths.midValue}mm;">
+          <col style="width: ${metaColumnWidths.rightLabel}mm;">
+          <col style="width: ${metaColumnWidths.rightValue}mm;">
+        </colgroup>
+        ${metaRowsMarkup}
+      </table>
 
-    <table class="line-table">
-      <thead>
-        <tr>
-          <th style="width: 6.5%;">Item</th>
-          <th style="width: 38.5%;">Description</th>
-          <th style="width: 8.5%;">Qty</th>
-          <th style="width: 6%;">@</th>
-          <th style="width: 15.5%;">Unit/Price</th>
-          <th style="width: 10.5%;">Discount</th>
-          <th style="width: 14.5%;">Total</th>
-        </tr>
-      </thead>
-      <tbody>${renderLineRows(chunk.lines)}</tbody>
-    </table>
+      <table class="line-table">
+        <thead>
+          <tr>
+            <th style="width: 6.5%;">Item</th>
+            <th style="width: 38.5%;">Description</th>
+            <th style="width: 8.5%;">Qty</th>
+            <th style="width: 6%;">@</th>
+            <th style="width: 15.5%;">Unit/Price</th>
+            <th style="width: 10.5%;">Discount</th>
+            <th style="width: 14.5%;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${renderLineRows(chunk.lines)}</tbody>
+      </table>
+    </div>
 
     ${buildPageFooter(model, settings, model.totals, 'full')}
   </div>`;
@@ -1516,17 +1515,27 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     body {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
-      padding: 8.5mm 9mm 8mm;
+      padding: 0;
     }
     .page {
-      width: 192mm;
-      min-height: 279mm;
+      width: 210mm;
+      min-height: 297mm;
+      height: 297mm;
       margin: 0 auto;
-      display: flex;
-      flex-direction: column;
+      position: relative;
+      padding: 8.5mm 9mm 8mm;
+      padding-bottom: ${reservedFooterHeightMm}mm;
+      overflow: hidden;
+    }
+    .page + .page {
+      margin-top: 11mm;
     }
     .page:last-child {
       page-break-after: auto;
+    }
+    .page-body {
+      width: 100%;
+      min-height: 0;
     }
     .topbar { display: grid; grid-template-columns: ${Math.max(settings.logoWidthMm + 2 + Math.max(settings.logoOffsetXMm, 0), 30)}mm 1fr 23mm; align-items: start; column-gap: 4mm; }
     .topbar--compact { margin-bottom: 3mm; }
@@ -1664,7 +1673,15 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .group-total-label-text { display: block; width: 100%; white-space: nowrap; transform: none; }
     .group-total-amount-cell { text-align: right; }
     .group-total-amount { display: block; width: 100%; max-width: 100%; box-sizing: border-box; padding-bottom: 0.95mm; text-align: right; border-bottom: 4px double #000; }
-    .footer-stack { margin-top: auto; padding-top: 6.6mm; }
+    .footer-stack {
+      position: absolute;
+      left: 9mm;
+      right: 9mm;
+      bottom: 0;
+      margin-top: 0;
+      padding-top: 6.6mm;
+      max-width: calc(100% - 18mm);
+    }
     .footer-stack--partial {
       margin-top: 3mm;
       padding-top: 2mm;
@@ -1766,6 +1783,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .signature-approver .signature-detail-approver-email .detail-value-email { white-space: nowrap; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
     .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.5mm !important; font-size: ${settings.docFooterFontSize}px; }
+    .doc-footer > div { min-width: 0; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
   </style>
 </head>
@@ -1805,6 +1823,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
   const companyLineFontSize = Math.max(settings.baseFontSize - 0.8, 9);
   const pageNoFontSize = Math.max(settings.baseFontSize - 0.3, 9);
   const signatureSignHeightMm = Math.max(settings.signatureSignMinHeightMm, 22);
+  const reservedFooterHeightMm = 102;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1819,17 +1838,27 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     body {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
-      padding: 8.5mm 9mm 8mm;
+      padding: 0;
     }
     .page {
-      width: 192mm;
-      min-height: 279mm;
+      width: 210mm;
+      min-height: 297mm;
+      height: 297mm;
       margin: 0 auto;
-      display: flex;
-      flex-direction: column;
+      position: relative;
+      padding: 8.5mm 9mm 8mm;
+      padding-bottom: ${reservedFooterHeightMm}mm;
+      overflow: hidden;
+    }
+    .page + .page {
+      margin-top: 11mm;
     }
     .page:last-child {
       page-break-after: auto;
+    }
+    .page-body {
+      width: 100%;
+      min-height: 0;
     }
     .topbar { display: grid; grid-template-columns: ${topbarLogoColumnWidthMm}mm 1fr 23mm; align-items: start; column-gap: 4mm; }
     .main-logo {
@@ -1963,7 +1992,15 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .group-total-label-text { display: block; width: 100%; white-space: nowrap; transform: none; }
     .group-total-amount-cell { text-align: right; }
     .group-total-amount { display: block; width: 100%; max-width: 100%; box-sizing: border-box; padding-bottom: 0.95mm; text-align: right; border-bottom: 4px double #000; }
-    .footer-stack { margin-top: auto; padding-top: 6.6mm; }
+    .footer-stack {
+      position: absolute;
+      left: 9mm;
+      right: 9mm;
+      bottom: 0;
+      margin-top: 0;
+      padding-top: 6.6mm;
+      max-width: calc(100% - 18mm);
+    }
     .footer-summary-block {
       transform: translate(${settings.footerSummaryBlockOffsetXMm}mm, ${settings.footerSummaryBlockOffsetYMm}mm);
       transform-origin: top left;
@@ -2060,13 +2097,28 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .signature-approver .signature-detail-approver-email .detail-value-email { white-space: nowrap; }
     .signature-customer .signature-date { text-align: center; font-size: ${settings.signatureFontSize}px; }
     .doc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4.5mm !important; font-size: ${settings.docFooterFontSize}px; }
+    .doc-footer > div { min-width: 0; }
     .empty-row { text-align: center; color: #666; padding: 6mm 0; }
+
+    @media screen {
+      body {
+        padding: 8mm 0 16mm;
+        background: #f3f4f6;
+      }
+      .page {
+        background: #fff;
+        box-shadow: 0 12px 36px rgba(15, 23, 42, 0.16);
+      }
+    }
 
     @media print {
       .page {
         width: 100%;
         margin: 0;
         page-break-after: always;
+      }
+      .page + .page {
+        margin-top: 0;
       }
       .page:last-child {
         page-break-after: auto;
@@ -2090,48 +2142,49 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
 </head>
 <body>
   <div class="page">
-    <div class="topbar">
-      <img src="${escapeHtml(model.logoSrc)}" alt="U-Services" class="main-logo">
-      <div class="company">
-        <div class="th-name">${escapeHtml(model.companyLines[0] || DEFAULT_COMPANY_LINES[0])}</div>
-        <div class="en-name">${escapeHtml(model.companyLines[1] || DEFAULT_COMPANY_LINES[1])}</div>
-        ${companyMarkup}
+    <div class="page-body">
+      <div class="topbar">
+        <img src="${escapeHtml(model.logoSrc)}" alt="U-Services" class="main-logo">
+        <div class="company">
+          <div class="th-name">${escapeHtml(model.companyLines[0] || DEFAULT_COMPANY_LINES[0])}</div>
+          <div class="en-name">${escapeHtml(model.companyLines[1] || DEFAULT_COMPANY_LINES[1])}</div>
+          ${companyMarkup}
+        </div>
+        <div class="page-no">${escapeHtml(model.pageLabel)}</div>
       </div>
-      <div class="page-no">${escapeHtml(model.pageLabel)}</div>
-    </div>
 
-    <div class="title-row">
-      <div class="spacer"></div>
-      <div class="title">${escapeHtml(model.title)}</div>
-      <div class="certs">${certificationMarkup}</div>
-    </div>
+      <div class="title-row">
+        <div class="spacer"></div>
+        <div class="title">${escapeHtml(model.title)}</div>
+        <div class="certs">${certificationMarkup}</div>
+      </div>
 
-    <table class="meta-table">
-      <colgroup>
-        <col style="width: ${metaColumnWidths.label}mm;">
-        <col style="width: ${metaColumnWidths.address}mm;">
-        <col style="width: ${metaColumnWidths.midLabel}mm;">
-        <col style="width: ${metaColumnWidths.midValue}mm;">
-        <col style="width: ${metaColumnWidths.rightLabel}mm;">
-        <col style="width: ${metaColumnWidths.rightValue}mm;">
-      </colgroup>
-      ${metaRowsMarkup}
-    </table>
+      <table class="meta-table">
+        <colgroup>
+          <col style="width: ${metaColumnWidths.label}mm;">
+          <col style="width: ${metaColumnWidths.address}mm;">
+          <col style="width: ${metaColumnWidths.midLabel}mm;">
+          <col style="width: ${metaColumnWidths.midValue}mm;">
+          <col style="width: ${metaColumnWidths.rightLabel}mm;">
+          <col style="width: ${metaColumnWidths.rightValue}mm;">
+        </colgroup>
+        ${metaRowsMarkup}
+      </table>
 
-    <table class="line-table">
-      <thead>
-        <tr>
-          <th style="width: 6.5%;">Item</th>
-          <th style="width: 38.5%;">Description</th>
-          <th style="width: 8.5%;">Qty</th>
-          <th style="width: 6%;">@</th>
-          <th style="width: 15.5%;">Unit/Price</th>
-          <th style="width: 10.5%;">Discount</th>
-          <th style="width: 14.5%;">Total</th>
-        </tr>
-      </thead>
-      <tbody>${renderLineRows(model.lineItems)}</tbody>
-    </table>
+      <table class="line-table">
+        <thead>
+          <tr>
+            <th style="width: 6.5%;">Item</th>
+            <th style="width: 38.5%;">Description</th>
+            <th style="width: 8.5%;">Qty</th>
+            <th style="width: 6%;">@</th>
+            <th style="width: 15.5%;">Unit/Price</th>
+            <th style="width: 10.5%;">Discount</th>
+            <th style="width: 14.5%;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${renderLineRows(model.lineItems)}</tbody>
+      </table>
     </div>
 
     <div class="footer-stack">

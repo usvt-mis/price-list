@@ -568,6 +568,31 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 - **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content
 
+### Multi-Page Print Quote Layout Pattern
+- **Purpose**: Provides consistent multi-page layout for Sales Quotes print output with proper footer positioning
+- **Layout Structure**:
+  - `.page` container: Fixed A4 dimensions (210mm × 297mm) with relative positioning
+  - `.page-body` wrapper: Contains all page content (header, meta table, line items) with proper overflow handling
+  - `.footer-stack`: Absolute positioned at bottom of page with `reservedFooterHeightMm` (102mm) padding
+- **Key Features**:
+  - Reserved footer height ensures footer content never overlaps with page body content
+  - Absolute positioning for footer maintains consistent placement across all pages
+  - Page spacing controlled via `.page + .page` selector (11mm margin between pages)
+  - Screen media query provides better preview experience with shadow effects and gray background
+  - Print media query removes page spacing and shadows for clean PDF output
+- **Implementation**:
+  - `buildMultiPageHtml()` function generates multi-page structure with `.page-body` wrapper
+  - CSS uses `position: relative` for page container and `position: absolute` for footer
+  - `reservedFooterHeightMm` constant (102mm) reserves space for footer content
+  - `@media screen` query adds visual enhancements for preview (shadows, gray background)
+  - `@media print` query removes preview-specific styles for clean output
+- **Benefits**:
+  - Consistent footer placement across all pages
+  - Prevents content overlap issues
+  - Better screen preview experience
+  - Clean PDF output for printing
+- **Applied to**: Multi-page Sales Quotes print layout in `src/js/salesquotes/print-quote.js`
+
 **Print Flag Controls:**
 - **Line Visibility**: Each quote line has three print control flags:
   - `showInDocument`: Controls whether the line appears in printed quotes (default: true)
