@@ -77,3 +77,10 @@ diagnostic_log.sql
 # AI/Agent configuration directories
 .agents/
 .codex/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

@@ -15,33 +15,33 @@
 }
 
 .approval-badge-draft {
-  background-color: rgb(243 244 246);
-  color: rgb(55 65 81);
+  background-color: var(--sq-surface-muted);
+  color: var(--sq-text-muted);
 }
 
 .approval-badge-pending {
-  background-color: rgb(253 230 138);
-  color: rgb(161 98 7);
+  background-color: var(--sq-warning-soft);
+  color: var(--sq-warning);
 }
 
 .approval-badge-approved {
-  background-color: rgb(220 252 231);
-  color: rgb(22 163 74);
+  background-color: var(--sq-success-soft);
+  color: var(--sq-success);
 }
 
 .approval-badge-rejected {
-  background-color: rgb(254 226 226);
-  color: rgb(220 38 38);
+  background-color: var(--sq-danger-soft);
+  color: var(--sq-danger);
 }
 
 .approval-badge-revise {
-  background-color: rgb(219 234 254);
-  color: rgb(37 99 235);
+  background-color: var(--sq-accent-soft);
+  color: var(--sq-accent);
 }
 
 .approval-badge-cancelled {
-  background-color: rgb(241 245 249);
-  color: rgb(71 85 105);
+  background-color: var(--sq-surface-subtle);
+  color: var(--sq-text-muted);
 }
 
 /* Approval Preview Modal */
@@ -98,18 +98,18 @@
 }
 
 .approvals-table tr:hover {
-  background-color: rgb(248 250 252);
+  background-color: var(--sq-surface-muted);
 }
 
 .approvals-table tr:active {
-  background-color: rgb(243 244 246);
+  background-color: var(--sq-surface-subtle);
 }
 
 /* Approval Comment Display */
 .approval-comment-box {
-  background-color: rgb(248 250 252);
-  border: 1px solid rgb(191 219 254);
-  border-left: 4px solid rgb(37 99 235);
+  background-color: var(--sq-surface-muted);
+  border: 1px solid #cfe1da;
+  border-left: 4px solid var(--sq-accent);
   padding: 0.75rem;
   border-radius: 0.75rem;
   margin-top: 0.5rem;
@@ -117,7 +117,7 @@
 
 .approval-comment-text {
   font-size: 0.875rem;
-  color: rgb(55 65 81);
+  color: var(--sq-text-muted);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -131,57 +131,57 @@
 }
 
 .sq-status-badge-draft {
-  background: rgb(248 250 252);
-  border-color: rgb(226 232 240);
-  color: rgb(71 85 105);
+  background: var(--sq-surface-muted);
+  border-color: var(--sq-border);
+  color: var(--sq-text-muted);
 }
 
 .sq-status-badge-submitted {
-  background: rgb(239 246 255);
-  border-color: rgb(191 219 254);
-  color: rgb(29 78 216);
+  background: var(--sq-accent-soft);
+  border-color: #bfd6cd;
+  color: var(--sq-accent-strong);
 }
 
 .sq-status-badge-pending {
-  background: rgb(255 251 235);
-  border-color: rgb(252 211 77);
-  color: rgb(180 83 9);
+  background: var(--sq-warning-soft);
+  border-color: #ead198;
+  color: var(--sq-warning);
 }
 
 .sq-status-badge-approved {
-  background: rgb(240 253 244);
-  border-color: rgb(187 247 208);
-  color: rgb(22 101 52);
+  background: var(--sq-success-soft);
+  border-color: #b9dec8;
+  color: var(--sq-success);
 }
 
 .sq-status-badge-rejected {
-  background: rgb(254 242 242);
-  border-color: rgb(254 202 202);
-  color: rgb(185 28 28);
+  background: var(--sq-danger-soft);
+  border-color: #ecc4bd;
+  color: var(--sq-danger);
 }
 
 .sq-status-badge-revise {
-  background: rgb(255 251 235);
-  border-color: rgb(253 230 138);
-  color: rgb(146 64 14);
+  background: #f7f0df;
+  border-color: #e4ca97;
+  color: #8a6125;
 }
 
 .sq-status-badge-cancelled {
-  background: rgb(248 250 252);
-  border-color: rgb(226 232 240);
-  color: rgb(100 116 139);
+  background: var(--sq-surface-subtle);
+  border-color: var(--sq-border);
+  color: var(--sq-text-soft);
 }
 
 .sq-status-badge-being-revised {
-  background: rgb(239 246 255);
-  border-color: rgb(191 219 254);
-  color: rgb(29 78 216);
+  background: #eaf3ef;
+  border-color: #bfd6cd;
+  color: var(--sq-accent);
 }
 
 .sq-status-badge-pending-revision {
-  background: rgb(255 247 237);
-  border-color: rgb(253 186 116);
-  color: rgb(194 65 12);
+  background: #f8efe4;
+  border-color: #e3c8a3;
+  color: #9a6130;
 }
 
 @media (min-width: 640px) {

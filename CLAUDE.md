@@ -13,6 +13,7 @@ Price List Calculator - Web application for calculating service costs.
 - **Backend**: Express.js
 - **Database**: Azure SQL Server
 - **Auth**: Azure Easy Auth (App Service)
+- **Testing**: Playwright (end-to-end testing framework)
 
 **Calculators:**
 
@@ -32,6 +33,50 @@ npm start            # Start Express.js server
 ```
 
 [QUICKSTART.md](QUICKSTART.md) for detailed setup.
+
+---
+
+## Testing
+
+### Playwright End-to-End Testing
+- **Framework**: Playwright for cross-browser end-to-end testing
+- **Configuration**: `playwright.config.ts` - Test configuration and browser settings
+- **Test Location**: `tests/` directory for test files
+- **Installation**: Playwright is installed as a dev dependency (`@playwright/test`, `@types/node`)
+- **Git Ignore**: Test artifacts (test-results/, playwright-report/, blob-report/, playwright/.cache/, playwright/.auth/) are excluded from version control
+- **Usage**:
+  ```bash
+  npm run test           # Run all tests
+  npm run test:ui       # Run tests with UI mode
+  npm run test:debug     # Debug tests
+  npx playwright test    # Run Playwright tests directly
+  ```
+- **Benefits**:
+  - Cross-browser testing (Chromium, Firefox, WebKit)
+  - Fast and reliable test execution
+  - Built-in test runner with parallel execution
+  - Visual regression testing capabilities
+  - Network interception and mocking support
+
+### CI/CD with GitHub Actions
+- **Workflow**: `.github/workflows/playwright.yml` - Automated Playwright test execution
+- **Triggers**: Runs on push and pull requests to main/master branches
+- **Configuration**:
+  - Timeout: 60 minutes
+  - Runner: Ubuntu latest
+  - Node version: LTS
+- **Steps**:
+  1. Checkout code
+  2. Setup Node.js environment
+  3. Install dependencies (`npm ci`)
+  4. Install Playwright browsers with dependencies
+  5. Run Playwright tests
+  6. Upload test report artifacts (retained for 30 days)
+- **Benefits**:
+  - Automated testing on every push/PR
+  - Consistent test environment
+  - Test report artifacts for debugging
+  - Prevents regressions from reaching production
 
 ---
 
@@ -163,7 +208,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Implementation**: CSS variables defined in `src/salesquotes/components/styles/salesquotes-styles.css` with `--sq-*` prefix
 - **Variable Categories**:
   - **Colors**: `--sq-accent`, `--sq-accent-soft`, `--sq-accent-strong`, `--sq-success`, `--sq-danger`, `--sq-warning`, `--sq-info`
-  - **Surfaces**: `--sq-surface`, `--sq-surface-muted`, `--sq-surface-subtle`
+  - **Backgrounds**: `--sq-bg`, `--sq-bg-alt` for page backgrounds
+  - **Surfaces**: `--sq-surface`, `--sq-surface-muted`, `--sq-surface-subtle`, `--sq-surface-strong`
   - **Text**: `--sq-text`, `--sq-text-muted`, `--sq-text-soft`
   - **Borders**: `--sq-border`, `--sq-border-strong`, `--sq-border-subtle`
   - **Shadows**: `--sq-shadow-sm`, `--sq-shadow-md`, `--sq-shadow-lg`
@@ -174,11 +220,14 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - **Chips**: `.sq-chip`, `.sq-chip-warning` for status indicators
   - **Buttons**: `.sq-btn-primary`, `.sq-btn-secondary`, `.sq-btn-danger` with hover states
   - **Toasts**: `.toast`, `.toast-success`, `.toast-error`, `.toast-info` for notifications
+  - **Modals**: `.sq-modal-overlay`, `.sq-modal-panel`, `.sq-modal-header`, `.sq-modal-body`, `.sq-modal-footer`
+  - **Loading**: `.sq-loading-panel`, `.sq-loading-eyebrow`, `.sq-spinner`, `.sq-inline-loading`
 - **Benefits**:
   - Centralized theme management - change colors in one place
   - Consistent visual language across all Sales Quotes components
   - Easy to add dark mode or theme switching in the future
   - Reduces Tailwind class bloat and improves maintainability
+  - Calm operational theme with green/teal color palette for reduced visual stress
 - **Implementation**: `src/salesquotes/components/styles/salesquotes-styles.css` - CSS variable definitions and component classes
 
 ### Tailwind CSS Safelist Pattern
@@ -197,6 +246,35 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **When to use**: When adding new color classes that may not be detected by Tailwind's JIT compiler
 - **Example**: Orange color classes for Sales Director Signature tab (`bg-orange-50`, `bg-orange-200`, `bg-orange-300`, `bg-orange-600`, `bg-orange-700`, `border-orange-*`, `text-orange-*`, `ring-orange-500`)
 - **Documentation**: See `docs/tailwind-orange-color-fix.md` for detailed example
+
+### Sales Quotes Calm Operational Theme
+- **Purpose**: Provides a calm, professional operational workspace for Sales Quotes interface
+- **Design Philosophy**: Green/teal color palette with ambient effects for reduced visual stress
+- **Typography**: IBM Plex Sans font for improved readability and professional appearance
+- **Color Palette**:
+  - Primary accent: Green/teal tones (`--sq-accent: #2f6f68`)
+  - Surfaces: Semi-transparent white with subtle tints (`--sq-surface: rgba(255, 255, 255, 0.86)`)
+  - Text: Dark green-gray for reduced eye strain (`--sq-text: #20312b`)
+  - Background: Soft green gradients (`--sq-bg: #e8efeb`)
+- **Ambient Effects**:
+  - Floating orbs with blur effects for subtle depth
+  - Grid pattern with mask gradient for texture
+  - Backdrop blur overlays for glassmorphism effects
+- **Component Styling**:
+  - Modal overlays: `.sq-modal-overlay` with backdrop blur
+  - Modal panels: `.sq-modal-panel` with gradient backgrounds
+  - Loading states: `.sq-loading-panel` with eyebrow labels
+  - Inline loading: `.sq-inline-loading` with spinner styling
+- **Status Badges**: Updated color scheme with green/teal accents for all approval states
+- **Implementation**:
+  - CSS variables in `src/salesquotes/components/styles/salesquotes-styles.css`
+  - HTML structure in `src/salesquotes.html` with ambient elements
+  - Modal classes updated across all modal HTML files
+- **Benefits**:
+  - Reduced visual fatigue during extended use
+  - Professional, calming appearance suitable for operational workflows
+  - Consistent visual language across all Sales Quotes components
+  - Improved readability with IBM Plex Sans typography
 
 ### Local Dev Mock Middleware
 - `api/src/middleware/localDevMock.js`: Provides mock data for endpoints when database is unavailable

@@ -1,8 +1,7 @@
 <!-- Edit Line Modal -->
-<div id="editLineModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[100] transition-opacity duration-300">
+<div id="editLineModal" class="sq-modal-overlay fixed inset-0 hidden z-[100] transition-opacity duration-300">
   <div class="flex items-center justify-center min-h-screen p-4">
     <div id="editLineModalContent" class="salesquotes-modal-shell sq-modal-panel max-w-4xl w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
-      <!-- Header -->
       <div class="sq-modal-header">
         <div class="flex items-center gap-3">
           <div class="sq-section-icon">
@@ -17,9 +16,7 @@
         </div>
       </div>
 
-      <!-- Form Content (6-column grid, same as Add Line) -->
       <div class="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-        <!-- ROW 1: Type (1), Group No (1), New SER (1), Serv. Item No (1), Serv. Item Desc (2) -->
         <div class="grid grid-cols-6 gap-4 mb-4">
           <div class="col-span-1">
             <label class="block text-sm font-medium text-gray-700 mb-1">Type <span class="required-asterisk">*</span></label>
@@ -50,7 +47,6 @@
           </div>
         </div>
 
-        <!-- ROW 2: No (2), Desc (4) -->
         <div class="grid grid-cols-6 gap-4 mb-4">
           <div class="col-span-2 relative">
             <label class="block text-sm font-medium text-gray-700 mb-1">No. <span class="required-asterisk">*</span></label>
@@ -63,7 +59,6 @@
           </div>
         </div>
 
-        <!-- ROW 3: Qty (1), Unit Price (2), Disc. % (1), Discount Amt. (2) -->
         <div class="grid grid-cols-6 gap-4 mb-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Qty. <span class="required-asterisk">*</span></label>
@@ -83,7 +78,6 @@
           </div>
         </div>
 
-        <!-- ROW 4: Addition (1), Ref. SQ No. (2), Line Total (3) -->
         <div class="grid grid-cols-6 gap-4 mb-4">
           <div class="flex items-center justify-center">
             <label class="toggle-label-vertical">
@@ -107,7 +101,6 @@
         </div>
       </div>
 
-      <!-- Footer -->
       <div class="sq-modal-footer">
         <button
           class="sq-btn sq-btn-primary"

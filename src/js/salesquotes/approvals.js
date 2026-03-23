@@ -1239,8 +1239,8 @@ async function loadQuoteForPreview(quoteNumber) {
   if (!previewContainer) return;
 
   previewContainer.innerHTML = `
-    <div class="flex items-center justify-center py-12">
-      <div class="spinner"></div>
+    <div class="sq-inline-loading flex items-center justify-center py-12">
+      <div class="spinner sq-spinner"></div>
       <span class="ml-3 text-slate-600">Loading quote...</span>
     </div>
   `;

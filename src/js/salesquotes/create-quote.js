@@ -2600,8 +2600,8 @@ export async function handleSendQuote() {
         // Update loading message
         const messageEl = el('loadingMessage');
         const titleEl = el('loadingTitle');
-        if (messageEl) messageEl.textContent = 'Creating Service Order...';
-        if (titleEl) titleEl.textContent = 'Creating Service Order';
+        if (messageEl) messageEl.textContent = 'Syncing Service Order...';
+        if (titleEl) titleEl.textContent = 'Syncing Service Order';
 
         serviceOrderResponse = await createServiceOrderFromSQ(quoteNumber, branchCode);
         serviceOrderNos = extractServiceOrderNos(serviceOrderResponse);

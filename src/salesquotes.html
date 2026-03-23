@@ -14,28 +14,36 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/light.css">
 
   <!-- Sales Quotes Page Styles (modular) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/salesquotes/components/styles/salesquotes-styles.css">
   <link rel="stylesheet" href="/salesquotes/components/styles/approval-styles.css">
 </head>
-<body class="min-h-screen">
+<body class="salesquotes-page min-h-screen">
+  <div class="salesquotes-ambient" aria-hidden="true">
+    <div class="salesquotes-ambient-orb salesquotes-ambient-orb-left"></div>
+    <div class="salesquotes-ambient-orb salesquotes-ambient-orb-right"></div>
+    <div class="salesquotes-grid"></div>
+  </div>
   <!-- Header -->
-  <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b border-gray-200">
+  <header class="salesquotes-topbar sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center py-4">
         <div class="flex items-center space-x-4">
-          <a href="/" class="text-gray-600 hover:text-gray-900 transition-colors">
+          <a href="/" class="salesquotes-back-link">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
           </a>
           <div>
             <div class="flex items-center gap-2">
-              <h1 class="text-xl font-semibold text-gray-900">Sales Quotes</h1>
+              <h1 class="text-xl font-semibold text-gray-900 tracking-tight">Sales Quotes</h1>
               <span class="sq-chip sq-chip-neutral">
                 Business Central
               </span>
             </div>
-            <p class="text-sm text-gray-600 mt-0.5">Create and manage sales quotes</p>
+            <p class="text-sm text-gray-600 mt-0.5">Create and manage sales quotes with a calmer operational workspace</p>
           </div>
         </div>
         <div id="authSection"></div>
@@ -44,9 +52,9 @@
   </header>
 
   <!-- Main Content -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <main class="salesquotes-main max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Tab Navigation -->
-    <div class="mb-3">
+    <div class="salesquotes-tab-shell mb-3">
       <nav class="flex space-x-8">
         <button id="tabCreate" class="tab-button active" onclick="window.switchTab('create')">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -874,14 +882,15 @@
   <!-- Loading Overlay -->
   <div
     id="loadingOverlay"
-    class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[70] flex items-center justify-center"
+    class="fixed inset-0 salesquotes-loading-overlay hidden z-[70] flex items-center justify-center"
     role="status"
     aria-live="polite"
     aria-busy="true"
   >
-    <div class="sq-card p-8 flex items-center gap-4">
-      <div class="spinner"></div>
+    <div class="sq-card sq-loading-panel p-8 flex items-center gap-4">
+      <div class="spinner sq-spinner"></div>
       <div>
+        <p class="sq-loading-eyebrow">Operational Flow</p>
         <h3 class="text-lg font-semibold text-gray-900" id="loadingTitle">Processing</h3>
         <span class="text-sm text-gray-600" id="loadingMessage">Loading...</span>
       </div>

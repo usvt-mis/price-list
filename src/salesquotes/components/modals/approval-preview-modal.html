@@ -4,21 +4,24 @@
 -->
 <div
   id="approvalPreviewModal"
-  class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 transition-opacity duration-300"
+  class="sq-modal-overlay fixed inset-0 z-[100] flex items-center justify-center opacity-0 transition-opacity duration-300"
   role="dialog"
   aria-modal="true"
   aria-labelledby="approvalPreviewTitle"
 >
   <div class="salesquotes-modal-shell sq-modal-panel w-full max-w-4xl max-h-[90vh] flex flex-col m-4">
     <!-- Modal Header -->
-    <div class="flex items-center justify-between px-6 py-4 border-b">
-      <h2 id="approvalPreviewTitle" class="text-lg font-semibold text-slate-900">
-        Sales Quote Approval
-      </h2>
+    <div class="sq-modal-header flex items-center justify-between gap-4">
+      <div>
+        <p class="sales-alert-status sales-alert-status-neutral">Approval Workspace</p>
+        <h2 id="approvalPreviewTitle" class="text-lg font-semibold text-slate-900">
+          Sales Quote Approval
+        </h2>
+      </div>
       <button
         type="button"
         id="btnCloseApprovalPreview"
-        class="text-slate-400 hover:text-slate-600 transition-colors"
+        class="sq-icon-btn"
         aria-label="Close"
       >
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
