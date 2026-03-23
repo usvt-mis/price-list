@@ -2178,6 +2178,10 @@ button:disabled:hover {
   background: linear-gradient(180deg, rgba(247, 250, 248, 0.78) 0%, rgba(242, 247, 244, 0.95) 100%);
 }
 
+.sales-alert-body-branch-mismatch {
+  padding-top: 0.35rem;
+}
+
 .sales-alert-section {
   border: 1px solid rgba(211, 221, 214, 0.84);
   border-radius: 1rem;

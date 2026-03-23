@@ -178,6 +178,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - `.quote-created-panel`, `.sales-alert-panel` - Panel with gradient backgrounds and improved shadows
     - `.sales-alert-header` - Header section with gradient background
     - `.sales-alert-body` - Body section with improved spacing and shadows
+    - `.sales-alert-body-branch-mismatch` - Variant with adjusted padding for branch mismatch modal
     - `.sales-alert-section` - Content sections with subtle borders and shadows
     - Responsive design with `clamp()` for padding and improved mobile experience
   - **Toasts**: Modern toast notification system with:
