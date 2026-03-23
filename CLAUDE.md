@@ -13,7 +13,6 @@ Price List Calculator - Web application for calculating service costs.
 - **Backend**: Express.js
 - **Database**: Azure SQL Server
 - **Auth**: Azure Easy Auth (App Service)
-- **Testing**: Playwright (end-to-end testing framework)
 
 **Calculators:**
 
@@ -33,50 +32,6 @@ npm start            # Start Express.js server
 ```
 
 [QUICKSTART.md](QUICKSTART.md) for detailed setup.
-
----
-
-## Testing
-
-### Playwright End-to-End Testing
-- **Framework**: Playwright for cross-browser end-to-end testing
-- **Configuration**: `playwright.config.ts` - Test configuration and browser settings
-- **Test Location**: `tests/` directory for test files
-- **Installation**: Playwright is installed as a dev dependency (`@playwright/test`, `@types/node`)
-- **Git Ignore**: Test artifacts (test-results/, playwright-report/, blob-report/, playwright/.cache/, playwright/.auth/) are excluded from version control
-- **Usage**:
-  ```bash
-  npm run test           # Run all tests
-  npm run test:ui       # Run tests with UI mode
-  npm run test:debug     # Debug tests
-  npx playwright test    # Run Playwright tests directly
-  ```
-- **Benefits**:
-  - Cross-browser testing (Chromium, Firefox, WebKit)
-  - Fast and reliable test execution
-  - Built-in test runner with parallel execution
-  - Visual regression testing capabilities
-  - Network interception and mocking support
-
-### CI/CD with GitHub Actions
-- **Workflow**: `.github/workflows/playwright.yml` - Automated Playwright test execution
-- **Triggers**: Runs on push and pull requests to main/master branches
-- **Configuration**:
-  - Timeout: 60 minutes
-  - Runner: Ubuntu latest
-  - Node version: LTS
-- **Steps**:
-  1. Checkout code
-  2. Setup Node.js environment
-  3. Install dependencies (`npm ci`)
-  4. Install Playwright browsers with dependencies
-  5. Run Playwright tests
-  6. Upload test report artifacts (retained for 30 days)
-- **Benefits**:
-  - Automated testing on every push/PR
-  - Consistent test environment
-  - Test report artifacts for debugging
-  - Prevents regressions from reaching production
 
 ---
 
@@ -203,50 +158,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   <div id="addLineModalContent" class="salesquotes-modal-shell bg-white rounded-2xl shadow-2xl max-w-4xl w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
   ```
 
-### Native Dialog Element Pattern
-- **Purpose**: Use native HTML `<dialog>` element for improved accessibility, focus management, and keyboard handling
-- **Benefits**:
-  - Built-in accessibility features (ARIA attributes, focus trapping, keyboard navigation)
-  - Native `showModal()` and `close()` methods for programmatic control
-  - `cancel` event for Escape key handling (prevents default close behavior)
-  - `::backdrop` pseudo-element for styling the modal backdrop
-  - Automatic top-layer rendering for proper z-index stacking
-- **Implementation**:
-  - Replace `<div role="dialog">` with `<dialog>` element
-  - Use `modal.showModal()` to open and `modal.close()` to close
-  - Listen for `cancel` event to prevent default close behavior
-  - Style `::backdrop` for backdrop overlay effect
-  - Use `getBoundingClientRect()` for click-outside-to-close detection
-- **Applied to**: Approval Preview Modal (`src/salesquotes/components/modals/approval-preview-modal.html`)
-- **Example**:
-  ```html
-  <dialog id="approvalPreviewModal" class="approval-preview-dialog opacity-0 transition-opacity duration-300">
-    <!-- Modal content -->
-  </dialog>
-  ```
-  ```javascript
-  // Open modal
-  if (typeof modal.showModal === 'function') {
-    modal.showModal();
-  }
-  // Close modal
-  if (typeof modal.close === 'function' && modal.open) {
-    modal.close();
-  }
-  // Handle cancel event (Escape key)
-  modal.addEventListener('cancel', (e) => {
-    e.preventDefault();
-    closeApprovalPreviewModal();
-  });
-  ```
-
 ### Sales Quotes CSS Variable Design System
 - **Purpose**: Provides consistent theming and maintainability across the Sales Quotes interface
 - **Implementation**: CSS variables defined in `src/salesquotes/components/styles/salesquotes-styles.css` with `--sq-*` prefix
 - **Variable Categories**:
   - **Colors**: `--sq-accent`, `--sq-accent-soft`, `--sq-accent-strong`, `--sq-success`, `--sq-danger`, `--sq-warning`, `--sq-info`
-  - **Backgrounds**: `--sq-bg`, `--sq-bg-alt` for page backgrounds
-  - **Surfaces**: `--sq-surface`, `--sq-surface-muted`, `--sq-surface-subtle`, `--sq-surface-strong`
+  - **Surfaces**: `--sq-surface`, `--sq-surface-muted`, `--sq-surface-subtle`
   - **Text**: `--sq-text`, `--sq-text-muted`, `--sq-text-soft`
   - **Borders**: `--sq-border`, `--sq-border-strong`, `--sq-border-subtle`
   - **Shadows**: `--sq-shadow-sm`, `--sq-shadow-md`, `--sq-shadow-lg`
@@ -256,55 +173,30 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - **Links/Actions**: `.sq-link-action` for clickable elements
   - **Chips**: `.sq-chip`, `.sq-chip-warning` for status indicators
   - **Buttons**: `.sq-btn-primary`, `.sq-btn-secondary`, `.sq-btn-danger` with hover states
-  - **Toasts**: `.toast`, `.toast-success`, `.toast-error`, `.toast-info` for notifications
-  - **Modals**: `.sq-modal-overlay`, `.sq-modal-panel`, `.sq-modal-header`, `.sq-modal-body`, `.sq-modal-footer`
-  - **Loading**: `.sq-loading-panel`, `.sq-loading-eyebrow`, `.sq-spinner`, `.sq-inline-loading`, `.sq-create-inline-spinner`, `.sq-create-loading-panel`, `.sq-approvals-inline-spinner`, `.sq-records-skeleton-line`
+  - **Modals**: Enhanced modal styling with improved positioning and visual design
+    - `.quote-created-modal`, `.sales-alert-modal` - Overlay with backdrop blur
+    - `.quote-created-panel`, `.sales-alert-panel` - Panel with gradient backgrounds and improved shadows
+    - `.sales-alert-header` - Header section with gradient background
+    - `.sales-alert-body` - Body section with improved spacing and shadows
+    - `.sales-alert-section` - Content sections with subtle borders and shadows
+    - Responsive design with `clamp()` for padding and improved mobile experience
+  - **Toasts**: Modern toast notification system with:
+    - `.salesquotes-toast-stack` - Container for toast positioning (fixed bottom-right)
+    - `.toast` - Base toast component with grid layout and gradient background
+    - `.toast-accent` - Left accent bar with gradient color
+    - `.toast-icon-wrap` - Circular icon container with gradient background
+    - `.toast-copy` - Message container wrapper
+    - `.toast-label` - Uppercase label text (e.g., "SUCCESS", "ERROR")
+    - `.toast-message` - Main message text
+    - `.toast-success`, `.toast-error`, `.toast-info` - Variant-specific accent and icon colors
+    - `@keyframes salesquotes-toast-in` - Slide-in animation
+    - ARIA accessibility: `aria-live="polite"`, `aria-atomic="true"` on toast container
 - **Benefits**:
   - Centralized theme management - change colors in one place
   - Consistent visual language across all Sales Quotes components
   - Easy to add dark mode or theme switching in the future
   - Reduces Tailwind class bloat and improves maintainability
-  - Calm operational theme with green/teal color palette for reduced visual stress
 - **Implementation**: `src/salesquotes/components/styles/salesquotes-styles.css` - CSS variable definitions and component classes
-
-### Skeleton Loading Pattern
-- **Purpose**: Provides skeleton loading states for improved UX during data fetching
-- **Implementation**: Uses shimmer animation and inline spinners for loading feedback
-- **Components**:
-  - `.sq-records-inline-spinner` - Small inline spinner (1rem × 1rem) with rotation animation
-  - `.sq-records-skeleton-line` - Skeleton lines with shimmer effect (sm: 38%, md: 62%, lg: 82% width)
-  - `@keyframes sq-spin` - 360° rotation animation for spinners
-  - `@keyframes sq-shimmer` - Gradient shimmer animation for skeleton lines
-  - `.sq-create-inline-spinner` - Green spinner for create view loading (2.5rem × 2.5rem)
-  - `.sq-approvals-inline-spinner` - Amber spinner for approvals loading
-- **Usage**:
-  - Render skeleton placeholder rows before data arrives
-  - Use sequence tracking to prevent race conditions (`recordsLoadSequence`, `pendingApprovalsLoadSequence`, `myApprovalsLoadSequence`)
-  - Manage loading state with `setRecordsLoadingState()`, `setPendingApprovalsLoadingState()`, `setMyApprovalsLoadingState()` functions
-  - Replace modal loading with inline skeleton loading for better UX
-- **Applied to**: Sales Quotes "My Records" tab, "Approvals" tab (Pending Approvals and My Approval Requests sections)
-- **Implementation**:
-  - `src/js/salesquotes/records.js` - `renderRecordsSkeleton()`, `setRecordsLoadingState()`, `loadQuoteSubmissionRecords()`
-  - `src/js/salesquotes/approvals.js` - `renderApprovalRowsSkeleton()`, `setPendingApprovalsLoadingState()`, `setMyApprovalsLoadingState()`, `loadPendingApprovals()`, `loadMyApprovalRequests()`
-  - `src/salesquotes/components/styles/salesquotes-styles.css` - skeleton loading styles and spinner variants
-
-### Initial Loading Banner Pattern
-- **Purpose**: Provides a non-blocking loading indicator for initial page load in Sales Quotes
-- **Design**: Banner-style loading with inline spinner and descriptive text (replaces full-page overlay)
-- **Components**:
-  - `.sq-create-inline-spinner` - Green spinner with ambient glow effect
-  - `.sq-create-loading-panel` - Loading panel with rounded corners and subtle shadow
-  - `.sq-create-loading-eyebrow` - Uppercase label with letter spacing
-  - `.sq-create-loading-title` - Bold title text
-  - `.sq-create-loading-message` - Descriptive message text
-  - `.sq-create-loading-checklist` - Optional checklist items for loading steps
-- **Usage**:
-  - Display banner after 350ms delay (`INITIAL_LOAD_DELAY_MS`)
-  - Use `aria-busy` attribute on create view for accessibility
-  - Hide banner when loading completes
-  - Provide clear, user-friendly loading messages
-- **Applied to**: Sales Quotes create view initial loading
-- **Implementation**: `src/salesquotes.html` - `salesQuoteCreateInitialLoading` banner element, `setInitialBannerVisibility()` function; `src/salesquotes/components/styles/salesquotes-styles.css` - loading banner styles
 
 ### Tailwind CSS Safelist Pattern
 - **Problem**: Tailwind CSS may not generate certain color classes if they're only used in dynamically loaded HTML or specific contexts
@@ -323,35 +215,6 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Example**: Orange color classes for Sales Director Signature tab (`bg-orange-50`, `bg-orange-200`, `bg-orange-300`, `bg-orange-600`, `bg-orange-700`, `border-orange-*`, `text-orange-*`, `ring-orange-500`)
 - **Documentation**: See `docs/tailwind-orange-color-fix.md` for detailed example
 
-### Sales Quotes Calm Operational Theme
-- **Purpose**: Provides a calm, professional operational workspace for Sales Quotes interface
-- **Design Philosophy**: Green/teal color palette with ambient effects for reduced visual stress
-- **Typography**: IBM Plex Sans font for improved readability and professional appearance
-- **Color Palette**:
-  - Primary accent: Green/teal tones (`--sq-accent: #2f6f68`)
-  - Surfaces: Semi-transparent white with subtle tints (`--sq-surface: rgba(255, 255, 255, 0.86)`)
-  - Text: Dark green-gray for reduced eye strain (`--sq-text: #20312b`)
-  - Background: Soft green gradients (`--sq-bg: #e8efeb`)
-- **Ambient Effects**:
-  - Floating orbs with blur effects for subtle depth
-  - Grid pattern with mask gradient for texture
-  - Backdrop blur overlays for glassmorphism effects
-- **Component Styling**:
-  - Modal overlays: `.sq-modal-overlay` with backdrop blur
-  - Modal panels: `.sq-modal-panel` with gradient backgrounds
-  - Loading states: `.sq-loading-panel` with eyebrow labels
-  - Inline loading: `.sq-inline-loading` with spinner styling
-- **Status Badges**: Updated color scheme with green/teal accents for all approval states
-- **Implementation**:
-  - CSS variables in `src/salesquotes/components/styles/salesquotes-styles.css`
-  - HTML structure in `src/salesquotes.html` with ambient elements
-  - Modal classes updated across all modal HTML files
-- **Benefits**:
-  - Reduced visual fatigue during extended use
-  - Professional, calming appearance suitable for operational workflows
-  - Consistent visual language across all Sales Quotes components
-  - Improved readability with IBM Plex Sans typography
-
 ### Local Dev Mock Middleware
 - `api/src/middleware/localDevMock.js`: Provides mock data for endpoints when database is unavailable
 - **Enable**: Set `LOCAL_DEV_MOCK=true` environment variable
@@ -362,8 +225,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 ### Gateway Proxy (Business Central API)
 - Server-side Azure Function key management via environment variables
 - Proxy routes: `/api/business-central/gateway/*`
-- Supports GET/POST; fallback keys for GetSalesQuotesFromNumber/UpdateSalesQuote
-- Config: `GATEWAY_BASE_URL`, `{CSQWN,CSI,CSOFSQ,GSQFN,USQ}_KEY`, `{...}_PATH` overrides
+- Supports GET/POST; fallback keys for GetSalesQuotesFromNumber/UpdateSalesQuote/PatchSalesQuote
+- Config: `GATEWAY_BASE_URL`, `{CSQWN,CSI,CSOFSQ,GSQFN,USQ,PSQ}_KEY`, `{...}_PATH` overrides
 - **Retry Logic**: Automatic retry for GET/HEAD requests on transient failures (network errors, timeouts)
 - **Configurable Timeout**: `GATEWAY_REQUEST_TIMEOUT_MS` (default: 15000ms) for gateway requests
 - **Retry Configuration**: `GATEWAY_FETCH_MAX_ATTEMPTS` (default: 3), `GATEWAY_FETCH_RETRY_DELAY_MS` (default: 400ms)
@@ -512,8 +375,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - State: `state.quote.mode` ('create'/'edit'), `state.quote.id/number/etag/status/reportContext`
 - **Customer No locked**, **Work Status shown (editable dropdown)**, **Ref. SV No. column visible**, **Print button enabled**
 - **Work Status field**: Editable dropdown with options (Win, Lose, Cancelled) for searched Sales Quotes
+  - For **Approved** quotes, Work Status is the only editable field (approved work status only mode)
+  - All other fields are locked when quote is Approved
+  - Button text changes to "Update Work Status" when in approved work status only mode
 - **Sales Phone No. and Sales Email**: These fields are hidden (not displayed in the UI)
 - **Update enabled**: "Edit Sales Quote" button sends changes to BC via UpdateSalesQuote endpoint
+  - For Approved quotes, uses PatchSalesQuote endpoint to update only Work Status
 - Update mode stays in edit mode after successful update (no reset)
 - **Service Order creation**: Service Orders are created for both new quotes AND quote updates (via CreateServiceOrderFromSQ per Group No)
 - **Quote Updated modal**: Displays Service Order numbers (if any) along with the updated quote number
@@ -539,6 +406,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Automatic pagination handling by html2pdf.js (avoids manual multi-page detection)
   - Temporary DOM container created for rendering, cleaned up after PDF generation
   - Toast notifications show "Generating PDF..." during generation and success message when complete
+- **Pagination Improvements**: Enhanced line item pagination for better document density
+  - Target: 17 standard rows per page (increased from 14) to match BC document density
+  - Reserved footer height: 112mm (increased from 102mm) for proper spacing
+  - Footer positioning: 10mm from bottom for consistent layout
+  - Totals label alignment offset: -2mm for improved visual alignment
+  - Multi-page totals: Only show total values on the last page, hide on intermediate pages
+  - Implementation: `chunkLineItemsForPages()`, `renderTotalsRows()`, `buildPageFooter()` in `src/js/salesquotes/print-quote.js`
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
 - **Certification Logos**: Support for multiple certification logos with special styling
@@ -564,34 +438,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Dynamic meta table column adjustment based on address width
 - **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13ch), `shifted` class with differentiated positioning (labels: -21mm left, values: -12mm left), attentionTelBlockOffsetXMm/YMm using relative positioning instead of transform
 - **Delivery Date Field**: Uses `reportContext.deliveryDate` for delivery text in meta table
-- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`
+- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `renderTotalsRows()`, `buildPrintHtml()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 - **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content
-
-### Multi-Page Print Quote Layout Pattern
-- **Purpose**: Provides consistent multi-page layout for Sales Quotes print output with proper footer positioning
-- **Layout Structure**:
-  - `.page` container: Fixed A4 dimensions (210mm × 297mm) with relative positioning
-  - `.page-body` wrapper: Contains all page content (header, meta table, line items) with proper overflow handling
-  - `.footer-stack`: Absolute positioned at bottom of page with `reservedFooterHeightMm` (102mm) padding
-- **Key Features**:
-  - Reserved footer height ensures footer content never overlaps with page body content
-  - Absolute positioning for footer maintains consistent placement across all pages
-  - Page spacing controlled via `.page + .page` selector (11mm margin between pages)
-  - Screen media query provides better preview experience with shadow effects and gray background
-  - Print media query removes page spacing and shadows for clean PDF output
-- **Implementation**:
-  - `buildMultiPageHtml()` function generates multi-page structure with `.page-body` wrapper
-  - CSS uses `position: relative` for page container and `position: absolute` for footer
-  - `reservedFooterHeightMm` constant (102mm) reserves space for footer content
-  - `@media screen` query adds visual enhancements for preview (shadows, gray background)
-  - `@media print` query removes preview-specific styles for clean output
-- **Benefits**:
-  - Consistent footer placement across all pages
-  - Prevents content overlap issues
-  - Better screen preview experience
-  - Clean PDF output for printing
-- **Applied to**: Multi-page Sales Quotes print layout in `src/js/salesquotes/print-quote.js`
 
 **Print Flag Controls:**
 - **Line Visibility**: Each quote line has three print control flags:
@@ -658,6 +507,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Quotes are automatically initialized with "SubmittedToBC" status when created/updated
   - Auto-approval has been removed - all quotes now require manual approval regardless of total amount
   - API endpoint: `POST /api/salesquotes/approvals/initialize`
+- **Work Status Updates for Approved Quotes**:
+  - Approved quotes allow Work Status updates without requiring revision approval
+  - When viewing an Approved quote, the system enters "approved work status only mode"
+  - Only the Work Status field is editable; all other fields remain locked
+  - The "Edit Sales Quote" button changes to "Update Work Status"
+  - Uses the PatchSalesQuote endpoint to update only the Work Status field in Business Central
+  - Implementation: `src/js/salesquotes/create-quote.js` - `patchApprovedQuoteWorkStatus()`, `src/js/salesquotes/ui.js` - `isApprovedWorkStatusOnlyMode()`, `updateQuoteEditorFormLockState()`
 - **Send Approval Request Button**:
   - Visible to all users when viewing a searched quote with total > 0
   - Allows submitting quotes for director/executive approval
@@ -706,13 +562,11 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - Badge count shows number of pending approvals
     - Refresh button to reload pending approvals
     - Actions: Approve, Reject, Request Revision (with comment), Approve Revision Request
-    - **Loading States**: Skeleton loading rows with shimmer effect during data fetch, loading banner with inline spinner and descriptive message
   - **My Approval Requests Section**: Visible to all authenticated users
     - Shows status of each request with color-coded badges
     - View approval history and director comments
     - Status badges: Gray (Draft), Blue (Submitted to BC), Amber (Pending), Green (Approved), Red (Rejected), Blue (Revise), Purple (Being Revised), Slate (Cancelled)
     - Edit & Resubmit button available for Revise, Rejected, and BeingRevised statuses
-    - **Loading States**: Skeleton loading rows with shimmer effect during data fetch, loading banner with inline spinner and descriptive message
 - **API Endpoints**:
   - `POST /api/salesquotes/approvals/initialize` - Initialize approval record (SubmittedToBC status)
   - `POST /api/salesquotes/approvals` - Submit quote for approval
@@ -725,6 +579,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `POST /api/salesquotes/approvals/:quoteNumber/request-revision` - Request revision on Approved quote (Sales)
   - `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` - Approve revision request (Director/Executive)
   - `POST /api/salesquotes/approvals/:quoteNumber/resubmit` - Resubmit after revision (Sales)
+  - `POST /api/business-central/gateway/patch-sales-quote` - Patch Sales Quote (update Work Status only for Approved quotes)
 - **Constants**:
   - `PENDING_REVISION_THRESHOLD_MS = 1000` - Time threshold (in milliseconds) used to determine if a revision request is pending (prevents false positives from initial approval action)
 - **Database Schema**: `SalesQuoteApprovals` table
@@ -742,65 +597,15 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Functions: `isCurrentUserApprovalOwner()` - Checks if current user is the approval owner (compares current user email with approval's ApprovalOwnerEmail, falls back to SalespersonEmail)
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
   - Styles: `approval-styles.css` - Approval-specific UI styles
-- **Approval Preview Modal (Fullscreen Workspace)**:
-  - **Purpose**: Provides a calm, professional operational workspace for reviewing and approving Sales Quotes
-  - **Layout**: Fullscreen modal using native HTML `<dialog>` element with sheet-style design aligned to print version
-  - **Native Dialog Element**: Uses `<dialog>` element for improved accessibility, focus management, and native Escape key handling
-    - **Features**:
-      - Sheet Bar: Title, subtitle, and status badge at top
-      - Hero Section: Customer name, quote number, branch, date, submitted timestamp, address, and financial summary (Total, Subtotal, Line Discount, Invoice Discount, Amount Excluding VAT, VAT)
-      - Collapsible Quote Details: Meta Grid with comprehensive quote details (Salesperson, Assigned User ID, Contact, Branch, Division, Location Code, etc.) wrapped in `<details>` element
-      - Line Items Table: Full breakdown with all columns including Print Flags (Show, Header, Footer chips)
-      - Collapsible Work Description: Wrapped in `<details>` element with print note styling
-      - Collapsible Action Comment: Wrapped in `<details>` element with amber styling for revision requests, blue for director comments
-      - Sales Director Signature display (when approved)
-  - **Helper Functions** (`src/js/salesquotes/approvals.js`):
-    - `formatPreviewMoney()` - Format monetary values with 2 decimal places
-    - `formatPreviewNumber()` - Format numeric values with configurable decimal places
-    - `toPreviewNumber()` - Parse and normalize numeric values with fallback
-    - `formatPreviewDateTime()` - Format date-time values for display (used for submitted timestamp)
-    - `formatPreviewDate()` - Format date-only values
-    - `getPreviewSources()` - Extract data sources from quote data (handles nested structures)
-    - `pickPreviewValue()` - Extract value from multiple possible field names with fallback
-    - `normalizePreviewLine()` - Normalize line item data for consistent rendering
-    - `renderApprovalMetaItem()` - Render meta grid items
-    - `renderPreviewFlags()` - Render print flag chips (Show, Header, Footer)
-  - **Interaction**:
-    - Close button in header
-    - Native `cancel` event for Escape key handling (prevents default dialog close behavior)
-    - Click-outside-to-close functionality using `getBoundingClientRect()` for accurate detection
-    - Sticky header and footer with backdrop blur for easy navigation
-  - **Responsive Design**: Mobile-friendly with adjusted padding on small screens
-  - **Styling** (`approval-styles.css`):
-    - `#approvalPreviewModal` - Native dialog element styling with transparent background, full viewport dimensions, and backdrop filter
-    - `#approvalPreviewModal::backdrop` - Backdrop overlay with blur effect (rgba(15, 23, 42, 0.45))
-    - `.approval-preview-panel` - Gradient background with ambient effects and overflow containment (min-height: 0)
-    - `.approval-preview-header` - Sticky header with backdrop blur
-    - `.approval-preview-content` - Flexbox-based content area with proper overflow handling (flex: 1 1 auto, overflow-y: auto, overflow-x: hidden)
-    - `.approval-preview-actions` - Sticky footer with action buttons
-    - `.approval-preview-sheet` - Main sheet container with grid layout (grid-template-rows: auto auto auto auto auto auto auto), rounded corners, shadow, and min-height constraints
-    - `.approval-preview-sheet-bar` - Top bar with title, subtitle, and status badge
-    - `.approval-preview-hero` - Hero section with customer info and financial summary
-    - `.approval-preview-meta-grid` - Responsive grid for meta items (inside collapsible Quote Details)
-    - `.approval-preview-meta-item` - Individual meta item cards
-    - `.approval-preview-table-wrap` - Scrollable table container (overflow-x: auto, overflow-y: visible)
-    - `.approval-preview-table` - Table styling with nowrap for most columns and min-width for content
-    - `.approval-preview-collapsible` - Collapsible section styling with bottom border and white background
-    - `.approval-preview-collapsible summary` - Summary element with cursor pointer, uppercase styling, and +/- indicator
-    - `.approval-preview-collapsible-body` - Body content of collapsible sections
-    - `.approval-preview-collapsible.is-comment` - Special styling for comment collapsible sections
-    - `.approval-preview-print-note` - Work description section styling (inside collapsible)
-    - `.approval-preview-inline-comment` - Action comment section (inside collapsible, with is-warning and is-info variants)
-    - `.approval-preview-signature` - Signature section styling
-  - **Implementation**: `src/js/salesquotes/approvals.js` - `renderQuotePreview()`, helper functions; `src/salesquotes/components/modals/approval-preview-modal.html`; `src/salesquotes/components/styles/approval-styles.css`
 - **Integration with Quote Creation**:
   - After quote creation/update, approval records are automatically initialized with SubmittedToBC status
   - ApprovalOwnerEmail is set to the salesperson's email during initialization
   - Sales users can submit quotes for approval via "Send Approval Request" button
   - Approval workflow is optional - quotes can still be sent without approval
   - Approved quotes can be printed and sent to customer
+  - Approved quotes allow Work Status updates without requiring revision approval
   - Only approval owner (ApprovalOwnerEmail) can request revision on Approved quotes, requiring SD approval before editing
-  - **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`
+  - **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`, `src/js/salesquotes/create-quote.js`
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 
@@ -833,6 +638,16 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 
 ### Backoffice User Management
 - Backoffice interface for managing user roles and permissions
+- **Theming System**: CSS variable-based design system with `--bo-*` prefix for consistent theming
+  - Colors: `--bo-bg`, `--bo-surface`, `--bo-accent`, `--bo-text`, `--bo-border`, etc.
+  - Surfaces: Gradients and blur effects for modern glassmorphism look
+  - Shadows: `--bo-shadow-sm/md/lg` for depth and hierarchy
+  - Radius: `--bo-radius-lg/xl` for consistent corner rounding
+  - Component classes: `.backoffice-shell`, `.backoffice-panel`, `.backoffice-table-shell`, `.backoffice-toolbar`, `.backoffice-note`
+  - Status badges: `.bo-status-badge-*` (success, warning, danger, info, neutral)
+  - Chips: `.bo-chip`, `.bo-chip-info`, `.bo-chip-warning`, `.bo-chip-branch`, `.bo-chip-neutral`
+  - Action buttons: `.bo-action-btn`, `.bo-action-btn-danger` with hover states
+  - Implementation: `src/backoffice.html` - CSS variables and component classes
 - **Tabs**: Executives, Sales, Sales Directors, Customers, Audit, Deletion, Settings, Signatures, Sales Director Signature
 - **Sales Directors Tab**: Dedicated tab for managing Sales Director role assignments
   - Add Sales Directors via email input with validation
