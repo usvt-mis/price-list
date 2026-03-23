@@ -1742,6 +1742,7 @@ export async function updateQuoteEditorModeUi() {
   const banner = el('quoteEditorModeBanner');
   const title = el('quoteEditorModeTitle');
   const meta = el('quoteEditorModeMeta');
+  const createTabLabel = el('tabCreateLabel');
   const sendButton = el('sendQuoteBtn');
   const sendButtonText = el('sendQuoteBtnText');
   const printButton = el('printQuoteBtn');
@@ -1775,6 +1776,10 @@ export async function updateQuoteEditorModeUi() {
     title.textContent = isEditMode
       ? `Editing Sales Quote ${state.quote.number}`
       : 'Create a new Sales Quote';
+  }
+
+  if (createTabLabel) {
+    createTabLabel.textContent = isEditMode ? 'Edit Sales Quote' : 'Create Sales Quote';
   }
 
   if (meta) {

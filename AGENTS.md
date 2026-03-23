@@ -372,7 +372,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - All other fields are locked when quote is Approved
   - Button text changes to "Update Work Status" when in approved work status only mode
 - **Sales Phone No. and Sales Email**: These fields are hidden (not displayed in the UI)
-- **Update enabled**: "Update Sales Quote" button sends changes to BC via UpdateSalesQuote endpoint
+- **Update enabled**: "Edit Sales Quote" button sends changes to BC via UpdateSalesQuote endpoint
   - For Approved quotes, uses PatchSalesQuote endpoint to update only Work Status
 - Update mode stays in edit mode after successful update (no reset)
 - **Service Order creation**: Service Orders are created for both new quotes AND quote updates (via CreateServiceOrderFromSQ per Group No)
@@ -497,7 +497,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Approved quotes allow Work Status updates without requiring revision approval
   - When viewing an Approved quote, the system enters "approved work status only mode"
   - Only the Work Status field is editable; all other fields remain locked
-  - The "Update Sales Quote" button changes to "Update Work Status"
+  - The "Edit Sales Quote" button changes to "Update Work Status"
   - Uses the PatchSalesQuote endpoint to update only the Work Status field in Business Central
   - Implementation: `src/js/salesquotes/create-quote.js` - `patchApprovedQuoteWorkStatus()`, `src/js/salesquotes/ui.js` - `isApprovedWorkStatusOnlyMode()`, `updateQuoteEditorFormLockState()`
 - **Send Approval Request Button**:

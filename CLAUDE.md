@@ -513,7 +513,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Customer No locked**, **Work Status shown (editable dropdown)**, **Ref. SV No. column visible**, **Print button enabled**
 - **Work Status field**: Editable dropdown with options (Win, Lose, Cancelled) for searched Sales Quotes
 - **Sales Phone No. and Sales Email**: These fields are hidden (not displayed in the UI)
-- **Update enabled**: "Update Sales Quote" button sends changes to BC via UpdateSalesQuote endpoint
+- **Update enabled**: "Edit Sales Quote" button sends changes to BC via UpdateSalesQuote endpoint
 - Update mode stays in edit mode after successful update (no reset)
 - **Service Order creation**: Service Orders are created for both new quotes AND quote updates (via CreateServiceOrderFromSQ per Group No)
 - **Quote Updated modal**: Displays Service Order numbers (if any) along with the updated quote number
