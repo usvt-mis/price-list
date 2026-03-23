@@ -53,6 +53,152 @@
   opacity: 0;
 }
 
+.approval-preview-panel {
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 22%),
+    linear-gradient(180deg, #f8fbff 0%, #ffffff 18%, #f8fafc 100%);
+}
+
+.approval-preview-frame {
+  width: 100vw;
+  min-height: 100vh;
+}
+
+.approval-preview-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.875rem 1.25rem;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.approval-preview-content {
+  padding: 0.75rem 1rem 1rem;
+}
+
+.approval-preview-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.approval-preview-section {
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+}
+
+.approval-preview-sheet {
+  border-radius: 1.25rem;
+  overflow: hidden;
+  border: 1px solid rgba(203, 213, 225, 0.85);
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.approval-preview-sheet-bar {
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.approval-preview-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  padding: 1rem 1.15rem 0.9rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.7), rgba(255, 255, 255, 0.98));
+}
+
+.approval-preview-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.approval-preview-meta-item {
+  min-height: 70px;
+  padding: 0.8rem 1rem;
+  border-right: 1px solid rgba(226, 232, 240, 0.95);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.approval-preview-meta-label {
+  display: block;
+  margin-bottom: 0.24rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(100 116 139);
+}
+
+.approval-preview-meta-value {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: rgb(15 23 42);
+  word-break: break-word;
+}
+
+.approval-preview-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.approval-preview-table th,
+.approval-preview-table td {
+  white-space: nowrap;
+}
+
+.approval-preview-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.approval-preview-table td.approval-preview-description {
+  white-space: normal;
+  min-width: 22rem;
+}
+
+.approval-preview-print-note {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(248, 250, 252, 0.82);
+}
+
+.approval-preview-inline-comment {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+  background: #f8fafc;
+}
+
+.approval-preview-inline-comment.is-warning {
+  background: #fff7ed;
+}
+
+.approval-preview-inline-comment.is-info {
+  background: #eff6ff;
+}
+
+.approval-preview-signature {
+  padding: 0.8rem 1rem;
+  border-top: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(248, 250, 252, 0.82);
+}
+
 /* Approval Action Buttons */
 .btn-approve {
   background: rgb(22 163 74);
@@ -187,5 +333,34 @@
 @media (min-width: 640px) {
   .approval-actions {
     flex-wrap: nowrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .approval-preview-header,
+  .approval-preview-content,
+  .approval-preview-actions {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+@media (max-width: 1100px) {
+  .approval-preview-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .approval-preview-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .approval-preview-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .approval-preview-meta-item {
+    border-right: 0;
   }
 }

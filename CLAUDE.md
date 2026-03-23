@@ -639,6 +639,44 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Functions: `isCurrentUserApprovalOwner()` - Checks if current user is the approval owner (compares current user email with approval's ApprovalOwnerEmail, falls back to SalespersonEmail)
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
   - Styles: `approval-styles.css` - Approval-specific UI styles
+- **Approval Preview Modal (Fullscreen Workspace)**:
+  - **Purpose**: Provides a calm, professional operational workspace for reviewing and approving Sales Quotes
+  - **Layout**: Fullscreen modal (h-screen w-screen) with sticky header and footer
+  - **Features**:
+    - KPI Cards: Total Amount, Subtotal, Visible Lines count, Service Items count
+    - Meta Grid: Comprehensive quote details (Salesperson, Assigned User ID, Contact, Branch, Division, Location Code, etc.)
+    - Financial Summary: Subtotal, Line Discount Total, Invoice Discount, Amount Excluding VAT, VAT
+    - Line Items Table: Full breakdown with all columns including Print Flags (Show, Header, Footer chips)
+    - Work Description section
+    - Action Comment section (with amber styling for revision requests)
+    - Sales Director Signature display (when approved)
+  - **Helper Functions** (`src/js/salesquotes/approvals.js`):
+    - `formatPreviewMoney()` - Format monetary values with 2 decimal places
+    - `formatPreviewNumber()` - Format numeric values with configurable decimal places
+    - `toPreviewNumber()` - Parse and normalize numeric values with fallback
+    - `formatPreviewDateTime()` - Format date-time values for display
+    - `formatPreviewDate()` - Format date-only values
+    - `getPreviewSources()` - Extract data sources from quote data (handles nested structures)
+    - `pickPreviewValue()` - Extract value from multiple possible field names with fallback
+    - `normalizePreviewLine()` - Normalize line item data for consistent rendering
+    - `renderApprovalMetaItem()` - Render meta grid items
+    - `renderPreviewFlags()` - Render print flag chips (Show, Header, Footer)
+  - **Interaction**:
+    - Close button in header
+    - Click-outside-to-close functionality
+    - Sticky header and footer with backdrop blur for easy navigation
+  - **Responsive Design**: Mobile-friendly with adjusted padding on small screens
+  - **Styling** (`approval-styles.css`):
+    - `.approval-preview-panel` - Gradient background with ambient effects
+    - `.approval-preview-header` - Sticky header with backdrop blur
+    - `.approval-preview-content` - Scrollable content area
+    - `.approval-preview-actions` - Sticky footer with action buttons
+    - `.approval-preview-section` - Card-style sections with shadows
+    - `.approval-preview-kpi` - KPI cards with gradient backgrounds
+    - `.approval-preview-meta-grid` - Responsive grid for meta items
+    - `.approval-preview-meta-item` - Individual meta item cards
+    - `.approval-preview-table` - Table styling with nowrap for most columns
+  - **Implementation**: `src/js/salesquotes/approvals.js` - `renderQuotePreview()`, helper functions; `src/salesquotes/components/modals/approval-preview-modal.html`; `src/salesquotes/components/styles/approval-styles.css`
 - **Integration with Quote Creation**:
   - After quote creation/update, approval records are automatically initialized with SubmittedToBC status
   - ApprovalOwnerEmail is set to the salesperson's email during initialization
