@@ -1420,6 +1420,7 @@ function renderQuotePreview(container, quoteData, approval, directorSignature) {
   const paymentMethod = pickPreviewValue(quoteData, ['paymentMethodDescription', 'descriptionPaymentMethod', 'Description_PaymentMethod'], '-');
   const shipMethod = pickPreviewValue(quoteData, ['shipMethodDescription', 'descriptionShipMethod', 'Description_ShipMethod'], '-');
   const sellToPhoneNo = pickPreviewValue(quoteData, ['sellToPhoneNo', 'Sell_to_Phone_No_'], '-');
+  const submittedAt = formatPreviewDateTime(approval.submittedForApprovalAt);
   const addressParts = [
     pickPreviewValue(quoteData, ['sellToAddress', 'shipToAddress', 'Ship_to_Address', 'address'], ''),
     pickPreviewValue(quoteData, ['sellToAddress2', 'address2'], ''),
@@ -1443,130 +1444,95 @@ function renderQuotePreview(container, quoteData, approval, directorSignature) {
   const approverName = approval.salesDirectorName || pickPreviewValue(quoteData, ['approveUserName', 'ApproveUser_Name'], '-');
 
   container.innerHTML = `
-    <div class="space-y-6">
-      <section class="approval-preview-section p-5 lg:p-6">
-        <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    <div class="h-full min-h-0">
+      <section class="approval-preview-sheet flex h-full min-h-0 flex-col">
+        <div class="approval-preview-sheet-bar flex items-center justify-between gap-3">
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Sales Quote Approval</p>
+            <p class="mt-1 text-sm text-slate-600">Review layout aligned closer to the print version</p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs uppercase tracking-[0.08em] text-slate-500">Status</p>
+            <span class="mt-1 inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusPresentation.badgeClass}">
+              ${statusPresentation.label}
+            </span>
+          </div>
+        </div>
+
+        <div class="approval-preview-hero">
           <div>
             <div class="flex flex-wrap items-center gap-3">
-              <h3 class="text-2xl font-semibold text-slate-900">${escapeHtml(customerName)}</h3>
-              <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusPresentation.badgeClass}">
-                ${statusPresentation.label}
-              </span>
+              <h3 class="text-xl font-semibold text-slate-900">${escapeHtml(customerName)}</h3>
+              <span class="text-sm text-slate-500">Customer No: ${escapeHtml(customerNo)}</span>
             </div>
-            <p class="mt-2 text-sm text-slate-500">Quote No: <span class="font-medium text-slate-700">${escapeHtml(quoteNumber)}</span></p>
-            <p class="mt-1 text-sm text-slate-500">Customer No: <span class="font-medium text-slate-700">${escapeHtml(customerNo)}</span></p>
+            <div class="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-600">
+              <span>Quote No: <strong class="font-semibold text-slate-900">${escapeHtml(quoteNumber)}</strong></span>
+              <span>Branch: <strong class="font-semibold text-slate-900">${escapeHtml(branch)}</strong></span>
+              <span>Date: <strong class="font-semibold text-slate-900">${escapeHtml(formatPreviewDate(orderDate))}</strong></span>
+              <span>Submitted: <strong class="font-semibold text-slate-900">${escapeHtml(submittedAt)}</strong></span>
+            </div>
+            ${addressParts.length ? `
+              <p class="mt-3 text-sm leading-6 text-slate-600">${escapeHtml(addressParts.join(', '))}</p>
+            ` : ''}
           </div>
-          <div class="grid grid-cols-2 gap-3 md:grid-cols-4 xl:min-w-[34rem]">
-            <div class="approval-preview-kpi p-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.08em] text-sky-700">Total Amount</p>
-              <p class="mt-2 text-2xl font-semibold text-slate-900">${formatPreviewMoney(total)}</p>
+          <div class="grid min-w-[260px] grid-cols-2 gap-x-5 gap-y-2 text-sm">
+            <div>
+              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Total</p>
+              <p class="text-lg font-semibold text-slate-900">${formatPreviewMoney(total)}</p>
             </div>
-            <div class="approval-preview-kpi p-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.08em] text-sky-700">Subtotal</p>
-              <p class="mt-2 text-xl font-semibold text-slate-900">${formatPreviewMoney(subtotal)}</p>
+            <div>
+              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Subtotal</p>
+              <p class="text-base font-semibold text-slate-900">${formatPreviewMoney(subtotal)}</p>
             </div>
-            <div class="approval-preview-kpi p-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.08em] text-sky-700">Visible Lines</p>
-              <p class="mt-2 text-xl font-semibold text-slate-900">${formatPreviewNumber(visibleLineCount, 0)}</p>
+            <div>
+              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Lines</p>
+              <p class="text-base font-semibold text-slate-900">${formatPreviewNumber(lines.length, 0)}</p>
             </div>
-            <div class="approval-preview-kpi p-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.08em] text-sky-700">Service Items</p>
-              <p class="mt-2 text-xl font-semibold text-slate-900">${formatPreviewNumber(serviceItemCount, 0)}</p>
+            <div>
+              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Service Items</p>
+              <p class="text-base font-semibold text-slate-900">${formatPreviewNumber(serviceItemCount, 0)}</p>
             </div>
           </div>
         </div>
-      </section>
 
-      <section class="approval-preview-section p-5 lg:p-6">
-        <div>
-          <h4 class="text-base font-semibold text-slate-900">Quote Overview</h4>
-          <p class="text-sm text-slate-500">Operational details, ownership, and approval timeline</p>
-        </div>
-        <div class="approval-preview-meta-grid mt-4">
+        <div class="approval-preview-meta-grid">
           ${renderApprovalMetaItem('Salesperson', `${escapeHtml(approval.salespersonName || approval.salespersonEmail || '-')}${salespersonCode !== '-' ? ` (${escapeHtml(salespersonCode)})` : ''}`)}
           ${renderApprovalMetaItem('Assigned User ID', escapeHtml(assignedUserId))}
+          ${renderApprovalMetaItem('Work Status', escapeHtml(workStatus))}
+          ${renderApprovalMetaItem('Requested Delivery', escapeHtml(formatPreviewDate(requestedDeliveryDate)))}
           ${renderApprovalMetaItem('Contact', escapeHtml(contact))}
           ${renderApprovalMetaItem('Sell-to Phone', escapeHtml(sellToPhoneNo))}
-          ${renderApprovalMetaItem('Branch', escapeHtml(branch))}
-          ${renderApprovalMetaItem('Division', escapeHtml(division))}
-          ${renderApprovalMetaItem('Location Code', escapeHtml(locationCode))}
-          ${renderApprovalMetaItem('Responsibility Center', escapeHtml(responsibilityCenter))}
-          ${renderApprovalMetaItem('Service Order Type', escapeHtml(serviceOrderType))}
-          ${renderApprovalMetaItem('Work Status', escapeHtml(workStatus))}
-          ${renderApprovalMetaItem('Order Date', escapeHtml(formatPreviewDate(orderDate)))}
-          ${renderApprovalMetaItem('Requested Delivery', escapeHtml(formatPreviewDate(requestedDeliveryDate)))}
-          ${renderApprovalMetaItem('Submitted At', escapeHtml(formatPreviewDateTime(approval.submittedForApprovalAt)))}
-          ${renderApprovalMetaItem('Director Action At', escapeHtml(formatPreviewDateTime(approval.salesDirectorActionAt)))}
-          ${renderApprovalMetaItem('Last Updated', escapeHtml(formatPreviewDateTime(approval.updatedAt)))}
-          ${renderApprovalMetaItem('Approver', escapeHtml(approverName))}
           ${renderApprovalMetaItem('Payment Terms', escapeHtml(paymentTerms))}
           ${renderApprovalMetaItem('Payment Method', escapeHtml(paymentMethod))}
           ${renderApprovalMetaItem('Shipment Method', escapeHtml(shipMethod))}
+          ${renderApprovalMetaItem('Service Order Type', escapeHtml(serviceOrderType))}
+          ${renderApprovalMetaItem('Division', escapeHtml(division))}
+          ${renderApprovalMetaItem('Location Code', escapeHtml(locationCode))}
+          ${renderApprovalMetaItem('Resp. Center', escapeHtml(responsibilityCenter))}
+          ${renderApprovalMetaItem('Invoice Discount', formatPreviewMoney(invoiceDiscount))}
+          ${renderApprovalMetaItem('Line Discount', formatPreviewMoney(lineDiscountTotal))}
+          ${renderApprovalMetaItem('VAT', formatPreviewMoney(vatAmount))}
+          ${renderApprovalMetaItem('Visible Lines', formatPreviewNumber(visibleLineCount, 0))}
+          ${renderApprovalMetaItem('Approver', escapeHtml(approverName))}
           ${renderApprovalMetaItem('External Document No.', escapeHtml(externalDocumentNo))}
-          ${renderApprovalMetaItem('Approval Owner', escapeHtml(approval.approvalOwnerEmail || approval.salespersonEmail || '-'))}
+          ${renderApprovalMetaItem('Last Updated', escapeHtml(formatPreviewDateTime(approval.updatedAt)))}
         </div>
-        ${addressParts.length ? `
-          <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Sell-to Address</p>
-            <p class="mt-2 text-sm leading-6 text-slate-700">${escapeHtml(addressParts.join(', '))}</p>
+
+        ${approval.workDescription ? `
+          <div class="approval-preview-print-note">
+            <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Work Description</span>
+            <span class="ml-3 text-sm text-slate-700 whitespace-pre-wrap">${escapeHtml(approval.workDescription)}</span>
           </div>
         ` : ''}
-      </section>
 
-      ${approval.workDescription ? `
-        <section class="approval-preview-section p-5 lg:p-6">
-          <p class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Work Description</p>
-          <p class="mt-3 text-sm leading-6 text-slate-700 whitespace-pre-wrap">${escapeHtml(approval.workDescription)}</p>
-        </section>
-      ` : ''}
+        ${approval.actionComment ? `
+          <div class="approval-preview-inline-comment ${pendingRevisionRequest ? 'is-warning' : 'is-info'}">
+            <span class="text-[11px] font-semibold uppercase tracking-[0.08em] ${pendingRevisionRequest ? 'text-amber-700' : 'text-blue-700'}">${escapeHtml(actionCommentLabel)}</span>
+            <p class="mt-2 text-sm leading-6 whitespace-pre-wrap ${pendingRevisionRequest ? 'text-amber-900' : 'text-blue-900'}">${escapeHtml(approval.actionComment)}</p>
+          </div>
+        ` : ''}
 
-      ${approval.actionComment ? `
-        <section class="approval-preview-section p-5 lg:p-6 ${pendingRevisionRequest ? 'border-amber-200 bg-amber-50/70' : 'border-blue-200 bg-blue-50/70'}">
-          <p class="text-xs font-semibold uppercase tracking-[0.08em] ${pendingRevisionRequest ? 'text-amber-700' : 'text-blue-700'}">${escapeHtml(actionCommentLabel)}</p>
-          <p class="mt-3 text-sm leading-6 whitespace-pre-wrap ${pendingRevisionRequest ? 'text-amber-900' : 'text-blue-900'}">${escapeHtml(approval.actionComment)}</p>
-        </section>
-      ` : ''}
-
-      <section class="approval-preview-section p-5 lg:p-6">
-        <div>
-          <h4 class="text-base font-semibold text-slate-900">Financial Summary</h4>
-          <p class="text-sm text-slate-500">Quick totals to help review the quote before taking action</p>
-        </div>
-        <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <div class="approval-preview-meta-item">
-            <span class="approval-preview-meta-label">Subtotal</span>
-            <span class="approval-preview-meta-value">${formatPreviewMoney(subtotal)}</span>
-          </div>
-          <div class="approval-preview-meta-item">
-            <span class="approval-preview-meta-label">Line Discount Total</span>
-            <span class="approval-preview-meta-value">${formatPreviewMoney(lineDiscountTotal)}</span>
-          </div>
-          <div class="approval-preview-meta-item">
-            <span class="approval-preview-meta-label">Invoice Discount</span>
-            <span class="approval-preview-meta-value">${formatPreviewMoney(invoiceDiscount)}</span>
-          </div>
-          <div class="approval-preview-meta-item">
-            <span class="approval-preview-meta-label">Amount Excluding VAT</span>
-            <span class="approval-preview-meta-value">${formatPreviewMoney(amountExVat)}</span>
-          </div>
-          <div class="approval-preview-meta-item">
-            <span class="approval-preview-meta-label">VAT</span>
-            <span class="approval-preview-meta-value">${formatPreviewMoney(vatAmount)}</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="approval-preview-section p-5 lg:p-6">
-        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h4 class="text-base font-semibold text-slate-900">Line Items</h4>
-            <p class="text-sm text-slate-500">Full quote line breakdown for approval review</p>
-          </div>
-          <div class="text-sm text-slate-500">
-            ${lines.length} line${lines.length === 1 ? '' : 's'} in this quote
-          </div>
-        </div>
-        <div class="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+        <div class="approval-preview-table-wrap">
           <table class="approval-preview-table w-full text-sm">
             <thead class="bg-slate-50 text-slate-600">
               <tr>
@@ -1610,14 +1576,14 @@ function renderQuotePreview(container, quoteData, approval, directorSignature) {
             </tbody>
           </table>
         </div>
-      </section>
 
-      ${directorSignature ? `
-        <section class="approval-preview-section p-5 lg:p-6">
-          <p class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Approved by Sales Director</p>
-          <img src="${directorSignature}" alt="Director Signature" class="mt-3 max-h-20" />
-        </section>
-      ` : ''}
+        ${directorSignature ? `
+          <div class="approval-preview-signature">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Approved by Sales Director</p>
+            <img src="${directorSignature}" alt="Director Signature" class="mt-3 max-h-16" />
+          </div>
+        ` : ''}
+      </section>
     </div>
   `;
 }

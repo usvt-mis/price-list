@@ -641,20 +641,20 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Styles: `approval-styles.css` - Approval-specific UI styles
 - **Approval Preview Modal (Fullscreen Workspace)**:
   - **Purpose**: Provides a calm, professional operational workspace for reviewing and approving Sales Quotes
-  - **Layout**: Fullscreen modal (h-screen w-screen) with sticky header and footer
-  - **Features**:
-    - KPI Cards: Total Amount, Subtotal, Visible Lines count, Service Items count
-    - Meta Grid: Comprehensive quote details (Salesperson, Assigned User ID, Contact, Branch, Division, Location Code, etc.)
-    - Financial Summary: Subtotal, Line Discount Total, Invoice Discount, Amount Excluding VAT, VAT
-    - Line Items Table: Full breakdown with all columns including Print Flags (Show, Header, Footer chips)
-    - Work Description section
-    - Action Comment section (with amber styling for revision requests)
-    - Sales Director Signature display (when approved)
+  - **Layout**: Fullscreen modal (h-screen w-screen) with sheet-style design aligned to print version
+    - **Features**:
+      - Sheet Bar: Title, subtitle, and status badge at top
+      - Hero Section: Customer name, quote number, branch, date, submitted timestamp, address, and financial summary (Total, Subtotal, Line Discount, Invoice Discount, Amount Excluding VAT, VAT)
+      - Meta Grid: Comprehensive quote details (Salesperson, Assigned User ID, Contact, Branch, Division, Location Code, etc.)
+      - Line Items Table: Full breakdown with all columns including Print Flags (Show, Header, Footer chips)
+      - Work Description: Inline section with print note styling
+      - Action Comment: Inline section with amber styling for revision requests, blue for director comments
+      - Sales Director Signature display (when approved)
   - **Helper Functions** (`src/js/salesquotes/approvals.js`):
     - `formatPreviewMoney()` - Format monetary values with 2 decimal places
     - `formatPreviewNumber()` - Format numeric values with configurable decimal places
     - `toPreviewNumber()` - Parse and normalize numeric values with fallback
-    - `formatPreviewDateTime()` - Format date-time values for display
+    - `formatPreviewDateTime()` - Format date-time values for display (used for submitted timestamp)
     - `formatPreviewDate()` - Format date-only values
     - `getPreviewSources()` - Extract data sources from quote data (handles nested structures)
     - `pickPreviewValue()` - Extract value from multiple possible field names with fallback
@@ -671,11 +671,16 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - `.approval-preview-header` - Sticky header with backdrop blur
     - `.approval-preview-content` - Scrollable content area
     - `.approval-preview-actions` - Sticky footer with action buttons
-    - `.approval-preview-section` - Card-style sections with shadows
-    - `.approval-preview-kpi` - KPI cards with gradient backgrounds
+    - `.approval-preview-sheet` - Main sheet container with rounded corners and shadow
+    - `.approval-preview-sheet-bar` - Top bar with title, subtitle, and status badge
+    - `.approval-preview-hero` - Hero section with customer info and financial summary
     - `.approval-preview-meta-grid` - Responsive grid for meta items
     - `.approval-preview-meta-item` - Individual meta item cards
+    - `.approval-preview-table-wrap` - Scrollable table container
     - `.approval-preview-table` - Table styling with nowrap for most columns
+    - `.approval-preview-print-note` - Work description section styling
+    - `.approval-preview-inline-comment` - Action comment section (with is-warning and is-info variants)
+    - `.approval-preview-signature` - Signature section styling
   - **Implementation**: `src/js/salesquotes/approvals.js` - `renderQuotePreview()`, helper functions; `src/salesquotes/components/modals/approval-preview-modal.html`; `src/salesquotes/components/styles/approval-styles.css`
 - **Integration with Quote Creation**:
   - After quote creation/update, approval records are automatically initialized with SubmittedToBC status
