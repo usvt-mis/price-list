@@ -667,16 +667,16 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - Sticky header and footer with backdrop blur for easy navigation
   - **Responsive Design**: Mobile-friendly with adjusted padding on small screens
   - **Styling** (`approval-styles.css`):
-    - `.approval-preview-panel` - Gradient background with ambient effects and overflow containment
+    - `.approval-preview-panel` - Gradient background with ambient effects and overflow containment (min-height: 0)
     - `.approval-preview-header` - Sticky header with backdrop blur
-    - `.approval-preview-content` - Flexbox-based scrollable content area with proper overflow handling
+    - `.approval-preview-content` - Flexbox-based content area with proper overflow handling (flex: 1 1 auto, overflow: hidden)
     - `.approval-preview-actions` - Sticky footer with action buttons
-    - `.approval-preview-sheet` - Main sheet container with rounded corners, shadow, and min-height constraints
+    - `.approval-preview-sheet` - Main sheet container with grid layout (grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto), rounded corners, shadow, and min-height constraints
     - `.approval-preview-sheet-bar` - Top bar with title, subtitle, and status badge
     - `.approval-preview-hero` - Hero section with customer info and financial summary
     - `.approval-preview-meta-grid` - Responsive grid for meta items
     - `.approval-preview-meta-item` - Individual meta item cards
-    - `.approval-preview-table-wrap` - Scrollable table container with full-height constraints and overscroll containment
+    - `.approval-preview-table-wrap` - Scrollable table container with flex layout (flex: 1 1 auto), overscroll containment, and mobile touch scrolling (-webkit-overflow-scrolling: touch)
     - `.approval-preview-table` - Table styling with nowrap for most columns and min-width for content
     - `.approval-preview-print-note` - Work description section styling
     - `.approval-preview-inline-comment` - Action comment section (with is-warning and is-info variants)
