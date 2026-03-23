@@ -114,8 +114,8 @@ function setRecordsLoadingState(isLoading) {
 
   banner?.classList.toggle('hidden', !isLoading);
 
-  if (count) {
-    count.textContent = isLoading ? 'Loading...' : '0';
+  if (count && isLoading) {
+    count.textContent = 'Loading...';
   }
 
   [refreshButton, searchButton].forEach((button) => {

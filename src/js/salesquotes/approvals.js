@@ -133,8 +133,8 @@ function setPendingApprovalsLoadingState(isLoading) {
 
   banner?.classList.toggle('hidden', !isLoading);
 
-  if (countEl) {
-    countEl.textContent = isLoading ? 'Loading...' : '0';
+  if (countEl && isLoading) {
+    countEl.textContent = 'Loading...';
   }
 
   if (refreshButton) {
@@ -150,8 +150,8 @@ function setMyApprovalsLoadingState(isLoading) {
 
   banner?.classList.toggle('hidden', !isLoading);
 
-  if (countEl) {
-    countEl.textContent = isLoading ? 'Loading...' : '0';
+  if (countEl && isLoading) {
+    countEl.textContent = 'Loading...';
   }
 }
 

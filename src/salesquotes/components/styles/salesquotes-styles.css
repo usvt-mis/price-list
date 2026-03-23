@@ -1792,8 +1792,8 @@ button:disabled:hover {
 
 .quote-created-modal,
 .sales-alert-modal {
-  background: rgba(28, 41, 36, 0.32);
-  backdrop-filter: blur(10px);
+  background: rgba(31, 45, 40, 0.24);
+  backdrop-filter: blur(12px);
 }
 
 .quote-created-dialog,
@@ -1801,9 +1801,9 @@ button:disabled:hover {
   display: flex;
   min-height: 100vh;
   min-height: 100dvh;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 1rem;
+  padding: clamp(2rem, 8vh, 4.5rem) 1rem 1.25rem;
 }
 
 .quote-created-panel,
@@ -1833,13 +1833,20 @@ button:disabled:hover {
   width: min(100%, 32rem);
   transition: opacity 0.18s ease, transform 0.18s ease;
   position: relative;
+  border-color: rgba(185, 200, 191, 0.95);
+  border-radius: 1.2rem;
+  background:
+    linear-gradient(180deg, rgba(248, 251, 249, 0.98) 0%, rgba(241, 246, 243, 0.97) 100%);
+  box-shadow:
+    0 18px 38px rgba(32, 49, 43, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.75) inset;
 }
 
 .sales-alert-panel::before {
   position: absolute;
   inset: 0 0 auto 0;
-  height: 4px;
-  background: linear-gradient(90deg, #9db9af 0%, var(--sq-accent) 55%, #7c9f95 100%);
+  height: 3px;
+  background: linear-gradient(90deg, rgba(157, 185, 175, 0.88) 0%, rgba(47, 111, 104, 0.82) 58%, rgba(124, 159, 149, 0.82) 100%);
   content: "";
 }
 
@@ -1854,8 +1861,10 @@ button:disabled:hover {
 }
 
 .sales-alert-header {
-  background: linear-gradient(180deg, rgba(237, 244, 240, 0.92) 0%, rgba(246, 249, 247, 0.98) 100%);
-  border-bottom: 1px solid rgba(211, 221, 214, 0.9);
+  padding: 1.45rem 1.35rem 0.95rem;
+  background:
+    linear-gradient(180deg, rgba(232, 240, 235, 0.94) 0%, rgba(244, 248, 246, 0.98) 100%);
+  border-bottom: 1px solid rgba(211, 221, 214, 0.75);
 }
 
 .quote-created-header {
@@ -2164,17 +2173,19 @@ button:disabled:hover {
 
 .sales-alert-body {
   display: grid;
-  gap: 0.75rem;
-  padding: 0 1.25rem 1rem;
-  background: linear-gradient(180deg, rgba(249, 251, 250, 0.72) 0%, rgba(244, 248, 246, 0.94) 100%);
+  gap: 0.85rem;
+  padding: 0 1.35rem 1.1rem;
+  background: linear-gradient(180deg, rgba(247, 250, 248, 0.78) 0%, rgba(242, 247, 244, 0.95) 100%);
 }
 
 .sales-alert-section {
-  border: 1px solid rgba(211, 221, 214, 0.92);
-  border-radius: 0.95rem;
-  background: rgba(255, 255, 255, 0.72);
-  padding: 0.85rem 1rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(211, 221, 214, 0.84);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 0.95rem 1rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 8px 18px rgba(32, 49, 43, 0.04);
 }
 
 .sales-alert-section-warning {
@@ -2377,7 +2388,8 @@ button:disabled:hover {
 
   .quote-created-dialog,
   .sales-alert-dialog {
-    padding: 0.75rem;
+    align-items: flex-start;
+    padding: 1.25rem 0.75rem 0.9rem;
   }
 
   .quote-created-panel,
@@ -2387,7 +2399,7 @@ button:disabled:hover {
 
   .quote-created-header,
   .sales-alert-header {
-    padding: 1rem 1rem 0.75rem;
+    padding: 1.1rem 1rem 0.8rem;
   }
 
   .quote-created-title,

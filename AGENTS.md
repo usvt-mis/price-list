@@ -173,6 +173,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - **Links/Actions**: `.sq-link-action` for clickable elements
   - **Chips**: `.sq-chip`, `.sq-chip-warning` for status indicators
   - **Buttons**: `.sq-btn-primary`, `.sq-btn-secondary`, `.sq-btn-danger` with hover states
+  - **Modals**: Enhanced modal styling with improved positioning and visual design
+    - `.quote-created-modal`, `.sales-alert-modal` - Overlay with backdrop blur
+    - `.quote-created-panel`, `.sales-alert-panel` - Panel with gradient backgrounds and improved shadows
+    - `.sales-alert-header` - Header section with gradient background
+    - `.sales-alert-body` - Body section with improved spacing and shadows
+    - `.sales-alert-section` - Content sections with subtle borders and shadows
+    - Responsive design with `clamp()` for padding and improved mobile experience
   - **Toasts**: Modern toast notification system with:
     - `.salesquotes-toast-stack` - Container for toast positioning (fixed bottom-right)
     - `.toast` - Base toast component with grid layout and gradient background
@@ -399,6 +406,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Automatic pagination handling by html2pdf.js (avoids manual multi-page detection)
   - Temporary DOM container created for rendering, cleaned up after PDF generation
   - Toast notifications show "Generating PDF..." during generation and success message when complete
+- **Pagination Improvements**: Enhanced line item pagination for better document density
+  - Target: 17 standard rows per page (increased from 14) to match BC document density
+  - Reserved footer height: 112mm (increased from 102mm) for proper spacing
+  - Footer positioning: 10mm from bottom for consistent layout
+  - Totals label alignment offset: -2mm for improved visual alignment
+  - Multi-page totals: Only show total values on the last page, hide on intermediate pages
+  - Implementation: `chunkLineItemsForPages()`, `renderTotalsRows()`, `buildPageFooter()` in `src/js/salesquotes/print-quote.js`
 - Sections: Top Bar (logo, company info), Title (certifications), Meta Table, Line Items, Footer Band, Remark & Job, Signatures, Document Footer
 - Data: Branch-specific `BRANCH_HEADER_MAP` (Thai/English), BC customer/quote/line data, signature images
 - **Certification Logos**: Support for multiple certification logos with special styling
@@ -424,7 +438,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Dynamic meta table column adjustment based on address width
 - **Meta Table Layout**: Fixed-width classes for right-meta labels (meta-fixed-width: 13ch), `shifted` class with differentiated positioning (labels: -21mm left, values: -12mm left), attentionTelBlockOffsetXMm/YMm using relative positioning instead of transform
 - **Delivery Date Field**: Uses `reportContext.deliveryDate` for delivery text in meta table
-- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `buildPrintHtml()`
+- Helper functions: `buildModel()`, `buildBranchHeaderLines()`, `buildPrintableLines()`, `buildTotals()`, `renderMetaRows()`, `renderLineRows()`, `renderTotalsRows()`, `buildPrintHtml()`
 - Normalization: `escapeHtml()`, `asNumber()`, `resolveLineAmount()`, `formatDate()`, `formatQty()`, `formatMoneyOrIncluded()`, `resolveMetaTableColumnWidths()`
 - **Library**: `html2pdf.js` (^0.14.0) - Client-side PDF generation from HTML content
 
@@ -624,6 +638,16 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 
 ### Backoffice User Management
 - Backoffice interface for managing user roles and permissions
+- **Theming System**: CSS variable-based design system with `--bo-*` prefix for consistent theming
+  - Colors: `--bo-bg`, `--bo-surface`, `--bo-accent`, `--bo-text`, `--bo-border`, etc.
+  - Surfaces: Gradients and blur effects for modern glassmorphism look
+  - Shadows: `--bo-shadow-sm/md/lg` for depth and hierarchy
+  - Radius: `--bo-radius-lg/xl` for consistent corner rounding
+  - Component classes: `.backoffice-shell`, `.backoffice-panel`, `.backoffice-table-shell`, `.backoffice-toolbar`, `.backoffice-note`
+  - Status badges: `.bo-status-badge-*` (success, warning, danger, info, neutral)
+  - Chips: `.bo-chip`, `.bo-chip-info`, `.bo-chip-warning`, `.bo-chip-branch`, `.bo-chip-neutral`
+  - Action buttons: `.bo-action-btn`, `.bo-action-btn-danger` with hover states
+  - Implementation: `src/backoffice.html` - CSS variables and component classes
 - **Tabs**: Executives, Sales, Sales Directors, Customers, Audit, Deletion, Settings, Signatures, Sales Director Signature
 - **Sales Directors Tab**: Dedicated tab for managing Sales Director role assignments
   - Add Sales Directors via email input with validation

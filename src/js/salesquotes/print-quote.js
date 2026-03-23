@@ -107,6 +107,7 @@ const DEFAULT_DOC_CODE = 'CS-FM-RY-004 Rev.00';
 const DEFAULT_PAGE_LABEL = 'หน้า 1/1';
 const PRINT_LAYOUT_SETTINGS_API = '/api/salesquotes/print-layout-settings';
 const APPROVER_DETAIL_COLUMN_GAP_MM = 6.8;
+const TOTALS_LABEL_ALIGNMENT_OFFSET_MM = -2;
 const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   baseFontSize: 11.4,
   companyThaiFontSize: 15.5,
@@ -1127,12 +1128,11 @@ function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
   let startIndex = 0;
   let currentHeight = 0;
 
-  // All pages have: full header (topbar + title + certs) + meta table + line table header
-  // All pages have footer (disclaimer, remark, totals, signatures)
-  // Target: ~14 items per page = 14 × 8.5mm = 119mm
-  const footerHeight = 95;
-  const targetLineItemSpace = 120; // mm
-  const pageWithFooterAvailable = targetLineItemSpace;
+  // Keep the footer area untouched, but let normal rows use more of the real
+  // printable space so we can match the BC document density more closely.
+  const targetNormalRowsPerPage = 17;
+  const targetLineItemSpace = targetNormalRowsPerPage * 8.5; // 17 standard rows
+  const pageWithFooterAvailable = Math.min(pageHeights.lastPage, targetLineItemSpace);
 
   // Debug: log the calculated values
   console.log('[Chunk Debug] Page with footer available:', pageWithFooterAvailable.toFixed(2), 'mm');
@@ -1275,7 +1275,19 @@ function buildPageHeader(model, settings, pageNumber, totalPages, headerType = '
 /**
  * Build page footer HTML (none, partial, or full)
  */
-function buildPageFooter(model, settings, totals, footerType = 'full') {
+function renderTotalsRows(totals, vatLabel, showValues = true) {
+  const getAmountMarkup = (value) => (showValues ? escapeHtml(formatCurrency(value)) : '&nbsp;');
+
+  return `
+                <tr><td class="label-cell"><span class="totals-label-text">Total</span></td><td class="amount">${getAmountMarkup(totals.subtotal)}</td></tr>
+                <tr><td class="label-cell"><span class="totals-label-text">Trade Discount</span></td><td class="amount">${getAmountMarkup(totals.tradeDiscount)}</td></tr>
+                <tr><td class="label-cell"><span class="totals-label-text">Sub Total</span></td><td class="amount">${getAmountMarkup(totals.afterDiscount)}</td></tr>
+                <tr><td class="label-cell"><span class="totals-label-text">${escapeHtml(vatLabel)}</span></td><td class="amount">${getAmountMarkup(totals.vatAmount)}</td></tr>
+                <tr><td class="label-cell"><span class="totals-label-text">Grand Total</span></td><td class="amount">${getAmountMarkup(totals.grandTotal)}</td></tr>`;
+}
+
+function buildPageFooter(model, settings, totals, footerType = 'full', options = {}) {
+  const { showTotalValues = true } = options;
   const remarkMarkup = model.bottomRemark
     ? escapeHtml(model.bottomRemark)
     : '&nbsp;';
@@ -1374,11 +1386,7 @@ function buildPageFooter(model, settings, totals, footerType = 'full') {
             </div>
             <div class="totals-panel">
               <table class="totals">
-                <tr><td class="label-cell"><span class="totals-label-text">Total</span></td><td class="amount">${escapeHtml(formatCurrency(totals.subtotal))}</td></tr>
-                <tr><td class="label-cell"><span class="totals-label-text">Trade Discount</span></td><td class="amount">${escapeHtml(formatCurrency(totals.tradeDiscount))}</td></tr>
-                <tr><td class="label-cell"><span class="totals-label-text">Sub Total</span></td><td class="amount">${escapeHtml(formatCurrency(totals.afterDiscount))}</td></tr>
-                <tr><td class="label-cell"><span class="totals-label-text">${escapeHtml(model.vatLabel)}</span></td><td class="amount">${escapeHtml(formatCurrency(totals.vatAmount))}</td></tr>
-                <tr><td class="label-cell"><span class="totals-label-text">Grand Total</span></td><td class="amount">${escapeHtml(formatCurrency(totals.grandTotal))}</td></tr>
+                ${renderTotalsRows(totals, model.vatLabel, showTotalValues)}
               </table>
             </div>
           </div>
@@ -1446,7 +1454,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
   const metaRowsMarkup = renderMetaRows(model, customerAddressLines, deliveryAddressLines);
   const metaColumnWidths = resolveMetaTableColumnWidths(settings);
   const signatureSignHeightMm = Math.max(settings.signatureSignMinHeightMm, 22);
-  const reservedFooterHeightMm = 102;
+  const reservedFooterHeightMm = 112;
 
   // Chunk line items into pages
   const pageChunks = chunkLineItemsForPages(model.lineItems, settings, true);
@@ -1498,7 +1506,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
       </table>
     </div>
 
-    ${buildPageFooter(model, settings, model.totals, 'full')}
+    ${buildPageFooter(model, settings, model.totals, 'full', { showTotalValues: isLastPage })}
   </div>`;
   }
 
@@ -1677,7 +1685,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
       position: absolute;
       left: 9mm;
       right: 9mm;
-      bottom: 0;
+      bottom: 10mm;
       margin-top: 0;
       padding-top: 6.6mm;
       max-width: calc(100% - 18mm);
@@ -1702,7 +1710,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .totals td { padding: 0.35mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 700; line-height: 1.35; vertical-align: top; }
     .totals .label-cell { width: 56%; white-space: nowrap; padding-right: 4.5mm; }
     .totals .amount { width: 44%; text-align: right; white-space: nowrap; font-weight: 400; }
-    .totals-label-text { display: inline-block; transform: translateX(${settings.totalsOffsetXMm}mm); }
+    .totals-label-text { display: inline-block; transform: translateX(${settings.totalsOffsetXMm + TOTALS_LABEL_ALIGNMENT_OFFSET_MM}mm); }
     .remark-section { margin-top: 3.1mm; font-size: ${settings.remarkFontSize}px; }
     .remark-row,
     .job-row {
@@ -1823,7 +1831,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
   const companyLineFontSize = Math.max(settings.baseFontSize - 0.8, 9);
   const pageNoFontSize = Math.max(settings.baseFontSize - 0.3, 9);
   const signatureSignHeightMm = Math.max(settings.signatureSignMinHeightMm, 22);
-  const reservedFooterHeightMm = 102;
+  const reservedFooterHeightMm = 112;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1996,7 +2004,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       position: absolute;
       left: 9mm;
       right: 9mm;
-      bottom: 0;
+      bottom: 10mm;
       margin-top: 0;
       padding-top: 6.6mm;
       max-width: calc(100% - 18mm);
@@ -2016,7 +2024,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .totals td { padding: 0.35mm 0; font-size: ${settings.totalsFontSize}px; font-weight: 700; line-height: 1.35; vertical-align: top; }
     .totals .label-cell { width: 56%; white-space: nowrap; padding-right: 4.5mm; }
     .totals .amount { width: 44%; text-align: right; white-space: nowrap; font-weight: 400; }
-    .totals-label-text { display: inline-block; transform: translateX(${settings.totalsOffsetXMm}mm); }
+    .totals-label-text { display: inline-block; transform: translateX(${settings.totalsOffsetXMm + TOTALS_LABEL_ALIGNMENT_OFFSET_MM}mm); }
     .remark-section { margin-top: 3.1mm; font-size: ${settings.remarkFontSize}px; }
     .remark-row,
     .job-row {
