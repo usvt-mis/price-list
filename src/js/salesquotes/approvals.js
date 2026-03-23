@@ -1304,9 +1304,12 @@ export async function openApprovalPreviewModal(quoteNumber) {
 
     // Move modal to end of container for proper stacking
     modalContainer.appendChild(modal);
+    if (typeof modal.showModal === 'function') {
+      modal.showModal();
+    }
     modal.querySelector('#btnCloseApprovalPreview')?.addEventListener('click', closeApprovalPreviewModal);
     modal.addEventListener('click', (event) => {
-      if (event.target === modal) {
+      if (event.target === modal && typeof modal.close !== 'function') {
         closeApprovalPreviewModal();
       }
     });
@@ -1335,6 +1338,9 @@ export function closeApprovalPreviewModal() {
   modal.classList.add('opacity-0');
 
   setTimeout(() => {
+    if (typeof modal.close === 'function' && modal.open) {
+      modal.close();
+    }
     modal.remove();
     currentPreviewQuoteNumber = null;
   }, 300);
@@ -1495,41 +1501,54 @@ function renderQuotePreview(container, quoteData, approval, directorSignature) {
           </div>
         </div>
 
-        <div class="approval-preview-meta-grid">
-          ${renderApprovalMetaItem('Salesperson', `${escapeHtml(approval.salespersonName || approval.salespersonEmail || '-')}${salespersonCode !== '-' ? ` (${escapeHtml(salespersonCode)})` : ''}`)}
-          ${renderApprovalMetaItem('Assigned User ID', escapeHtml(assignedUserId))}
-          ${renderApprovalMetaItem('Work Status', escapeHtml(workStatus))}
-          ${renderApprovalMetaItem('Requested Delivery', escapeHtml(formatPreviewDate(requestedDeliveryDate)))}
-          ${renderApprovalMetaItem('Contact', escapeHtml(contact))}
-          ${renderApprovalMetaItem('Sell-to Phone', escapeHtml(sellToPhoneNo))}
-          ${renderApprovalMetaItem('Payment Terms', escapeHtml(paymentTerms))}
-          ${renderApprovalMetaItem('Payment Method', escapeHtml(paymentMethod))}
-          ${renderApprovalMetaItem('Shipment Method', escapeHtml(shipMethod))}
-          ${renderApprovalMetaItem('Service Order Type', escapeHtml(serviceOrderType))}
-          ${renderApprovalMetaItem('Division', escapeHtml(division))}
-          ${renderApprovalMetaItem('Location Code', escapeHtml(locationCode))}
-          ${renderApprovalMetaItem('Resp. Center', escapeHtml(responsibilityCenter))}
-          ${renderApprovalMetaItem('Invoice Discount', formatPreviewMoney(invoiceDiscount))}
-          ${renderApprovalMetaItem('Line Discount', formatPreviewMoney(lineDiscountTotal))}
-          ${renderApprovalMetaItem('VAT', formatPreviewMoney(vatAmount))}
-          ${renderApprovalMetaItem('Visible Lines', formatPreviewNumber(visibleLineCount, 0))}
-          ${renderApprovalMetaItem('Approver', escapeHtml(approverName))}
-          ${renderApprovalMetaItem('External Document No.', escapeHtml(externalDocumentNo))}
-          ${renderApprovalMetaItem('Last Updated', escapeHtml(formatPreviewDateTime(approval.updatedAt)))}
-        </div>
+        <details class="approval-preview-collapsible">
+          <summary>Quote Details</summary>
+          <div class="approval-preview-collapsible-body">
+            <div class="approval-preview-meta-grid">
+              ${renderApprovalMetaItem('Salesperson', `${escapeHtml(approval.salespersonName || approval.salespersonEmail || '-')}${salespersonCode !== '-' ? ` (${escapeHtml(salespersonCode)})` : ''}`)}
+              ${renderApprovalMetaItem('Assigned User ID', escapeHtml(assignedUserId))}
+              ${renderApprovalMetaItem('Work Status', escapeHtml(workStatus))}
+              ${renderApprovalMetaItem('Requested Delivery', escapeHtml(formatPreviewDate(requestedDeliveryDate)))}
+              ${renderApprovalMetaItem('Contact', escapeHtml(contact))}
+              ${renderApprovalMetaItem('Sell-to Phone', escapeHtml(sellToPhoneNo))}
+              ${renderApprovalMetaItem('Payment Terms', escapeHtml(paymentTerms))}
+              ${renderApprovalMetaItem('Payment Method', escapeHtml(paymentMethod))}
+              ${renderApprovalMetaItem('Shipment Method', escapeHtml(shipMethod))}
+              ${renderApprovalMetaItem('Service Order Type', escapeHtml(serviceOrderType))}
+              ${renderApprovalMetaItem('Division', escapeHtml(division))}
+              ${renderApprovalMetaItem('Location Code', escapeHtml(locationCode))}
+              ${renderApprovalMetaItem('Resp. Center', escapeHtml(responsibilityCenter))}
+              ${renderApprovalMetaItem('Invoice Discount', formatPreviewMoney(invoiceDiscount))}
+              ${renderApprovalMetaItem('Line Discount', formatPreviewMoney(lineDiscountTotal))}
+              ${renderApprovalMetaItem('VAT', formatPreviewMoney(vatAmount))}
+              ${renderApprovalMetaItem('Visible Lines', formatPreviewNumber(visibleLineCount, 0))}
+              ${renderApprovalMetaItem('Approver', escapeHtml(approverName))}
+              ${renderApprovalMetaItem('External Document No.', escapeHtml(externalDocumentNo))}
+              ${renderApprovalMetaItem('Last Updated', escapeHtml(formatPreviewDateTime(approval.updatedAt)))}
+            </div>
+          </div>
+        </details>
 
         ${approval.workDescription ? `
-          <div class="approval-preview-print-note">
-            <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Work Description</span>
-            <span class="ml-3 text-sm text-slate-700 whitespace-pre-wrap">${escapeHtml(approval.workDescription)}</span>
-          </div>
+          <details class="approval-preview-collapsible">
+            <summary>Work Description</summary>
+            <div class="approval-preview-collapsible-body">
+              <div class="approval-preview-print-note rounded-xl border border-slate-200">
+                <p class="text-sm text-slate-700 whitespace-pre-wrap">${escapeHtml(approval.workDescription)}</p>
+              </div>
+            </div>
+          </details>
         ` : ''}
 
         ${approval.actionComment ? `
-          <div class="approval-preview-inline-comment ${pendingRevisionRequest ? 'is-warning' : 'is-info'}">
-            <span class="text-[11px] font-semibold uppercase tracking-[0.08em] ${pendingRevisionRequest ? 'text-amber-700' : 'text-blue-700'}">${escapeHtml(actionCommentLabel)}</span>
-            <p class="mt-2 text-sm leading-6 whitespace-pre-wrap ${pendingRevisionRequest ? 'text-amber-900' : 'text-blue-900'}">${escapeHtml(approval.actionComment)}</p>
-          </div>
+          <details class="approval-preview-collapsible is-comment">
+            <summary>${escapeHtml(actionCommentLabel.replace(':', ''))}</summary>
+            <div class="approval-preview-collapsible-body">
+              <div class="approval-preview-inline-comment rounded-xl border ${pendingRevisionRequest ? 'is-warning border-amber-200' : 'is-info border-blue-200'}">
+                <p class="text-sm leading-6 whitespace-pre-wrap ${pendingRevisionRequest ? 'text-amber-900' : 'text-blue-900'}">${escapeHtml(approval.actionComment)}</p>
+              </div>
+            </div>
+          </details>
         ` : ''}
 
         <div class="approval-preview-table-wrap">

@@ -203,6 +203,43 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   <div id="addLineModalContent" class="salesquotes-modal-shell bg-white rounded-2xl shadow-2xl max-w-4xl w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
   ```
 
+### Native Dialog Element Pattern
+- **Purpose**: Use native HTML `<dialog>` element for improved accessibility, focus management, and keyboard handling
+- **Benefits**:
+  - Built-in accessibility features (ARIA attributes, focus trapping, keyboard navigation)
+  - Native `showModal()` and `close()` methods for programmatic control
+  - `cancel` event for Escape key handling (prevents default close behavior)
+  - `::backdrop` pseudo-element for styling the modal backdrop
+  - Automatic top-layer rendering for proper z-index stacking
+- **Implementation**:
+  - Replace `<div role="dialog">` with `<dialog>` element
+  - Use `modal.showModal()` to open and `modal.close()` to close
+  - Listen for `cancel` event to prevent default close behavior
+  - Style `::backdrop` for backdrop overlay effect
+  - Use `getBoundingClientRect()` for click-outside-to-close detection
+- **Applied to**: Approval Preview Modal (`src/salesquotes/components/modals/approval-preview-modal.html`)
+- **Example**:
+  ```html
+  <dialog id="approvalPreviewModal" class="approval-preview-dialog opacity-0 transition-opacity duration-300">
+    <!-- Modal content -->
+  </dialog>
+  ```
+  ```javascript
+  // Open modal
+  if (typeof modal.showModal === 'function') {
+    modal.showModal();
+  }
+  // Close modal
+  if (typeof modal.close === 'function' && modal.open) {
+    modal.close();
+  }
+  // Handle cancel event (Escape key)
+  modal.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    closeApprovalPreviewModal();
+  });
+  ```
+
 ### Sales Quotes CSS Variable Design System
 - **Purpose**: Provides consistent theming and maintainability across the Sales Quotes interface
 - **Implementation**: CSS variables defined in `src/salesquotes/components/styles/salesquotes-styles.css` with `--sq-*` prefix
@@ -641,14 +678,15 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Styles: `approval-styles.css` - Approval-specific UI styles
 - **Approval Preview Modal (Fullscreen Workspace)**:
   - **Purpose**: Provides a calm, professional operational workspace for reviewing and approving Sales Quotes
-  - **Layout**: Fullscreen modal (h-screen w-screen) with sheet-style design aligned to print version
+  - **Layout**: Fullscreen modal using native HTML `<dialog>` element with sheet-style design aligned to print version
+  - **Native Dialog Element**: Uses `<dialog>` element for improved accessibility, focus management, and native Escape key handling
     - **Features**:
       - Sheet Bar: Title, subtitle, and status badge at top
       - Hero Section: Customer name, quote number, branch, date, submitted timestamp, address, and financial summary (Total, Subtotal, Line Discount, Invoice Discount, Amount Excluding VAT, VAT)
-      - Meta Grid: Comprehensive quote details (Salesperson, Assigned User ID, Contact, Branch, Division, Location Code, etc.)
+      - Collapsible Quote Details: Meta Grid with comprehensive quote details (Salesperson, Assigned User ID, Contact, Branch, Division, Location Code, etc.) wrapped in `<details>` element
       - Line Items Table: Full breakdown with all columns including Print Flags (Show, Header, Footer chips)
-      - Work Description: Inline section with print note styling
-      - Action Comment: Inline section with amber styling for revision requests, blue for director comments
+      - Collapsible Work Description: Wrapped in `<details>` element with print note styling
+      - Collapsible Action Comment: Wrapped in `<details>` element with amber styling for revision requests, blue for director comments
       - Sales Director Signature display (when approved)
   - **Helper Functions** (`src/js/salesquotes/approvals.js`):
     - `formatPreviewMoney()` - Format monetary values with 2 decimal places
@@ -663,23 +701,30 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - `renderPreviewFlags()` - Render print flag chips (Show, Header, Footer)
   - **Interaction**:
     - Close button in header
-    - Click-outside-to-close functionality
+    - Native `cancel` event for Escape key handling (prevents default dialog close behavior)
+    - Click-outside-to-close functionality using `getBoundingClientRect()` for accurate detection
     - Sticky header and footer with backdrop blur for easy navigation
   - **Responsive Design**: Mobile-friendly with adjusted padding on small screens
   - **Styling** (`approval-styles.css`):
+    - `#approvalPreviewModal` - Native dialog element styling with transparent background, full viewport dimensions, and backdrop filter
+    - `#approvalPreviewModal::backdrop` - Backdrop overlay with blur effect (rgba(15, 23, 42, 0.45))
     - `.approval-preview-panel` - Gradient background with ambient effects and overflow containment (min-height: 0)
     - `.approval-preview-header` - Sticky header with backdrop blur
-    - `.approval-preview-content` - Flexbox-based content area with proper overflow handling (flex: 1 1 auto, overflow: hidden)
+    - `.approval-preview-content` - Flexbox-based content area with proper overflow handling (flex: 1 1 auto, overflow-y: auto, overflow-x: hidden)
     - `.approval-preview-actions` - Sticky footer with action buttons
-    - `.approval-preview-sheet` - Main sheet container with grid layout (grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto), rounded corners, shadow, and min-height constraints
+    - `.approval-preview-sheet` - Main sheet container with grid layout (grid-template-rows: auto auto auto auto auto auto auto), rounded corners, shadow, and min-height constraints
     - `.approval-preview-sheet-bar` - Top bar with title, subtitle, and status badge
     - `.approval-preview-hero` - Hero section with customer info and financial summary
-    - `.approval-preview-meta-grid` - Responsive grid for meta items
+    - `.approval-preview-meta-grid` - Responsive grid for meta items (inside collapsible Quote Details)
     - `.approval-preview-meta-item` - Individual meta item cards
-    - `.approval-preview-table-wrap` - Scrollable table container with flex layout (flex: 1 1 auto), overscroll containment, and mobile touch scrolling (-webkit-overflow-scrolling: touch)
+    - `.approval-preview-table-wrap` - Scrollable table container (overflow-x: auto, overflow-y: visible)
     - `.approval-preview-table` - Table styling with nowrap for most columns and min-width for content
-    - `.approval-preview-print-note` - Work description section styling
-    - `.approval-preview-inline-comment` - Action comment section (with is-warning and is-info variants)
+    - `.approval-preview-collapsible` - Collapsible section styling with bottom border and white background
+    - `.approval-preview-collapsible summary` - Summary element with cursor pointer, uppercase styling, and +/- indicator
+    - `.approval-preview-collapsible-body` - Body content of collapsible sections
+    - `.approval-preview-collapsible.is-comment` - Special styling for comment collapsible sections
+    - `.approval-preview-print-note` - Work description section styling (inside collapsible)
+    - `.approval-preview-inline-comment` - Action comment section (inside collapsible, with is-warning and is-info variants)
     - `.approval-preview-signature` - Signature section styling
   - **Implementation**: `src/js/salesquotes/approvals.js` - `renderQuotePreview()`, helper functions; `src/salesquotes/components/modals/approval-preview-modal.html`; `src/salesquotes/components/styles/approval-styles.css`
 - **Integration with Quote Creation**:
