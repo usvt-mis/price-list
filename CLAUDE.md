@@ -496,6 +496,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Persistence to `SalesQuoteUserPreferences` (key: `quote-line-columns`)
 - Reset button, layout hint with status messages
 - Syncs with fullscreen table modal
+- **Column Configuration**: `QUOTE_LINE_COLUMNS` constant in `src/js/salesquotes/ui.js` defines column properties (id, label, width, cellClass, render function)
+  - Description column width: 480px (optimized for readability of long descriptions)
+  - Other columns have fixed widths for consistent layout
 
 ### Sales Quotes Approval Workflow
 - Multi-stage approval workflow for Sales Quotes requiring director/executive approval

@@ -741,7 +741,7 @@ const QUOTE_LINE_COLUMNS = [
   {
     id: 'description',
     label: 'Description',
-    width: '350px',
+    width: '480px',
     cellClass: 'text-sm',
     render: (line) => line.description || ''
   },
