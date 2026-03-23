@@ -173,7 +173,17 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - **Links/Actions**: `.sq-link-action` for clickable elements
   - **Chips**: `.sq-chip`, `.sq-chip-warning` for status indicators
   - **Buttons**: `.sq-btn-primary`, `.sq-btn-secondary`, `.sq-btn-danger` with hover states
-  - **Toasts**: `.toast`, `.toast-success`, `.toast-error`, `.toast-info` for notifications
+  - **Toasts**: Modern toast notification system with:
+    - `.salesquotes-toast-stack` - Container for toast positioning (fixed bottom-right)
+    - `.toast` - Base toast component with grid layout and gradient background
+    - `.toast-accent` - Left accent bar with gradient color
+    - `.toast-icon-wrap` - Circular icon container with gradient background
+    - `.toast-copy` - Message container wrapper
+    - `.toast-label` - Uppercase label text (e.g., "SUCCESS", "ERROR")
+    - `.toast-message` - Main message text
+    - `.toast-success`, `.toast-error`, `.toast-info` - Variant-specific accent and icon colors
+    - `@keyframes salesquotes-toast-in` - Slide-in animation
+    - ARIA accessibility: `aria-live="polite"`, `aria-atomic="true"` on toast container
 - **Benefits**:
   - Centralized theme management - change colors in one place
   - Consistent visual language across all Sales Quotes components
