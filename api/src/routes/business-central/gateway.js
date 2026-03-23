@@ -60,6 +60,12 @@ const GATEWAY_ENDPOINTS = {
     keyEnv: 'USQ_KEY',
     fallbackKeyEnvs: ['CSQWN_KEY'],
     method: 'POST'
+  },
+  patchSalesQuote: {
+    defaultPath: 'PatchSalesQuote',
+    pathEnv: 'PSQ_PATH',
+    keyEnv: 'PSQ_KEY',
+    method: 'POST'
   }
 };
 
@@ -321,6 +327,10 @@ router.get('/sales-quotes/from-number', (req, res, next) => {
 
 router.post('/update-sales-quote', (req, res, next) => {
   proxyGatewayRequest(req, res, next, 'updateSalesQuote', 'UpdateSalesQuote');
+});
+
+router.post('/patch-sales-quote', (req, res, next) => {
+  proxyGatewayRequest(req, res, next, 'patchSalesQuote', 'PatchSalesQuote');
 });
 
 module.exports = router;

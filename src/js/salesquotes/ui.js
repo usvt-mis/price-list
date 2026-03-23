@@ -201,13 +201,32 @@ export function showToast(message, type = 'success') {
 
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
+  toast.setAttribute('role', 'status');
 
-  // Add icon based on type
-  const icon = type === 'success'
-    ? '<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
-    : '<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+  const toastConfig = {
+    success: {
+      label: 'Saved',
+      icon: '<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.85" d="M9 12.75l2 2 4-4m5 1.25a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+    },
+    error: {
+      label: 'Needs attention',
+      icon: '<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.85" d="M12 9v3.75m0 3h.008v.008H12v-.008zm8.25-.75a8.25 8.25 0 11-16.5 0 8.25 8.25 0 0116.5 0z"></path></svg>'
+    },
+    info: {
+      label: 'Update',
+      icon: '<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.85" d="M11.25 11.25h1.5v4.5h1.5m-1.5-9h.008v.008h-.008V6.75zm8.25 5.25a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+    }
+  };
+  const { icon, label } = toastConfig[type] || toastConfig.info;
 
-  toast.innerHTML = `${icon}<span>${message}</span>`;
+  toast.innerHTML = `
+    <div class="toast-accent" aria-hidden="true"></div>
+    <div class="toast-icon-wrap">${icon}</div>
+    <div class="toast-copy">
+      <p class="toast-label">${label}</p>
+      <p class="toast-message">${message}</p>
+    </div>
+  `;
 
   container.appendChild(toast);
 
@@ -436,6 +455,11 @@ function hasPendingRevisionRequestState() {
     state.approval.hasPendingRevisionRequest === true;
 }
 
+export function isApprovedWorkStatusOnlyMode() {
+  const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
+  return isSearchSalesQuoteEditorMode() && approvalStatus === 'Approved';
+}
+
 let lastRequestRevisionVisibilityLogSignature = '';
 
 export function isCurrentUserApprovalOwner() {
@@ -512,15 +536,17 @@ export function isQuoteEditable() {
 }
 
 export function getQuoteEditLockMessage() {
-  if (state.approval.currentStatus === 'Approved') {
+  const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
+
+  if (approvalStatus === 'Approved') {
     if (hasPendingRevisionRequestState()) {
       return 'Revision request already submitted. Awaiting Sales Director approval.';
     }
 
-    return 'Approved quotes are read-only. Use Revise to request editing access.';
+    return 'Approved quotes allow only Work Status updates. Use Revise to request editing access for other fields.';
   }
 
-  if (state.approval.currentStatus === 'PendingApproval') {
+  if (approvalStatus === 'PendingApproval') {
     return 'This quote is awaiting approval and cannot be edited.';
   }
 
@@ -571,7 +597,7 @@ function setActionButtonLocked(element, locked, title) {
   }
 }
 
-function updateQuoteEditorFormLockState(locked, title) {
+function updateQuoteEditorFormLockState(locked, title, { allowWorkStatusOnly = false } = {}) {
   [
     'orderDate',
     'requestedDeliveryDate',
@@ -582,13 +608,14 @@ function updateQuoteEditorFormLockState(locked, title) {
     'assignedUserIdSearch',
     'serviceOrderType',
     'division',
-    'workStatus',
     'quoteWorkDescription',
     'invoiceDiscount',
     'invoiceDiscountPercent'
   ].forEach(fieldId => {
     setMainFormFieldLocked(el(fieldId), locked, title);
   });
+
+  setMainFormFieldLocked(el('workStatus'), allowWorkStatusOnly ? false : locked, allowWorkStatusOnly ? '' : title);
 
   setActionButtonLocked(el('addLineBtn'), locked, title);
   setActionButtonLocked(el('fabAddLine'), locked, title);
@@ -1723,11 +1750,13 @@ export async function updateQuoteEditorModeUi() {
   const requestRevisionBtn = el('requestRevisionBtn');
   const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
   const pendingRevisionRequest = hasPendingRevisionRequestState();
+  const approvedWorkStatusOnlyMode = isApprovedWorkStatusOnlyMode();
   const quoteLocked = isSearchSalesQuoteMode && !isQuoteEditable();
   const lockMessage = quoteLocked ? getQuoteEditLockMessage() : '';
+  const allowWorkStatusOnly = isSearchSalesQuoteMode && approvedWorkStatusOnlyMode;
 
   setCustomerNoFieldLockState(isEditMode);
-  updateQuoteEditorFormLockState(quoteLocked, lockMessage);
+  updateQuoteEditorFormLockState(quoteLocked, lockMessage, { allowWorkStatusOnly });
   renderQuoteLines();
 
   if (workStatusFieldContainer) {
@@ -1832,7 +1861,7 @@ export async function updateQuoteEditorModeUi() {
   }
 
   if (sendButton) {
-    const disableSendButton = isEditMode && quoteLocked;
+    const disableSendButton = isEditMode && quoteLocked && !allowWorkStatusOnly;
     sendButton.disabled = disableSendButton;
     sendButton.classList.toggle('opacity-60', disableSendButton);
     sendButton.classList.toggle('cursor-not-allowed', disableSendButton);
@@ -1846,7 +1875,7 @@ export async function updateQuoteEditorModeUi() {
 
   if (sendButtonText) {
     sendButtonText.textContent = isEditMode
-      ? 'Update Sales Quote'
+      ? (allowWorkStatusOnly ? 'Update Work Status' : 'Update Sales Quote')
       : 'Send to Business Central';
   }
 

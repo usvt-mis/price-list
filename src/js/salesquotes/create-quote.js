@@ -8,7 +8,7 @@ import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteUpdatedSuccess, showQuoteSendFailure } from './ui.js';
-import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal, isApprovedWorkStatusOnlyMode } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 import { recordQuoteSubmission } from './records.js';
@@ -63,8 +63,11 @@ function logRequestRevisionActionDecision(reason, extra = {}) {
   });
 }
 
-function ensureQuoteEditableForChanges() {
+function ensureQuoteEditableForChanges({ allowApprovedWorkStatusOnly = false } = {}) {
   if (state.quote.mode === 'edit' && !isQuoteEditable()) {
+    if (allowApprovedWorkStatusOnly && isApprovedWorkStatusOnlyMode()) {
+      return true;
+    }
     showToast(getQuoteEditLockMessage(), 'error');
     return false;
   }
@@ -2280,6 +2283,54 @@ async function updateQuoteInAzureFunction(quoteData) {
   }
 }
 
+async function patchApprovedQuoteWorkStatus(workStatus) {
+  const API_URL = GATEWAY_API.PATCH_SALES_QUOTE;
+  const salesQuoteNumber = state.quote.number || '';
+
+  if (!salesQuoteNumber) {
+    throw new Error('Sales Quote number is missing. Please search for the quote again before updating work status.');
+  }
+
+  const requestBody = {
+    salesQuoteNo: salesQuoteNumber,
+    workStatus: workStatus || ''
+  };
+
+  console.log('Patching approved quote work status payload:', JSON.stringify(requestBody, null, 2));
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error ${response.status}: ${errorText}`);
+    }
+
+    const responseData = await response.json();
+    const gatewayReportedFailure = [
+      responseData?.success,
+      responseData?.Success,
+      responseData?.result?.success,
+      responseData?.result?.Success
+    ].some(isExplicitApiFailure);
+
+    if (gatewayReportedFailure) {
+      throw new Error(extractQuoteApiFailureMessage(responseData));
+    }
+
+    return responseData;
+  } catch (error) {
+    console.error('PatchSalesQuote API call failed:', error);
+    throw error;
+  }
+}
+
 /**
  * Create Service Item via the backend gateway proxy
  * @param {string} description - Service Item Description
@@ -2545,54 +2596,50 @@ function extractServiceOrderNos(payload) {
  * Send quote to Business Central
  */
 export async function handleSendQuote() {
-  if (!ensureQuoteEditableForChanges()) {
+  if (!ensureQuoteEditableForChanges({ allowApprovedWorkStatusOnly: true })) {
     return;
   }
 
-  // Get form data
   const formData = getQuoteFormData();
+  const isEditMode = state.quote.mode === 'edit' && state.quote.number;
+  const isApprovedWorkStatusUpdate = isEditMode && isApprovedWorkStatusOnlyMode();
 
-  // Validate
-  clearValidationErrors();
-  const validation = validateAndUpdate(formData);
-  if (!validation.isValid) {
-    displayValidationErrors(validation.errors);
-    showError('Please fix validation errors before sending');
-    return;
+  let sanitizedData = null;
+  if (!isApprovedWorkStatusUpdate) {
+    clearValidationErrors();
+    const validation = validateAndUpdate(formData);
+    if (!validation.isValid) {
+      displayValidationErrors(validation.errors);
+      showError('Please fix validation errors before sending');
+      return;
+    }
+
+    sanitizedData = sanitizeQuoteData(formData);
   }
-
-  // Sanitize data
-  const sanitizedData = sanitizeQuoteData(formData);
 
   try {
-    showSaving();
+    showSaving(
+      isApprovedWorkStatusUpdate ? 'Updating Work Status' : 'Sending Quote',
+      isApprovedWorkStatusUpdate ? 'Updating work status in Business Central...' : 'Sending quote to Business Central...'
+    );
 
-    // Check if we're in edit mode (updating existing quote)
-    const isEditMode = state.quote.mode === 'edit' && state.quote.number;
-
-    // Call appropriate API function
-    const response = isEditMode
-      ? await updateQuoteInAzureFunction(sanitizedData)
+    const response = isApprovedWorkStatusUpdate
+      ? await patchApprovedQuoteWorkStatus(formData.workStatus)
+      : isEditMode
+        ? await updateQuoteInAzureFunction(sanitizedData)
       : await sendQuoteToAzureFunction(sanitizedData);
 
-    // Extract Quote Number from response (for new quotes) or use existing quote number (for updates)
     const quoteNumber = isEditMode
       ? state.quote.number
       : (response?.result?.number || null);
 
-    // Create Service Order and save record (for both create and update modes)
     let serviceOrderNos = [];
     let recordSaveError = null;
-
-    // Extract branch code for Service Order creation
     const branchCode = state.quote.branch || '';
-
-    // Create Service Order from Sales Quote (if we have a quote number and branch)
     let serviceOrderResponse = null;
 
-    if (quoteNumber && branchCode) {
+    if (!isApprovedWorkStatusUpdate && quoteNumber && branchCode) {
       try {
-        // Update loading message
         const messageEl = el('loadingMessage');
         const titleEl = el('loadingTitle');
         if (messageEl) messageEl.textContent = 'Syncing Service Order...';
@@ -2609,7 +2656,6 @@ export async function handleSendQuote() {
       }
     }
 
-    // Save submission record (for new quotes only)
     if (!isEditMode && quoteNumber) {
       try {
         await recordQuoteSubmission({
@@ -2624,24 +2670,17 @@ export async function handleSendQuote() {
 
     hideSaving();
 
-    // Handle different behaviors for create vs update
     if (isEditMode) {
-      // Update mode: Show success modal with service order nos and stay in edit mode
       await showQuoteUpdatedSuccess(quoteNumber, serviceOrderNos);
     } else {
-      // Create mode: Reset to create mode and show success modal
       resetQuoteEditorToCreateMode({ showFeedback: false });
 
-      // Show success modal with Quote Number and Service Order Nos
       if (quoteNumber) {
         await showQuoteCreatedSuccess(quoteNumber, serviceOrderNos);
 
-        // Approval workflow: Create approval record in "Submitted to BC" status
-        // Quote is in BC but approval is not yet requested - user will manually request approval
         const userRole = authState.user?.effectiveRole;
         const totalAmount = calculateTotals().total || '0';
 
-        // Create approval record for all roles (Sales, Director, Executive) with positive total
         if (parseFloat(totalAmount.replace(/,/g, '')) > 0) {
           await createApprovalRecord({
             salesQuoteNumber: quoteNumber,
@@ -2652,11 +2691,9 @@ export async function handleSendQuote() {
             totalAmount: parseFloat(totalAmount.replace(/,/g, ''))
           });
         } else {
-          // Zero-value quotes don't need approval
           console.log('[Approval] Quote total is zero - no approval record needed');
         }
       } else {
-        // Fallback to generic success if no Quote Number returned
         console.warn('No Quote Number in response:', response);
         showSuccess('Quote sent to Business Central successfully!');
       }

@@ -208,8 +208,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 ### Gateway Proxy (Business Central API)
 - Server-side Azure Function key management via environment variables
 - Proxy routes: `/api/business-central/gateway/*`
-- Supports GET/POST; fallback keys for GetSalesQuotesFromNumber/UpdateSalesQuote
-- Config: `GATEWAY_BASE_URL`, `{CSQWN,CSI,CSOFSQ,GSQFN,USQ}_KEY`, `{...}_PATH` overrides
+- Supports GET/POST; fallback keys for GetSalesQuotesFromNumber/UpdateSalesQuote/PatchSalesQuote
+- Config: `GATEWAY_BASE_URL`, `{CSQWN,CSI,CSOFSQ,GSQFN,USQ,PSQ}_KEY`, `{...}_PATH` overrides
 - **Retry Logic**: Automatic retry for GET/HEAD requests on transient failures (network errors, timeouts)
 - **Configurable Timeout**: `GATEWAY_REQUEST_TIMEOUT_MS` (default: 15000ms) for gateway requests
 - **Retry Configuration**: `GATEWAY_FETCH_MAX_ATTEMPTS` (default: 3), `GATEWAY_FETCH_RETRY_DELAY_MS` (default: 400ms)
@@ -358,8 +358,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - State: `state.quote.mode` ('create'/'edit'), `state.quote.id/number/etag/status/reportContext`
 - **Customer No locked**, **Work Status shown (editable dropdown)**, **Ref. SV No. column visible**, **Print button enabled**
 - **Work Status field**: Editable dropdown with options (Win, Lose, Cancelled) for searched Sales Quotes
+  - For **Approved** quotes, Work Status is the only editable field (approved work status only mode)
+  - All other fields are locked when quote is Approved
+  - Button text changes to "Update Work Status" when in approved work status only mode
 - **Sales Phone No. and Sales Email**: These fields are hidden (not displayed in the UI)
 - **Update enabled**: "Update Sales Quote" button sends changes to BC via UpdateSalesQuote endpoint
+  - For Approved quotes, uses PatchSalesQuote endpoint to update only Work Status
 - Update mode stays in edit mode after successful update (no reset)
 - **Service Order creation**: Service Orders are created for both new quotes AND quote updates (via CreateServiceOrderFromSQ per Group No)
 - **Quote Updated modal**: Displays Service Order numbers (if any) along with the updated quote number
@@ -479,6 +483,13 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Quotes are automatically initialized with "SubmittedToBC" status when created/updated
   - Auto-approval has been removed - all quotes now require manual approval regardless of total amount
   - API endpoint: `POST /api/salesquotes/approvals/initialize`
+- **Work Status Updates for Approved Quotes**:
+  - Approved quotes allow Work Status updates without requiring revision approval
+  - When viewing an Approved quote, the system enters "approved work status only mode"
+  - Only the Work Status field is editable; all other fields remain locked
+  - The "Update Sales Quote" button changes to "Update Work Status"
+  - Uses the PatchSalesQuote endpoint to update only the Work Status field in Business Central
+  - Implementation: `src/js/salesquotes/create-quote.js` - `patchApprovedQuoteWorkStatus()`, `src/js/salesquotes/ui.js` - `isApprovedWorkStatusOnlyMode()`, `updateQuoteEditorFormLockState()`
 - **Send Approval Request Button**:
   - Visible to all users when viewing a searched quote with total > 0
   - Allows submitting quotes for director/executive approval
@@ -544,6 +555,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `POST /api/salesquotes/approvals/:quoteNumber/request-revision` - Request revision on Approved quote (Sales)
   - `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` - Approve revision request (Director/Executive)
   - `POST /api/salesquotes/approvals/:quoteNumber/resubmit` - Resubmit after revision (Sales)
+  - `POST /api/business-central/gateway/patch-sales-quote` - Patch Sales Quote (update Work Status only for Approved quotes)
 - **Constants**:
   - `PENDING_REVISION_THRESHOLD_MS = 1000` - Time threshold (in milliseconds) used to determine if a revision request is pending (prevents false positives from initial approval action)
 - **Database Schema**: `SalesQuoteApprovals` table
@@ -567,8 +579,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Sales users can submit quotes for approval via "Send Approval Request" button
   - Approval workflow is optional - quotes can still be sent without approval
   - Approved quotes can be printed and sent to customer
+  - Approved quotes allow Work Status updates without requiring revision approval
   - Only approval owner (ApprovalOwnerEmail) can request revision on Approved quotes, requiring SD approval before editing
-  - **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`
+  - **Implementation**: `src/js/salesquotes/approvals.js`, `api/src/routes/salesquotes-approvals.js`, `src/js/salesquotes/ui.js`, `src/js/salesquotes/create-quote.js`
 
 [docs/api-integration.md](docs/api-integration.md) for full API documentation.
 

@@ -14,7 +14,8 @@ export const GATEWAY_API = {
   CREATE_SERVICE_ITEM: '/api/business-central/gateway/create-service-item',
   CREATE_SERVICE_ORDER_FROM_SQ: '/api/business-central/gateway/create-service-order-from-sq',
   GET_SALES_QUOTES_FROM_NUMBER: '/api/business-central/gateway/sales-quotes/from-number',
-  UPDATE_SALES_QUOTE: '/api/business-central/gateway/update-sales-quote'
+  UPDATE_SALES_QUOTE: '/api/business-central/gateway/update-sales-quote',
+  PATCH_SALES_QUOTE: '/api/business-central/gateway/patch-sales-quote'
 };
 
 export const BC_API_CONFIG = {
