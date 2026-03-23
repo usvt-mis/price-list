@@ -616,6 +616,176 @@ router.get('/audit-log', async (req, res, next) => {
 });
 
 /**
+ * GET /api/backoffice/salesquotes/audit-log
+ * Get Sales Quotes audit-focused activity list (paginated)
+ * Query params: page (default 1), pageSize (default 50), search (optional filter), status (optional filter)
+ * Requires: Backoffice session token
+ */
+router.get('/salesquotes/audit-log', async (req, res, next) => {
+  try {
+    const session = req.session;
+    console.log(`Backoffice admin ${session.email} accessed Sales Quotes audit log`);
+
+    const page = parseInt(req.query.page, 10) || 1;
+    const pageSize = parseInt(req.query.pageSize, 10) || 50;
+    const searchFilter = String(req.query.search || '').trim();
+    const statusFilter = String(req.query.status || '').trim();
+    const offset = (page - 1) * pageSize;
+
+    const pool = await getPool();
+    await ensureSalesQuoteSubmissionRecordsTable(pool);
+
+    const approvalsTableCheck = await pool.request().query(`
+      SELECT 1 AS existsFlag
+      WHERE OBJECT_ID(N'dbo.SalesQuoteApprovals', N'U') IS NOT NULL
+    `);
+    const hasApprovalsTable = approvalsTableCheck.recordset.length > 0;
+
+    const normalizedSearch = searchFilter ? `%${searchFilter}%` : '';
+
+    const searchWhereClause = hasApprovalsTable
+      ? `
+          @search = ''
+          OR r.SalesQuoteNumber LIKE @search
+          OR r.SenderEmail LIKE @search
+          OR ISNULL(r.WorkDescription, '') LIKE @search
+          OR ISNULL(a.CustomerName, '') LIKE @search
+          OR ISNULL(a.SalespersonName, '') LIKE @search
+          OR ISNULL(a.SalespersonCode, '') LIKE @search
+        `
+      : `
+          @search = ''
+          OR r.SalesQuoteNumber LIKE @search
+          OR r.SenderEmail LIKE @search
+          OR ISNULL(r.WorkDescription, '') LIKE @search
+        `;
+
+    const statusWhereClause = hasApprovalsTable
+      ? `(@status = '' OR ISNULL(a.ApprovalStatus, 'NoApprovalRecord') = @status)`
+      : `(@status = '' OR 'NoApprovalRecord' = @status)`;
+
+    const joinClause = hasApprovalsTable
+      ? 'LEFT JOIN SalesQuoteApprovals a ON a.SalesQuoteNumber = r.SalesQuoteNumber'
+      : '';
+
+    const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM SalesQuoteSubmissionRecords r
+      ${joinClause}
+      WHERE (${searchWhereClause})
+        AND ${statusWhereClause}
+    `;
+
+    const countResult = await pool.request()
+      .input('search', sql.NVarChar, normalizedSearch)
+      .input('status', sql.NVarChar(50), statusFilter)
+      .query(countQuery);
+    const total = countResult.recordset[0]?.total || 0;
+
+    const dataQuery = hasApprovalsTable
+      ? `
+          SELECT
+            r.Id,
+            r.SalesQuoteNumber,
+            r.SenderEmail,
+            r.WorkDescription,
+            r.ClientIP,
+            r.SubmittedAt,
+            ISNULL(a.ApprovalStatus, 'NoApprovalRecord') AS ApprovalStatus,
+            a.ApprovalOwnerEmail,
+            a.SalespersonCode,
+            a.SalespersonName,
+            a.CustomerName,
+            a.TotalAmount,
+            a.SubmittedForApprovalAt,
+            a.SalesDirectorEmail,
+            a.SalesDirectorActionAt,
+            a.ActionComment,
+            a.CreatedAt AS ApprovalCreatedAt,
+            a.UpdatedAt AS ApprovalUpdatedAt
+          FROM SalesQuoteSubmissionRecords r
+          LEFT JOIN SalesQuoteApprovals a
+            ON a.SalesQuoteNumber = r.SalesQuoteNumber
+          WHERE (${searchWhereClause})
+            AND ${statusWhereClause}
+          ORDER BY COALESCE(a.UpdatedAt, a.SalesDirectorActionAt, a.SubmittedForApprovalAt, r.SubmittedAt) DESC
+          OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
+        `
+      : `
+          SELECT
+            r.Id,
+            r.SalesQuoteNumber,
+            r.SenderEmail,
+            r.WorkDescription,
+            r.ClientIP,
+            r.SubmittedAt,
+            CAST('NoApprovalRecord' AS NVARCHAR(50)) AS ApprovalStatus,
+            CAST(NULL AS NVARCHAR(255)) AS ApprovalOwnerEmail,
+            CAST(NULL AS NVARCHAR(50)) AS SalespersonCode,
+            CAST(NULL AS NVARCHAR(255)) AS SalespersonName,
+            CAST(NULL AS NVARCHAR(255)) AS CustomerName,
+            CAST(NULL AS DECIMAL(18,2)) AS TotalAmount,
+            CAST(NULL AS DATETIME2) AS SubmittedForApprovalAt,
+            CAST(NULL AS NVARCHAR(255)) AS SalesDirectorEmail,
+            CAST(NULL AS DATETIME2) AS SalesDirectorActionAt,
+            CAST(NULL AS NVARCHAR(MAX)) AS ActionComment,
+            CAST(NULL AS DATETIME2) AS ApprovalCreatedAt,
+            CAST(NULL AS DATETIME2) AS ApprovalUpdatedAt
+          FROM SalesQuoteSubmissionRecords r
+          WHERE (${searchWhereClause})
+            AND ${statusWhereClause}
+          ORDER BY r.SubmittedAt DESC
+          OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
+        `;
+
+    const dataResult = await pool.request()
+      .input('search', sql.NVarChar, normalizedSearch)
+      .input('status', sql.NVarChar(50), statusFilter)
+      .input('offset', sql.Int, offset)
+      .input('pageSize', sql.Int, pageSize)
+      .query(dataQuery);
+
+    res.status(200).json({
+      entries: dataResult.recordset.map((entry) => ({
+        id: entry.Id,
+        salesQuoteNumber: entry.SalesQuoteNumber,
+        senderEmail: entry.SenderEmail,
+        workDescription: entry.WorkDescription || '',
+        clientIP: entry.ClientIP || '',
+        submittedAt: entry.SubmittedAt,
+        approvalStatus: entry.ApprovalStatus || 'NoApprovalRecord',
+        approvalOwnerEmail: entry.ApprovalOwnerEmail || '',
+        salespersonCode: entry.SalespersonCode || '',
+        salespersonName: entry.SalespersonName || '',
+        customerName: entry.CustomerName || '',
+        totalAmount: entry.TotalAmount,
+        submittedForApprovalAt: entry.SubmittedForApprovalAt,
+        salesDirectorEmail: entry.SalesDirectorEmail || '',
+        salesDirectorActionAt: entry.SalesDirectorActionAt,
+        actionComment: entry.ActionComment || '',
+        approvalCreatedAt: entry.ApprovalCreatedAt,
+        approvalUpdatedAt: entry.ApprovalUpdatedAt
+      })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize))
+      }
+    });
+  } catch (e) {
+    if (e.statusCode === 403) {
+      return res.status(403).json({ error: 'Access denied. Executive role required.' });
+    }
+    if (e.statusCode === 401) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    console.error(e);
+    res.status(500).json({ error: 'Failed to load Sales Quotes audit log' });
+  }
+});
+
+/**
  * GET /api/backoffice/deletion-log
  * Get deletion audit log from both Onsite and Workshop tables (paginated)
  * Query params: page (default 1), pageSize (default 50), type (Onsite/Workshop/All), email (optional filter), startDate, endDate

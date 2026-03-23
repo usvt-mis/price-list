@@ -580,6 +580,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` - Approve revision request (Director/Executive)
   - `POST /api/salesquotes/approvals/:quoteNumber/resubmit` - Resubmit after revision (Sales)
   - `POST /api/business-central/gateway/patch-sales-quote` - Patch Sales Quote (update Work Status only for Approved quotes)
+  - `GET /api/backoffice/salesquotes/audit-log` - Get Sales Quotes audit log with approval status (paginated, searchable, filterable)
 - **Constants**:
   - `PENDING_REVISION_THRESHOLD_MS = 1000` - Time threshold (in milliseconds) used to determine if a revision request is pending (prevents false positives from initial approval action)
 - **Database Schema**: `SalesQuoteApprovals` table
@@ -648,7 +649,7 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
   - Chips: `.bo-chip`, `.bo-chip-info`, `.bo-chip-warning`, `.bo-chip-branch`, `.bo-chip-neutral`
   - Action buttons: `.bo-action-btn`, `.bo-action-btn-danger` with hover states
   - Implementation: `src/backoffice.html` - CSS variables and component classes
-- **Tabs**: Executives, Sales, Sales Directors, Customers, Audit, Deletion, Settings, Signatures, Sales Director Signature
+- **Tabs**: Executives, Sales, Sales Directors, Customers, Audit, Sales Quotes Audit, Deletion, Settings, Signatures, Sales Director Signature
 - **Sales Directors Tab**: Dedicated tab for managing Sales Director role assignments
   - Add Sales Directors via email input with validation
   - Search and filter Sales Directors by email
@@ -665,6 +666,18 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
   - API: `GET/POST/DELETE /api/backoffice/salesdirector-signature`
   - Public endpoint: `GET /api/business-central/salesdirector-signature-public` - Returns signature data and contact info
   - Implementation: `api/src/routes/backoffice/salesdirector-signatures.js`, `api/src/routes/salesdirector-signature-public.js`
+- **Sales Quotes Audit Tab**: Review Sales Quote submissions with approval status
+  - Displays paginated list of Sales Quote submissions with approval snapshot
+  - Shows quote details: quote number, total amount, submitted by email, approval owner, customer, salesperson, work description
+  - Shows approval status with color-coded badges (Submitted to BC, Pending Approval, Approved, Rejected, Revision Requested, Cancelled, Being Revised, No Approval Record)
+  - Shows last activity timestamp and action label (e.g., "Approved by director", "Revision requested", "Approval requested")
+  - Shows Sales Director email and action comment when available
+  - Supports search by quote number, email, customer, salesperson, or work description
+  - Supports filtering by approval status
+  - Pagination controls with page info (page X of Y, total entries)
+  - Badge count on tab shows total number of entries
+  - API: `GET /api/backoffice/salesquotes/audit-log?page={page}&pageSize={size}&search={query}&status={status}`
+  - Implementation: `src/backoffice.html` - tab UI and JavaScript functions, `api/src/routes/backoffice/index.js` - backend API
 - **Role Assignment API**: `POST /api/admin/roles/assign`
   - Requires PriceListExecutive role
   - Supported roles: Executive, Sales, SalesDirector
