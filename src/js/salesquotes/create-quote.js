@@ -444,7 +444,7 @@ function normalizeBranchCode(value) {
 }
 
 const SEARCH_QUOTE_SUGGESTION_MIN_LENGTH = 3;
-const SEARCH_QUOTE_EXACT_NUMBER_PATTERN = /^[A-Z0-9]+-\d+$/;
+const SEARCH_QUOTE_EXACT_NUMBER_PATTERN = /^SQ[A-Z]{2}\d{2}(0[1-9]|1[0-2])-\d{4}$/;
 
 let searchQuoteSuggestionRequestToken = 0;
 let searchQuoteSuggestionDebouncedLoader = null;

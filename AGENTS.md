@@ -387,7 +387,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Error handling**: Displays user-friendly error messages if suggestion lookup fails
 - **API endpoint**: `GET /api/business-central/gateway/sales-quotes/smart-dropdown`
 - **Query parameters**: `searchQuery` (partial quote number), `branch` (current user's branch code)
-- **Keyword building**: Automatically appends `*` for wildcard search unless exact number pattern is detected (`^[A-Z0-9]+-\d+$`)
+- **Keyword building**: Automatically appends `*` for wildcard search unless exact number pattern is detected (`^SQ[A-Z]{2}\d{2}(0[1-9]|1[0-2])-\d{4}$`)
+  - Pattern matches: SQ + 2-letter branch code + 2-digit year + 2-digit month (01-12) + hyphen + 4-digit sequence
+  - Example: SQRY2512-0001 (SQ + RY +25 +12 -0001)
 - **Abort controller**: Cancels pending requests when new input arrives
 - **Accessibility**: ARIA attributes (`aria-autocomplete`, `aria-controls`, `aria-expanded`, `aria-selected`)
 - **Implementation**: `src/js/salesquotes/create-quote.js` - Functions: `loadSearchQuoteSuggestions()`, `renderSearchQuoteSuggestions()`, `updateSearchQuoteSuggestionActiveState()`, `selectSearchQuoteSuggestion()`, `scheduleSearchQuoteSuggestions()`, `hideSearchQuoteSuggestions()`, `resetSearchQuoteSuggestions()`
