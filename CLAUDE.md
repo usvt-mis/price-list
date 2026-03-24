@@ -132,8 +132,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - For modals that appear over other modals (e.g., confirmation dialogs), ensure proper stacking:
   1. Use higher z-index value (e.g., `z-[150]` for overlays on top of `z-[100]` base modals)
   2. Move modal to end of container before showing: `modalContainer.appendChild(modal)`
+  3. For browser top-layer dialogs (like approval preview), use the dialog element as the host container
 - This ensures the modal appears on top regardless of DOM order when dynamically loaded
-- Implementation: See `showConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js`
+- Implementation: See `showConfirmNewSerModal()` in `src/js/salesquotes/create-quote.js` and `getApprovalActionModalHost()` in `src/js/salesquotes/approvals.js`
 
 ### Modal Animation Pattern
 - **Use inline styles for animations**, not Tailwind CSS classes with classList manipulation
@@ -497,8 +498,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Reset button, layout hint with status messages
 - Syncs with fullscreen table modal
 - **Column Configuration**: `QUOTE_LINE_COLUMNS` constant in `src/js/salesquotes/ui.js` defines column properties (id, label, width, cellClass, render function)
-  - Description column width: 480px (optimized for readability of long descriptions)
+  - Description column width: 360px (optimized for readability and table density)
   - Other columns have fixed widths for consistent layout
+  - Table cells use `min-width` to prevent content overflow
 
 ### Sales Quotes Approval Workflow
 - Multi-stage approval workflow for Sales Quotes requiring director/executive approval
@@ -564,8 +566,17 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - Shows pending approvals list with quote details
     - Includes both quotes with "PendingApproval" status AND quotes with pending revision requests (Approved quotes with ActionComment set)
     - Badge count shows number of pending approvals
-    - Refresh button to reload pending approvals
+    - Refresh button to reload pending approvals with toast notifications
     - Actions: Approve, Reject, Request Revision (with comment), Approve Revision Request
+  - **Approval Preview Modal**: Enhanced with revision request comment spotlight
+    - When a quote has a pending revision request (Approved status with ActionComment set), the comment is displayed in a prominent spotlight section
+    - Spotlight styling uses amber/warning colors with gradient background and shadow to draw attention
+    - Non-revision comments remain collapsible in the standard details section
+    - Implementation: `renderApprovalActionComment()` in `src/js/salesquotes/approvals.js`, `.approval-preview-comment-spotlight-*` classes in `src/salesquotes/components/styles/approval-styles.css`
+  - **Refresh Functionality**: Approvals view can be refreshed via the refresh button in the Pending Approvals section
+    - Reloads both pending approvals and my approval requests simultaneously
+    - Shows success/error toast notifications
+    - Implementation: `refreshApprovalsView()` and `bindApprovalsTabEventListeners()` in `src/js/salesquotes/approvals.js`
   - **My Approval Requests Section**: Visible to all authenticated users
     - Shows status of each request with color-coded badges
     - View approval history and director comments
@@ -596,6 +607,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - **Ownership-based Revision**: The `ApprovalOwnerEmail` field (defaults to SalespersonEmail) determines who can request revisions on Approved quotes
 - **Frontend Module**: `src/js/salesquotes/approvals.js`
   - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
+  - Refresh functionality: `refreshApprovalsView()`, `bindApprovalsTabEventListeners()`
+  - Modal stacking: `getApprovalActionModalHost()` - Returns appropriate host container for approval action modal based on whether approval preview is open
+  - Rendering: `renderApprovalActionComment()` - Renders revision request comments with spotlight styling or standard collapsible format
   - Helper functions: `hasPendingRevisionRequest()` - Checks if an approval has a pending revision request (uses backend flag first, falls back to client-side calculation)
 - **UI Module**: `src/js/salesquotes/ui.js`
   - Functions: `isCurrentUserApprovalOwner()` - Checks if current user is the approval owner (compares current user email with approval's ApprovalOwnerEmail, falls back to SalespersonEmail)
@@ -657,7 +671,7 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
   - Chips: `.bo-chip`, `.bo-chip-info`, `.bo-chip-warning`, `.bo-chip-branch`, `.bo-chip-neutral`
   - Action buttons: `.bo-action-btn`, `.bo-action-btn-danger` with hover states
   - Implementation: `src/backoffice.html` - CSS variables and component classes
-- **Tabs**: Executives, Sales, Sales Directors, Customers, Audit, Deletion, Settings, Signatures, Sales Director Signature
+- **Tabs**: Executives, Sales, Sales Directors, Customers, Audit, Sales Quotes Audit, Deletion, Settings, Signatures, Sales Director Signature
 - **Sales Directors Tab**: Dedicated tab for managing Sales Director role assignments
   - Add Sales Directors via email input with validation
   - Search and filter Sales Directors by email
@@ -674,6 +688,18 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
   - API: `GET/POST/DELETE /api/backoffice/salesdirector-signature`
   - Public endpoint: `GET /api/business-central/salesdirector-signature-public` - Returns signature data and contact info
   - Implementation: `api/src/routes/backoffice/salesdirector-signatures.js`, `api/src/routes/salesdirector-signature-public.js`
+- **Sales Quotes Audit Tab**: Review Sales Quote submissions with approval status
+  - Displays paginated list of Sales Quote submissions with approval snapshot
+  - Shows quote details: quote number, total amount, submitted by email, approval owner, customer, salesperson, work description
+  - Shows approval status with color-coded badges (Submitted to BC, Pending Approval, Approved, Rejected, Revision Requested, Cancelled, Being Revised, No Approval Record)
+  - Shows last activity timestamp and action label (e.g., "Approved by director", "Revision requested", "Approval requested")
+  - Shows Sales Director email and action comment when available
+  - Supports search by quote number, email, customer, salesperson, or work description
+  - Supports filtering by approval status
+  - Pagination controls with page info (page X of Y, total entries)
+  - Badge count on tab shows total number of entries
+  - API: `GET /api/backoffice/salesquotes/audit-log?page={page}&pageSize={size}&search={query}&status={status}`
+  - Implementation: `src/backoffice.html` - tab UI and JavaScript functions, `api/src/routes/backoffice/index.js` - backend API
 - **Role Assignment API**: `POST /api/admin/roles/assign`
   - Requires PriceListExecutive role
   - Supported roles: Executive, Sales, SalesDirector
