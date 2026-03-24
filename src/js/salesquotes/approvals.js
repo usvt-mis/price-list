@@ -70,6 +70,24 @@ let approvalActionModalHideTimer = null;
 let pendingApprovalsLoadSequence = 0;
 let myApprovalsLoadSequence = 0;
 
+function normalizePreviewLineType(value) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) {
+    return 'Item';
+  }
+
+  const canonical = normalized.toLowerCase();
+  if (canonical === 'comment' || canonical === '_x2000_' || canonical === '_x0020_') {
+    return 'Comment';
+  }
+
+  if (canonical === 'item') {
+    return 'Item';
+  }
+
+  return normalized;
+}
+
 async function refreshApprovalsView() {
   const tasks = [loadMyApprovalRequests()];
 
@@ -1360,7 +1378,7 @@ function normalizePreviewLine(line, index) {
 
   return {
     sequence: index + 1,
-    type: String(line?.lineType ?? line?.type ?? line?.Type ?? '').trim() || '-',
+    type: normalizePreviewLineType(line?.lineType ?? line?.type ?? line?.Type) || '-',
     groupNo: String(line?.usvtGroupNo ?? line?.groupNo ?? line?.USVT_Group_No_ ?? '').trim() || '-',
     no: String(line?.lineObjectNumber ?? line?.itemNo ?? line?.ItemNo_SaleLine ?? line?.no ?? line?.No_ ?? line?.number ?? '').trim() || '-',
     description: String(line?.description ?? line?.Description_SaleLine ?? '').trim() || '-',
