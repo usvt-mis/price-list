@@ -570,6 +570,12 @@ input[type="number"] {
   font-size: 0.75rem; /* Smaller font for many columns */
 }
 
+.quote-lines-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+}
+
 .bc-table th {
   background: #eef4f0;
   padding: 0.5rem 0.75rem;

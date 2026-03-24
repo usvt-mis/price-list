@@ -741,7 +741,7 @@ const QUOTE_LINE_COLUMNS = [
   {
     id: 'description',
     label: 'Description',
-    width: '480px',
+    width: '360px',
     cellClass: 'text-sm',
     render: (line) => line.description || ''
   },
@@ -933,7 +933,7 @@ function getQuoteLineHeaderMarkup(column) {
   return `
     <th
       class="quote-line-column-header is-draggable${headerClass}"
-      style="width: ${column.width};"
+      style="width: ${column.width}; min-width: ${column.width};"
       data-column-id="${column.id}"
       draggable="true"
       title="Drag to move column"
@@ -966,7 +966,7 @@ function renderQuoteLineHeaders() {
 
 function renderQuoteLineCell(column, line, index) {
   const cellClass = column.cellClass ? ` ${column.cellClass}` : '';
-  return `<td class="${cellClass.trim()}">${column.render(line, index)}</td>`;
+  return `<td class="${cellClass.trim()}" style="width: ${column.width}; min-width: ${column.width};">${column.render(line, index)}</td>`;
 }
 
 function renderQuoteLineRow(line, index, rowClass) {

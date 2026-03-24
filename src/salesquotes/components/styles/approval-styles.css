@@ -227,6 +227,58 @@
   background: #eff6ff;
 }
 
+.approval-preview-comment-spotlight {
+  margin: 0 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  border-radius: 1rem;
+  background:
+    linear-gradient(135deg, rgba(255, 247, 237, 0.98), rgba(255, 251, 235, 0.96));
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.12);
+}
+
+.approval-preview-comment-spotlight-warning {
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+.approval-preview-comment-spotlight-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.approval-preview-comment-spotlight-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  background: rgba(245, 158, 11, 0.16);
+  color: rgb(146 64 14);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.approval-preview-comment-spotlight-title {
+  margin: 0;
+  color: rgb(146 64 14);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.approval-preview-comment-spotlight-body {
+  margin: 0;
+  white-space: pre-wrap;
+  color: rgb(120 53 15);
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
 .approval-preview-signature {
   padding: 0.8rem 1rem;
   border-top: 1px solid rgba(226, 232, 240, 0.95);

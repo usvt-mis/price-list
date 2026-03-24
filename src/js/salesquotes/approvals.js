@@ -70,6 +70,34 @@ let approvalActionModalHideTimer = null;
 let pendingApprovalsLoadSequence = 0;
 let myApprovalsLoadSequence = 0;
 
+async function refreshApprovalsView() {
+  const tasks = [loadMyApprovalRequests()];
+
+  if (canApproveQuotes()) {
+    tasks.unshift(loadPendingApprovals(), updatePendingApprovalsBadge());
+  }
+
+  await Promise.all(tasks);
+}
+
+function bindApprovalsTabEventListeners() {
+  const refreshButton = el('pendingApprovalsRefreshBtn');
+
+  if (refreshButton && refreshButton.dataset.bound !== 'true') {
+    refreshButton.addEventListener('click', async () => {
+      try {
+        await refreshApprovalsView();
+        showToast('Approvals refreshed', 'success');
+      } catch (error) {
+        console.error('Failed to refresh approvals view:', error);
+        showToast(`Failed to refresh approvals. ${error.message}`, 'error');
+      }
+    });
+
+    refreshButton.dataset.bound = 'true';
+  }
+}
+
 function normalizeTimestamp(value) {
   if (!value) {
     return null;
@@ -304,6 +332,15 @@ function bindApprovalActionModalEvents() {
   modal.dataset.bound = 'true';
 }
 
+function getApprovalActionModalHost() {
+  const previewModal = el('approvalPreviewModal');
+  if (previewModal && previewModal.open) {
+    return previewModal;
+  }
+
+  return el('modalContainer');
+}
+
 async function ensureApprovalActionModal() {
   let modal = el('approvalActionModal');
 
@@ -409,9 +446,11 @@ export async function showApprovalActionModal(options = {}) {
     approvalActionModalHideTimer = null;
   }
 
-  const modalContainer = el('modalContainer');
-  if (modalContainer) {
-    modalContainer.appendChild(modal);
+  const modalHost = getApprovalActionModalHost();
+  if (modalHost) {
+    // Keep the confirmation dialog inside the browser top-layer dialog when
+    // the approval preview is open, otherwise it can render behind the preview.
+    modalHost.appendChild(modal);
   }
 
   modal.style.zIndex = '160';
@@ -528,6 +567,7 @@ export async function initializeApprovalsTab() {
   if (hasRole && tabApprovals) {
     show('tabApprovals');
     if (approvalsBadge) show('approvalsBadge');
+    bindApprovalsTabEventListeners();
 
     // Initialize section visibility
     initializeApprovalsSectionVisibility();
@@ -1596,16 +1636,7 @@ function renderQuotePreview(container, quoteData, approval, directorSignature) {
           </details>
         ` : ''}
 
-        ${approval.actionComment ? `
-          <details class="approval-preview-collapsible is-comment">
-            <summary>${escapeHtml(actionCommentLabel.replace(':', ''))}</summary>
-            <div class="approval-preview-collapsible-body">
-              <div class="approval-preview-inline-comment rounded-xl border ${pendingRevisionRequest ? 'is-warning border-amber-200' : 'is-info border-blue-200'}">
-                <p class="text-sm leading-6 whitespace-pre-wrap ${pendingRevisionRequest ? 'text-amber-900' : 'text-blue-900'}">${escapeHtml(approval.actionComment)}</p>
-              </div>
-            </div>
-          </details>
-        ` : ''}
+        ${renderApprovalActionComment(approval, pendingRevisionRequest, actionCommentLabel)}
 
         <div class="approval-preview-table-wrap">
           <table class="approval-preview-table w-full text-sm">
@@ -1660,6 +1691,39 @@ function renderQuotePreview(container, quoteData, approval, directorSignature) {
         ` : ''}
       </section>
     </div>
+  `;
+}
+
+function renderApprovalActionComment(approval, pendingRevisionRequest, actionCommentLabel) {
+  const actionComment = typeof approval?.actionComment === 'string'
+    ? approval.actionComment.trim()
+    : '';
+
+  if (!actionComment) {
+    return '';
+  }
+
+  if (pendingRevisionRequest) {
+    return `
+      <section class="approval-preview-comment-spotlight approval-preview-comment-spotlight-warning">
+        <div class="approval-preview-comment-spotlight-header">
+          <span class="approval-preview-comment-spotlight-badge">Revision Request</span>
+          <p class="approval-preview-comment-spotlight-title">${escapeHtml(actionCommentLabel.replace(':', ''))}</p>
+        </div>
+        <p class="approval-preview-comment-spotlight-body">${escapeHtml(actionComment)}</p>
+      </section>
+    `;
+  }
+
+  return `
+    <details class="approval-preview-collapsible is-comment">
+      <summary>${escapeHtml(actionCommentLabel.replace(':', ''))}</summary>
+      <div class="approval-preview-collapsible-body">
+        <div class="approval-preview-inline-comment rounded-xl border border-blue-200 is-info">
+          <p class="text-sm leading-6 whitespace-pre-wrap text-blue-900">${escapeHtml(actionComment)}</p>
+        </div>
+      </div>
+    </details>
   `;
 }
 
