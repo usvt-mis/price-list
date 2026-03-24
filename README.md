@@ -330,6 +330,7 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/business-central/gateway/create-service-item` | POST | Gateway proxy to Azure Function CreateServiceItem | Yes |
 | `/api/business-central/gateway/create-service-order-from-sq` | POST | Gateway proxy to Azure Function CreateServiceOrderFromSQ | Yes |
 | `/api/business-central/gateway/sales-quotes/from-number` | GET | Gateway proxy to Azure Function GetSalesQuotesFromNumber | Yes |
+| `/api/business-central/gateway/sales-quotes/smart-dropdown` | GET | Gateway proxy to Azure Function SmartDropdownSQ (search suggestions) | Yes |
 | `/api/business-central/gateway/update-sales-quote` | POST | Gateway proxy to Azure Function UpdateSalesQuote | Yes |
 | `/api/salesquotes/records` | GET | List current user's Sales Quote submission records (?search={query}) | Yes |
 | `/api/salesquotes/records` | POST | Save a new Sales Quote submission record | Yes |

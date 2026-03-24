@@ -54,6 +54,13 @@ const GATEWAY_ENDPOINTS = {
     fallbackKeyEnvs: ['CSQWN_KEY'],
     method: 'GET'
   },
+  smartDropdownSQ: {
+    defaultPath: 'smartDropdownSQ',
+    pathEnv: 'SDSQ_PATH',
+    keyEnv: 'SDSQ_KEY',
+    fallbackKeyEnvs: ['GSQFN_KEY', 'CSQWN_KEY'],
+    method: 'GET'
+  },
   updateSalesQuote: {
     defaultPath: 'UpdateSalesQuote',
     pathEnv: 'USQ_PATH',
@@ -321,6 +328,16 @@ router.get('/sales-quotes/from-number', (req, res, next) => {
     method: 'GET',
     queryParams: {
       salesQuoteNumber: req.query.salesQuoteNumber
+    }
+  });
+});
+
+router.get('/sales-quotes/smart-dropdown', (req, res, next) => {
+  proxyGatewayRequest(req, res, next, 'smartDropdownSQ', 'SmartDropdownSQ', {
+    method: 'GET',
+    queryParams: {
+      searchQuery: req.query.searchQuery,
+      branch: req.query.branch
     }
   });
 });

@@ -443,6 +443,234 @@ function normalizeBranchCode(value) {
   return String(value).trim().toUpperCase();
 }
 
+const SEARCH_QUOTE_SUGGESTION_MIN_LENGTH = 3;
+const SEARCH_QUOTE_EXACT_NUMBER_PATTERN = /^[A-Z0-9]+-\d+$/;
+
+let searchQuoteSuggestionRequestToken = 0;
+let searchQuoteSuggestionDebouncedLoader = null;
+let searchQuoteSuggestionAbortController = null;
+let searchQuoteSuggestionItems = [];
+let searchQuoteSuggestionActiveIndex = -1;
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function getSearchQuoteDropdown() {
+  return el('searchSalesQuoteDropdown');
+}
+
+function setSearchQuoteDropdownExpanded(isExpanded) {
+  const input = el('searchSalesQuoteNumber');
+  if (input) {
+    input.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+  }
+}
+
+function hideSearchQuoteSuggestions() {
+  const dropdown = getSearchQuoteDropdown();
+  if (dropdown) {
+    dropdown.classList.add('hidden');
+  }
+
+  setSearchQuoteDropdownExpanded(false);
+  searchQuoteSuggestionActiveIndex = -1;
+}
+
+function resetSearchQuoteSuggestions() {
+  if (searchQuoteSuggestionAbortController) {
+    searchQuoteSuggestionAbortController.abort();
+    searchQuoteSuggestionAbortController = null;
+  }
+
+  searchQuoteSuggestionItems = [];
+  searchQuoteSuggestionActiveIndex = -1;
+  hideSearchQuoteSuggestions();
+}
+
+function renderSearchQuoteSuggestions(items, { loading = false, error = '', emptyMessage = 'No Sales Quotes found' } = {}) {
+  const dropdown = getSearchQuoteDropdown();
+  if (!dropdown) {
+    return;
+  }
+
+  if (loading) {
+    dropdown.innerHTML = '<div class="p-3 text-sm text-slate-500">Searching Sales Quotes...</div>';
+    dropdown.classList.remove('hidden');
+    setSearchQuoteDropdownExpanded(true);
+    return;
+  }
+
+  if (error) {
+    dropdown.innerHTML = `<div class="p-3 text-sm text-rose-500">${escapeHtml(error)}</div>`;
+    dropdown.classList.remove('hidden');
+    setSearchQuoteDropdownExpanded(true);
+    return;
+  }
+
+  if (!items.length) {
+    dropdown.innerHTML = `<div class="p-3 text-sm text-slate-500">${escapeHtml(emptyMessage)}</div>`;
+    dropdown.classList.remove('hidden');
+    setSearchQuoteDropdownExpanded(true);
+    return;
+  }
+
+  dropdown.innerHTML = items.map((quoteNumber, index) => `
+    <button
+      type="button"
+      class="search-dropdown-item block w-full text-left ${index === searchQuoteSuggestionActiveIndex ? 'bg-blue-50 text-blue-900' : ''}"
+      data-search-quote-option="${escapeHtml(quoteNumber)}"
+      data-search-quote-index="${index}"
+    >
+      <span class="font-medium text-slate-900">${escapeHtml(quoteNumber)}</span>
+    </button>
+  `).join('');
+
+  dropdown.querySelectorAll('[data-search-quote-option]').forEach(button => {
+    button.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+    });
+    button.addEventListener('click', () => {
+      selectSearchQuoteSuggestion(button.dataset.searchQuoteOption || '');
+    });
+  });
+
+  dropdown.classList.remove('hidden');
+  setSearchQuoteDropdownExpanded(true);
+}
+
+function updateSearchQuoteSuggestionActiveState(nextIndex) {
+  const options = Array.from(document.querySelectorAll('[data-search-quote-option]'));
+  if (!options.length) {
+    searchQuoteSuggestionActiveIndex = -1;
+    return;
+  }
+
+  const normalizedIndex = Math.max(0, Math.min(nextIndex, options.length - 1));
+  searchQuoteSuggestionActiveIndex = normalizedIndex;
+
+  options.forEach((option, index) => {
+    const isActive = index === normalizedIndex;
+    option.classList.toggle('bg-blue-50', isActive);
+    option.classList.toggle('text-blue-900', isActive);
+    option.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+
+  options[normalizedIndex]?.scrollIntoView({ block: 'nearest' });
+}
+
+function buildSearchQuoteSuggestionKeyword(value) {
+  const normalizedValue = normalizeSalesQuoteNumberInput(value);
+  if (!normalizedValue) {
+    return '';
+  }
+
+  if (normalizedValue.includes('*') || SEARCH_QUOTE_EXACT_NUMBER_PATTERN.test(normalizedValue)) {
+    return normalizedValue;
+  }
+
+  return `${normalizedValue}*`;
+}
+
+function normalizeSearchQuoteSuggestionResponse(payload) {
+  const rawList = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+      ? payload.data
+      : Array.isArray(payload?.result?.data)
+        ? payload.result.data
+        : Array.isArray(payload?.result)
+          ? payload.result
+          : [];
+
+  return rawList
+    .map(item => normalizeSalesQuoteNumberInput(item))
+    .filter(Boolean);
+}
+
+async function fetchSearchQuoteSuggestions(keyword) {
+  const branchCode = resolveCurrentUserBranchCode().normalized;
+  const response = await fetch(`${GATEWAY_API.SMART_DROPDOWN_SQ}?searchQuery=${encodeURIComponent(keyword)}&branch=${encodeURIComponent(branchCode)}`, {
+    signal: searchQuoteSuggestionAbortController?.signal
+  });
+
+  if (!response.ok) {
+    throw new Error(`Suggestion lookup failed with HTTP ${response.status}`);
+  }
+
+  return normalizeSearchQuoteSuggestionResponse(await response.json());
+}
+
+async function loadSearchQuoteSuggestions(rawValue) {
+  const normalizedValue = normalizeSalesQuoteNumberInput(rawValue);
+  const keyword = buildSearchQuoteSuggestionKeyword(normalizedValue);
+  const currentRequestToken = ++searchQuoteSuggestionRequestToken;
+
+  if (searchQuoteSuggestionAbortController) {
+    searchQuoteSuggestionAbortController.abort();
+  }
+
+  if (!keyword || normalizedValue.length < SEARCH_QUOTE_SUGGESTION_MIN_LENGTH || state.ui.searchingQuote) {
+    resetSearchQuoteSuggestions();
+    return;
+  }
+
+  searchQuoteSuggestionAbortController = new AbortController();
+  renderSearchQuoteSuggestions([], { loading: true });
+
+  try {
+    const suggestions = await fetchSearchQuoteSuggestions(keyword);
+    if (currentRequestToken !== searchQuoteSuggestionRequestToken) {
+      return;
+    }
+
+    searchQuoteSuggestionItems = suggestions;
+    searchQuoteSuggestionActiveIndex = suggestions.length ? 0 : -1;
+    renderSearchQuoteSuggestions(suggestions, {
+      emptyMessage: `No Sales Quotes found for ${normalizedValue}`
+    });
+
+    if (searchQuoteSuggestionActiveIndex >= 0) {
+      updateSearchQuoteSuggestionActiveState(searchQuoteSuggestionActiveIndex);
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      return;
+    }
+
+    console.warn('Smart Sales Quote dropdown lookup failed:', error);
+    searchQuoteSuggestionItems = [];
+    searchQuoteSuggestionActiveIndex = -1;
+    renderSearchQuoteSuggestions([], {
+      error: 'Unable to load suggestions right now'
+    });
+  }
+}
+
+function scheduleSearchQuoteSuggestions(value) {
+  if (!searchQuoteSuggestionDebouncedLoader) {
+    searchQuoteSuggestionDebouncedLoader = debounce(loadSearchQuoteSuggestions, 250);
+  }
+
+  searchQuoteSuggestionDebouncedLoader(value);
+}
+
+function selectSearchQuoteSuggestion(quoteNumber) {
+  const normalizedQuoteNumber = normalizeSalesQuoteNumberInput(quoteNumber);
+  const input = el('searchSalesQuoteNumber');
+  if (!input || !normalizedQuoteNumber) {
+    return;
+  }
+
+  input.value = normalizedQuoteNumber;
+  resetSearchQuoteSuggestions();
+  handleSearchSalesQuote();
+}
+
 function getSearchQuoteBranchContext(payload) {
   const data = payload?.data || payload?.result?.data || payload?.result;
   if (!data || typeof data !== 'object') {
@@ -591,6 +819,9 @@ function setSearchSalesQuoteLoading(isLoading) {
   const searchInputValue = normalizeSalesQuoteNumberInput(input?.value);
 
   state.ui.searchingQuote = isLoading;
+  if (isLoading) {
+    hideSearchQuoteSuggestions();
+  }
 
   if (button) {
     if (!button.dataset.defaultHtml) {
@@ -3268,8 +3499,39 @@ function debounce(func, delay) {
 export function setupEventListeners() {
   const searchSalesQuoteInput = el('searchSalesQuoteNumber');
   searchSalesQuoteInput?.addEventListener('keydown', (event) => {
+    const dropdown = getSearchQuoteDropdown();
+    const dropdownVisible = Boolean(dropdown && !dropdown.classList.contains('hidden'));
+
+    if (event.key === 'ArrowDown' && searchQuoteSuggestionItems.length) {
+      event.preventDefault();
+      if (!dropdownVisible) {
+        renderSearchQuoteSuggestions(searchQuoteSuggestionItems);
+      }
+      updateSearchQuoteSuggestionActiveState(searchQuoteSuggestionActiveIndex < 0 ? 0 : searchQuoteSuggestionActiveIndex + 1);
+      return;
+    }
+
+    if (event.key === 'ArrowUp' && searchQuoteSuggestionItems.length) {
+      event.preventDefault();
+      if (!dropdownVisible) {
+        renderSearchQuoteSuggestions(searchQuoteSuggestionItems);
+      }
+      updateSearchQuoteSuggestionActiveState(searchQuoteSuggestionActiveIndex <= 0 ? searchQuoteSuggestionItems.length - 1 : searchQuoteSuggestionActiveIndex - 1);
+      return;
+    }
+
+    if (event.key === 'Escape' && dropdownVisible) {
+      event.preventDefault();
+      hideSearchQuoteSuggestions();
+      return;
+    }
+
     if (event.key === 'Enter') {
       event.preventDefault();
+      if (dropdownVisible && searchQuoteSuggestionActiveIndex >= 0 && searchQuoteSuggestionItems[searchQuoteSuggestionActiveIndex]) {
+        selectSearchQuoteSuggestion(searchQuoteSuggestionItems[searchQuoteSuggestionActiveIndex]);
+        return;
+      }
       handleSearchSalesQuote();
     }
   });
@@ -3277,6 +3539,20 @@ export function setupEventListeners() {
     if (!state.ui.searchingQuote) {
       setSearchSalesQuoteFeedback('', '', '');
     }
+
+    scheduleSearchQuoteSuggestions(searchSalesQuoteInput.value);
+  });
+  searchSalesQuoteInput?.addEventListener('focus', () => {
+    const normalizedValue = normalizeSalesQuoteNumberInput(searchSalesQuoteInput.value);
+    if (searchQuoteSuggestionItems.length && normalizedValue.length >= SEARCH_QUOTE_SUGGESTION_MIN_LENGTH) {
+      renderSearchQuoteSuggestions(searchQuoteSuggestionItems);
+      updateSearchQuoteSuggestionActiveState(searchQuoteSuggestionActiveIndex >= 0 ? searchQuoteSuggestionActiveIndex : 0);
+    }
+  });
+  searchSalesQuoteInput?.addEventListener('blur', () => {
+    setTimeout(() => {
+      hideSearchQuoteSuggestions();
+    }, 200);
   });
 
   // Customer search (BC API - Legacy) - Direct input (no debounce)
@@ -3476,6 +3752,10 @@ export function setupEventListeners() {
     if (!e.target.closest('#lineObjectNumberSearch') && !e.target.closest('#lineMaterialDropdown')) {
       const dropdown = el('lineMaterialDropdown');
       if (dropdown) dropdown.classList.add('hidden');
+    }
+    // Hide Search Quote suggestions
+    if (!e.target.closest('#searchSalesQuoteNumber') && !e.target.closest('#searchSalesQuoteDropdown')) {
+      hideSearchQuoteSuggestions();
     }
 
     // Handle inline New SER button clicks

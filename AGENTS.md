@@ -375,6 +375,24 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Mode banner shows: quote number, status, customer, branch
 - State: `state.quote.mode` ('create'/'edit'), `state.quote.id/number/etag/status/reportContext`
 - **Customer No locked**, **Work Status shown (editable dropdown)**, **Ref. SV No. column visible**, **Print button enabled**
+
+**Smart Dropdown for Quote Search:**
+- **Purpose**: Provides intelligent suggestions as users type Sales Quote numbers
+- **Minimum input length**: 3 characters before suggestions appear
+- **Debounce delay**: 250ms to reduce API calls
+- **Keyboard navigation**: ArrowDown/ArrowUp to navigate, Enter to select, Escape to close
+- **Focus behavior**: Re-shows cached suggestions when input regains focus (if input has 3+ characters)
+- **Click-outside-to-close**: Dropdown closes when clicking outside the input/dropdown area
+- **Loading states**: Shows "Searching Sales Quotes..." while fetching suggestions
+- **Error handling**: Displays user-friendly error messages if suggestion lookup fails
+- **API endpoint**: `GET /api/business-central/gateway/sales-quotes/smart-dropdown`
+- **Query parameters**: `searchQuery` (partial quote number), `branch` (current user's branch code)
+- **Keyword building**: Automatically appends `*` for wildcard search unless exact number pattern is detected (`^[A-Z0-9]+-\d+$`)
+- **Abort controller**: Cancels pending requests when new input arrives
+- **Accessibility**: ARIA attributes (`aria-autocomplete`, `aria-controls`, `aria-expanded`, `aria-selected`)
+- **Implementation**: `src/js/salesquotes/create-quote.js` - Functions: `loadSearchQuoteSuggestions()`, `renderSearchQuoteSuggestions()`, `updateSearchQuoteSuggestionActiveState()`, `selectSearchQuoteSuggestion()`, `scheduleSearchQuoteSuggestions()`, `hideSearchQuoteSuggestions()`, `resetSearchQuoteSuggestions()`
+- **Backend**: `api/src/routes/business-central/gateway.js` - `smartDropdownSQ` endpoint configuration with `SDSQ_PATH` and `SDSQ_KEY` environment variables, fallback to `GSQFN_KEY` or `CSQWN_KEY`
+- **Config**: `src/js/salesquotes/config.js` - `SMART_DROPDOWN_SQ` constant
 - **Work Status field**: Editable dropdown with options (Win, Lose, Cancelled) for searched Sales Quotes
   - For **Approved** quotes, Work Status is the only editable field (approved work status only mode)
   - All other fields are locked when quote is Approved
