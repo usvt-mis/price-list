@@ -75,7 +75,7 @@ async function initApp() {
 
     // 11. Initialize asterisk state for any default values
     setTimeout(() => {
-      ['customerNoSearch', 'orderDate', 'requestedDeliveryDate'].forEach(id => {
+      ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'deliveryDate'].forEach(id => {
         const field = el(id);
         if (field && field.value) {
           field.dispatchEvent(new Event('input'));

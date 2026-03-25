@@ -372,6 +372,7 @@ function buildSearchQuoteReportContext(data, resolvedSalespersonName, sourceCont
     faxNo: pickSourceValueFromSources(headerSources, ['faxNo', 'FaxNo'], ''),
     documentNo: pickSourceValueFromSources(headerSources, ['documentNo', 'quoteNumber', 'salesQuoteNumber', 'No_', 'DocNo_SaleHeader'], ''),
     documentDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['documentDate', 'DocumentDate_SalesHeader'], '')),
+    deliveryDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['deliveryDate', 'DeliveryDate_SalesHeader', 'Delivery_Date'], '')),
     orderDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['orderDate', 'OrderDate_SaleHeader', 'Order_Date', 'documentDate', 'DocumentDate_SalesHeader'], '')),
     dueDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['dueDate', 'DueDate_SalesHeader', 'Due_Date'], '')),
     shipmentDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['shipmentDate', 'ShipmentDate_SalesHeader'], '')),
@@ -1093,6 +1094,7 @@ async function buildEditableQuoteFromSearchResponse(payload) {
       vatRegNo: customerRecord.VATRegistrationNo || reportContext.vatRegistrationNo || '',
       taxBranchNo: customerRecord.TaxBranchNo || ''
     },
+    deliveryDate: reportContext.deliveryDate || '',
     orderDate: reportContext.orderDate || '',
     requestedDeliveryDate: reportContext.requestedDeliveryDate || '',
     workDescription: data.workDescription || '',
@@ -2395,6 +2397,7 @@ async function sendQuoteToAzureFunction(quoteData) {
     division: quoteData.division || 'MS1029',
     branchCode: state.quote.branch || '',
     discountAmount: discountAmount,
+    deliveryDate: quoteData.deliveryDate || '',
     requestedDeliveryDate: quoteData.requestedDeliveryDate || '',
     lineItems: lineItems
   };
@@ -2470,6 +2473,7 @@ async function updateQuoteInAzureFunction(quoteData) {
     shortcutDimension1Code: quoteData.branch || state.quote.branch || '',
     locationCode: quoteData.locationCode || '',
     responsibilityCenter: quoteData.responsibilityCenter || '',
+    deliveryDate: quoteData.deliveryDate || '',
     orderDate: quoteData.orderDate || '',
     requestedDeliveryDate: quoteData.requestedDeliveryDate || '',
     workDescription: quoteData.workDescription || '',

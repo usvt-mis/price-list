@@ -376,6 +376,17 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - Mode banner shows: quote number, status, customer, branch
 - State: `state.quote.mode` ('create'/'edit'), `state.quote.id/number/etag/status/reportContext`
 - **Customer No locked**, **Work Status shown (editable dropdown)**, **Ref. SV No. column visible**, **Print button enabled**
+- **Delivery Date Field**: New date field for specifying the delivery date of the quote
+  - UI: Date input field in the Sales Quotes form (between Order Date and Contact fields)
+  - State: `state.quote.deliveryDate` stores the delivery date value
+  - Validation: Sanitized via `sanitizeText()` in `validations.js`
+  - Form Lock: Field is locked in edit mode (except for approved work status only mode)
+  - Asterisk State: Added to asterisk state initialization for required field indication
+  - Flatpickr: Initialized with `minDate: 'today'` to prevent past dates
+  - API Integration: Included in `sendQuoteToAzureFunction()` and `updateQuoteInAzureFunction()` payloads
+  - Report Context: Extracted from BC response via `buildSearchQuoteReportContext()` with fallback sources (`deliveryDate`, `DeliveryDate_SalesHeader`, `Delivery_Date`)
+  - Print Quote: Uses `reportContext.deliveryDate` for delivery text in meta table
+  - Implementation: `src/js/salesquotes/state.js` (state), `src/js/salesquotes/ui.js` (form UI), `src/js/salesquotes/create-quote.js` (API integration), `src/js/salesquotes/validations.js` (sanitization)
 - **Smart Dropdown for Quote Search**: Provides intelligent suggestions as users type Sales Quote numbers
   - **Minimum input length**: 3 characters before suggestions appear
   - **Debounce delay**: 250ms to reduce API calls

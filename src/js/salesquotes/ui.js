@@ -599,6 +599,7 @@ function setActionButtonLocked(element, locked, title) {
 
 function updateQuoteEditorFormLockState(locked, title, { allowWorkStatusOnly = false } = {}) {
   [
+    'deliveryDate',
     'orderDate',
     'requestedDeliveryDate',
     'contact',
@@ -1574,6 +1575,7 @@ export function getQuoteFormData() {
     customerNo: state.quote.customerNo,
     customerName: state.quote.customerName,
     customer: state.quote.customer,
+    deliveryDate: el('deliveryDate')?.value || '',
     orderDate: el('orderDate')?.value || '',
     requestedDeliveryDate: el('requestedDeliveryDate')?.value || '',
     workDescription: el('quoteWorkDescription')?.value || '',
@@ -1657,6 +1659,11 @@ export function populateQuoteForm(quote) {
   // Initialize date fields with Flatpickr
   initFlatpickr('orderDate', {
     defaultDate: quote.orderDate || 'today',
+  });
+
+  initFlatpickr('deliveryDate', {
+    defaultDate: quote.deliveryDate || '',
+    minDate: 'today',
   });
 
   initFlatpickr('requestedDeliveryDate', {
@@ -1938,6 +1945,10 @@ export function initDateFields() {
   // Initialize Order Date with today's date as default
   initFlatpickr('orderDate', {
     defaultDate: 'today', // Set today as default
+  });
+
+  initFlatpickr('deliveryDate', {
+    minDate: 'today',
   });
 
   // Initialize Requested Delivery Date without default (only minDate restriction)
