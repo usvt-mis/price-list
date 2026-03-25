@@ -220,6 +220,13 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function normalizeSingleLineText(value) {
+  return String(value ?? '')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function asNumber(value, fallback = 0) {
   if (value === null || value === undefined || value === '') {
     return fallback;
@@ -760,7 +767,7 @@ async function buildModel() {
     deliveryAddressLines,
     lineItems: buildPrintableRenderRows(printableLines),
     detailNotes: [],
-    bottomRemark: detailNotes.join(' '),
+    bottomRemark: normalizeSingleLineText(formData.remark) || normalizeSingleLineText(detailNotes.join(' ')),
     jobNo: documentRef,
     totals,
     vatLabel: reportContext.vatText || `VAT ${totals.vatRate.toFixed(0)}%`,

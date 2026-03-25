@@ -1439,6 +1439,7 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     orderDate: reportContext.orderDate || '',
     requestedDeliveryDate: reportContext.requestedDeliveryDate || '',
     workDescription: data.workDescription || '',
+    remark: data.remark || '',
     contact: pickSourceValueFromSources(headerSources, ['contactName', 'shipToContact', 'billToContact', 'Bill_to_Contact'], ''),
     salesPhoneNo: data.salesPhoneNo || '',
     salesEmail: data.salesEmail || '',

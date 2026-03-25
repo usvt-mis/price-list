@@ -610,6 +610,7 @@ function updateQuoteEditorFormLockState(locked, title, { allowWorkStatusOnly = f
     'serviceOrderType',
     'division',
     'quoteWorkDescription',
+    'quoteRemark',
     'invoiceDiscount',
     'invoiceDiscountPercent'
   ].forEach(fieldId => {
@@ -1583,6 +1584,7 @@ export function getQuoteFormData() {
     orderDate: el('orderDate')?.value || '',
     requestedDeliveryDate: el('requestedDeliveryDate')?.value || '',
     workDescription: el('quoteWorkDescription')?.value || '',
+    remark: el('quoteRemark')?.value || '',
     // New fields
     contact: el('contact')?.value || '',
     salesPhoneNo: el('salesPhoneNo')?.value || '',
@@ -1619,6 +1621,7 @@ export function populateQuoteForm(quote) {
   if (el('customerName')) el('customerName').value = quote.customerName || '';
   if (el('workStatus')) el('workStatus').value = quote.workStatus || '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = quote.workDescription || '';
+  if (el('quoteRemark')) el('quoteRemark').value = quote.remark || '';
   if (el('invoiceDiscount')) el('invoiceDiscount').value = quote.invoiceDiscount ?? quote.discountAmount ?? 0;
 
   // New fields
@@ -1698,6 +1701,7 @@ export function clearQuoteForm() {
   if (el('customerName')) el('customerName').value = '';
   if (el('workStatus')) el('workStatus').value = '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = '';
+  if (el('quoteRemark')) el('quoteRemark').value = '';
   if (el('invoiceDiscount')) el('invoiceDiscount').value = '0';
   if (el('invoiceDiscountPercent')) el('invoiceDiscountPercent').value = '0.0';
 

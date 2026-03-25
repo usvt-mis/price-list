@@ -176,6 +176,7 @@ After quote creation/update:
 - **Dropdown Search**: Must select from dropdown (no free-text) for Customer No., Salesperson Code, Assigned User ID, Material No.
 - **Edit Line - Comment Type**: Disables/clears No, Qty, Unit Price, Disc %, Discount Amt, Addition, Ref. SQ No.
 - **Delivery Date (`usvtDeliveryDate`)**: Date input with `minDate: 'today'`, locked in edit mode. Maps to `USVT_Delivery_Date` in BC (custom USVT field)
+- **Remark (`quoteRemark`)**: Single-line text input (max 120 chars) for quotation remarks. Sanitized to remove line breaks and normalized for print display. Appears in print footer as `bottomRemark`.
 
 ### Search & Edit Mode
 - Search by quote number → loads into editor
