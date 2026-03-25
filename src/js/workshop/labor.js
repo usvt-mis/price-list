@@ -29,6 +29,14 @@ export async function loadLabor() {
       motorDriveType
     });
     const labor = await fetchJson(`${API.WORKSHOP_LABOR}?${laborParams.toString()}`);
+    // Initialize checked state BEFORE calcAll (wire arc/HVOF jobs unchecked by default)
+    labor.forEach(j => {
+      if (j.checked === undefined) {
+        const jobNameLower = j.JobName.toLowerCase();
+        j.checked = !(jobNameLower.startsWith('wire arc') || jobNameLower.startsWith('hvof'));
+      }
+      if (j.effectiveManHours === undefined) j.effectiveManHours = Number(j.ManHours);
+    });
     appState.labor = labor;
     setStatus('');
     // Import calcAll dynamically to avoid circular dependency - calculate FIRST
@@ -74,6 +82,11 @@ export function renderLabor() {
     `;
   }
 
+  // Initialize effectiveManHours if not present (defaults to original ManHours)
+  appState.labor.forEach(j => {
+    if (j.effectiveManHours === undefined) j.effectiveManHours = Number(j.ManHours);
+  });
+
   // Create sorted display array with checked jobs first, unchecked last
   const displayJobs = [
     ...appState.labor.filter(j => j.checked !== false),
@@ -81,14 +94,6 @@ export function renderLabor() {
   ];
 
   const rows = displayJobs.map((j) => {
-    // Initialize checked state if not present (default: true, except for wire arc/HVOF jobs)
-    if (j.checked === undefined) {
-      const jobNameLower = j.JobName.toLowerCase();
-      // Jobs starting with "wire arc" or "HVOF" are unchecked by default
-      j.checked = !(jobNameLower.startsWith('wire arc') || jobNameLower.startsWith('hvof'));
-    }
-    // Initialize effectiveManHours if not present (defaults to original ManHours)
-    if (j.effectiveManHours === undefined) j.effectiveManHours = Number(j.ManHours);
 
     // Find original index in labor array for checkbox handler
     const originalIdx = appState.labor.indexOf(j);
