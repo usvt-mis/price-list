@@ -6,6 +6,15 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-25 - Workshop DC + Rewind Mode Validation
+Added validation for DC motor rewinding jobs in the Workshop calculator:
+- **Required Manhours**: Manhours field becomes required for DC + Rewind mode
+- **Visual Feedback**: Red pulse animation on invalid fields, "Required" placeholder
+- **TBD Display**: Labor subtotal and Grand Total show "TBD" when incomplete
+- **Helper Functions**: `isDcRewindMode()`, `isRewindMotorJob()`, `hasIncompleteRequiredManhours()`
+- **UI Enhancements**: Required field indicator, amber "TBD" styling for incomplete totals
+- **Service Type Filtering Fix**: Fixed order of job checking/unchecking for proper service type behavior
+
 ### 2026-03-25 - Repository Cleanup
 Removed deprecated files to streamline the codebase:
 - **Screenshots**: Removed outdated UI screenshots (add-line, confirm-remove, expand-modal, salesquotes-calm-operational)
@@ -278,6 +287,45 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 - `add_approval_owner_email_to_sales_quote_approvals.sql` - Ownership-based revisions
 - `add_sales_quote_approvals.sql` - Approval workflow table
 - `add_salesdirector_role_constraint.sql` - SalesDirector role constraint
+
+---
+
+## Workshop Calculator
+
+**Motor Drive Type & Service Type Filtering:**
+- **Motor Drive Type**: `appState.motorDriveType` ('AC' or 'DC')
+  - Auto-detects from motor type names; defaults to 'AC'
+  - Filters jobs at API level (J007=AC only, J017=DC only)
+  - API: `GET /api/workshop/labor?motorTypeId={id}&motorDriveType={AC|DC}`
+- **Service Type**: `appState.serviceType` ('Overhaul' or 'Rewind')
+  - User-selectable toggle in UI
+  - Automatically checks/unchecks jobs based on service type
+  - Overhaul: Checks ALL Overhaul jobs (including AC/DC variants), unchecks ALL Rewind jobs
+  - Rewind: Checks ALL Rewind jobs (including AC/DC variants), unchecks ALL Overhaul jobs
+  - Ensures that toggling AC/DC doesn't affect the service type filtering
+  - Enhanced job name patterns include AC/DC variants: "overhaul (ac)", "overhaul (dc)", "rewind motor (ac)", "rewind motor (dc)", etc.
+  - Service type filtering is re-applied after labor loads to ensure jobs remain properly checked/unchecked
+  - Implementation: `src/js/workshop/service-type.js`
+
+**DC + Rewind Mode Validation:**
+- **Purpose**: Ensures required manhours are entered for DC motor rewinding jobs
+- **Validation Logic**:
+  - Only applies when `motorDriveType === 'DC'` AND `serviceType === 'Rewind'`
+  - Only checks Rewind Motor jobs (based on job name patterns)
+  - Manhours field becomes required with "Required" placeholder
+  - Red pulse animation on invalid fields
+  - Labor subtotal and Grand Total display as "TBD" (To Be Determined) when incomplete
+- **Functions**:
+  - `isDcRewindMode()` - Check if DC + Rewind mode is active
+  - `isRewindMotorJob(job)` - Check if a job is a Rewind Motor job
+  - `hasIncompleteRequiredManhours()` - Check for incomplete required fields
+  - `getIncompleteRequiredManhoursCount()` - Get count of incomplete fields
+- **UI Changes**:
+  - Required field indicator (red asterisk)
+  - "Required" placeholder for manhours inputs
+  - Pulse-red animation on invalid fields
+  - "TBD" styling for incomplete totals (amber color, uppercase, bold)
+- **Implementation**: `src/js/workshop/labor.js`, `src/js/workshop/calculations.js`, `src/js/workshop/service-type.js`, `src/workshop.html`
 
 ---
 

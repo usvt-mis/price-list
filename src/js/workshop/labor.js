@@ -6,6 +6,7 @@
 import { el, fmt, fetchJson, setStatus } from '../core/utils.js';
 import { appState, getSelectedBranch, isExecutiveMode, isCustomerMode } from './state.js';
 import { TRAVEL_RATE, API } from '../core/config.js';
+import { isDcRewindMode, isRewindMotorJob } from './service-type.js';
 
 /**
  * Load labor data for selected motor type
@@ -102,6 +103,11 @@ export function renderLabor() {
     const isCustomer = isCustomerMode();
     const isDisabled = !isChecked || isCustomer;
     const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
+
+    // DC + Rewind mode: manhours is required for Rewind Motor jobs
+    const isDcRewindRequired = isDcRewindMode() && isRewindMotorJob(j) && isChecked;
+    const isRequiredEmpty = isDcRewindRequired && (mh === undefined || mh === null || mh === 0 || isNaN(mh));
+
     const rawCost = Number.isFinite(cph) ? mh * cph : NaN;
 
     // Determine calculation mode based on Sales Profit Input Mode
@@ -139,20 +145,35 @@ export function renderLabor() {
     const rowClass = isChecked ? 'border-b' : 'border-b bg-slate-50';
     const textClass = isChecked ? '' : 'line-through text-slate-400';
 
+    // For DC+Rewind required manhours: show TBD if not filled
+    const displayFinalPrice = isRequiredEmpty ? 'TBD' : fmt(finalPrice);
+    const finalPriceClass = isRequiredEmpty
+      ? 'tbd-text'  // TBD styling using CSS class
+      : (isChecked ? 'font-semibold text-slate-900' : '');
+
     return `<tr class="${rowClass} hover:bg-slate-50/50 transition-colors duration-150" data-idx="${originalIdx}">
       <td class="py-3 px-4">
         <input type="checkbox" class="job-checkbox w-5 h-5 ${isCustomer ? '' : 'cursor-pointer'} focus:ring-2 focus:ring-blue-500 rounded"
                data-idx="${originalIdx}" ${isChecked ? 'checked' : ''} ${isCustomer ? 'disabled' : ''}>
       </td>
-      <td class="py-3 px-4 ${textClass}">${j.JobName}</td>
+      <td class="py-3 px-4 ${textClass}">
+        ${j.JobName}${isDcRewindRequired ? '<span class="required-indicator"> *</span>' : ''}
+      </td>
       <td class="py-3 px-4 text-right ${textClass} manhours-col">
         <input type="number" min="0" step="0.25" data-mh="${originalIdx}"
-               class="w-20 text-right rounded border-slate-200 px-2 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${isDisabled ? 'bg-slate-100' : ''} [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-               value="${j.effectiveManHours}" ${isDisabled ? 'disabled' : ''}>
+               class="w-20 text-right rounded px-2 py-2 focus:ring-2 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+                      ${isDcRewindRequired
+                        ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500'
+                        : 'border-slate-200 focus:ring-blue-500 focus:border-blue-500'}
+                      ${isDisabled ? 'bg-slate-100 opacity-60' : ''}"
+               value="${isRequiredEmpty ? '' : j.effectiveManHours}"
+               placeholder="${isRequiredEmpty ? 'Required' : ''}"
+               ${isDisabled ? 'disabled' : ''}
+               ${isDcRewindRequired ? 'required' : ''}>
       </td>
       ${isExecutiveMode() ? `<td class="py-3 px-4 text-right ${textClass}">${fmt(rawCost)}</td>` : ''}
       ${isExecutiveMode() ? `<td class="py-3 px-4 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>` : ''}
-      <td class="py-3 px-4 text-right ${textClass} ${isChecked ? 'font-semibold text-slate-900' : ''}">${fmt(finalPrice)}</td>
+      <td class="py-3 px-4 text-right ${textClass} ${finalPriceClass}">${displayFinalPrice}</td>
     </tr>`;
   }).join('');
 
@@ -347,6 +368,38 @@ export function laborSubtotal() {
       const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
       return sum + mh * adjustedCph;
     }, 0);
+}
+
+/**
+ * Check if there are incomplete required manhours fields (DC + Rewind mode)
+ * @returns {boolean} true if there are required fields that are empty
+ */
+export function hasIncompleteRequiredManhours() {
+  if (!isDcRewindMode()) return false;
+
+  return appState.labor.some(job => {
+    if (job.checked === false) return false; // Skip unchecked jobs
+    if (!isRewindMotorJob(job)) return false; // Only check Rewind Motor jobs
+
+    const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
+    return mh === undefined || mh === null || mh === 0 || isNaN(mh);
+  });
+}
+
+/**
+ * Get count of incomplete required manhours fields
+ * @returns {number} Count of empty required manhours
+ */
+export function getIncompleteRequiredManhoursCount() {
+  if (!isDcRewindMode()) return 0;
+
+  return appState.labor.filter(job => {
+    if (job.checked === false) return false;
+    if (!isRewindMotorJob(job)) return false;
+
+    const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
+    return mh === undefined || mh === null || mh === 0 || isNaN(mh);
+  }).length;
 }
 
 // ========== Multiplier Helpers ==========

@@ -68,17 +68,17 @@ function updateJobsByServiceType(serviceType) {
 
     if (serviceType === 'Overhaul') {
       // Overhaul mode: Check Overhaul jobs, Uncheck ALL Rewind jobs
-      if (isOverhaulJob) {
-        job.checked = true;
-      } else if (isRewindJob) {
+      if (isRewindJob) {
         job.checked = false; // Always uncheck Rewind jobs in Overhaul mode
+      } else if (isOverhaulJob) {
+        job.checked = true;
       }
     } else if (serviceType === 'Rewind') {
       // Rewind mode: Check Rewind jobs, Uncheck ALL Overhaul jobs
-      if (isRewindJob) {
-        job.checked = true;
-      } else if (isOverhaulJob) {
+      if (isOverhaulJob) {
         job.checked = false; // Always uncheck Overhaul jobs in Rewind mode
+      } else if (isRewindJob) {
+        job.checked = true;
       }
     }
   });
@@ -90,6 +90,35 @@ function updateJobsByServiceType(serviceType) {
  */
 export function getServiceType() {
   return appState.serviceType || 'Overhaul';
+}
+
+/**
+ * Check if we're in DC + Rewind mode (special validation required)
+ * @returns {boolean} true if DC motor drive AND Rewind service type
+ */
+export function isDcRewindMode() {
+  return appState.motorDriveType === 'DC' && appState.serviceType === 'Rewind';
+}
+
+/**
+ * Check if a job is a Rewind Motor job
+ * @param {Object} job - Job object with JobName property
+ * @returns {boolean} true if job matches rewind patterns
+ */
+export function isRewindMotorJob(job) {
+  if (!job || !job.JobName) return false;
+  const jobNameLower = job.JobName.toLowerCase();
+  return REWIND_JOB_PATTERNS.some(pattern =>
+    jobNameLower.includes(pattern.toLowerCase())
+  );
+}
+
+/**
+ * Get Rewind job patterns for external use
+ * @returns {string[]} Array of rewind job patterns
+ */
+export function getRewindJobPatterns() {
+  return REWIND_JOB_PATTERNS;
 }
 
 /**

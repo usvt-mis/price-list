@@ -191,6 +191,9 @@ function setupEventListeners() {
         await loadLabor();
         // Re-apply service type job filtering after loading new labor
         setServiceType(getServiceType());
+        // Re-render to update UI with new checked states
+        renderLabor();
+        calcAll();
         if (globalExports.markDirty) globalExports.markDirty();
       }
     });
@@ -204,6 +207,9 @@ function setupEventListeners() {
     await loadLabor();
     // Re-apply service type job filtering after loading new labor
     setServiceType(getServiceType());
+    // Re-render to update UI with new checked states
+    renderLabor();
+    calcAll();
     if (globalExports.markDirty) globalExports.markDirty();
   });
 

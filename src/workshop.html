@@ -28,6 +28,57 @@
       cursor: not-allowed;
     }
 
+    /* DC + Rewind required manhours styling */
+    .required-manhours-invalid:invalid {
+      animation: pulse-red 2s infinite;
+    }
+
+    @keyframes pulse-red {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+      }
+      50% {
+        box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
+      }
+    }
+
+    /* Strong red background for required manhours input */
+    .manhours-required {
+      background-color: #fecaca !important; /* red-200 */
+      border-color: #dc2626 !important; /* red-600 */
+      animation: required-pulse 1.5s ease-in-out infinite;
+    }
+
+    .manhours-required:focus {
+      background-color: #fca5a5 !important; /* red-300 */
+      border-color: #b91c1c !important; /* red-700 */
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3) !important;
+    }
+
+    @keyframes required-pulse {
+      0%, 100% {
+        background-color: #fecaca; /* red-200 */
+      }
+      50% {
+        background-color: #fca5a5; /* red-300 */
+      }
+    }
+
+    .tbd-text {
+      color: #f59e0b !important;
+      font-weight: 700 !important;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Required field indicator */
+    .required-indicator {
+      color: #dc2626;
+      font-weight: 700;
+      margin-left: 0.25rem;
+      font-size: 1.1em;
+    }
+
     /* Flash animation for newly added material rows */
     @keyframes flashNew {
       0% { background-color: rgb(209 250 229); /* emerald-100 */ }
