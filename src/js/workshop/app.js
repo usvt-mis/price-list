@@ -17,7 +17,7 @@ import { initFloatingButtons } from '../core/floating-buttons.js';
 import { initializeCollapsibleSections } from '../core/collapsible-sections.js';
 import { COLLAPSIBLE_SECTION_IDS } from './state.js';
 import { getDefaultMotorDriveType, populateMotorTypeOptions, setMotorDriveType, syncMotorDriveTypeToMotorTypeId } from './motor-types.js';
-import { initServiceTypeToggle, setServiceType } from './service-type.js';
+import { initServiceTypeToggle, setServiceType, getServiceType } from './service-type.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
 
@@ -189,6 +189,8 @@ function setupEventListeners() {
 
       if (previousMotorTypeId || currentMotorTypeId) {
         await loadLabor();
+        // Re-apply service type job filtering after loading new labor
+        setServiceType(getServiceType());
         if (globalExports.markDirty) globalExports.markDirty();
       }
     });
@@ -200,6 +202,8 @@ function setupEventListeners() {
   el('motorType')?.addEventListener('change', async () => {
     syncMotorDriveTypeToMotorTypeId(el('motorType')?.value);
     await loadLabor();
+    // Re-apply service type job filtering after loading new labor
+    setServiceType(getServiceType());
     if (globalExports.markDirty) globalExports.markDirty();
   });
 

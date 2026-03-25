@@ -7,10 +7,19 @@ import { el } from '../core/utils.js';
 import { appState } from './state.js';
 
 const SERVICE_TYPES = new Set(['Overhaul', 'Rewind']);
-
-// Job names to check/uncheck based on service type
-const OVERHAUL_JOB_PATTERNS = ['overhaul'];
-const REWIND_JOB_PATTERNS = ['rewind motor', 'rewind'];
+// Job name patterns for AC and DC motor variants (with and without space)
+const OVERHAUL_JOB_PATTERNS = [
+  'overhaul',
+  'overhaul (dc)', 'overhaul(dc)',
+  'overhaul (ac)', 'overhaul(ac)'
+];
+const REWIND_JOB_PATTERNS = [
+  'rewind motor', 'rewind',
+  'rewind motor (dc)', 'rewind motor(dc)',
+  'rewind motor (ac)', 'rewind motor(ac)',
+  'rewind (dc)', 'rewind(dc)',
+  'rewind (ac)', 'rewind(ac)'
+];
 
 /**
  * Update the service type toggle UI to match the current state
