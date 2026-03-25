@@ -635,6 +635,17 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - Functions: `isCurrentUserApprovalOwner()` - Checks if current user is the approval owner (compares current user email with approval's ApprovalOwnerEmail, falls back to SalespersonEmail)
   - Modal: `approval-preview-modal.html` - Shows quote details for approval decision
   - Styles: `approval-styles.css` - Approval-specific UI styles
+- **Business Central Status Synchronization**:
+  - When a quote is submitted for approval, the system automatically syncs the status to "Pending Approval" in Business Central
+  - This ensures BC reflects the current approval state of the quote
+  - Synchronization occurs in three scenarios:
+    - After `sendApprovalRequest()` - When user sends approval request from quote editor
+    - After `submitForApproval()` - When user submits quote for approval via Approvals tab
+    - After `resubmitForApproval()` - When user resubmits after revision
+  - The sync is performed silently (errors are logged but don't block the approval flow)
+  - Uses the PatchSalesQuote endpoint to update the status field in BC
+  - Implementation: `syncQuoteStatusToPendingApprovalInBc()` function in `src/js/salesquotes/approvals.js`
+  - Helper functions: `isExplicitApiFailure()` and `extractGatewayFailureMessage()` for robust error handling
 - **Integration with Quote Creation**:
   - After quote creation/update, approval records are automatically initialized with SubmittedToBC status
   - ApprovalOwnerEmail is set to the salesperson's email during initialization

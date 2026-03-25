@@ -520,6 +520,63 @@ async function fetchWithAuth(url, options = {}) {
   return response.json();
 }
 
+function isExplicitApiFailure(value) {
+  return value === false || value === 'false' || value === 'False';
+}
+
+function extractGatewayFailureMessage(responseData) {
+  if (!responseData || typeof responseData !== 'object') {
+    return 'PatchSalesQuote request failed';
+  }
+
+  return responseData.error ||
+    responseData.message ||
+    responseData.result?.error ||
+    responseData.result?.message ||
+    'PatchSalesQuote request failed';
+}
+
+async function syncQuoteStatusToPendingApprovalInBc(salesQuoteNumber) {
+  if (!salesQuoteNumber) {
+    return;
+  }
+
+  try {
+    const response = await fetch(GATEWAY_API.PATCH_SALES_QUOTE, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        salesQuoteNo: salesQuoteNumber,
+        status: 'Pending Approval'
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP ${response.status}${errorText ? `: ${errorText}` : ''}`);
+    }
+
+    const responseData = await response.json().catch(() => ({}));
+    const gatewayReportedFailure = [
+      responseData?.success,
+      responseData?.Success,
+      responseData?.result?.success,
+      responseData?.result?.Success
+    ].some(isExplicitApiFailure);
+
+    if (gatewayReportedFailure) {
+      throw new Error(extractGatewayFailureMessage(responseData));
+    }
+  } catch (error) {
+    console.warn('[Approval] Silent BC Pending Approval patch failed:', {
+      salesQuoteNumber,
+      error: error?.message || error
+    });
+  }
+}
+
 function resetApprovalState() {
   state.quote.approvalStatus = null;
   state.approval.currentStatus = null;
@@ -966,6 +1023,7 @@ export async function sendApprovalRequest(quoteData) {
 
     // Update UI to reflect new status (hide "Send Approval Request" button, update badge)
     await updateQuoteEditorModeUi();
+    void syncQuoteStatusToPendingApprovalInBc(salesQuoteNumber);
 
     return true;
   } catch (error) {
@@ -1015,6 +1073,7 @@ export async function submitForApproval(quoteData) {
     hideLoading();
 
     showToast('Quote submitted for approval', 'success');
+    void syncQuoteStatusToPendingApprovalInBc(salesQuoteNumber);
 
     return true;
   } catch (error) {
@@ -1093,6 +1152,7 @@ export async function resubmitForApproval(quoteNumber, quoteData) {
 
     state.approval.currentStatus = APPROVAL_STATUS.PENDING_APPROVAL;
     applyApprovalIdentity(response.approval);
+    void syncQuoteStatusToPendingApprovalInBc(quoteNumber);
 
     await loadMyApprovalRequests();
     return true;
