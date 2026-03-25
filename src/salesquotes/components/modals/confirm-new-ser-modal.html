@@ -11,14 +11,22 @@
       <div class="sales-alert-body">
         <div class="sales-alert-section sales-alert-section-info">
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label class="mb-1 block text-sm font-medium text-slate-700">Repair Type</label>
-              <select id="confirmNewSerWorkType" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm">
-                <option value="">Select repair type</option>
-                <option value="Motor">Motor</option>
-                <option value="Pump">Pump</option>
-                <option value="EL/GT">EL/GT</option>
-              </select>
+            <div class="md:col-span-2">
+              <p class="mb-2 block text-sm font-medium text-slate-700">Repair Type</p>
+              <div class="flex flex-wrap gap-3">
+                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                  <input type="radio" name="confirmNewSerWorkType" id="confirmNewSerWorkTypeMotor" value="Motor" checked>
+                  <span>Motor</span>
+                </label>
+                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                  <input type="radio" name="confirmNewSerWorkType" id="confirmNewSerWorkTypePump" value="Pump">
+                  <span>Pump</span>
+                </label>
+                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                  <input type="radio" name="confirmNewSerWorkType" id="confirmNewSerWorkTypeElGt" value="EL/GT">
+                  <span>EL/GT</span>
+                </label>
+              </div>
             </div>
 
             <div id="confirmNewSerMotorFields" class="hidden">

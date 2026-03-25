@@ -188,8 +188,9 @@ function setServiceItemFieldLockState(field, locked, { clearValue = false, title
 
 function getServiceItemBuilderRefs(prefix = 'line') {
   if (prefix === 'confirm') {
+    const selectedWorkType = document.querySelector('input[name="confirmNewSerWorkType"]:checked');
     return {
-      workType: document.getElementById('confirmNewSerWorkType'),
+      workType: selectedWorkType,
       motorFields: document.getElementById('confirmNewSerMotorFields'),
       motorKw: document.getElementById('confirmNewSerMotorKw'),
       motorIsDc: document.getElementById('confirmNewSerDriveTypeDc'),
@@ -198,7 +199,8 @@ function getServiceItemBuilderRefs(prefix = 'line') {
       description: document.getElementById('confirmNewSerDescription'),
       driveTypeWrap: document.getElementById('confirmNewSerDriveTypeWrap'),
       driveTypeAc: document.getElementById('confirmNewSerDriveTypeAc'),
-      driveTypeDc: document.getElementById('confirmNewSerDriveTypeDc')
+      driveTypeDc: document.getElementById('confirmNewSerDriveTypeDc'),
+      workTypeOptions: document.querySelectorAll('input[name="confirmNewSerWorkType"]')
     };
   }
 
@@ -244,6 +246,31 @@ function formatMotorKwValue(value) {
   }
 
   return String(parsed);
+}
+
+function isMotorKwWithinLimit(value) {
+  const normalized = formatMotorKwValue(value);
+  if (!normalized) {
+    return false;
+  }
+
+  return Number.parseFloat(normalized) <= 315;
+}
+
+function updateMotorKwFieldValidity(field) {
+  if (!field) {
+    return;
+  }
+
+  const rawValue = field.value || '';
+  const normalized = formatMotorKwValue(rawValue);
+
+  if (!rawValue || !normalized || isMotorKwWithinLimit(rawValue)) {
+    field.setCustomValidity('');
+    return;
+  }
+
+  field.setCustomValidity('Motor kW must not exceed 315.00.');
 }
 
 function buildServiceItemDescriptionFromBuilder({ workType, motorKw, motorIsDc, details }) {
@@ -319,6 +346,7 @@ function syncServiceItemDescriptionFromBuilder(prefix = 'line', { preserveExisti
     if (sanitizedKw !== refs.motorKw.value) {
       refs.motorKw.value = sanitizedKw;
     }
+    updateMotorKwFieldValidity(refs.motorKw);
   }
 
   if (refs.motorDriveLabel) {
@@ -351,11 +379,17 @@ function resetServiceItemBuilder(prefix = 'line', { preserveDescription = false 
     return;
   }
 
-  if (refs.workType) refs.workType.value = '';
+  if (refs.workType && !refs.workTypeOptions?.length) refs.workType.value = '';
   if (refs.motorKw) refs.motorKw.value = '';
   if (refs.driveTypeAc) refs.driveTypeAc.checked = true;
   if (refs.motorIsDc) refs.motorIsDc.checked = false;
   if (refs.details) refs.details.value = '';
+
+  if (refs.workTypeOptions?.length) {
+    refs.workTypeOptions.forEach(option => {
+      option.checked = option.value === 'Motor';
+    });
+  }
 
   syncServiceItemDescriptionFromBuilder(prefix, { preserveExistingDescription: preserveDescription });
 }
@@ -378,7 +412,12 @@ function populateServiceItemBuilderFromDescription(prefix = 'line', description 
     return;
   }
 
-  if (refs.workType) refs.workType.value = parsed.workType;
+  if (refs.workType && !refs.workTypeOptions?.length) refs.workType.value = parsed.workType;
+  if (refs.workTypeOptions?.length) {
+    refs.workTypeOptions.forEach(option => {
+      option.checked = option.value === parsed.workType;
+    });
+  }
   if (refs.motorKw) refs.motorKw.value = parsed.motorKw;
   if (refs.motorIsDc) refs.motorIsDc.checked = parsed.motorIsDc;
   if (refs.details) refs.details.value = parsed.details;
@@ -430,6 +469,13 @@ function getServiceItemBuilderValidation(prefix = 'line') {
   if (workType === 'Motor' && !formatMotorKwValue(refs.motorKw?.value || '')) {
     return {
       message: 'Please enter the motor kW before creating a Service Item.',
+      focusField: refs.motorKw
+    };
+  }
+
+  if (workType === 'Motor' && !isMotorKwWithinLimit(refs.motorKw?.value || '')) {
+    return {
+      message: 'Motor kW must not exceed 315.00.',
       focusField: refs.motorKw
     };
   }
@@ -2219,12 +2265,19 @@ function setupConfirmNewSerModalHandlers() {
 
   const refs = getServiceItemBuilderRefs('confirm');
 
-  refs.workType?.addEventListener('change', () => {
-    syncServiceItemDescriptionFromBuilder('confirm');
+  refs.workTypeOptions?.forEach(option => {
+    option.addEventListener('change', () => {
+      syncServiceItemDescriptionFromBuilder('confirm');
+    });
   });
 
   refs.motorKw?.addEventListener('input', () => {
     syncServiceItemDescriptionFromBuilder('confirm');
+  });
+
+  refs.motorKw?.addEventListener('blur', () => {
+    updateMotorKwFieldValidity(refs.motorKw);
+    refs.motorKw.reportValidity();
   });
 
   refs.driveTypeAc?.addEventListener('change', () => {
@@ -2282,7 +2335,9 @@ async function createServiceItemAndLockFields(confirmSnapshot = null) {
     ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
     : (snapshot.workType === 'Motor' && !formatMotorKwValue(snapshot.motorKw || '')
       ? { message: 'Please enter the motor kW before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
-      : null);
+      : (snapshot.workType === 'Motor' && !isMotorKwWithinLimit(snapshot.motorKw || '')
+        ? { message: 'Motor kW must not exceed 315.00.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
+        : null));
   if (builderValidation) {
     showError(builderValidation.message);
     builderValidation.focusField?.focus();
@@ -4945,7 +5000,9 @@ async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null) {
     ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
     : (snapshot.workType === 'Motor' && !formatMotorKwValue(snapshot.motorKw || '')
       ? { message: 'Please enter the motor kW before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
-      : null);
+      : (snapshot.workType === 'Motor' && !isMotorKwWithinLimit(snapshot.motorKw || '')
+        ? { message: 'Motor kW must not exceed 315.00.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
+        : null));
   if (builderValidation) {
     showError(builderValidation.message);
     builderValidation.focusField?.focus();

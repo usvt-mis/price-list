@@ -324,11 +324,12 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Purpose**: Provides a structured interface for building Service Item descriptions from component fields
 - **Available in**: Add Line Modal, Edit Line Modal, and Confirm New SER Modal
 - **Builder Fields**:
-  - **Work Type**: Dropdown with options (Motor, Pump, EL/GT)
+  - **Work Type**: Dropdown with options (Motor, Pump, EL/GT) in Add/Edit Line modals; Radio buttons in Confirm New SER Modal
   - **Motor kW**: Text input for motor power (only visible when Work Type = Motor)
     - Supports decimal values (e.g., 7.5)
     - Sanitized to allow only numbers and single decimal point
     - Formatted to remove trailing zeros and unnecessary decimal points
+    - **Validation**: Must not exceed 315.00 kW (validated on blur and before creating Service Item)
   - **Drive Type**: Radio buttons for AC/DC (only visible when Work Type = Motor)
     - Default: AC
   - **Details**: Optional text field for additional information
@@ -343,9 +344,11 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - Handles AC/DC, kW values, and details extraction
     - Falls back to displaying description in Details field if parsing fails
 - **Implementation**: `src/js/salesquotes/create-quote.js`:
-  - `getServiceItemBuilderRefs(prefix)` - Get DOM references for builder fields (supports 'line', 'editLine', 'confirm' prefixes)
+  - `getServiceItemBuilderRefs(prefix)` - Get DOM references for builder fields (supports 'line', 'editLine', 'confirm' prefixes; handles radio buttons for confirm prefix)
   - `sanitizeMotorKwInput(value)` - Sanitize motor kW input to allow only numbers and single decimal
   - `formatMotorKwValue(value)` - Format motor kW value (remove trailing zeros, unnecessary decimals)
+  - `isMotorKwWithinLimit(value)` - Check if motor kW value does not exceed 315.00
+  - `updateMotorKwFieldValidity(field)` - Set custom validity message for Motor kW field
   - `buildServiceItemDescriptionFromBuilder({ workType, motorKw, motorIsDc, details })` - Build description from builder fields
   - `parseServiceItemDescription(description)` - Parse existing description back to builder fields
   - `syncServiceItemDescriptionFromBuilder(prefix, options)` - Sync builder changes to description field
@@ -355,7 +358,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **HTML Changes**:
   - `add-line-modal.html`: Service Item Description field made read-only with placeholder
   - `edit-line-modal.html`: Service Item Description field made read-only with placeholder
-  - `confirm-new-ser-modal.html`: Added Service Item Builder UI with grid layout for Work Type, Motor Fields, Drive Type, and Details
+  - `confirm-new-ser-modal.html`: Added Service Item Builder UI with grid layout; Work Type uses radio buttons (Motor, Pump, EL/GT) with improved styling
 
 **Branch Assignment Validation:**
 - **Policy**: Users must have a Branch assigned (via `branchId` in user profile) to access Sales Quotes
