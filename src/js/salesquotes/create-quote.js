@@ -186,6 +186,301 @@ function setServiceItemFieldLockState(field, locked, { clearValue = false, title
   }
 }
 
+function getServiceItemBuilderRefs(prefix = 'line') {
+  if (prefix === 'confirm') {
+    return {
+      workType: document.getElementById('confirmNewSerWorkType'),
+      motorFields: document.getElementById('confirmNewSerMotorFields'),
+      motorKw: document.getElementById('confirmNewSerMotorKw'),
+      motorIsDc: document.getElementById('confirmNewSerDriveTypeDc'),
+      motorDriveLabel: null,
+      details: document.getElementById('confirmNewSerDetails'),
+      description: document.getElementById('confirmNewSerDescription'),
+      driveTypeWrap: document.getElementById('confirmNewSerDriveTypeWrap'),
+      driveTypeAc: document.getElementById('confirmNewSerDriveTypeAc'),
+      driveTypeDc: document.getElementById('confirmNewSerDriveTypeDc')
+    };
+  }
+
+  const base = prefix === 'edit' ? 'editLine' : 'line';
+
+  return {
+    workType: document.getElementById(`${base}ServiceItemWorkType`),
+    motorFields: document.getElementById(`${base}ServiceItemMotorFields`),
+    motorKw: document.getElementById(`${base}ServiceItemMotorKw`),
+    motorIsDc: document.getElementById(`${base}ServiceItemMotorIsDc`),
+    motorDriveLabel: document.getElementById(`${base}ServiceItemMotorDriveLabel`),
+    details: document.getElementById(`${base}ServiceItemDetails`),
+    description: document.getElementById(`${base}UsvtServiceItemDescription`)
+  };
+}
+
+function sanitizeMotorKwInput(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  const stripped = String(value).replace(/[^0-9.]/g, '');
+  const firstDotIndex = stripped.indexOf('.');
+
+  if (firstDotIndex === -1) {
+    return stripped;
+  }
+
+  const integerPart = stripped.slice(0, firstDotIndex + 1);
+  const decimalPart = stripped.slice(firstDotIndex + 1).replace(/\./g, '');
+  return `${integerPart}${decimalPart}`;
+}
+
+function formatMotorKwValue(value) {
+  const sanitized = sanitizeMotorKwInput(value).trim();
+  if (!sanitized || sanitized === '.') {
+    return '';
+  }
+
+  const parsed = Number.parseFloat(sanitized);
+  if (!Number.isFinite(parsed)) {
+    return '';
+  }
+
+  return String(parsed);
+}
+
+function buildServiceItemDescriptionFromBuilder({ workType, motorKw, motorIsDc, details }) {
+  const normalizedWorkType = typeof workType === 'string' ? workType.trim() : '';
+  const normalizedDetails = typeof details === 'string' ? details.replace(/\s+/g, ' ').trim() : '';
+
+  if (!normalizedWorkType) {
+    return '';
+  }
+
+  if (normalizedWorkType === 'Motor') {
+    const normalizedKw = formatMotorKwValue(motorKw);
+    if (!normalizedKw) {
+      return '';
+    }
+
+    return normalizedDetails
+      ? `Motor ${motorIsDc ? 'DC' : 'AC'} ${normalizedKw} kW ${normalizedDetails}`
+      : `Motor ${motorIsDc ? 'DC' : 'AC'} ${normalizedKw} kW`;
+  }
+
+  return normalizedDetails ? `${normalizedWorkType} ${normalizedDetails}` : normalizedWorkType;
+}
+
+function parseServiceItemDescription(description) {
+  const normalizedDescription = typeof description === 'string' ? description.replace(/\s+/g, ' ').trim() : '';
+  if (!normalizedDescription) {
+    return null;
+  }
+
+  const motorMatch = normalizedDescription.match(/^Motor\s+(AC|DC)\s+([0-9]+(?:\.[0-9]+)?)\s*kW(?:\s+(.*))?$/i);
+  if (motorMatch) {
+    return {
+      workType: 'Motor',
+      motorKw: motorMatch[2],
+      motorIsDc: motorMatch[1].toUpperCase() === 'DC',
+      details: motorMatch[3] || ''
+    };
+  }
+
+  const workTypeMatch = normalizedDescription.match(/^(Pump|EL\/GT)(?:\s+(.*))?$/i);
+  if (workTypeMatch) {
+    return {
+      workType: workTypeMatch[1].toUpperCase() === 'EL/GT' ? 'EL/GT' : 'Pump',
+      motorKw: '',
+      motorIsDc: false,
+      details: workTypeMatch[2] || ''
+    };
+  }
+
+  return null;
+}
+
+function syncServiceItemDescriptionFromBuilder(prefix = 'line', { preserveExistingDescription = false } = {}) {
+  const refs = getServiceItemBuilderRefs(prefix);
+  if (!refs.description) {
+    return;
+  }
+
+  const workType = refs.workType?.value?.trim() || '';
+  const isMotor = workType === 'Motor';
+
+  if (refs.motorFields) {
+    refs.motorFields.classList.toggle('hidden', !isMotor);
+  }
+
+  if (refs.driveTypeWrap) {
+    refs.driveTypeWrap.classList.toggle('hidden', !isMotor);
+  }
+
+  if (refs.motorKw) {
+    const sanitizedKw = sanitizeMotorKwInput(refs.motorKw.value);
+    if (sanitizedKw !== refs.motorKw.value) {
+      refs.motorKw.value = sanitizedKw;
+    }
+  }
+
+  if (refs.motorDriveLabel) {
+    refs.motorDriveLabel.textContent = refs.motorIsDc?.checked ? 'DC' : 'AC';
+  }
+
+  if (refs.details) {
+    refs.details.placeholder = isMotor ? 'Add motor repair details...' : 'Add repair details...';
+  }
+
+  const nextDescription = buildServiceItemDescriptionFromBuilder({
+    workType,
+    motorKw: refs.motorKw?.value || '',
+    motorIsDc: refs.motorIsDc?.checked || false,
+    details: refs.details?.value || ''
+  });
+
+  if (nextDescription || !preserveExistingDescription) {
+    if ('value' in refs.description) {
+      refs.description.value = nextDescription;
+    } else {
+      refs.description.textContent = nextDescription || 'Generate Automatically';
+    }
+  }
+}
+
+function resetServiceItemBuilder(prefix = 'line', { preserveDescription = false } = {}) {
+  const refs = getServiceItemBuilderRefs(prefix);
+  if (!refs.description) {
+    return;
+  }
+
+  if (refs.workType) refs.workType.value = '';
+  if (refs.motorKw) refs.motorKw.value = '';
+  if (refs.driveTypeAc) refs.driveTypeAc.checked = true;
+  if (refs.motorIsDc) refs.motorIsDc.checked = false;
+  if (refs.details) refs.details.value = '';
+
+  syncServiceItemDescriptionFromBuilder(prefix, { preserveExistingDescription: preserveDescription });
+}
+
+function populateServiceItemBuilderFromDescription(prefix = 'line', description = '') {
+  const refs = getServiceItemBuilderRefs(prefix);
+  if (!refs.description) {
+    return;
+  }
+
+  const parsed = parseServiceItemDescription(description);
+  if (!parsed) {
+    resetServiceItemBuilder(prefix, { preserveDescription: true });
+    const fallbackDescription = typeof description === 'string' ? description.trim() : '';
+    if ('value' in refs.description) {
+      refs.description.value = fallbackDescription;
+    } else {
+      refs.description.textContent = fallbackDescription || 'Generate Automatically';
+    }
+    return;
+  }
+
+  if (refs.workType) refs.workType.value = parsed.workType;
+  if (refs.motorKw) refs.motorKw.value = parsed.motorKw;
+  if (refs.motorIsDc) refs.motorIsDc.checked = parsed.motorIsDc;
+  if (refs.details) refs.details.value = parsed.details;
+
+  syncServiceItemDescriptionFromBuilder(prefix);
+}
+
+function setServiceItemBuilderLockState(prefix = 'line', locked, { clearValue = false, title = '' } = {}) {
+  const refs = getServiceItemBuilderRefs(prefix);
+  [refs.workType, refs.motorKw, refs.motorIsDc, refs.details].forEach(field => {
+    if (!field) {
+      return;
+    }
+
+    field.disabled = locked;
+
+    if (field.type !== 'checkbox') {
+      field.classList.toggle('opacity-50', locked);
+      field.classList.toggle('cursor-not-allowed', locked);
+      field.classList.toggle('bg-slate-50', locked);
+      field.classList.toggle('text-slate-600', locked);
+    }
+
+    if (title) {
+      field.title = title;
+    } else {
+      field.removeAttribute('title');
+    }
+  });
+
+  if (clearValue) {
+    resetServiceItemBuilder(prefix);
+  } else {
+    syncServiceItemDescriptionFromBuilder(prefix, { preserveExistingDescription: true });
+  }
+}
+
+function getServiceItemBuilderValidation(prefix = 'line') {
+  const refs = getServiceItemBuilderRefs(prefix);
+  const workType = refs.workType?.value?.trim() || '';
+
+  if (!workType) {
+    return {
+      message: 'Please select the repair type before creating a Service Item.',
+      focusField: refs.workType
+    };
+  }
+
+  if (workType === 'Motor' && !formatMotorKwValue(refs.motorKw?.value || '')) {
+    return {
+      message: 'Please enter the motor kW before creating a Service Item.',
+      focusField: refs.motorKw
+    };
+  }
+
+  return null;
+}
+
+function getPendingSerSourcePrefix() {
+  return state.ui.pendingSerCreationEdit ? 'edit' : 'line';
+}
+
+function applyConfirmNewSerDescriptionToSource(sourcePrefix = getPendingSerSourcePrefix()) {
+  syncServiceItemDescriptionFromBuilder('confirm');
+  const confirmRefs = getServiceItemBuilderRefs('confirm');
+  const sourceDescriptionField = sourcePrefix === 'edit'
+    ? document.getElementById('editLineUsvtServiceItemDescription')
+    : document.getElementById('lineUsvtServiceItemDescription');
+
+  if (!sourceDescriptionField || !confirmRefs.description) {
+    return '';
+  }
+
+  const description = (confirmRefs.description.textContent || '').trim();
+  sourceDescriptionField.value = description === 'Generate Automatically' ? '' : description;
+  return sourceDescriptionField.value;
+}
+
+function getConfirmNewSerSnapshot() {
+  const refs = getServiceItemBuilderRefs('confirm');
+  return {
+    workType: refs.workType?.value?.trim() || '',
+    motorKw: refs.motorKw?.value || '',
+    motorIsDc: refs.motorIsDc?.checked || false,
+    details: refs.details?.value || ''
+  };
+}
+
+function applyConfirmNewSerSnapshotToSource(snapshot, sourcePrefix = getPendingSerSourcePrefix()) {
+  const sourceDescriptionField = sourcePrefix === 'edit'
+    ? document.getElementById('editLineUsvtServiceItemDescription')
+    : document.getElementById('lineUsvtServiceItemDescription');
+
+  if (!sourceDescriptionField) {
+    return '';
+  }
+
+  const description = buildServiceItemDescriptionFromBuilder(snapshot);
+  sourceDescriptionField.value = description;
+  return description;
+}
+
 function normalizeBcDate(value) {
   if (!value || typeof value !== 'string') {
     return '';
@@ -1848,15 +2143,6 @@ async function showConfirmNewSerModal() {
     return;
   }
 
-  const description = el('lineUsvtServiceItemDescription').value.trim();
-
-  // Validate description before showing modal
-  if (!description) {
-    showError('Service Item Description is required before creating a Service Item.');
-    el('lineUsvtServiceItemDescription').focus();
-    return;
-  }
-
   // Get modal elements
   let modal = el('confirmNewSerModal');
   let modalContent = el('confirmNewSerModalContent');
@@ -1877,11 +2163,9 @@ async function showConfirmNewSerModal() {
     }
   }
 
-  // Display the description in the modal
-  const descriptionEl = el('confirmNewSerDescription');
-  if (descriptionEl) {
-    descriptionEl.textContent = `"${description}"`;
-  }
+  setupConfirmNewSerModalHandlers();
+  populateServiceItemBuilderFromDescription('confirm', el('lineUsvtServiceItemDescription')?.value?.trim() || '');
+  syncServiceItemDescriptionFromBuilder('confirm');
 
   // Show modal with animation
   if (modal && modalContent) {
@@ -1918,10 +2202,42 @@ function hideConfirmNewSerModal() {
     modalContent.style.transform = 'translateY(-10px)';
     setTimeout(() => {
       modal.classList.add('hidden');
+      resetServiceItemBuilder('confirm');
       state.ui.pendingSerCreation = false;
       state.ui.pendingSerCreationEdit = false;
     }, 300);
   }
+}
+
+function setupConfirmNewSerModalHandlers() {
+  const modal = el('confirmNewSerModal');
+  if (!modal || modal.dataset.handlersBound === 'true') {
+    return;
+  }
+
+  modal.dataset.handlersBound = 'true';
+
+  const refs = getServiceItemBuilderRefs('confirm');
+
+  refs.workType?.addEventListener('change', () => {
+    syncServiceItemDescriptionFromBuilder('confirm');
+  });
+
+  refs.motorKw?.addEventListener('input', () => {
+    syncServiceItemDescriptionFromBuilder('confirm');
+  });
+
+  refs.driveTypeAc?.addEventListener('change', () => {
+    syncServiceItemDescriptionFromBuilder('confirm');
+  });
+
+  refs.driveTypeDc?.addEventListener('change', () => {
+    syncServiceItemDescriptionFromBuilder('confirm');
+  });
+
+  refs.details?.addEventListener('input', () => {
+    syncServiceItemDescriptionFromBuilder('confirm');
+  });
 }
 
 /**
@@ -1937,14 +2253,15 @@ function cancelNewSerCreation() {
  */
 function confirmNewSerCreation() {
   const shouldUseEditFlow = state.ui.pendingSerCreationEdit;
+  const confirmSnapshot = getConfirmNewSerSnapshot();
   hideConfirmNewSerModal();
   // Proceed with the actual creation after modal closes
   setTimeout(() => {
     // Check which context we're in (Add or Edit)
     if (shouldUseEditFlow) {
-      createServiceItemAndLockFieldsForEdit();
+      createServiceItemAndLockFieldsForEdit(confirmSnapshot);
     } else {
-      createServiceItemAndLockFields();
+      createServiceItemAndLockFields(confirmSnapshot);
     }
   }, 350); // Wait for modal animation to complete
 }
@@ -1953,22 +2270,33 @@ function confirmNewSerCreation() {
  * Create Service Item and lock fields in Add Line modal
  * Module-level function to be accessible from confirmNewSerCreation
  */
-async function createServiceItemAndLockFields() {
+async function createServiceItemAndLockFields(confirmSnapshot = null) {
   // If already created, do nothing
   if (state.ui.serCreated) {
     showError('Service Item already created');
     return;
   }
 
+  const snapshot = confirmSnapshot || getConfirmNewSerSnapshot();
+  const builderValidation = !snapshot.workType
+    ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
+    : (snapshot.workType === 'Motor' && !formatMotorKwValue(snapshot.motorKw || '')
+      ? { message: 'Please enter the motor kW before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
+      : null);
+  if (builderValidation) {
+    showError(builderValidation.message);
+    builderValidation.focusField?.focus();
+    return;
+  }
+
+  const serviceItemDesc = applyConfirmNewSerSnapshotToSource(snapshot, 'line');
+
   // Get required field values
-  const serviceItemDesc = document.getElementById('lineUsvtServiceItemDescription')?.value?.trim();
   const customerNo = state.quote.customerNo || '';
   const groupNo = document.getElementById('lineUsvtGroupNo')?.value?.trim() || '1';
 
-  // Validation: Serv. Item Desc is required
   if (!serviceItemDesc) {
-    showError('Please enter Service Item Description before creating New SER');
-    document.getElementById('lineUsvtServiceItemDescription')?.focus();
+    showError('Please complete the Service Item setup before creating New SER');
     return;
   }
 
@@ -3245,6 +3573,10 @@ function updateAddServiceItemFieldState() {
     clearValue: shouldClear,
     title: lockReason
   });
+  setServiceItemBuilderLockState('line', shouldLock, {
+    clearValue: shouldClear,
+    title: lockReason
+  });
 }
 
 /**
@@ -3341,18 +3673,27 @@ function updateNewSerButtonStateForEditModal(excludeLineId) {
  * When Addition is OFF, Ref Sales Quote No is disabled and cleared
  */
 export function setupLineModalHandlers() {
+  const modal = el('addLineModal');
   const typeSelect = el('lineType');
   const newSerButton = el('lineCreateSv');
   const additionCheckbox = el('lineUsvtAddition');
   const refSalesQuoteField = el('lineUsvtRefSalesQuoteno');
+  const builderRefs = getServiceItemBuilderRefs('line');
 
-  if (!typeSelect || !newSerButton || !additionCheckbox || !refSalesQuoteField) {
+  if (!modal || !typeSelect || !newSerButton || !additionCheckbox || !refSalesQuoteField) {
     console.warn('Line modal elements not found for handler setup');
     return;
   }
 
   // Initial state based on default value
   updateFieldStates();
+  syncServiceItemDescriptionFromBuilder('line', { preserveExistingDescription: true });
+
+  if (modal.dataset.handlersBound === 'true') {
+    return;
+  }
+
+  modal.dataset.handlersBound = 'true';
 
   // Handle Type changes
   typeSelect.addEventListener('change', updateFieldStates);
@@ -3368,6 +3709,30 @@ export function setupLineModalHandlers() {
   if (groupNoField) {
     groupNoField.addEventListener('input', updateNewSerButtonStateForAddModal);
     groupNoField.addEventListener('change', updateNewSerButtonStateForAddModal);
+  }
+
+  if (builderRefs.workType) {
+    builderRefs.workType.addEventListener('change', () => {
+      syncServiceItemDescriptionFromBuilder('line');
+    });
+  }
+
+  if (builderRefs.motorKw) {
+    builderRefs.motorKw.addEventListener('input', () => {
+      syncServiceItemDescriptionFromBuilder('line');
+    });
+  }
+
+  if (builderRefs.motorIsDc) {
+    builderRefs.motorIsDc.addEventListener('change', () => {
+      syncServiceItemDescriptionFromBuilder('line');
+    });
+  }
+
+  if (builderRefs.details) {
+    builderRefs.details.addEventListener('input', () => {
+      syncServiceItemDescriptionFromBuilder('line');
+    });
   }
 
   // Initial Addition state
@@ -3825,6 +4190,7 @@ export function setupEventListeners() {
   // =====================
   // Setup event listeners for the edit line modal
   setupEditModalEventListeners();
+  setupConfirmNewSerModalHandlers();
 
   updateQuoteEditorModeUi();
 
@@ -4082,6 +4448,7 @@ function openEditLineModal(lineId) {
   document.getElementById('editLineUsvtGroupNo').value = line.usvtGroupNo || '';
   document.getElementById('editLineUsvtServiceItemNo').value = line.usvtServiceItemNo || '';
   document.getElementById('editLineUsvtServiceItemDescription').value = line.usvtServiceItemDescription || '';
+  populateServiceItemBuilderFromDescription('edit', line.usvtServiceItemDescription || '');
   document.getElementById('editLineObjectNumberSearch').value = line.lineObjectNumber || '';
   document.getElementById('editLineDescription').value = line.description;
   document.getElementById('editLineQuantity').value = line.quantity;
@@ -4226,6 +4593,8 @@ function saveEditLine() {
   if (!ensureQuoteEditableForChanges()) {
     return;
   }
+
+  syncServiceItemDescriptionFromBuilder('edit', { preserveExistingDescription: true });
 
   const lineId = state.ui.editingLineId;
   if (!lineId) return;
@@ -4498,15 +4867,6 @@ async function showConfirmNewSerModalForEdit() {
     return;
   }
 
-  const description = document.getElementById('editLineUsvtServiceItemDescription').value.trim();
-
-  // Validate description before showing modal
-  if (!description) {
-    showError('Service Item Description is required before creating a Service Item.');
-    document.getElementById('editLineUsvtServiceItemDescription').focus();
-    return;
-  }
-
   // Get modal elements
   let modal = document.getElementById('confirmNewSerModal');
   let modalContent = document.getElementById('confirmNewSerModalContent');
@@ -4527,11 +4887,9 @@ async function showConfirmNewSerModalForEdit() {
     }
   }
 
-  // Display the description in the modal
-  const descriptionEl = document.getElementById('confirmNewSerDescription');
-  if (descriptionEl) {
-    descriptionEl.textContent = `"${description}"`;
-  }
+  setupConfirmNewSerModalHandlers();
+  populateServiceItemBuilderFromDescription('confirm', document.getElementById('editLineUsvtServiceItemDescription')?.value?.trim() || '');
+  syncServiceItemDescriptionFromBuilder('confirm');
 
   // Show modal with animation
   if (modal && modalContent) {
@@ -4569,7 +4927,7 @@ function confirmNewSerCreationForEdit() {
 /**
  * Create Service Item and lock fields in Edit modal
  */
-async function createServiceItemAndLockFieldsForEdit() {
+async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null) {
   // If already created, do nothing
   if (state.ui.serCreatedEdit) {
     showError('Service Item already created');
@@ -4582,15 +4940,26 @@ async function createServiceItemAndLockFieldsForEdit() {
     return;
   }
 
+  const snapshot = confirmSnapshot || getConfirmNewSerSnapshot();
+  const builderValidation = !snapshot.workType
+    ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
+    : (snapshot.workType === 'Motor' && !formatMotorKwValue(snapshot.motorKw || '')
+      ? { message: 'Please enter the motor kW before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
+      : null);
+  if (builderValidation) {
+    showError(builderValidation.message);
+    builderValidation.focusField?.focus();
+    return;
+  }
+
+  const serviceItemDesc = applyConfirmNewSerSnapshotToSource(snapshot, 'edit');
+
   // Get required field values
-  const serviceItemDesc = document.getElementById('editLineUsvtServiceItemDescription')?.value?.trim();
   const customerNo = state.quote.customerNo || '';
   const groupNo = document.getElementById('editLineUsvtGroupNo')?.value?.trim() || '1';
 
-  // Validation: Serv. Item Desc is required
   if (!serviceItemDesc) {
-    showError('Please enter Service Item Description before creating New SER');
-    document.getElementById('editLineUsvtServiceItemDescription')?.focus();
+    showError('Please complete the Service Item setup before creating New SER');
     return;
   }
 
@@ -4679,12 +5048,27 @@ function updateEditServiceItemFieldState(excludeLineId = state.ui.editingLineId)
     clearValue: shouldClear,
     title: lockReason
   });
+  setServiceItemBuilderLockState('edit', shouldLock, {
+    clearValue: shouldClear,
+    title: lockReason
+  });
 }
 
 /**
  * Setup event listeners for edit modal
  */
 function setupEditModalEventListeners() {
+  const editModal = document.getElementById('editLineModal');
+  if (!editModal) {
+    return;
+  }
+
+  if (editModal.dataset.handlersBound === 'true') {
+    return;
+  }
+
+  editModal.dataset.handlersBound = 'true';
+
   // Quantity and Unit Price changes - update total
   document.getElementById('editLineQuantity').addEventListener('input', updateEditLineTotal);
   document.getElementById('editLineUnitPrice').addEventListener('input', updateEditLineTotal);
@@ -4715,6 +5099,28 @@ function setupEditModalEventListeners() {
     groupNoField.addEventListener('change', () => {
       const editingLineId = state.ui.editingLineId;
       updateNewSerButtonStateForEditModal(editingLineId);
+    });
+  }
+
+  const builderRefs = getServiceItemBuilderRefs('edit');
+  if (builderRefs.workType) {
+    builderRefs.workType.addEventListener('change', () => {
+      syncServiceItemDescriptionFromBuilder('edit');
+    });
+  }
+  if (builderRefs.motorKw) {
+    builderRefs.motorKw.addEventListener('input', () => {
+      syncServiceItemDescriptionFromBuilder('edit');
+    });
+  }
+  if (builderRefs.motorIsDc) {
+    builderRefs.motorIsDc.addEventListener('change', () => {
+      syncServiceItemDescriptionFromBuilder('edit');
+    });
+  }
+  if (builderRefs.details) {
+    builderRefs.details.addEventListener('input', () => {
+      syncServiceItemDescriptionFromBuilder('edit');
     });
   }
 

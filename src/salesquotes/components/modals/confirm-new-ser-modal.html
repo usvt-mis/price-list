@@ -10,8 +10,46 @@
 
       <div class="sales-alert-body">
         <div class="sales-alert-section sales-alert-section-info">
-          <p class="sales-alert-label">Description</p>
-          <p id="confirmNewSerDescription" class="sales-alert-value"></p>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-700">Repair Type</label>
+              <select id="confirmNewSerWorkType" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm">
+                <option value="">Select repair type</option>
+                <option value="Motor">Motor</option>
+                <option value="Pump">Pump</option>
+                <option value="EL/GT">EL/GT</option>
+              </select>
+            </div>
+
+            <div id="confirmNewSerMotorFields" class="hidden">
+              <label class="mb-1 block text-sm font-medium text-slate-700">Motor kW</label>
+              <input type="text" id="confirmNewSerMotorKw" inputmode="decimal" placeholder="e.g. 7.5" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm">
+            </div>
+
+            <div id="confirmNewSerDriveTypeWrap" class="hidden md:col-span-2">
+              <p class="mb-2 block text-sm font-medium text-slate-700">Drive Type</p>
+              <div class="flex flex-wrap gap-3">
+                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                  <input type="radio" name="confirmNewSerDriveType" id="confirmNewSerDriveTypeAc" value="AC" checked>
+                  <span>AC</span>
+                </label>
+                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                  <input type="radio" name="confirmNewSerDriveType" id="confirmNewSerDriveTypeDc" value="DC">
+                  <span>DC</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="mb-1 block text-sm font-medium text-slate-700">Details</label>
+              <input type="text" id="confirmNewSerDetails" placeholder="Optional details" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm">
+            </div>
+          </div>
+        </div>
+
+        <div class="sales-alert-section sales-alert-section-info">
+          <p class="sales-alert-label">Generated Description</p>
+          <p id="confirmNewSerDescription" class="sales-alert-value">Generate Automatically</p>
         </div>
       </div>
 

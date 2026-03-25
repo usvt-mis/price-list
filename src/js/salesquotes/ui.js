@@ -1309,6 +1309,10 @@ export function openAddLineModal(insertIndex = null) {
     // Service Item fields
     if (el('lineUsvtServiceItemNo')) el('lineUsvtServiceItemNo').value = '';
     if (el('lineUsvtServiceItemDescription')) el('lineUsvtServiceItemDescription').value = '';
+    if (el('lineServiceItemWorkType')) el('lineServiceItemWorkType').value = '';
+    if (el('lineServiceItemMotorKw')) el('lineServiceItemMotorKw').value = '';
+    if (el('lineServiceItemMotorIsDc')) el('lineServiceItemMotorIsDc').checked = false;
+    if (el('lineServiceItemDetails')) el('lineServiceItemDetails').value = '';
     if (el('lineUsvtGroupNo')) el('lineUsvtGroupNo').value = '1';
 
     // Material search (No field)

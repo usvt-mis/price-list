@@ -320,6 +320,43 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - This prevents duplicate Service Item creation within the same group
 - Implementation: `src/js/salesquotes/create-quote.js` - functions `hasServiceItemInGroupNo()`, `updateNewSerButtonStateForAddModal()`, `updateNewSerButtonStateForEditModal()`
 
+**Service Item Builder:**
+- **Purpose**: Provides a structured interface for building Service Item descriptions from component fields
+- **Available in**: Add Line Modal, Edit Line Modal, and Confirm New SER Modal
+- **Builder Fields**:
+  - **Work Type**: Dropdown with options (Motor, Pump, EL/GT)
+  - **Motor kW**: Text input for motor power (only visible when Work Type = Motor)
+    - Supports decimal values (e.g., 7.5)
+    - Sanitized to allow only numbers and single decimal point
+    - Formatted to remove trailing zeros and unnecessary decimal points
+  - **Drive Type**: Radio buttons for AC/DC (only visible when Work Type = Motor)
+    - Default: AC
+  - **Details**: Optional text field for additional information
+- **Auto-Generated Description**: The Service Item Description field is automatically generated based on builder fields
+  - Format for Motor: `Motor {AC|DC} {kW} kW {details}` (e.g., "Motor AC 7.5 kW Rewinding")
+  - Format for Pump/EL/GT: `{workType} {details}` (e.g., "Pump Seal replacement")
+  - Field is read-only with placeholder "Generate Automatically"
+- **Two-Way Synchronization**:
+  - **Builder → Description**: When builder fields change, description is automatically updated
+  - **Description → Builder**: When loading existing data, description is parsed back to builder fields
+    - Supports parsing of existing Motor descriptions with regex pattern matching
+    - Handles AC/DC, kW values, and details extraction
+    - Falls back to displaying description in Details field if parsing fails
+- **Implementation**: `src/js/salesquotes/create-quote.js`:
+  - `getServiceItemBuilderRefs(prefix)` - Get DOM references for builder fields (supports 'line', 'editLine', 'confirm' prefixes)
+  - `sanitizeMotorKwInput(value)` - Sanitize motor kW input to allow only numbers and single decimal
+  - `formatMotorKwValue(value)` - Format motor kW value (remove trailing zeros, unnecessary decimals)
+  - `buildServiceItemDescriptionFromBuilder({ workType, motorKw, motorIsDc, details })` - Build description from builder fields
+  - `parseServiceItemDescription(description)` - Parse existing description back to builder fields
+  - `syncServiceItemDescriptionFromBuilder(prefix, options)` - Sync builder changes to description field
+  - `syncServiceItemBuilderFromDescription(prefix, options)` - Sync existing description to builder fields
+  - `handleServiceItemBuilderChange(prefix, event)` - Handle builder field changes
+  - `bindServiceItemBuilderEventListeners(prefix)` - Bind event listeners for builder fields
+- **HTML Changes**:
+  - `add-line-modal.html`: Service Item Description field made read-only with placeholder
+  - `edit-line-modal.html`: Service Item Description field made read-only with placeholder
+  - `confirm-new-ser-modal.html`: Added Service Item Builder UI with grid layout for Work Type, Motor Fields, Drive Type, and Details
+
 **Branch Assignment Validation:**
 - **Policy**: Users must have a Branch assigned (via `branchId` in user profile) to access Sales Quotes
 - If no `branchId` is found, a modal is displayed that freezes the page until the user refreshes after being assigned a branch
