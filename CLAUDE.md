@@ -188,11 +188,17 @@ After quote creation/update:
 
 ### Service Item Builder
 - **Available in**: Add Line Modal, Edit Line Modal, Confirm New SER Modal
-- **Fields**: Work Type (Motor/Pump/EL/GT), Motor kW (decimal), Drive Type (AC/DC), Details
+- **Fields**:
+  - Service Type (Overhaul/Rewind) - Radio buttons in Confirm New SER Modal
+  - Work Type (Motor/Pump/EL/GT) - Dropdown in Add/Edit Line modals, Radio buttons in Confirm New SER Modal
+  - Motor kW (decimal) - Text input (only visible when Work Type = Motor)
+  - Drive Type (AC/DC) - Radio buttons (only visible when Work Type = Motor)
+  - Details - Optional text field for additional information
 - **Auto-Generated Description**: Read-only field populated from builder fields
-  - Motor: `Motor {AC|DC} {kW} kW {details}`
+  - With Service Type: `{ServiceType} {WorkType} {details}` or `{ServiceType} Motor {AC|DC} {kW} kW {details}`
+  - Motor only: `Motor {AC|DC} {kW} kW {details}`
   - Other: `{workType} {details}`
-- **Two-Way Sync**: Builder → Description, Description → Builder (parses existing data)
+- **Two-Way Sync**: Builder → Description, Description → Builder (parses existing data including Service Type)
 - **Implementation**: `src/js/salesquotes/create-quote.js` - builder functions
 
 ### Validation Rules

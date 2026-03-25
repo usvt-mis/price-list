@@ -189,7 +189,10 @@ function setServiceItemFieldLockState(field, locked, { clearValue = false, title
 function getServiceItemBuilderRefs(prefix = 'line') {
   if (prefix === 'confirm') {
     const selectedWorkType = document.querySelector('input[name="confirmNewSerWorkType"]:checked');
+    const selectedServiceType = document.querySelector('input[name="confirmNewSerServiceType"]:checked');
     return {
+      serviceType: selectedServiceType,
+      serviceTypeOptions: document.querySelectorAll('input[name="confirmNewSerServiceType"]'),
       workType: selectedWorkType,
       motorFields: document.getElementById('confirmNewSerMotorFields'),
       motorKw: document.getElementById('confirmNewSerMotorKw'),
@@ -273,26 +276,31 @@ function updateMotorKwFieldValidity(field) {
   field.setCustomValidity('Motor kW must not exceed 315.00.');
 }
 
-function buildServiceItemDescriptionFromBuilder({ workType, motorKw, motorIsDc, details }) {
+function buildServiceItemDescriptionFromBuilder({ serviceType, workType, motorKw, motorIsDc, details }) {
+  const normalizedServiceType = typeof serviceType === 'string' ? serviceType.trim() : '';
   const normalizedWorkType = typeof workType === 'string' ? workType.trim() : '';
   const normalizedDetails = typeof details === 'string' ? details.replace(/\s+/g, ' ').trim() : '';
 
   if (!normalizedWorkType) {
-    return '';
+    return normalizedServiceType || '';
   }
 
+  let baseDescription = '';
   if (normalizedWorkType === 'Motor') {
     const normalizedKw = formatMotorKwValue(motorKw);
     if (!normalizedKw) {
-      return '';
+      return normalizedServiceType || '';
     }
 
-    return normalizedDetails
+    baseDescription = normalizedDetails
       ? `Motor ${motorIsDc ? 'DC' : 'AC'} ${normalizedKw} kW ${normalizedDetails}`
       : `Motor ${motorIsDc ? 'DC' : 'AC'} ${normalizedKw} kW`;
+  } else {
+    baseDescription = normalizedDetails ? `${normalizedWorkType} ${normalizedDetails}` : normalizedWorkType;
   }
 
-  return normalizedDetails ? `${normalizedWorkType} ${normalizedDetails}` : normalizedWorkType;
+  // Prepend service type if available
+  return normalizedServiceType ? `${normalizedServiceType} ${baseDescription}` : baseDescription;
 }
 
 function parseServiceItemDescription(description) {
@@ -301,9 +309,15 @@ function parseServiceItemDescription(description) {
     return null;
   }
 
-  const motorMatch = normalizedDescription.match(/^Motor\s+(AC|DC)\s+([0-9]+(?:\.[0-9]+)?)\s*kW(?:\s+(.*))?$/i);
+  // Try to match with Service Type prefix first
+  const serviceTypeMatch = normalizedDescription.match(/^(Overhaul|Rewind)\s+(.+)$/i);
+  const remainingDescription = serviceTypeMatch ? serviceTypeMatch[2] : normalizedDescription;
+  const serviceType = serviceTypeMatch ? serviceTypeMatch[1] : '';
+
+  const motorMatch = remainingDescription.match(/^Motor\s+(AC|DC)\s+([0-9]+(?:\.[0-9]+)?)\s*kW(?:\s+(.*))?$/i);
   if (motorMatch) {
     return {
+      serviceType,
       workType: 'Motor',
       motorKw: motorMatch[2],
       motorIsDc: motorMatch[1].toUpperCase() === 'DC',
@@ -311,9 +325,10 @@ function parseServiceItemDescription(description) {
     };
   }
 
-  const workTypeMatch = normalizedDescription.match(/^(Pump|EL\/GT)(?:\s+(.*))?$/i);
+  const workTypeMatch = remainingDescription.match(/^(Pump|EL\/GT)(?:\s+(.*))?$/i);
   if (workTypeMatch) {
     return {
+      serviceType,
       workType: workTypeMatch[1].toUpperCase() === 'EL/GT' ? 'EL/GT' : 'Pump',
       motorKw: '',
       motorIsDc: false,
@@ -358,6 +373,7 @@ function syncServiceItemDescriptionFromBuilder(prefix = 'line', { preserveExisti
   }
 
   const nextDescription = buildServiceItemDescriptionFromBuilder({
+    serviceType: refs.serviceType?.value || 'Overhaul',
     workType,
     motorKw: refs.motorKw?.value || '',
     motorIsDc: refs.motorIsDc?.checked || false,
@@ -391,6 +407,12 @@ function resetServiceItemBuilder(prefix = 'line', { preserveDescription = false 
     });
   }
 
+  if (refs.serviceTypeOptions?.length) {
+    refs.serviceTypeOptions.forEach(option => {
+      option.checked = option.value === 'Overhaul';
+    });
+  }
+
   syncServiceItemDescriptionFromBuilder(prefix, { preserveExistingDescription: preserveDescription });
 }
 
@@ -416,6 +438,11 @@ function populateServiceItemBuilderFromDescription(prefix = 'line', description 
   if (refs.workTypeOptions?.length) {
     refs.workTypeOptions.forEach(option => {
       option.checked = option.value === parsed.workType;
+    });
+  }
+  if (refs.serviceTypeOptions?.length) {
+    refs.serviceTypeOptions.forEach(option => {
+      option.checked = option.value === (parsed.serviceType || 'Overhaul');
     });
   }
   if (refs.motorKw) refs.motorKw.value = parsed.motorKw;
@@ -2265,6 +2292,12 @@ function setupConfirmNewSerModalHandlers() {
   modal.dataset.handlersBound = 'true';
 
   const refs = getServiceItemBuilderRefs('confirm');
+
+  refs.serviceTypeOptions?.forEach(option => {
+    option.addEventListener('change', () => {
+      syncServiceItemDescriptionFromBuilder('confirm');
+    });
+  });
 
   refs.workTypeOptions?.forEach(option => {
     option.addEventListener('change', () => {
