@@ -202,7 +202,10 @@ After quote creation/update:
 ### My Records
 - Tab shows user's submitted quotes with search
 - Clickable quote numbers → switches to Search tab and triggers search
-- API: `GET /api/salesquotes/records?search={query}`, `POST /api/salesquotes/records`
+- **Search**: Searches across SalesQuoteNumber, WorkDescription, and Remark fields
+- **Fields**: SalesQuoteNumber, SenderEmail, WorkDescription, Remark, SubmittedAt
+- **API**: `GET /api/salesquotes/records?search={query}`, `POST /api/salesquotes/records`
+- **Remark Handling**: Sanitized to remove line breaks before storage (max 255 chars)
 
 ### User Preferences
 - Table: `SalesQuoteUserPreferences` (Id, UserEmail, PreferenceKey, PreferenceValue, CreatedAt, UpdatedAt)
