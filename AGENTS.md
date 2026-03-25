@@ -286,6 +286,30 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 [docs/authentication.md](docs/authentication.md) for details.
 
+### Role-Based Access Control Implementation
+- **Landing Page Access Control** (`src/index.html`):
+  - Users without required roles (Sales, SalesDirector, Executive) see an "Account Pending Role Assignment" banner
+  - Calculator and Sales Quotes cards are disabled with visual feedback (grayscale, opacity, pointer-events: none)
+  - Backoffice link remains accessible for administrators
+  - Access check performed via `/api/auth/me` endpoint
+  - Local development bypass: `localhost` and `127.0.0.1` automatically grant access
+  - CSS classes: `.access-denied-card` for disabled cards, `.awaiting-assignment-banner` for the notification banner
+- **Sales Quotes Page Access Control** (`src/js/salesquotes/app.js`):
+  - Access checked before app initialization via `checkSalesQuotesAccess()` function
+  - Users without access see a centered "Account Pending" screen with:
+    - Amber clock icon
+    - User email display
+    - Sign Out and Backoffice Admin buttons
+  - Main content hidden for unauthorized users
+  - Implementation: `showAwaitingAssignmentScreen()` creates and displays the awaiting screen
+- **Allowed Roles**: Sales, SalesDirector, Executive
+- **Access Check Flow**:
+  1. Fetch user data from `/api/auth/me`
+  2. Extract `effectiveRole` from user data
+  3. Check if role is in `ALLOWED_ROLES` array
+  4. Apply UI changes based on access result
+- **Error Handling**: Access denied on errors for security
+
 ---
 
 ## Business Central API (Sales Quotes)

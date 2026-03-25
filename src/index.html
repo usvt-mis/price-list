@@ -7,6 +7,20 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>"/>
   <link rel="stylesheet" href="/css/output.css">
   <style>
+    /* Role-based access control styles */
+    .access-denied-card {
+      opacity: 0.5;
+      pointer-events: none;
+      filter: grayscale(0.8);
+    }
+    .awaiting-assignment-banner {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      border-radius: 1rem;
+      padding: 1.5rem 2rem;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
+      margin-bottom: 2rem;
+    }
     body {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
@@ -74,6 +88,30 @@
       <p class="text-xl text-white/80">Select a menu to continue</p>
     </div>
 
+    <!-- Awaiting Assignment Banner (shown for users without required roles) -->
+    <div id="awaitingAssignmentBanner" class="awaiting-assignment-banner hidden">
+      <div class="flex items-center justify-center gap-3 mb-2">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <h2 class="text-2xl font-bold text-white">Account Pending Role Assignment</h2>
+      </div>
+      <p class="text-white/90 mb-4">
+        Your account is awaiting role assignment. Please contact your administrator to get access to the Calculator and Sales Quotes.
+      </p>
+      <div class="bg-white/20 rounded-lg px-4 py-2 inline-block">
+        <p class="text-sm text-white"><strong>Your email:</strong> <span id="userEmailDisplay">Loading...</span></p>
+      </div>
+      <div class="mt-4 flex justify-center gap-3">
+        <a href="/.auth/logout?post_logout_redirect_uri=/" class="inline-block px-5 py-2 rounded-lg bg-white text-amber-600 font-semibold hover:bg-white/90 transition-colors">
+          Sign Out
+        </a>
+        <a href="/backoffice.html" class="inline-block px-5 py-2 rounded-lg bg-white/20 text-white font-semibold hover:bg-white/30 transition-colors">
+          Backoffice Admin
+        </a>
+      </div>
+    </div>
+
     <!-- Calculator Selection Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <!-- Calculator Card -->
@@ -124,8 +162,8 @@
 
       <div class="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
         <a href="/onsite.html" class="submenu-link calculator-option calculator-option-onsite flex flex-col items-center justify-center rounded-2xl border border-blue-100 px-5 py-8 text-xl font-semibold text-slate-900">
-          <span class="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/80 text-blue-600 shadow-sm">
-            <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <span class="mb-4 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-sm" style="width: 56px; height: 56px;">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
@@ -134,8 +172,8 @@
         </a>
 
         <a href="/workshop.html" class="submenu-link calculator-option calculator-option-workshop flex flex-col items-center justify-center rounded-2xl border border-orange-100 px-5 py-8 text-xl font-semibold text-slate-900">
-          <span class="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/80 text-orange-600 shadow-sm">
-            <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <span class="mb-4 flex items-center justify-center rounded-full bg-orange-100 text-orange-600 shadow-sm" style="width: 56px; height: 56px;">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
             </svg>
           </span>
@@ -149,6 +187,96 @@
     const calculatorMenuTrigger = document.getElementById('calculatorMenuTrigger');
     const calculatorMenuModal = document.getElementById('calculatorMenuModal');
     const calculatorMenuClose = document.getElementById('calculatorMenuClose');
+    const awaitingAssignmentBanner = document.getElementById('awaitingAssignmentBanner');
+    const userEmailDisplay = document.getElementById('userEmailDisplay');
+
+    // Roles that can access Calculator and Sales Quotes
+    const ALLOWED_ROLES = ['Sales', 'SalesDirector', 'Executive'];
+
+    /**
+     * Check if current user can access calculators
+     * @returns {Promise<boolean>} True if user has access
+     */
+    async function checkUserAccess() {
+      try {
+        // In local development, grant access
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          return true;
+        }
+
+        // Fetch user info from auth endpoint
+        const response = await fetch('/api/auth/me');
+        if (!response.ok) {
+          // If not authenticated, deny access
+          return false;
+        }
+
+        const userData = await response.json();
+        const userRole = userData.effectiveRole;
+
+        // Store user email for display
+        if (userData.email) {
+          userEmailDisplay.textContent = userData.email;
+        }
+
+        // Check if user has one of the allowed roles
+        return ALLOWED_ROLES.includes(userRole);
+
+      } catch (error) {
+        console.error('Error checking user access:', error);
+        // On error, deny access for safety
+        return false;
+      }
+    }
+
+    /**
+     * Apply role-based access control to the UI
+     * @param {boolean} hasAccess - Whether user has access
+     */
+    function applyAccessControl(hasAccess) {
+      const calculatorCard = document.getElementById('calculatorMenuTrigger');
+      const salesQuotesCard = document.querySelector('a[href="/salesquotes.html"]');
+      const backofficeLink = document.querySelector('a[href="/backoffice.html"]');
+
+      if (!hasAccess) {
+        // Show awaiting assignment banner
+        awaitingAssignmentBanner.classList.remove('hidden');
+
+        // Disable calculator and sales quotes cards
+        if (calculatorCard) {
+          calculatorCard.classList.add('access-denied-card');
+          calculatorMenuTrigger?.removeEventListener('click', openCalculatorMenu);
+        }
+        if (salesQuotesCard) {
+          salesQuotesCard.classList.add('access-denied-card');
+          salesQuotesCard.removeAttribute('href');
+          salesQuotesCard.style.cursor = 'not-allowed';
+        }
+
+        // Keep backoffice link accessible for administrators
+        if (backofficeLink) {
+          // No changes - backoffice remains accessible
+        }
+      } else {
+        // User has access - ensure everything is enabled
+        awaitingAssignmentBanner.classList.add('hidden');
+
+        if (calculatorCard) {
+          calculatorCard.classList.remove('access-denied-card');
+        }
+        if (salesQuotesCard) {
+          salesQuotesCard.classList.remove('access-denied-card');
+          salesQuotesCard.href = '/salesquotes.html';
+          salesQuotesCard.style.cursor = '';
+        }
+      }
+    }
+
+    // Initialize access control on page load
+    async function initializeAccessControl() {
+      const hasAccess = await checkUserAccess();
+      applyAccessControl(hasAccess);
+    }
 
     function openCalculatorMenu() {
       calculatorMenuModal.hidden = false;
@@ -174,6 +302,13 @@
         closeCalculatorMenu();
       }
     });
+
+    // Initialize access control when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeAccessControl);
+    } else {
+      initializeAccessControl();
+    }
   </script>
 </body>
 </html>

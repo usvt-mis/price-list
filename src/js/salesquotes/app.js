@@ -14,6 +14,104 @@ import { initializeApprovalsTab } from './approvals.js';
 import './print-quote.js';
 
 // ============================================================
+// Role-Based Access Control
+// ============================================================
+
+// Roles that can access Sales Quotes
+const ALLOWED_ROLES = ['Sales', 'SalesDirector', 'Executive'];
+
+/**
+ * Check if current user can access Sales Quotes
+ * @returns {Promise<boolean>} True if user has access
+ */
+async function checkSalesQuotesAccess() {
+  try {
+    // In local development, grant access
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return true;
+    }
+
+    // Fetch user info from auth endpoint
+    const response = await fetch('/api/auth/me');
+    if (!response.ok) {
+      return false;
+    }
+
+    const userData = await response.json();
+    const userRole = userData.effectiveRole;
+
+    // Check if user has one of the allowed roles
+    return ALLOWED_ROLES.includes(userRole);
+
+  } catch (error) {
+    console.error('Error checking Sales Quotes access:', error);
+    return false;
+  }
+}
+
+/**
+ * Show awaiting assignment screen for users without required roles
+ */
+function showAwaitingAssignmentScreen() {
+  const mainContent = document.querySelector('.salesquotes-main');
+  const topbar = document.querySelector('.salesquotes-topbar');
+
+  if (!mainContent) return;
+
+  // Hide the main content
+  mainContent.classList.add('hidden');
+
+  // Create and show the awaiting assignment screen
+  const awaitingScreen = document.createElement('div');
+  awaitingScreen.className = 'salesquotes-awaiting-screen';
+  awaitingScreen.innerHTML = `
+    <div class="min-h-screen flex items-center justify-center px-4">
+      <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+        <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg class="w-10 h-10 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-900 mb-2">Account Pending</h2>
+        <p class="text-slate-600 mb-6">
+          Your account is awaiting role assignment. Please contact your administrator to get access to Sales Quotes.
+        </p>
+        <div class="bg-slate-50 rounded-xl p-4 mb-6 text-left" id="awaitingEmailContainer">
+          <p class="text-sm text-slate-600">
+            <strong>Your email:</strong> <span id="awaitingEmail">Loading...</span>
+          </p>
+        </div>
+        <div class="flex flex-col gap-3">
+          <a href="/.auth/logout?post_logout_redirect_uri=/" class="inline-block px-6 py-3 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors">
+            Sign Out
+          </a>
+          <a href="/backoffice.html" class="inline-block px-6 py-3 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors">
+            Backoffice Admin
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Insert after the topbar
+  topbar?.after(awaitingScreen);
+
+  // Try to fetch and display user email
+  fetch('/api/auth/me')
+    .then(res => res.json())
+    .then(data => {
+      const emailSpan = document.getElementById('awaitingEmail');
+      if (emailSpan && data.clientPrincipal?.userDetails) {
+        emailSpan.textContent = data.clientPrincipal.userDetails;
+      }
+    })
+    .catch(() => {
+      const emailSpan = document.getElementById('awaitingEmail');
+      if (emailSpan) emailSpan.textContent = 'Unknown';
+    });
+}
+
+// ============================================================
 // Application Initialization
 // ============================================================
 
@@ -32,6 +130,20 @@ async function initApp() {
   console.log('Sales Quotes App - Initializing...');
 
   try {
+    // 0. Check role-based access BEFORE initializing auth
+    const hasAccess = await checkSalesQuotesAccess();
+    console.log('Access check result:', hasAccess);
+
+    if (!hasAccess) {
+      console.log('Access denied - showing awaiting assignment screen');
+      // Render minimal auth section for logout
+      renderAuthSection();
+      // Show awaiting assignment screen
+      showAwaitingAssignmentScreen();
+      finishInitialLoadingNotice();
+      return;
+    }
+
     // 1. Initialize authentication
     await initAuth();
     console.log('Auth initialized');
