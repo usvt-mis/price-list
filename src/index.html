@@ -18,6 +18,52 @@
       transform: translateY(-8px);
       box-shadow: 0 20px 40px rgba(0,0,0,0.2);
     }
+    .submenu-link {
+      transition: all 0.22s ease;
+    }
+    .submenu-link:hover {
+      transform: translateX(4px);
+    }
+    .menu-modal[hidden] {
+      display: none;
+    }
+    .menu-modal {
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(10px);
+    }
+    .menu-modal-panel {
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.9), transparent 38%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: 0 30px 90px rgba(15, 23, 42, 0.32);
+      animation: modal-in 0.2s ease-out;
+    }
+    .calculator-option {
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+    .calculator-option-onsite {
+      background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%);
+    }
+    .calculator-option-onsite:hover {
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 16px 28px rgba(37, 99, 235, 0.18);
+    }
+    .calculator-option-workshop {
+      background: linear-gradient(145deg, #fff7ed 0%, #ffedd5 100%);
+    }
+    .calculator-option-workshop:hover {
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 16px 28px rgba(234, 88, 12, 0.18);
+    }
+    @keyframes modal-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
   </style>
 </head>
 <body class="flex items-center justify-center p-6">
@@ -25,37 +71,23 @@
     <!-- Header -->
     <div class="text-center mb-12">
       <h1 class="text-5xl font-bold text-white mb-4">Price List Calculator</h1>
-      <p class="text-xl text-white/80">Select a calculator to continue</p>
+      <p class="text-xl text-white/80">Select a menu to continue</p>
     </div>
 
     <!-- Calculator Selection Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-      <!-- Onsite Calculator Card -->
-      <a href="/onsite.html" class="block bg-white rounded-3xl shadow-xl p-8 card-hover">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <!-- Calculator Card -->
+      <button id="calculatorMenuTrigger" type="button" class="block w-full bg-white rounded-3xl shadow-xl p-8 card-hover text-left">
         <div class="flex flex-col items-center text-center">
           <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6">
             <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m-7 4h8m-9 4h10M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2h-4l-3 3-3-3H5a2 2 0 01-2-2V7a2 2 0 012-2z"/>
             </svg>
           </div>
-          <h2 class="text-2xl font-bold text-slate-900 mb-3">Onsite Calculator</h2>
-          <p class="text-slate-600">For field and onsite service calculations with travel distance, scope options, and onsite add-ons.</p>
+          <h2 class="text-2xl font-bold text-slate-900 mb-3">Calculator</h2>
+          <p class="text-slate-600">Open the calculator menu, then choose Onsite or Workshop based on the service type.</p>
         </div>
-      </a>
-
-      <!-- Workshop Calculator Card -->
-      <a href="/workshop.html" class="block bg-white rounded-3xl shadow-xl p-8 card-hover">
-        <div class="flex flex-col items-center text-center">
-          <div class="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mb-6">
-            <svg class="w-10 h-10 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-            </svg>
-          </div>
-          <h2 class="text-2xl font-bold text-slate-900 mb-3">Workshop Calculator</h2>
-          <p class="text-slate-600">For workshop and facility-based service calculations with simplified layout.</p>
-        </div>
-      </a>
+      </button>
 
       <!-- Sales Quotes Card -->
       <a href="/salesquotes.html" class="block bg-white rounded-3xl shadow-xl p-8 card-hover">
@@ -65,7 +97,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
           </div>
-          <h2 class="text-2xl font-bold text-slate-900 mb-3">Sales Quotes</h2>
+          <h2 class="text-2xl font-bold text-slate-900 mb-3">Sales Quote</h2>
           <p class="text-slate-600">Create and manage sales quotes in Business Central with customer and item integration.</p>
         </div>
       </a>
@@ -78,5 +110,70 @@
       </a>
     </div>
   </div>
+
+    <div id="calculatorMenuModal" class="menu-modal fixed inset-0 z-50 flex items-center justify-center p-6" hidden>
+    <div class="absolute inset-0" data-close-modal="true" aria-hidden="true"></div>
+    <div class="menu-modal-panel relative w-full max-w-xl rounded-3xl bg-white p-6 md:p-8 shadow-2xl">
+      <div class="flex items-start justify-end">
+        <button id="calculatorMenuClose" type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700" aria-label="Close calculator menu">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <a href="/onsite.html" class="submenu-link calculator-option calculator-option-onsite flex flex-col items-center justify-center rounded-2xl border border-blue-100 px-5 py-8 text-xl font-semibold text-slate-900">
+          <span class="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/80 text-blue-600 shadow-sm">
+            <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </span>
+          <span>Onsite</span>
+        </a>
+
+        <a href="/workshop.html" class="submenu-link calculator-option calculator-option-workshop flex flex-col items-center justify-center rounded-2xl border border-orange-100 px-5 py-8 text-xl font-semibold text-slate-900">
+          <span class="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/80 text-orange-600 shadow-sm">
+            <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </span>
+          <span>Workshop</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const calculatorMenuTrigger = document.getElementById('calculatorMenuTrigger');
+    const calculatorMenuModal = document.getElementById('calculatorMenuModal');
+    const calculatorMenuClose = document.getElementById('calculatorMenuClose');
+
+    function openCalculatorMenu() {
+      calculatorMenuModal.hidden = false;
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeCalculatorMenu() {
+      calculatorMenuModal.hidden = true;
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    calculatorMenuTrigger?.addEventListener('click', openCalculatorMenu);
+    calculatorMenuClose?.addEventListener('click', closeCalculatorMenu);
+
+    calculatorMenuModal?.addEventListener('click', (event) => {
+      if (event.target instanceof HTMLElement && event.target.dataset.closeModal === 'true') {
+        closeCalculatorMenu();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && calculatorMenuModal && !calculatorMenuModal.hidden) {
+        closeCalculatorMenu();
+      }
+    });
+  </script>
 </body>
 </html>
