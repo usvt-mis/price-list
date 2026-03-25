@@ -279,8 +279,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Service Type**: `appState.serviceType` ('Overhaul' or 'Rewind')
   - User-selectable toggle in UI
   - Automatically checks/unchecks jobs based on service type
-  - Overhaul: Checks jobs with "overhaul" in name (including AC/DC variants), unchecks "rewind motor" jobs
-  - Rewind: Checks jobs with "rewind" in name (including AC/DC variants), unchecks "overhaul" jobs
+  - Overhaul: Checks ALL Overhaul jobs (including AC/DC variants), unchecks ALL Rewind jobs
+  - Rewind: Checks ALL Rewind jobs (including AC/DC variants), unchecks ALL Overhaul jobs
+  - Ensures that toggling AC/DC doesn't affect the service type filtering
   - Enhanced job name patterns include AC/DC variants: "overhaul (ac)", "overhaul (dc)", "rewind motor (ac)", "rewind motor (dc)", etc.
   - Service type filtering is re-applied after labor loads to ensure jobs remain properly checked/unchecked
   - Implementation: `src/js/workshop/service-type.js`

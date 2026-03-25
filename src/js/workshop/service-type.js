@@ -47,8 +47,9 @@ export function setServiceType(serviceType) {
 
 /**
  * Update job checkboxes based on service type
- * When Overhaul is selected: check Overhaul jobs, uncheck Rewind Motor jobs
- * When Rewind is selected: check Rewind Motor jobs, uncheck Overhaul jobs
+ * When Overhaul is selected: check Overhaul jobs, uncheck ALL Rewind Motor jobs
+ * When Rewind is selected: check Rewind Motor jobs, uncheck ALL Overhaul jobs
+ * This ensures that toggling AC/DC doesn't affect the service type filtering
  * @param {string} serviceType - 'Overhaul' or 'Rewind'
  */
 function updateJobsByServiceType(serviceType) {
@@ -58,34 +59,26 @@ function updateJobsByServiceType(serviceType) {
 
   appState.labor.forEach(job => {
     const jobNameLower = job.JobName.toLowerCase();
+    const isOverhaulJob = OVERHAUL_JOB_PATTERNS.some(pattern =>
+      jobNameLower.includes(pattern.toLowerCase())
+    );
+    const isRewindJob = REWIND_JOB_PATTERNS.some(pattern =>
+      jobNameLower.includes(pattern.toLowerCase())
+    );
 
     if (serviceType === 'Overhaul') {
-      // Check Overhaul jobs, uncheck Rewind Motor jobs
-      const isOverhaulJob = OVERHAUL_JOB_PATTERNS.some(pattern =>
-        jobNameLower.includes(pattern.toLowerCase())
-      );
-      const isRewindJob = REWIND_JOB_PATTERNS.some(pattern =>
-        jobNameLower.includes(pattern.toLowerCase())
-      );
-
-      if (isOverhaulJob && !isRewindJob) {
+      // Overhaul mode: Check Overhaul jobs, Uncheck ALL Rewind jobs
+      if (isOverhaulJob) {
         job.checked = true;
-      } else if (isRewindJob && !isOverhaulJob) {
-        job.checked = false;
+      } else if (isRewindJob) {
+        job.checked = false; // Always uncheck Rewind jobs in Overhaul mode
       }
     } else if (serviceType === 'Rewind') {
-      // Check Rewind Motor jobs, uncheck Overhaul jobs
-      const isRewindJob = REWIND_JOB_PATTERNS.some(pattern =>
-        jobNameLower.includes(pattern.toLowerCase())
-      );
-      const isOverhaulJob = OVERHAUL_JOB_PATTERNS.some(pattern =>
-        jobNameLower.includes(pattern.toLowerCase())
-      );
-
+      // Rewind mode: Check Rewind jobs, Uncheck ALL Overhaul jobs
       if (isRewindJob) {
         job.checked = true;
-      } else if (isOverhaulJob && !isRewindJob) {
-        job.checked = false;
+      } else if (isOverhaulJob) {
+        job.checked = false; // Always uncheck Overhaul jobs in Rewind mode
       }
     }
   });
