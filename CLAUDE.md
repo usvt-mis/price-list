@@ -4,6 +4,17 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ---
 
+## Changelog
+
+### 2026-03-25 - Repository Cleanup
+Removed deprecated files to streamline the codebase:
+- **Screenshots**: Removed outdated UI screenshots (add-line, confirm-remove, expand-modal, salesquotes-calm-operational)
+- **Test Data**: Removed test data SQL scripts (insert-salesquotes-test-data.sql, insert-test-customers.sql)
+- **Deprecated Database Scripts**: Removed obsolete diagnostic and migration scripts from `database/` directory
+- **Documentation**: Removed outdated documentation files (diagnostics/scripts.md, save-feature.md, tailwind-orange-color-fix.md, troubleshooting-save-buttons.md)
+
+---
+
 ## Project Overview
 
 **Price List Calculator** - Web application for calculating service costs.
