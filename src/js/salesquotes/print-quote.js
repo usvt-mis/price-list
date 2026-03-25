@@ -753,7 +753,7 @@ async function buildModel() {
     documentDate: formatDate(reportContext.documentDate || reportContext.orderDate || formData.orderDate),
     expiredDate: formatDate(reportContext.quoteValidUntilDate),
     paymentText: reportContext.paymentTermsCode || reportContext.paymentTermsDescription || '',
-    deliveryText: formatDate(reportContext.deliveryDate),
+    deliveryText: formatDate(formData.deliveryDate),
     attention: formData.contact || reportContext.billToContact || '',
     phone: state.quote.customer?.phone || reportContext.sellToPhoneNo || '',
     taxId: formData.sellTo?.vatRegNo || reportContext.vatRegistrationNo || '',
