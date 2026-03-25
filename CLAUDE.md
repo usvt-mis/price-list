@@ -6,6 +6,15 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-25 - Onsite Manhours Validation
+Added validation for manhours in the Onsite calculator:
+- **Required Manhours**: Manhours field becomes required for all checked jobs
+- **Visual Feedback**: Red pulse animation on invalid fields, "Required" placeholder, `manhours-required` CSS class
+- **TBD Display**: Labor subtotal and Grand Total show "TBD" when incomplete
+- **Helper Functions**: `hasIncompleteManhours()`, `getIncompleteManhoursCount()`
+- **UI Enhancements**: Required field indicator, amber "TBD" styling for incomplete totals
+- **Validation Logic**: All checked jobs require manhours > 0 (unlike Workshop which only requires for DC + Rewind mode)
+
 ### 2026-03-25 - Onsite Labor Table UI Improvements
 Enhanced onsite calculator labor table layout and sticky header behavior:
 - **Sticky Header Fix**: Removed `top: var(--onsite-sticky-stack-offset)` to fix header positioning
@@ -334,6 +343,27 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
   - Pulse-red animation on invalid fields
   - "TBD" styling for incomplete totals (amber color, uppercase, bold)
 - **Implementation**: `src/js/workshop/labor.js`, `src/js/workshop/calculations.js`, `src/js/workshop/service-type.js`, `src/workshop.html`
+
+---
+
+## Onsite Calculator
+
+**Manhours Validation:**
+- **Purpose**: Ensures all checked jobs have valid manhours entered
+- **Validation Logic**:
+  - Applies to ALL checked jobs (unlike Workshop which only validates DC + Rewind mode)
+  - Manhours field becomes required with "Required" placeholder
+  - Red pulse animation on invalid fields (checked jobs with zero/empty manhours)
+  - Labor subtotal and Grand Total display as "TBD" (To Be Determined) when incomplete
+- **Functions**:
+  - `hasIncompleteManhours()` - Check if there are checked jobs with zero/empty manhours
+  - `getIncompleteManhoursCount()` - Get count of incomplete manhours fields
+- **UI Changes**:
+  - "Required" placeholder for manhours inputs when checked and empty
+  - Pulse-red animation on invalid fields (`.manhours-required` class)
+  - "TBD" styling for incomplete totals (amber color, uppercase, bold, `.tbd-text` class)
+  - Required field indicator styling
+- **Implementation**: `src/js/onsite/labor.js`, `src/js/onsite/calculations.js`, `src/onsite.html`
 
 ---
 

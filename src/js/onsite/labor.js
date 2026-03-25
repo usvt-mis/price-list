@@ -11,6 +11,33 @@ import { TRAVEL_RATE, API } from '../core/config.js';
 let isLoadingLabor = false;
 
 /**
+ * Check if there are incomplete manhours fields (checked jobs with manhours = 0)
+ * For onsite calculator, ALL checked jobs require manhours > 0
+ * @returns {boolean} true if there are checked jobs with empty/zero manhours
+ */
+export function hasIncompleteManhours() {
+  return appState.labor.some(job => {
+    if (job.checked === false) return false; // Skip unchecked jobs
+
+    const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
+    return mh === undefined || mh === null || mh === 0 || isNaN(mh);
+  });
+}
+
+/**
+ * Get count of incomplete manhours fields
+ * @returns {number} Count of checked jobs with empty/zero manhours
+ */
+export function getIncompleteManhoursCount() {
+  return appState.labor.filter(job => {
+    if (job.checked === false) return false;
+
+    const mh = job.effectiveManHours !== undefined ? job.effectiveManHours : Number(job.ManHours);
+    return mh === undefined || mh === null || mh === 0 || isNaN(mh);
+  }).length;
+}
+
+/**
  * Load labor data for onsite calculator
  * For onsite calculator, the backend auto-selects the first motor type
  * @returns {Promise<void>}
@@ -32,6 +59,11 @@ export async function loadLabor() {
     if (!labor || labor.length === 0) {
       console.warn('[LABOR-LOAD] Empty response - check database for onsite/shared jobs');
     }
+    // Initialize effectiveManHours to 0 for all onsite jobs
+    labor.forEach(j => {
+      if (j.checked === undefined) j.checked = true; // Default: checked
+      if (j.effectiveManHours === undefined) j.effectiveManHours = 0; // Default: 0
+    });
     appState.labor = labor;
     setStatus('');
     // Import calcAll dynamically to avoid circular dependency - calculate FIRST
@@ -90,8 +122,8 @@ export function renderLabor() {
   const rows = displayJobs.map((j) => {
     // Initialize checked state if not present (default: true)
     if (j.checked === undefined) j.checked = true;
-    // Initialize effectiveManHours if not present (defaults to original ManHours)
-    if (j.effectiveManHours === undefined) j.effectiveManHours = Number(j.ManHours);
+    // Initialize effectiveManHours if not present (defaults to 0 for onsite)
+    if (j.effectiveManHours === undefined) j.effectiveManHours = 0;
 
     // Find original index in labor array for checkbox handler
     const originalIdx = appState.labor.indexOf(j);
@@ -99,8 +131,11 @@ export function renderLabor() {
     const isChecked = j.checked;
     const isCustomer = isCustomerMode();
     const isDisabled = !isChecked || isCustomer;
-    const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
+    const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : 0;
     const rawCost = Number.isFinite(cph) ? mh * cph : NaN;
+
+    // Onsite: manhours is required for ALL checked jobs (red background if zero)
+    const isRequiredEmpty = isChecked && (mh === undefined || mh === null || mh === 0 || isNaN(mh));
 
     // Determine calculation mode based on Sales Profit Input Mode
     const isFlatMode = appState.salesProfitInputMode === 'flat' && appState.salesProfitFlatAmount > 0;
@@ -137,20 +172,32 @@ export function renderLabor() {
     const rowClass = isChecked ? 'border-b' : 'border-b bg-slate-50';
     const textClass = isChecked ? '' : 'line-through text-slate-400';
 
+    // For onsite: show TBD if checked job has zero manhours
+    const displayFinalPrice = isRequiredEmpty ? 'TBD' : fmt(finalPrice);
+    const finalPriceClass = isRequiredEmpty
+      ? 'tbd-text'  // TBD styling using CSS class
+      : (isChecked ? 'font-semibold text-slate-900' : '');
+
     return `<tr class="${rowClass} hover:bg-slate-50/50 transition-colors duration-150" data-idx="${originalIdx}">
       <td class="py-3 px-4">
         <input type="checkbox" class="job-checkbox w-5 h-5 ${isCustomer ? '' : 'cursor-pointer'} focus:ring-2 focus:ring-blue-500 rounded"
                data-idx="${originalIdx}" ${isChecked ? 'checked' : ''} ${isCustomer ? 'disabled' : ''}>
       </td>
-      <td class="py-3 px-4 ${textClass}">${j.JobName}</td>
+      <td class="py-3 px-4 ${textClass}">${j.JobName}${isRequiredEmpty ? '<span class="required-indicator"> *</span>' : ''}</td>
       <td class="py-3 px-4 text-right ${textClass} manhours-col">
         <input type="number" min="0" step="0.25" data-mh="${originalIdx}"
-               class="w-20 text-right rounded border-slate-200 px-2 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${isDisabled ? 'bg-slate-100' : ''} [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-               value="${j.effectiveManHours}" ${isDisabled ? 'disabled' : ''}>
+               class="w-20 text-right rounded px-2 py-2 focus:ring-2 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+                      ${isRequiredEmpty
+                        ? 'manhours-required'
+                        : 'border-slate-200 focus:ring-blue-500 focus:border-blue-500'}
+                      ${isDisabled ? 'bg-slate-100 opacity-60' : ''}"
+               value="${isRequiredEmpty ? '' : j.effectiveManHours}"
+               placeholder="${isRequiredEmpty ? 'Required' : ''}"
+               ${isDisabled ? 'disabled' : ''}>
       </td>
       ${isExecutiveMode() ? `<td class="py-3 px-4 text-right ${textClass}">${fmt(rawCost)}</td>` : ''}
       ${isExecutiveMode() ? `<td class="py-3 px-4 text-right ${textClass}">${fmt(costBeforeSalesProfit)}</td>` : ''}
-      <td class="py-3 px-4 text-right ${textClass} ${isChecked ? 'font-semibold text-slate-900' : ''}">${fmt(finalPrice)}</td>
+      <td class="py-3 px-4 text-right ${textClass} ${finalPriceClass}">${displayFinalPrice}</td>
     </tr>`;
   }).join('');
 
@@ -208,6 +255,21 @@ export function renderLabor() {
         const v = Math.max(0, parseFloat(Number(inp.value).toFixed(2))); // Allow decimals, 2 decimal places
         inp.value = v;
         appState.labor[i].effectiveManHours = v;
+
+        // Update validation styling on the input
+        const job = appState.labor[i];
+        const isChecked = job.checked !== false;
+        const isRequiredEmpty = isChecked && (v === undefined || v === null || v === 0 || isNaN(v));
+
+        // Update input class based on validation state
+        if (isRequiredEmpty) {
+          inp.classList.add('manhours-required');
+          inp.classList.remove('border-slate-200', 'focus:ring-blue-500', 'focus:border-blue-500');
+        } else {
+          inp.classList.remove('manhours-required');
+          inp.classList.add('border-slate-200', 'focus:ring-blue-500', 'focus:border-blue-500');
+        }
+
         const { calcAll } = await import('./calculations.js');
         calcAll(); // Update totals
 
@@ -287,6 +349,13 @@ function updateRowCosts(row, idx) {
   const isChecked = job.checked !== false;
   const textClass = isChecked ? '' : 'line-through text-slate-400';
 
+  // Onsite: show TBD if checked job has zero manhours
+  const isRequiredEmpty = isChecked && (mh === undefined || mh === null || mh === 0 || isNaN(mh));
+  const displayFinalPrice = isRequiredEmpty ? 'TBD' : fmt(finalPrice);
+  const finalPriceClass = isRequiredEmpty
+    ? 'tbd-text'
+    : (isChecked ? 'font-semibold text-slate-900' : '');
+
   if (isExecutiveMode()) {
     // Update Raw Cost
     if (cells[cellIndex]) {
@@ -303,8 +372,8 @@ function updateRowCosts(row, idx) {
   }
   // Update Final Price with emphasis
   if (cells[cellIndex]) {
-    cells[cellIndex].className = `py-3 px-4 text-right ${textClass} ${isChecked ? 'font-semibold text-slate-900' : ''}`;
-    cells[cellIndex].textContent = fmt(finalPrice);
+    cells[cellIndex].className = `py-3 px-4 text-right ${textClass} ${finalPriceClass}`;
+    cells[cellIndex].textContent = displayFinalPrice;
   }
 }
 

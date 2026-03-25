@@ -15,6 +15,48 @@
     .customer-hidden-manhours {
       display: none !important;
     }
+
+    /* ========================================
+       Onsite Manhours Validation Styling
+       ======================================== */
+
+    /* Pulse animation for required manhours input */
+    @keyframes required-pulse {
+      0%, 100% {
+        background-color: #fecaca; /* red-200 */
+      }
+      50% {
+        background-color: #fca5a5; /* red-300 */
+      }
+    }
+
+    /* Strong red background for zero manhours input (checked jobs) */
+    .manhours-required {
+      background-color: #fecaca !important; /* red-200 */
+      border-color: #dc2626 !important; /* red-600 */
+      animation: required-pulse 1.5s ease-in-out infinite;
+    }
+
+    .manhours-required:focus {
+      background-color: #fca5a5 !important; /* red-300 */
+      border-color: #b91c1c !important; /* red-700 */
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3) !important;
+    }
+
+    .tbd-text {
+      color: #f59e0b !important;
+      font-weight: 700 !important;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Required field indicator */
+    .required-indicator {
+      color: #dc2626;
+      font-weight: 700;
+      margin-left: 0.25rem;
+      font-size: 1.1em;
+    }
     /* Customer View-specific styling */
     body.customer-view {
       background-color: #f9fafb;

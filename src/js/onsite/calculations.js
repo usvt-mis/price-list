@@ -5,7 +5,7 @@
 
 import { el, fmt, fmtPercent, makeInputsReadOnly, removeReadOnly } from '../core/utils.js';
 import { appState, getSelectedBranch, isExecutiveMode, isSalesMode, isCustomerMode } from './state.js';
-import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier, getCompleteMultiplier } from './labor.js';
+import { laborSubtotalBase, laborSubtotal, getTravelCost, getBranchMultiplier, getSalesProfitMultiplier, getCompleteMultiplier, hasIncompleteManhours } from './labor.js';
 import { materialSubtotalBase, materialSubtotalRawAll, materialSubtotal, materialSubtotalWithoutCommission, materialSubtotalBeforeSalesProfit, materialSubtotalSuggested, materialSubtotalSuggestedWithoutCommission } from './materials.js';
 import { getOnsiteOptionsSubtotal } from './onsite-options.js';
 import { COMMISSION_TIERS } from './config.js';
@@ -181,18 +181,33 @@ export function calcAll() {
   const materialsFinalPricesNoCommission = materialSubtotalWithoutCommission(); // WITHOUT commission (for breakdown display)
   const travelFinalPrice = travelCost * (1 + appState.commissionPercent / 100);
   const onsiteOptionsFinalPrice = onsiteOptionsCost * (1 + appState.commissionPercent / 100);
-  const newGrandTotal = laborFinalPricesSum + materialsFinalPricesSum + travelFinalPrice + onsiteOptionsFinalPrice;
+
+  // Check for incomplete manhours (checked jobs with manhours = 0)
+  const hasIncomplete = hasIncompleteManhours();
+
+  // Calculate grand total (only if no incomplete manhours)
+  const newGrandTotal = hasIncomplete ? NaN : (laborFinalPricesSum + materialsFinalPricesSum + travelFinalPrice + onsiteOptionsFinalPrice);
 
   // Update display elements
-  el('laborSubtotal').textContent = fmt(laborFinalPricesSum);
-  el('laborSubtotalHeader').textContent = fmt(laborFinalPricesSum);
+  const laborDisplayText = hasIncomplete ? 'TBD' : fmt(laborFinalPricesSum);
+  el('laborSubtotal').textContent = laborDisplayText;
+  el('laborSubtotal').className = hasIncomplete
+    ? 'text-2xl font-bold tbd-text'
+    : 'text-2xl font-bold text-slate-800';
+  el('laborSubtotalHeader').textContent = laborDisplayText;
   el('materialSubtotal').textContent = fmt(materialsFinalPricesSum);
   el('materialSubtotalHeader').textContent = fmt(materialsFinalPricesSum);
   el('travelCost').textContent = fmt(travelFinalPrice);
   el('travelCostHeader').textContent = fmt(travelFinalPrice);
 
-  el('newGrandTotal').textContent = fmt(newGrandTotal);
-  el('grandTotal').textContent = fmt(subGrandTotal);
+  const grandTotalDisplayText = hasIncomplete ? 'TBD' : fmt(newGrandTotal);
+  el('newGrandTotal').textContent = grandTotalDisplayText;
+  if (hasIncomplete) {
+    el('newGrandTotal').classList.add('tbd-text');
+  } else {
+    el('newGrandTotal').classList.remove('tbd-text');
+  }
+  el('grandTotal').textContent = hasIncomplete ? 'TBD' : fmt(subGrandTotal);
   el('grandLabor').textContent = Number.isFinite(l) ? fmt(l) : '—';
   el('grandMaterials').textContent = fmt(materialsFinalPricesNoCommission);
   el('grandTotalRawCost').textContent = Number.isFinite(lBase) ? fmt(lBase) : '—'; // Raw Labor (labor base cost only)
