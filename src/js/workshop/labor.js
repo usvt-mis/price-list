@@ -102,10 +102,11 @@ export function renderLabor() {
     const isChecked = j.checked;
     const isCustomer = isCustomerMode();
     const isDisabled = !isChecked || isCustomer;
-    const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
 
     // DC + Rewind mode: manhours is required for Rewind Motor jobs
     const isDcRewindRequired = isDcRewindMode() && isRewindMotorJob(j) && isChecked;
+
+    const mh = j.effectiveManHours !== undefined ? j.effectiveManHours : Number(j.ManHours);
     const isRequiredEmpty = isDcRewindRequired && (mh === undefined || mh === null || mh === 0 || isNaN(mh));
 
     const rawCost = Number.isFinite(cph) ? mh * cph : NaN;
@@ -163,11 +164,11 @@ export function renderLabor() {
         <input type="number" min="0" step="0.25" data-mh="${originalIdx}"
                class="w-20 text-right rounded px-2 py-2 focus:ring-2 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
                       ${isDcRewindRequired
-                        ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500'
+                        ? 'manhours-required'
                         : 'border-slate-200 focus:ring-blue-500 focus:border-blue-500'}
                       ${isDisabled ? 'bg-slate-100 opacity-60' : ''}"
-               value="${isRequiredEmpty ? '' : j.effectiveManHours}"
-               placeholder="${isRequiredEmpty ? 'Required' : ''}"
+               value="${isRequiredEmpty ? '' : (isDcRewindRequired && j.effectiveManHours === 0 ? '' : j.effectiveManHours)}"
+               placeholder="${isDcRewindRequired ? 'Required' : ''}"
                ${isDisabled ? 'disabled' : ''}
                ${isDcRewindRequired ? 'required' : ''}>
       </td>

@@ -40,9 +40,31 @@ export function setServiceType(serviceType) {
     return;
   }
 
+  const previousServiceType = appState.serviceType;
   appState.serviceType = serviceType;
   updateServiceTypeToggleUi();
   updateJobsByServiceType(serviceType);
+
+  // Clear manhours for Rewind Motor jobs when entering DC + Rewind mode
+  if (serviceType === 'Rewind' && appState.motorDriveType === 'DC' && previousServiceType !== 'Rewind') {
+    clearRewindMotorManhours();
+  }
+}
+
+/**
+ * Clear manhours for all Rewind Motor jobs (for DC + Rewind mode)
+ * Sets effectiveManHours to 0 to force user to enter a value
+ */
+export function clearRewindMotorManhours() {
+  if (!appState.labor || appState.labor.length === 0) {
+    return;
+  }
+
+  appState.labor.forEach(job => {
+    if (isRewindMotorJob(job)) {
+      job.effectiveManHours = 0;
+    }
+  });
 }
 
 /**

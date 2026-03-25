@@ -9,11 +9,12 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 ### 2026-03-25 - Workshop DC + Rewind Mode Validation
 Added validation for DC motor rewinding jobs in the Workshop calculator:
 - **Required Manhours**: Manhours field becomes required for DC + Rewind mode
-- **Visual Feedback**: Red pulse animation on invalid fields, "Required" placeholder
+- **Visual Feedback**: Red pulse animation on invalid fields, "Required" placeholder, `manhours-required` CSS class
 - **TBD Display**: Labor subtotal and Grand Total show "TBD" when incomplete
-- **Helper Functions**: `isDcRewindMode()`, `isRewindMotorJob()`, `hasIncompleteRequiredManhours()`
+- **Helper Functions**: `isDcRewindMode()`, `isRewindMotorJob()`, `hasIncompleteRequiredManhours()`, `clearRewindMotorManhours()`
 - **UI Enhancements**: Required field indicator, amber "TBD" styling for incomplete totals
 - **Service Type Filtering Fix**: Fixed order of job checking/unchecking for proper service type behavior
+- **Manhours Clearing**: Automatically clears manhours for Rewind Motor jobs when entering DC + Rewind mode
 
 ### 2026-03-25 - Repository Cleanup
 Removed deprecated files to streamline the codebase:

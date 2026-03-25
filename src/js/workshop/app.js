@@ -17,7 +17,7 @@ import { initFloatingButtons } from '../core/floating-buttons.js';
 import { initializeCollapsibleSections } from '../core/collapsible-sections.js';
 import { COLLAPSIBLE_SECTION_IDS } from './state.js';
 import { getDefaultMotorDriveType, populateMotorTypeOptions, setMotorDriveType, syncMotorDriveTypeToMotorTypeId } from './motor-types.js';
-import { initServiceTypeToggle, setServiceType, getServiceType } from './service-type.js';
+import { initServiceTypeToggle, setServiceType, getServiceType, clearRewindMotorManhours } from './service-type.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
 
@@ -183,14 +183,21 @@ function setupEventListeners() {
         return;
       }
 
+      const newDriveType = event.target.value;
       const previousMotorTypeId = el('motorType')?.value || '';
-      setMotorDriveType(event.target.value, { preserveSelection: true });
+      setMotorDriveType(newDriveType, { preserveSelection: true });
       const currentMotorTypeId = el('motorType')?.value || '';
 
       if (previousMotorTypeId || currentMotorTypeId) {
         await loadLabor();
         // Re-apply service type job filtering after loading new labor
         setServiceType(getServiceType());
+
+        // Clear manhours for Rewind Motor jobs when entering DC + Rewind mode
+        if (newDriveType === 'DC' && getServiceType() === 'Rewind') {
+          clearRewindMotorManhours();
+        }
+
         // Re-render to update UI with new checked states
         renderLabor();
         calcAll();
