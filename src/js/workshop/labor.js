@@ -81,8 +81,12 @@ export function renderLabor() {
   ];
 
   const rows = displayJobs.map((j) => {
-    // Initialize checked state if not present (default: true)
-    if (j.checked === undefined) j.checked = true;
+    // Initialize checked state if not present (default: true, except for wire arc/HVOF jobs)
+    if (j.checked === undefined) {
+      const jobNameLower = j.JobName.toLowerCase();
+      // Jobs starting with "wire arc" or "HVOF" are unchecked by default
+      j.checked = !(jobNameLower.startsWith('wire arc') || jobNameLower.startsWith('hvof'));
+    }
     // Initialize effectiveManHours if not present (defaults to original ManHours)
     if (j.effectiveManHours === undefined) j.effectiveManHours = Number(j.ManHours);
 
