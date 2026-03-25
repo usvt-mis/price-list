@@ -76,6 +76,7 @@ router.post('/', async (req, res, next) => {
     const {
       branchId,
       motorTypeId,
+      serviceType,
       salesProfitPct,
       travelKm,
       jobs,
@@ -230,20 +231,21 @@ router.post('/', async (req, res, next) => {
         .input("creatorEmail", sql.NVarChar(255), creatorEmail)
         .input("branchId", sql.Int, branchId)
         .input("motorTypeId", sql.Int, motorTypeId)
+        .input("serviceType", sql.NVarChar(20), serviceType || 'Overhaul')
         .input("salesProfitPct", sql.Decimal(5, 2), salesProfitPct)
         .input("travelKm", sql.Int, travelKm)
         .input("shareToken", sql.NVarChar(36), shareToken)
         .query(`
           INSERT INTO WorkshopSavedCalculations (
-            RunNumber, CreatorName, CreatorEmail, BranchId, MotorTypeId,
+            RunNumber, CreatorName, CreatorEmail, BranchId, MotorTypeId, ServiceType,
             SalesProfitPct, TravelKm,
             ShareToken
           )
           OUTPUT INSERTED.SaveId, INSERTED.RunNumber, INSERTED.CreatorName, INSERTED.CreatorEmail,
                  INSERTED.CreatedAt, INSERTED.ModifiedAt, INSERTED.ShareToken,
-                 INSERTED.BranchId, INSERTED.MotorTypeId, INSERTED.SalesProfitPct, INSERTED.TravelKm
+                 INSERTED.BranchId, INSERTED.MotorTypeId, INSERTED.ServiceType, INSERTED.SalesProfitPct, INSERTED.TravelKm
           VALUES (
-            @runNumber, @creatorName, @creatorEmail, @branchId, @motorTypeId,
+            @runNumber, @creatorName, @creatorEmail, @branchId, @motorTypeId, @serviceType,
             @salesProfitPct, @travelKm,
             @shareToken
           )
@@ -468,6 +470,7 @@ router.get('/', async (req, res, next) => {
                sc.CreatedAt, sc.ModifiedAt, sc.ShareToken,
                sc.BranchId, b.BranchName,
                sc.MotorTypeId, mt.MotorTypeName,
+               sc.ServiceType,
                sc.SalesProfitPct, sc.TravelKm,
                sc.GrandTotal,
                COUNT(DISTINCT scj.JobId) as JobCount,
@@ -481,7 +484,7 @@ router.get('/', async (req, res, next) => {
         GROUP BY sc.SaveId, sc.RunNumber, sc.CreatorName, sc.CreatorEmail,
                  sc.CreatedAt, sc.ModifiedAt, sc.ShareToken,
                  sc.BranchId, b.BranchName, sc.MotorTypeId, mt.MotorTypeName,
-                 sc.SalesProfitPct, sc.TravelKm, sc.GrandTotal
+                 sc.ServiceType, sc.SalesProfitPct, sc.TravelKm, sc.GrandTotal
         ORDER BY sc.CreatedAt DESC
       `);
 
@@ -548,6 +551,7 @@ router.put('/:id', async (req, res, next) => {
     const {
       branchId,
       motorTypeId,
+      serviceType,
       salesProfitPct,
       travelKm,
       jobs,
@@ -655,12 +659,14 @@ router.put('/:id', async (req, res, next) => {
         .input('saveId', sql.Int, saveId)
         .input('branchId', sql.Int, branchId)
         .input('motorTypeId', sql.Int, motorTypeId)
+        .input('serviceType', sql.NVarChar(20), serviceType || 'Overhaul')
         .input('salesProfitPct', sql.Decimal(5, 2), salesProfitPct)
         .input('travelKm', sql.Int, travelKm)
         .query(`
           UPDATE WorkshopSavedCalculations
           SET BranchId = @branchId,
               MotorTypeId = @motorTypeId,
+              ServiceType = @serviceType,
               SalesProfitPct = @salesProfitPct,
               TravelKm = @travelKm,
               ModifiedAt = GETUTCDATE()
@@ -1111,6 +1117,7 @@ async function fetchWorkshopCalculationById(pool, saveId) {
              sc.CreatedAt, sc.ModifiedAt, sc.ShareToken,
              sc.BranchId, b.BranchName,
              sc.MotorTypeId, mt.MotorTypeName,
+             sc.ServiceType,
              sc.SalesProfitPct, sc.TravelKm,
              sc.GrandTotal
       FROM WorkshopSavedCalculations sc

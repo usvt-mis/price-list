@@ -26,6 +26,11 @@ The Price List Calculator computes total cost based on four components:
   - **No build process**: Uses native ES6 modules with import maps
   - Tailwind CSS (compiled locally via `npm run build:css`)
   - Azure AD authentication
+  - **Service Type Toggle**: Overhaul/Rewind selection that automatically checks/unchecks jobs based on service type
+    - Overhaul: Checks jobs with "overhaul" in name, unchecks "rewind motor" jobs
+    - Rewind: Checks jobs with "rewind" in name, unchecks "overhaul" jobs
+    - Saved with each calculation record in `WorkshopSavedCalculations.ServiceType`
+  - **Motor Drive Type**: Auto-detected AC/DC filtering for labor jobs (J007=AC only, J017=DC only)
 - **Sales Quotes** (`src/salesquotes.html`): Business Central integration module
   - **ES6 Modules**: JavaScript in `src/js/salesquotes/` directory
   - **No build process**: Uses native ES6 modules with import maps

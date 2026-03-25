@@ -8,6 +8,7 @@ import { appState, authState, currentSavedRecord, isDirty, isViewOnly } from '..
 import { getApiHeaders } from '../../core/config.js';
 import { renderLabor } from '../labor.js';
 import { getDefaultMotorDriveType, getMotorDriveTypeForMotorTypeId, getMotorDriveTypeFromName, populateMotorTypeOptions, setMotorDriveType } from '../motor-types.js';
+import { setServiceType } from '../service-type.js';
 import { renderMaterials } from '../materials.js';
 
 /**
@@ -18,6 +19,7 @@ export function serializeCalculatorState() {
   const baseState = {
     branchId: Number(el('branch').value),
     motorTypeId: Number(el('motorType').value),
+    serviceType: appState.serviceType || 'Overhaul',
     salesProfitPct: Number(el('salesProfitPct').value || 0),
     travelKm: Number(el('travelKm').value || 0),
     jobs: appState.labor.map(j => ({
@@ -114,6 +116,13 @@ export async function deserializeCalculatorState(data, options = {}) {
 
   setMotorDriveType(savedMotorDriveType, { preserveSelection: false });
   motorTypeEl.value = data.motorTypeId;
+
+  // Set service type (Overhaul/Rewind)
+  if (data.serviceType && (data.serviceType === 'Overhaul' || data.serviceType === 'Rewind')) {
+    setServiceType(data.serviceType);
+  } else {
+    setServiceType('Overhaul');
+  }
 
   if (!motorTypeEl.value && data.motorTypeId) {
     console.warn(`Motor type ID ${data.motorTypeId} not found in available options`);

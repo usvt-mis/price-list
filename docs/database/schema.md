@@ -55,6 +55,11 @@ Material line items for onsite records (linked via RunNumber)
 Header table for workshop saved records:
 - Run number format: `WKS-YYYY-XXX` (e.g., WKS-2024-001)
 - Workshop-specific columns: `EquipmentUsed`, `MachineHours`, `PickupDeliveryOption`, `QualityCheckRequired`
+- `ServiceType` - Service type selection ('Overhaul' or 'Rewind', default: 'Overhaul')
+  - Controls which jobs are automatically checked based on service type
+  - Overhaul: Checks jobs with "overhaul" in name, unchecks "rewind motor" jobs
+  - Rewind: Checks jobs with "rewind" in name, unchecks "overhaul" jobs
+  - Migration: `database/migrations/add_service_type_workshop.sql`
 
 ### WorkshopSavedCalculationJobs
 Job line items for workshop records (linked via RunNumber)

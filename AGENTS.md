@@ -271,11 +271,19 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Retryable Errors**: ECONNRESET, ECONNREFUSED, ENOTFOUND, EAI_AGAIN, ETIMEDOUT, UND_ERR_CONNECT_TIMEOUT, UND_ERR_HEADERS_TIMEOUT, UND_ERR_SOCKET
 - **Implementation**: `api/src/routes/business-central/gateway.js` - `fetchGatewayWithRetry()`, `mapGatewayProxyError()`, `performGatewayFetch()`
 
-### Motor Drive Type Filtering (Workshop)
-- State: `appState.motorDriveType` ('AC' or 'DC')
-- Auto-detects from motor type names; defaults to 'AC'
-- Filters jobs at API level (J007=AC only, J017=DC only)
-- API: `GET /api/workshop/labor?motorTypeId={id}&motorDriveType={AC|DC}`
+### Motor Drive Type & Service Type Filtering (Workshop)
+- **Motor Drive Type**: `appState.motorDriveType` ('AC' or 'DC')
+  - Auto-detects from motor type names; defaults to 'AC'
+  - Filters jobs at API level (J007=AC only, J017=DC only)
+  - API: `GET /api/workshop/labor?motorTypeId={id}&motorDriveType={AC|DC}`
+- **Service Type**: `appState.serviceType` ('Overhaul' or 'Rewind')
+  - User-selectable toggle in UI
+  - Automatically checks/unchecks jobs based on service type
+  - Overhaul: Checks jobs with "overhaul" in name, unchecks "rewind motor" jobs
+  - Rewind: Checks jobs with "rewind" in name, unchecks "overhaul" jobs
+  - Implementation: `src/js/workshop/service-type.js`
+  - Database: `WorkshopSavedCalculations.ServiceType` column (NVARCHAR(20), default: 'Overhaul')
+  - Migration: `database/migrations/add_service_type_workshop.sql`
 
 ### State Management
 - **Global State**: `src/js/state.js` - Centralized state management for the entire application

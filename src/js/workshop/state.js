@@ -18,6 +18,7 @@ export const appState = {
   motorTypes: [],
   labor: [],
   motorDriveType: 'AC',
+  serviceType: 'Overhaul', // 'Overhaul' or 'Rewind'
 
   // Materials
   materialLines: [], // {materialId, code, name, unitCost, qty, overrideFinalPrice}
@@ -151,6 +152,7 @@ export function resetCalculatorState() {
   isViewOnly = false;
   appState.labor = [];
   appState.motorDriveType = 'AC';
+  appState.serviceType = 'Overhaul';
   appState.materialLines = [];
   appState.commissionPercent = 0;
   // Reset new Sales Profit state

@@ -17,6 +17,7 @@ import { initFloatingButtons } from '../core/floating-buttons.js';
 import { initializeCollapsibleSections } from '../core/collapsible-sections.js';
 import { COLLAPSIBLE_SECTION_IDS } from './state.js';
 import { getDefaultMotorDriveType, populateMotorTypeOptions, setMotorDriveType, syncMotorDriveTypeToMotorTypeId } from './motor-types.js';
+import { initServiceTypeToggle, setServiceType } from './service-type.js';
 
 // ========== Global Scope Functions for Inline Event Handlers ==========
 
@@ -158,6 +159,7 @@ function startNewCalculation() {
   el('travelKm').value = '';
   el('salesQuoteNumber').value = '';
   setMotorDriveType(getDefaultMotorDriveType(), { preserveSelection: false });
+  setServiceType('Overhaul');
 
   // Reset sales quote dropdown
   resetSalesQuoteDropdown();
@@ -191,6 +193,9 @@ function setupEventListeners() {
       }
     });
   });
+
+  // Initialize service type toggle (Overhaul/Rewind)
+  initServiceTypeToggle();
 
   el('motorType')?.addEventListener('change', async () => {
     syncMotorDriveTypeToMotorTypeId(el('motorType')?.value);
