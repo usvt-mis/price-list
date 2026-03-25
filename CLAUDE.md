@@ -6,6 +6,16 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-25 - Manager Role and Backoffice Tab
+Added Manager role with dedicated backoffice tab for user management:
+- **New Role**: Manager role with management access and view permissions for calculations and reports
+- **Backoffice Tab**: New Managers tab with inline add form, search, and user table
+- **Role Validation**: Updated backend to accept 'Manager' role in role assignment API
+- **Frontend Config**: Added `ROLE.MANAGER` constant to `src/js/core/config.js`
+- **Status Badge Styling**: New teal color scheme (`--bo-status-badge-teal`) for Manager role
+- **Tab Integration**: Managers tab integrated into backoffice navigation with badge count
+- **Audit Log**: Manager role changes tracked in audit log with teal badge styling
+
 ### 2026-03-25 - Onsite Manhours Validation
 Added validation for manhours in the Onsite calculator:
 - **Required Manhours**: Manhours field becomes required for all checked jobs
@@ -189,6 +199,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 |------|--------|
 | Executive | Full costs, margins, multipliers, approve quotes |
 | Sales Director | Full costs, margins, multipliers, approve quotes |
+| Manager | Management access with view permissions for calculations and reports |
 | Sales | Restricted view (no cost data), submit quotes for approval |
 | NoRole | "Awaiting assignment" screen |
 | Customer | View-only via shared links |
@@ -304,6 +315,7 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 - `add_approval_owner_email_to_sales_quote_approvals.sql` - Ownership-based revisions
 - `add_sales_quote_approvals.sql` - Approval workflow table
 - `add_salesdirector_role_constraint.sql` - SalesDirector role constraint
+- `add_manager_role_constraint.sql` - Manager role constraint
 
 ---
 
@@ -371,10 +383,11 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 
 **Theming System**: CSS variables with `--bo-*` prefix for consistent theming
 
-**Tabs**: Executives, Sales, Sales Directors, Customers, Audit, Sales Quotes Audit, Deletion, Settings, Signatures, Sales Director Signature
+**Tabs**: Executives, Sales, Sales Directors, Managers, Customers, Audit, Sales Quotes Audit, Deletion, Settings, Signatures, Sales Director Signature
 
 **Key Features:**
 - Sales Directors Tab: Role assignment, search, filter, pagination
+- Managers Tab: Role assignment with teal accent color, inline add form, search, and user table
 - Sales Director Signature Tab: Fixed signature for all Sales Directors with contact info
 - Sales Quotes Audit Tab: Paginated list with approval status, search, filter
 - Role Assignment API: `POST /api/admin/roles/assign` (Executive role required)

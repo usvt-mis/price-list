@@ -265,8 +265,8 @@ router.post('/users/:email/role', async (req, res, next) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    if (!role || !['NoRole', 'Sales', 'SalesDirector', 'Executive', 'Customer'].includes(role)) {
-      return res.status(400).json({ error: "Role must be 'NoRole', 'Sales', 'SalesDirector', 'Executive', or 'Customer'" });
+    if (!role || !['NoRole', 'Sales', 'SalesDirector', 'Executive', 'Customer', 'Manager'].includes(role)) {
+      return res.status(400).json({ error: "Role must be 'NoRole', 'Sales', 'SalesDirector', 'Executive', 'Customer', or 'Manager'" });
     }
 
     console.log(`Backoffice admin ${session.email} assigned ${role} role to ${email}`);
