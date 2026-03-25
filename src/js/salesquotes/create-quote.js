@@ -281,15 +281,17 @@ function buildServiceItemDescriptionFromBuilder({ serviceType, workType, motorKw
   const normalizedWorkType = typeof workType === 'string' ? workType.trim() : '';
   const normalizedDetails = typeof details === 'string' ? details.replace(/\s+/g, ' ').trim() : '';
 
+  // Don't generate description if no work type selected - let placeholder show
   if (!normalizedWorkType) {
-    return normalizedServiceType || '';
+    return '';
   }
 
   let baseDescription = '';
   if (normalizedWorkType === 'Motor') {
     const normalizedKw = formatMotorKwValue(motorKw);
     if (!normalizedKw) {
-      return normalizedServiceType || '';
+      // Don't generate description if Motor selected but no kW entered
+      return '';
     }
 
     baseDescription = normalizedDetails
@@ -372,8 +374,11 @@ function syncServiceItemDescriptionFromBuilder(prefix = 'line', { preserveExisti
     refs.details.placeholder = isMotor ? 'Add motor repair details...' : 'Add repair details...';
   }
 
+  // Service Type only applies to Motor work type
+  const serviceType = isMotor ? (refs.serviceType?.value?.trim() || 'Overhaul') : '';
+
   const nextDescription = buildServiceItemDescriptionFromBuilder({
-    serviceType: refs.serviceType?.value || 'Overhaul',
+    serviceType,
     workType,
     motorKw: refs.motorKw?.value || '',
     motorIsDc: refs.motorIsDc?.checked || false,
@@ -532,8 +537,15 @@ function applyConfirmNewSerDescriptionToSource(sourcePrefix = getPendingSerSourc
 
 function getConfirmNewSerSnapshot() {
   const refs = getServiceItemBuilderRefs('confirm');
+  const workType = refs.workType?.value?.trim() || '';
+
+  // Service Type only applies to Motor work type
+  const isMotor = workType === 'Motor';
+  const serviceType = isMotor ? (refs.serviceType?.value?.trim() || 'Overhaul') : '';
+
   return {
-    workType: refs.workType?.value?.trim() || '',
+    serviceType,
+    workType,
     motorKw: refs.motorKw?.value || '',
     motorIsDc: refs.motorIsDc?.checked || false,
     details: refs.details?.value || ''
@@ -2292,6 +2304,30 @@ function setupConfirmNewSerModalHandlers() {
   modal.dataset.handlersBound = 'true';
 
   const refs = getServiceItemBuilderRefs('confirm');
+  const serviceTypeWrap = document.getElementById('confirmNewSerServiceTypeWrap');
+  const motorFields = document.getElementById('confirmNewSerMotorFields');
+  const driveTypeWrap = document.getElementById('confirmNewSerDriveTypeWrap');
+
+  // Function to update visibility based on work type
+  const updateVisibility = () => {
+    const selectedWorkType = document.querySelector('input[name="confirmNewSerWorkType"]:checked')?.value;
+    const isMotor = selectedWorkType === 'Motor';
+
+    // Show/hide Service Type (only for Motor)
+    if (serviceTypeWrap) {
+      serviceTypeWrap.classList.toggle('hidden', !isMotor);
+    }
+
+    // Show/hide Motor kW
+    if (motorFields) {
+      motorFields.classList.toggle('hidden', !isMotor);
+    }
+
+    // Show/hide Drive Type
+    if (driveTypeWrap) {
+      driveTypeWrap.classList.toggle('hidden', !isMotor);
+    }
+  };
 
   refs.serviceTypeOptions?.forEach(option => {
     option.addEventListener('change', () => {
@@ -2301,6 +2337,7 @@ function setupConfirmNewSerModalHandlers() {
 
   refs.workTypeOptions?.forEach(option => {
     option.addEventListener('change', () => {
+      updateVisibility();
       syncServiceItemDescriptionFromBuilder('confirm');
     });
   });
@@ -2325,6 +2362,9 @@ function setupConfirmNewSerModalHandlers() {
   refs.details?.addEventListener('input', () => {
     syncServiceItemDescriptionFromBuilder('confirm');
   });
+
+  // Initialize visibility on first load
+  updateVisibility();
 }
 
 /**
@@ -2399,7 +2439,7 @@ async function createServiceItemAndLockFields(confirmSnapshot = null) {
 
   try {
     // Call CreateServiceItem API
-    const serviceItemNo = await createServiceItem(serviceItemDesc, customerNo, groupNo);
+    const serviceItemNo = await createServiceItem(serviceItemDesc, customerNo, groupNo, snapshot.serviceType);
 
     // Set SER creation flag
     state.ui.serCreated = true;
@@ -2989,10 +3029,11 @@ async function patchApprovedQuoteWorkStatus(workStatus) {
  * @param {string} description - Service Item Description
  * @param {string} customerNo - Customer Number
  * @param {string} groupNo - Group Number
+ * @param {string} serviceType - Service Type (Overhaul or Rewind)
  * @returns {Promise<string>} Service Item Number from API response
  * @throws {Error} If API call fails or validation fails
  */
-async function createServiceItem(description, customerNo, groupNo) {
+async function createServiceItem(description, customerNo, groupNo, serviceType = 'Overhaul') {
   const API_URL = GATEWAY_API.CREATE_SERVICE_ITEM;
 
   // Validate required fields
@@ -3000,12 +3041,16 @@ async function createServiceItem(description, customerNo, groupNo) {
     throw new Error('Service Item Description is required to create a Service Item');
   }
 
+  // Normalize service type
+  const normalizedServiceType = serviceType?.trim() || 'Overhaul';
+
   // Prepare request body - MUST be an array
   const requestBody = [{
     description: description.trim(),
     item_No: 'SERV-ITEM', // Hardcoded as per requirement
     Customer_Number: customerNo || '',
-    Group_No: groupNo || ''
+    Group_No: groupNo || '',
+    ServiceType: normalizedServiceType
   }];
 
   console.log('Creating Service Item with payload:', JSON.stringify(requestBody, null, 2));
@@ -5082,7 +5127,7 @@ async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null) {
 
   try {
     // Call CreateServiceItem API
-    const serviceItemNo = await createServiceItem(serviceItemDesc, customerNo, groupNo);
+    const serviceItemNo = await createServiceItem(serviceItemDesc, customerNo, groupNo, snapshot.serviceType);
 
     // Set SER creation flag
     state.ui.serCreatedEdit = true;

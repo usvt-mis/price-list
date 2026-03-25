@@ -159,6 +159,34 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   <div id="addLineModalContent" class="salesquotes-modal-shell bg-white rounded-2xl shadow-2xl max-w-4xl w-full transform transition-all duration-300 opacity-0 translate-y-[-10px]">
   ```
 
+### Segmented Control Pattern
+- **Purpose**: Provides a modern, iOS-style segmented control for selecting between mutually exclusive options
+- **CSS Classes**: `.seg-control`, `.seg-control-item`, `.seg-control-label` with responsive variants
+- **Features**:
+  - Hidden radio inputs with styled labels for accessibility
+  - Smooth transitions (0.2s ease) for state changes
+  - Focus-visible states for keyboard navigation
+  - Checked state with white background, accent color text, and shadow
+  - Hover states for better UX
+- **Variants**:
+  - `.seg-control-service-type` - Slightly smaller for Service Type selection (max-width: 320px)
+  - `.seg-control-drive-type` - Smaller for Drive Type selection (max-width: 200px)
+- **Responsive**: Mobile-friendly with reduced padding on small screens
+- **Implementation**: `src/salesquotes/components/styles/salesquotes-styles.css` - Segmented control CSS rules
+- **Usage Example**:
+  ```html
+  <div class="seg-control seg-control-service-type">
+    <input type="radio" id="serviceTypeOverhaul" name="serviceType" value="Overhaul" checked>
+    <label for="serviceTypeOverhaul" class="seg-control-item">
+      <span class="seg-control-label">Overhaul</span>
+    </label>
+    <input type="radio" id="serviceTypeRewind" name="serviceType" value="Rewind">
+    <label for="serviceTypeRewind" class="seg-control-item">
+      <span class="seg-control-label">Rewind</span>
+    </label>
+  </div>
+  ```
+
 ### Sales Quotes CSS Variable Design System
 - **Purpose**: Provides consistent theming and maintainability across the Sales Quotes interface
 - **Implementation**: CSS variables defined in `src/salesquotes/components/styles/salesquotes-styles.css` with `--sq-*` prefix
@@ -174,6 +202,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - **Links/Actions**: `.sq-link-action` for clickable elements
   - **Chips**: `.sq-chip`, `.sq-chip-warning` for status indicators
   - **Buttons**: `.sq-btn-primary`, `.sq-btn-secondary`, `.sq-btn-danger` with hover states
+  - **Segmented Controls**: `.seg-control`, `.seg-control-item`, `.seg-control-label` for iOS-style option selection
+    - `.seg-control-service-type` - Slightly smaller for Service Type selection (max-width: 320px)
+    - `.seg-control-drive-type` - Smaller for Drive Type selection (max-width: 200px)
+    - Responsive design with reduced padding on small screens
   - **Modals**: Enhanced modal styling with improved positioning and visual design
     - `.quote-created-modal`, `.sales-alert-modal` - Overlay with backdrop blur
     - `.quote-created-panel`, `.sales-alert-panel` - Panel with gradient backgrounds and improved shadows
@@ -349,6 +381,9 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 - **Available in**: Add Line Modal, Edit Line Modal, and Confirm New SER Modal
 - **Builder Fields**:
   - **Work Type**: Dropdown with options (Motor, Pump, EL/GT) in Add/Edit Line modals; Radio buttons in Confirm New SER Modal
+  - **Service Type**: Radio buttons for Overhaul/Rewind (only visible when Work Type = Motor in Confirm New SER Modal)
+    - Default: Overhaul
+    - Only applies to Motor work type; hidden for Pump/EL/GT
   - **Motor kW**: Text input for motor power (only visible when Work Type = Motor)
     - Supports decimal values (e.g., 7.5)
     - Sanitized to allow only numbers and single decimal point
@@ -357,10 +392,16 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - **Drive Type**: Radio buttons for AC/DC (only visible when Work Type = Motor)
     - Default: AC
   - **Details**: Optional text field for additional information
+- **Field Visibility Logic**:
+  - Service Type, Motor kW, and Drive Type fields are conditionally shown/hidden based on Work Type selection
+  - When Work Type = Motor: All motor-specific fields (Service Type, Motor kW, Drive Type) are visible
+  - When Work Type = Pump/EL/GT: Only Details field is visible; motor-specific fields are hidden
+  - Description field shows placeholder "Generate Automatically" when no valid description can be built
 - **Auto-Generated Description**: The Service Item Description field is automatically generated based on builder fields
   - Format for Motor: `Motor {AC|DC} {kW} kW {details}` (e.g., "Motor AC 7.5 kW Rewinding")
   - Format for Pump/EL/GT: `{workType} {details}` (e.g., "Pump Seal replacement")
   - Field is read-only with placeholder "Generate Automatically"
+  - Returns empty string if no work type selected or Motor selected but no kW entered (allows placeholder to show)
 - **Two-Way Synchronization**:
   - **Builder → Description**: When builder fields change, description is automatically updated
   - **Description → Builder**: When loading existing data, description is parsed back to builder fields
@@ -373,16 +414,19 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `formatMotorKwValue(value)` - Format motor kW value (remove trailing zeros, unnecessary decimals)
   - `isMotorKwWithinLimit(value)` - Check if motor kW value does not exceed 315.00
   - `updateMotorKwFieldValidity(field)` - Set custom validity message for Motor kW field
-  - `buildServiceItemDescriptionFromBuilder({ workType, motorKw, motorIsDc, details })` - Build description from builder fields
+  - `buildServiceItemDescriptionFromBuilder({ serviceType, workType, motorKw, motorIsDc, details })` - Build description from builder fields (serviceType only used for Motor)
   - `parseServiceItemDescription(description)` - Parse existing description back to builder fields
-  - `syncServiceItemDescriptionFromBuilder(prefix, options)` - Sync builder changes to description field
+  - `syncServiceItemDescriptionFromBuilder(prefix, options)` - Sync builder changes to description field (serviceType only applies to Motor)
   - `syncServiceItemBuilderFromDescription(prefix, options)` - Sync existing description to builder fields
   - `handleServiceItemBuilderChange(prefix, event)` - Handle builder field changes
   - `bindServiceItemBuilderEventListeners(prefix)` - Bind event listeners for builder fields
+  - `setupConfirmNewSerModalHandlers()` - Includes visibility update function for conditional field display
+  - `getConfirmNewSerSnapshot()` - Returns snapshot with serviceType only for Motor work type
+  - `createServiceItem(description, customerNo, groupNo, serviceType)` - Creates Service Item with serviceType parameter
 - **HTML Changes**:
   - `add-line-modal.html`: Service Item Description field made read-only with placeholder
   - `edit-line-modal.html`: Service Item Description field made read-only with placeholder
-  - `confirm-new-ser-modal.html`: Added Service Item Builder UI with grid layout; Work Type uses radio buttons (Motor, Pump, EL/GT) with improved styling
+  - `confirm-new-ser-modal.html`: Added Service Item Builder UI with grid layout; Work Type uses radio buttons (Motor, Pump, EL/GT) with improved styling; Service Type moved after Work Type with conditional visibility wrapper
 
 **Branch Assignment Validation:**
 - **Policy**: Users must have a Branch assigned (via `branchId` in user profile) to access Sales Quotes
