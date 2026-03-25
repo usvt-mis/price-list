@@ -6,6 +6,13 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-25 - Onsite Labor Table UI Improvements
+Enhanced onsite calculator labor table layout and sticky header behavior:
+- **Sticky Header Fix**: Removed `top: var(--onsite-sticky-stack-offset)` to fix header positioning
+- **Table Container**: Changed from `overflow-hidden` to `shadow-sm` for better visual presentation
+- **Header Class**: Simplified from `sticky top-0` to just `sticky` for proper z-index stacking
+- **Collapsible Sections**: Fixed overflow behavior by moving `overflow: hidden` to collapsed state only
+
 ### 2026-03-25 - Workshop DC + Rewind Mode Validation
 Added validation for DC motor rewinding jobs in the Workshop calculator:
 - **Required Manhours**: Manhours field becomes required for DC + Rewind mode
