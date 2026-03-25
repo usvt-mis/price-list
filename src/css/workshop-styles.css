@@ -1,0 +1,166 @@
+/* Workshop Calculator Design System */
+/* Focused design tokens for visual consistency */
+
+:root {
+  /* ========================================
+     BASE COLORS
+     ======================================== */
+
+  --wks-bg: #f9fafb;              /* Match current body background (slate-50) */
+  --wks-surface: #ffffff;         /* White card surfaces */
+  --wks-surface-alt: #f8fafc;     /* Alternate card backgrounds (slate-50) */
+
+  /* ========================================
+     SECTION COLORS - Keep Existing
+     ======================================== */
+
+  /* Labor - Blue */
+  --wks-labor: #3b82f6;           /* Blue (Tailwind blue-500) */
+  --wks-labor-bg: #eff6ff;        /* Blue background (blue-50) */
+  --wks-labor-border: #bfdbfe;    /* Blue border (blue-200) */
+
+  /* Materials - Emerald */
+  --wks-materials: #10b981;       /* Emerald (Tailwind emerald-500) */
+  --wks-materials-bg: #ecfdf5;    /* Emerald background (emerald-50) */
+  --wks-materials-border: #a7f3d0; /* Emerald border (emerald-200) */
+
+  /* Travel - Sky */
+  --wks-travel: #0ea5e9;          /* Sky (Tailwind sky-500) */
+  --wks-travel-bg: #e0f2fe;       /* Sky background (sky-50) */
+  --wks-travel-border: #bae6fd;   /* Sky border (sky-200) */
+
+  /* ========================================
+     HEADER COLORS - Neutral Slate
+     ======================================== */
+
+  --wks-header-bg: rgba(255, 255, 255, 0.95);
+  --wks-header-border: rgba(226, 232, 240, 0.9);
+  --wks-header-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --wks-header-shadow-sticky: 0 14px 30px rgba(15, 23, 42, 0.1);
+  --wks-header-text: #1e293b;     /* slate-800 */
+  --wks-header-text-muted: #64748b; /* slate-500 */
+  --wks-header-indicator: #3b82f6; /* Blue indicator (was orange) */
+
+  /* ========================================
+     UNIFIED BORDERS & SHADOWS
+     ======================================== */
+
+  --wks-border: #e2e8f0;          /* slate-200 */
+  --wks-border-strong: #cbd5e1;   /* slate-300 */
+  --wks-shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.06);
+  --wks-shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --wks-shadow-lg: 0 16px 48px rgba(15, 23, 42, 0.12);
+
+  /* ========================================
+     SPACING
+     ======================================== */
+
+  --wks-radius-sm: 0.5rem;
+  --wks-radius-md: 0.75rem;
+  --wks-radius-lg: 1rem;
+  --wks-radius-xl: 1.5rem;
+}
+
+/* ========================================
+   STICKY HEADER STYLES
+   ======================================== */
+
+.workshop-sticky-header .sticky-header-shell {
+  border: 1px solid var(--wks-header-border);
+  border-radius: var(--wks-radius-xl);
+  background: var(--wks-header-bg);
+  box-shadow: var(--wks-header-shadow);
+  padding: 0.75rem 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  backdrop-filter: blur(16px);
+}
+
+.workshop-sticky-header.is-sticky .sticky-header-shell {
+  border-color: var(--wks-border-strong);
+  box-shadow: var(--wks-header-shadow-sticky);
+}
+
+/* Header indicator - Changed from orange to blue */
+.workshop-sticky-header .sticky-header-subtitle::before {
+  background: var(--wks-header-indicator);
+}
+
+/* ========================================
+   HEADER BUTTON STYLES - Neutral Theme
+   ======================================== */
+
+/* My Records Button - Neutral gradient (was orange) */
+.workshop-sticky-header .header-action-btn--records {
+  border-color: var(--wks-border-strong);
+  background: linear-gradient(135deg, #64748b, #475569);
+  color: #ffffff;
+  box-shadow: 0 10px 18px rgba(71, 85, 105, 0.18);
+}
+
+.workshop-sticky-header .header-action-btn--records:hover {
+  border-color: #475569;
+  box-shadow: 0 14px 24px rgba(71, 85, 105, 0.24);
+}
+
+/* Save Button - Keep existing dark theme */
+.workshop-sticky-header .header-action-btn--save {
+  border-color: rgba(15, 23, 42, 0.18);
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.14);
+}
+
+.workshop-sticky-header .header-action-btn--save:hover {
+  background: #1e293b;
+  box-shadow: 0 12px 20px rgba(15, 23, 42, 0.18);
+}
+
+/* Floating My Records Button - Neutral theme (was orange) */
+#floatingMyRecordsBtn {
+  border-color: var(--wks-border-strong);
+  background: linear-gradient(135deg, #64748b, #475569);
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(71, 85, 105, 0.22);
+}
+
+#floatingMyRecordsBtn:hover {
+  box-shadow: 0 16px 28px rgba(71, 85, 105, 0.28);
+}
+
+/* ========================================
+   SECTION CARD UNIFICATION
+   ======================================== */
+
+/* Labor section */
+#laborSection {
+  border-color: var(--wks-labor-border);
+  box-shadow: var(--wks-shadow-sm);
+}
+
+/* Materials section */
+#materialsSection {
+  border-color: var(--wks-materials-border);
+  box-shadow: var(--wks-shadow-sm);
+}
+
+/* Travel section */
+#travelSection {
+  border-color: var(--wks-travel-border);
+  box-shadow: var(--wks-shadow-sm);
+}
+
+/* Summary section */
+#summarySection {
+  box-shadow: var(--wks-shadow-lg);
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+
+@media (max-width: 767px) {
+  .workshop-sticky-header .sticky-header-shell {
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.9rem;
+  }
+}

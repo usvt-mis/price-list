@@ -112,6 +112,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 4. **Shell Pattern**: Add `salesquotes-modal-shell` class for consistent overflow handling and corner radius
 
 ### CSS Design Systems
+- **Workshop**: `--wks-*` prefix in `workshop-styles.css` - neutral slate header theme, section-specific colors (labor blue, materials emerald, travel sky), unified shadows/borders
 - **Sales Quotes**: `--sq-*` prefix in `salesquotes-styles.css` - colors, surfaces, text, borders, shadows, effects
 - **Backoffice**: `--bo-*` prefix in `backoffice.html` - glassmorphism theming
 - **Tailwind Safelist**: Use `@layer utilities` in `input.css` for color classes used in dynamic HTML

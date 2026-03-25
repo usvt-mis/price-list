@@ -6,6 +6,7 @@
   <title>Workshop Calculator - Price List Calculator</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>"/>
   <link rel="stylesheet" href="/css/output.css">
+  <link rel="stylesheet" href="/css/workshop-styles.css">
   <style>
     /* Customer View hiding utility */
     .customer-hidden {
@@ -127,7 +128,7 @@
       width: 0.35rem;
       height: 0.35rem;
       border-radius: 999px;
-      background: rgba(249, 115, 22, 0.72);
+      /* Color now handled by workshop-styles.css (--wks-header-indicator) */
       transform: translateY(-50%);
     }
 
@@ -191,16 +192,20 @@
       transform: translateY(-1px);
     }
 
+    /* Color now handled by workshop-styles.css (neutral slate theme) */
     .workshop-sticky-header .header-action-btn--records {
-      border-color: rgba(251, 146, 60, 0.45);
-      background: linear-gradient(135deg, rgba(251, 191, 36, 0.96), rgba(249, 115, 22, 0.92));
-      color: #431407;
-      box-shadow: 0 10px 18px rgba(249, 115, 22, 0.18);
+      /* Fallback styles if CSS fails to load */
+      border-radius: 0.85rem;
+      padding: 0.65rem 0.95rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: 0.01em;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
     }
 
     .workshop-sticky-header .header-action-btn--records:hover {
-      border-color: rgba(234, 88, 12, 0.55);
-      box-shadow: 0 14px 24px rgba(249, 115, 22, 0.24);
+      transform: translateY(-1px);
     }
 
     .workshop-sticky-header .header-action-btn--save {
@@ -238,15 +243,13 @@
       font-weight: 600;
     }
 
+    /* Color now handled by workshop-styles.css (neutral slate theme) */
     #floatingMyRecordsBtn {
-      border-color: rgba(251, 146, 60, 0.45);
-      background: linear-gradient(135deg, rgba(251, 191, 36, 0.96), rgba(249, 115, 22, 0.92));
-      color: #431407;
-      box-shadow: 0 12px 24px rgba(249, 115, 22, 0.22);
+      /* Base button styles - colors from CSS file */
     }
 
     #floatingMyRecordsBtn:hover {
-      box-shadow: 0 16px 28px rgba(249, 115, 22, 0.28);
+      /* Hover effect - colors from CSS file */
     }
 
     #floatingSaveBtn {
