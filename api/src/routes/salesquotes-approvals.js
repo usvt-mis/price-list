@@ -1006,6 +1006,77 @@ router.post('/:quoteNumber/approve-revision', async (req, res, next) => {
 });
 
 // ============================================================
+// POST /api/salesquotes/approvals/:quoteNumber/reject-revision - Reject revision request (Director/Executive only)
+// Keeps quote approved and clears pending revision request
+// ============================================================
+
+router.post('/:quoteNumber/reject-revision', async (req, res, next) => {
+  const clientEmail = getAuthenticatedEmail(req);
+  const userRole = getAuthenticatedRole(req);
+
+  if (!clientEmail) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  if (!canUserApprove(userRole)) {
+    return res.status(403).json({ error: 'Only Sales Directors and Executives can reject revision requests' });
+  }
+
+  const { quoteNumber } = req.params;
+
+  try {
+    const pool = await getPool();
+    await ensureApprovalTable(pool);
+
+    const approval = await getApprovalByQuoteNumber(pool, quoteNumber);
+
+    if (!approval) {
+      return res.status(404).json({ error: 'Approval record not found' });
+    }
+
+    if (approval.ApprovalStatus !== 'Approved') {
+      return res.status(400).json({
+        error: `Cannot reject revision request for quote with status: ${approval.ApprovalStatus}`,
+        currentStatus: approval.ApprovalStatus
+      });
+    }
+
+    if (!approval.ActionComment) {
+      return res.status(400).json({ error: 'No revision request found for this quote' });
+    }
+
+    await pool.request()
+      .input('salesQuoteNumber', require('mssql').NVarChar(50), quoteNumber)
+      .input('salesDirectorEmail', require('mssql').NVarChar(255), clientEmail)
+      .input('actionAt', new Date())
+      .query(`
+        UPDATE SalesQuoteApprovals
+        SET ApprovalStatus = 'Approved',
+            SalesDirectorEmail = @salesDirectorEmail,
+            SalesDirectorActionAt = @actionAt,
+            ActionComment = NULL,
+            UpdatedAt = GETUTCDATE()
+        WHERE SalesQuoteNumber = @salesQuoteNumber
+      `);
+
+    const updated = await getApprovalByQuoteNumber(pool, quoteNumber);
+
+    logger.info('APPROVALS', 'RevisionRejected', `Quote ${quoteNumber} revision request rejected by ${clientEmail}`, {
+      salesQuoteNumber: quoteNumber,
+      salespersonEmail: approval.SalespersonEmail
+    });
+
+    res.json({
+      message: 'Revision request rejected. Quote remains approved.',
+      approval: mapApprovalRecord(updated)
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================================
 // POST /api/salesquotes/approvals/:quoteNumber/resubmit - Resubmit after revision (Sales only)
 // Supports both 'Revise' and 'Rejected' statuses for resubmission
 // ============================================================

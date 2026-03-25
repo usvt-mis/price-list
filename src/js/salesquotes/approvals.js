@@ -536,8 +536,8 @@ function extractGatewayFailureMessage(responseData) {
     'PatchSalesQuote request failed';
 }
 
-async function syncQuoteStatusToPendingApprovalInBc(salesQuoteNumber) {
-  if (!salesQuoteNumber) {
+async function syncQuoteStatusInBc(salesQuoteNumber, status) {
+  if (!salesQuoteNumber || !status) {
     return;
   }
 
@@ -549,7 +549,7 @@ async function syncQuoteStatusToPendingApprovalInBc(salesQuoteNumber) {
       },
       body: JSON.stringify({
         salesQuoteNo: salesQuoteNumber,
-        status: 'Pending Approval'
+        status
       })
     });
 
@@ -570,8 +570,9 @@ async function syncQuoteStatusToPendingApprovalInBc(salesQuoteNumber) {
       throw new Error(extractGatewayFailureMessage(responseData));
     }
   } catch (error) {
-    console.warn('[Approval] Silent BC Pending Approval patch failed:', {
+    console.warn('[Approval] Silent BC status patch failed:', {
       salesQuoteNumber,
+      status,
       error: error?.message || error
     });
   }
@@ -1023,7 +1024,7 @@ export async function sendApprovalRequest(quoteData) {
 
     // Update UI to reflect new status (hide "Send Approval Request" button, update badge)
     await updateQuoteEditorModeUi();
-    void syncQuoteStatusToPendingApprovalInBc(salesQuoteNumber);
+    void syncQuoteStatusInBc(salesQuoteNumber, 'Pending Approval');
 
     return true;
   } catch (error) {
@@ -1073,7 +1074,7 @@ export async function submitForApproval(quoteData) {
     hideLoading();
 
     showToast('Quote submitted for approval', 'success');
-    void syncQuoteStatusToPendingApprovalInBc(salesQuoteNumber);
+    void syncQuoteStatusInBc(salesQuoteNumber, 'Pending Approval');
 
     return true;
   } catch (error) {
@@ -1152,7 +1153,7 @@ export async function resubmitForApproval(quoteNumber, quoteData) {
 
     state.approval.currentStatus = APPROVAL_STATUS.PENDING_APPROVAL;
     applyApprovalIdentity(response.approval);
-    void syncQuoteStatusToPendingApprovalInBc(quoteNumber);
+    void syncQuoteStatusInBc(quoteNumber, 'Pending Approval');
 
     await loadMyApprovalRequests();
     return true;
@@ -1181,6 +1182,7 @@ export async function approveQuote(quoteNumber) {
 
     hideLoading();
     showToast('Quote approved successfully', 'success');
+    void syncQuoteStatusInBc(quoteNumber, 'Released');
 
     // Close modal and reload list
     closeApprovalPreviewModal();
@@ -1215,6 +1217,7 @@ export async function rejectQuote(quoteNumber, comment) {
 
     hideLoading();
     showToast('Quote rejected. Salesperson can now edit and resubmit.', 'success');
+    void syncQuoteStatusInBc(quoteNumber, 'Open');
 
     closeApprovalPreviewModal();
     await loadPendingApprovals();
@@ -1285,6 +1288,7 @@ export async function requestRevisionForApprovedQuote(quoteNumber, comment) {
 
     hideLoading();
     showToast('Revision request submitted. Awaiting Sales Director approval.', 'success');
+    void syncQuoteStatusInBc(quoteNumber, 'Pending Approval');
 
     // Refresh approval status
     if (state.quote.number === quoteNumber) {
@@ -1332,6 +1336,7 @@ export async function approveRevisionRequest(quoteNumber) {
 
     hideLoading();
     showToast('Revision request approved. Quote is now editable.', 'success');
+    void syncQuoteStatusInBc(quoteNumber, 'Open');
 
     closeApprovalPreviewModal();
     await loadPendingApprovals();
@@ -1342,6 +1347,46 @@ export async function approveRevisionRequest(quoteNumber) {
     hideLoading();
     console.error('Failed to approve revision request:', error);
     showToast(`Failed to approve revision: ${error.message}`, 'error');
+    return false;
+  }
+}
+
+export async function rejectRevisionRequest(quoteNumber) {
+  const modalResult = await showApprovalActionModal({
+    status: 'Revision Request',
+    statusTone: 'warning',
+    title: 'Reject revision request?',
+    message: 'The quote will remain approved and the Sales user will not be able to edit it.',
+    contextLabel: 'Sales Quote',
+    contextValue: quoteNumber,
+    confirmText: 'Reject Request',
+    confirmVariant: 'danger'
+  });
+
+  if (!modalResult.confirmed) {
+    return false;
+  }
+
+  showLoading('Rejecting revision request...', 'Processing');
+
+  try {
+    const response = await fetchWithAuth(`/api/salesquotes/approvals/${quoteNumber}/reject-revision`, {
+      method: 'POST'
+    });
+
+    hideLoading();
+    showToast('Revision request rejected. Quote remains approved.', 'success');
+    void syncQuoteStatusInBc(quoteNumber, 'Released');
+
+    closeApprovalPreviewModal();
+    await loadPendingApprovals();
+    await updatePendingApprovalsBadge();
+
+    return true;
+  } catch (error) {
+    hideLoading();
+    console.error('Failed to reject revision request:', error);
+    showToast(`Failed to reject revision request: ${error.message}`, 'error');
     return false;
   }
 }
@@ -1879,6 +1924,16 @@ function renderActionButtons(container, approval) {
         </svg>
         Approve Revision Request
       </button>
+      <button
+        id="btnRejectRevisionRequest"
+        type="button"
+        class="sq-btn sq-btn-danger"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        Reject Revision Request
+      </button>
     `;
   }
 
@@ -1901,6 +1956,7 @@ function renderActionButtons(container, approval) {
   // Attach event listeners
   const btnApprove = el('btnApproveQuote');
   const btnApproveRevision = el('btnApproveRevisionRequest');
+  const btnRejectRevision = el('btnRejectRevisionRequest');
   const btnReject = el('btnRejectQuote');
   const btnClose = el('btnClosePreview');
 
@@ -1916,6 +1972,14 @@ function renderActionButtons(container, approval) {
     btnApproveRevision.addEventListener('click', () => {
       if (currentPreviewQuoteNumber) {
         approveRevisionRequest(currentPreviewQuoteNumber);
+      }
+    });
+  }
+
+  if (btnRejectRevision) {
+    btnRejectRevision.addEventListener('click', () => {
+      if (currentPreviewQuoteNumber) {
+        rejectRevisionRequest(currentPreviewQuoteNumber);
       }
     });
   }

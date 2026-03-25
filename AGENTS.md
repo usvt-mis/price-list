@@ -181,6 +181,10 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - `.sales-alert-body` - Body section with improved spacing and shadows
     - `.sales-alert-section` - Content sections with subtle borders and shadows
     - Responsive design with `clamp()` for padding and improved mobile experience
+  - **Optional Field Hints**: Warm tint styling for optional-but-encouraged fields
+    - `.field-optional-hint` - Warm amber background (#fff8e8) and border (#efd7a5) to suggest filling without implying an error
+    - Provides visual cue that field is optional but recommended
+    - Implementation: `src/salesquotes/components/styles/salesquotes-styles.css`
   - **Toasts**: Modern toast notification system with:
     - `.salesquotes-toast-stack` - Container for toast positioning (fixed bottom-right)
     - `.toast` - Base toast component with grid layout and gradient background
@@ -586,7 +590,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - Includes both quotes with "PendingApproval" status AND quotes with pending revision requests (Approved quotes with ActionComment set)
     - Badge count shows number of pending approvals
     - Refresh button to reload pending approvals with toast notifications
-    - Actions: Approve, Reject, Request Revision (with comment), Approve Revision Request
+    - Actions: Approve, Reject, Request Revision (with comment), Approve Revision Request, Reject Revision Request
   - **Approval Preview Modal**: Enhanced with revision request comment spotlight
     - When a quote has a pending revision request (Approved status with ActionComment set), the comment is displayed in a prominent spotlight section
     - Spotlight styling uses amber/warning colors with gradient background and shadow to draw attention
@@ -612,6 +616,7 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - `PUT /api/salesquotes/approvals/:quoteNumber/revise` - Request revision (Director/Executive)
   - `POST /api/salesquotes/approvals/:quoteNumber/request-revision` - Request revision on Approved quote (Sales)
   - `POST /api/salesquotes/approvals/:quoteNumber/approve-revision` - Approve revision request (Director/Executive)
+  - `POST /api/salesquotes/approvals/:quoteNumber/reject-revision` - Reject revision request (Director/Executive) - Keeps quote approved and clears pending revision request
   - `POST /api/salesquotes/approvals/:quoteNumber/resubmit` - Resubmit after revision (Sales)
   - `POST /api/business-central/gateway/patch-sales-quote` - Patch Sales Quote (update Work Status only for Approved quotes)
   - `GET /api/backoffice/salesquotes/audit-log` - Get Sales Quotes audit log with approval status (paginated, searchable, filterable)
@@ -626,7 +631,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
     - `hasPendingRevisionRequest`: Boolean flag indicating if an Approved quote has a pending revision request (calculated via timestamp comparison)
   - **Ownership-based Revision**: The `ApprovalOwnerEmail` field (defaults to SalespersonEmail) determines who can request revisions on Approved quotes
 - **Frontend Module**: `src/js/salesquotes/approvals.js`
-  - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`
+  - Functions: `initializeApprovalsTab()`, `updatePendingApprovalsBadge()`, `loadPendingApprovals()`, `loadMyApprovals()`, `submitForApproval()`, `approveQuote()`, `rejectQuote()`, `requestRevision()`, `requestRevisionForApprovedQuote()`, `approveRevisionRequest()`, `rejectRevisionRequest()`
+  - BC Status Sync: `syncQuoteStatusInBc(salesQuoteNumber, status)` - Syncs quote status to Business Central via PatchSalesQuote endpoint (silent failure handling)
   - Refresh functionality: `refreshApprovalsView()`, `bindApprovalsTabEventListeners()`
   - Modal stacking: `getApprovalActionModalHost()` - Returns appropriate host container for approval action modal based on whether approval preview is open
   - Rendering: `renderApprovalActionComment()` - Renders revision request comments with spotlight styling or standard collapsible format
@@ -645,6 +651,22 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
   - The sync is performed silently (errors are logged but don't block the approval flow)
   - Uses the PatchSalesQuote endpoint to update the status field in BC
   - Implementation: `syncQuoteStatusToPendingApprovalInBc()` function in `src/js/salesquotes/approvals.js`
+  - Helper functions: `isExplicitApiFailure()` and `extractGatewayFailureMessage()` for robust error handling
+- **Business Central Status Synchronization**:
+  - When a quote is submitted for approval, the system automatically syncs the status to "Pending Approval" in Business Central
+  - This ensures BC reflects the current approval state of the quote
+  - Synchronization occurs in three scenarios:
+    - After `sendApprovalRequest()` - When user sends approval request from quote editor
+    - After `submitForApproval()` - When user submits quote for approval via Approvals tab
+    - After `resubmitForApproval()` - When user resubmits after revision
+  - Additional status syncs for other approval actions:
+    - After `approveQuote()` - Syncs status to "Released"
+    - After `rejectQuote()` - Syncs status to "Open"
+    - After `approveRevisionRequest()` - Syncs status to "Open"
+    - After `rejectRevisionRequest()` - Syncs status to "Released"
+  - The sync is performed silently (errors are logged but don't block the approval flow)
+  - Uses the PatchSalesQuote endpoint to update the status field in BC
+  - **Implementation**: `syncQuoteStatusInBc()` function in `src/js/salesquotes/approvals.js`
   - Helper functions: `isExplicitApiFailure()` and `extractGatewayFailureMessage()` for robust error handling
 - **Integration with Quote Creation**:
   - After quote creation/update, approval records are automatically initialized with SubmittedToBC status
