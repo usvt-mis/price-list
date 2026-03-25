@@ -175,7 +175,7 @@ After quote creation/update:
 - **Service Item No**: Only one per Group No (prevents duplicates)
 - **Dropdown Search**: Must select from dropdown (no free-text) for Customer No., Salesperson Code, Assigned User ID, Material No.
 - **Edit Line - Comment Type**: Disables/clears No, Qty, Unit Price, Disc %, Discount Amt, Addition, Ref. SQ No.
-- **Delivery Date**: Date input with `minDate: 'today'`, locked in edit mode
+- **Delivery Date (`usvtDeliveryDate`)**: Date input with `minDate: 'today'`, locked in edit mode. Maps to `USVT_Delivery_Date` in BC (custom USVT field)
 
 ### Search & Edit Mode
 - Search by quote number → loads into editor
@@ -185,6 +185,10 @@ After quote creation/update:
 - **Work Status**: Editable dropdown (Win/Lose/Cancelled) - only field editable for Approved quotes
 - **Update**: Uses UpdateSalesQuote (or PatchSalesQuote for Approved quotes - Work Status only)
 - **Field Mapping**: Supports multiple BC API field name variations with fallback
+- **Delivery Date Fields**:
+  - `usvtDeliveryDate` → `USVT_Delivery_Date` (custom USVT field, used in forms)
+  - `orderDate` → `OrderDate_SaleHeader` / `Order_Date` (BC standard field)
+  - `requestedDeliveryDate` → `RequestedDeliveryDate_SalesHeader` (BC standard field)
 
 ### Print Quote
 - A4-optimized layout via `html2pdf.js` (^0.14.0)

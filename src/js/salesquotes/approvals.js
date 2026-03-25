@@ -1639,7 +1639,7 @@ function renderQuotePreview(container, quoteData, approval, directorSignature) {
   const serviceOrderType = pickPreviewValue(quoteData, ['serviceOrderType'], '-');
   const workStatus = pickPreviewValue(quoteData, ['workStatus', 'WorkStatus', 'workstatus'], '-');
   const orderDate = pickPreviewValue(quoteData, ['orderDate', 'OrderDate_SaleHeader', 'Order_Date', 'documentDate', 'DocumentDate_SalesHeader'], '');
-  const requestedDeliveryDate = pickPreviewValue(quoteData, ['requestedDeliveryDate', 'RequestedDeliveryDate_SalesHeader', 'usvtDeliveryDate', 'USVT_Delivery_Date'], '');
+  const requestedDeliveryDate = pickPreviewValue(quoteData, ['requestedDeliveryDate', 'RequestedDeliveryDate_SalesHeader'], '');
   const externalDocumentNo = pickPreviewValue(quoteData, ['externalDocumentNo', 'exDocNo', 'ExDocNo_SalesHeader'], '-');
   const paymentTerms = pickPreviewValue(quoteData, ['paymentTermsDescription', 'descriptionPaymentTerms', 'Description_PaymentTerms', 'paymentTermsCode', 'Payment_Terms_Code'], '-');
   const paymentMethod = pickPreviewValue(quoteData, ['paymentMethodDescription', 'descriptionPaymentMethod', 'Description_PaymentMethod'], '-');
