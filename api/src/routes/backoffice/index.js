@@ -9,6 +9,7 @@ const { getPool } = require('../../db');
 const { requireBackofficeSession } = require('../../middleware/twoFactorAuthExpress');
 const sql = require('mssql');
 const { ensureSalesQuoteSubmissionRecordsTable } = require('../../utils/salesQuoteSubmissionRecords');
+const { TABLE_NAME: SALESQUOTE_AUDIT_LOG_TABLE, ensureSalesQuoteAuditLogTable } = require('../../utils/salesQuoteAuditLog');
 const {
   TABLE_NAME: BACKOFFICE_SETTINGS_TABLE,
   ensureBackofficeSettingsTable,
@@ -634,14 +635,45 @@ router.get('/salesquotes/audit-log', async (req, res, next) => {
 
     const pool = await getPool();
     await ensureSalesQuoteSubmissionRecordsTable(pool);
+    await ensureSalesQuoteAuditLogTable(pool);
 
     const approvalsTableCheck = await pool.request().query(`
       SELECT 1 AS existsFlag
       WHERE OBJECT_ID(N'dbo.SalesQuoteApprovals', N'U') IS NOT NULL
     `);
     const hasApprovalsTable = approvalsTableCheck.recordset.length > 0;
+    const auditLogTableCheck = await pool.request().query(`
+      SELECT 1 AS existsFlag
+      WHERE OBJECT_ID(N'dbo.${SALESQUOTE_AUDIT_LOG_TABLE}', N'U') IS NOT NULL
+    `);
+    const hasAuditLogTable = auditLogTableCheck.recordset.length > 0;
 
     const normalizedSearch = searchFilter ? `%${searchFilter}%` : '';
+
+    const latestAuditJoinClause = hasAuditLogTable
+      ? `
+          LEFT JOIN (
+            SELECT
+              l.SalesQuoteNumber,
+              l.ActionType,
+              l.ActorEmail,
+              l.ApprovalStatus,
+              l.WorkDescription,
+              l.Comment,
+              l.ClientIP,
+              l.CreatedAt
+            FROM ${SALESQUOTE_AUDIT_LOG_TABLE} l
+            INNER JOIN (
+              SELECT SalesQuoteNumber, MAX(CreatedAt) AS LatestCreatedAt
+              FROM ${SALESQUOTE_AUDIT_LOG_TABLE}
+              GROUP BY SalesQuoteNumber
+            ) latest
+              ON latest.SalesQuoteNumber = l.SalesQuoteNumber
+             AND latest.LatestCreatedAt = l.CreatedAt
+          ) audit
+            ON audit.SalesQuoteNumber = r.SalesQuoteNumber
+        `
+      : '';
 
     const searchWhereClause = hasApprovalsTable
       ? `
@@ -665,8 +697,9 @@ router.get('/salesquotes/audit-log', async (req, res, next) => {
       : `(@status = '' OR 'NoApprovalRecord' = @status)`;
 
     const joinClause = hasApprovalsTable
-      ? 'LEFT JOIN SalesQuoteApprovals a ON a.SalesQuoteNumber = r.SalesQuoteNumber'
-      : '';
+      ? `LEFT JOIN SalesQuoteApprovals a ON a.SalesQuoteNumber = r.SalesQuoteNumber
+         ${latestAuditJoinClause}`
+      : latestAuditJoinClause;
 
     const countQuery = `
       SELECT COUNT(*) AS total
@@ -692,6 +725,13 @@ router.get('/salesquotes/audit-log', async (req, res, next) => {
             r.ClientIP,
             r.SubmittedAt,
             ISNULL(a.ApprovalStatus, 'NoApprovalRecord') AS ApprovalStatus,
+            audit.ActionType AS AuditActionType,
+            audit.ActorEmail AS AuditActorEmail,
+            audit.ApprovalStatus AS AuditApprovalStatus,
+            audit.WorkDescription AS AuditWorkDescription,
+            audit.Comment AS AuditComment,
+            audit.ClientIP AS AuditClientIP,
+            audit.CreatedAt AS AuditCreatedAt,
             a.ApprovalOwnerEmail,
             a.SalespersonCode,
             a.SalespersonName,
@@ -706,9 +746,10 @@ router.get('/salesquotes/audit-log', async (req, res, next) => {
           FROM SalesQuoteSubmissionRecords r
           LEFT JOIN SalesQuoteApprovals a
             ON a.SalesQuoteNumber = r.SalesQuoteNumber
+          ${latestAuditJoinClause}
           WHERE (${searchWhereClause})
             AND ${statusWhereClause}
-          ORDER BY COALESCE(a.UpdatedAt, a.SalesDirectorActionAt, a.SubmittedForApprovalAt, r.SubmittedAt) DESC
+          ORDER BY COALESCE(audit.CreatedAt, a.UpdatedAt, a.SalesDirectorActionAt, a.SubmittedForApprovalAt, r.SubmittedAt) DESC
           OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
         `
       : `
@@ -720,6 +761,13 @@ router.get('/salesquotes/audit-log', async (req, res, next) => {
             r.ClientIP,
             r.SubmittedAt,
             CAST('NoApprovalRecord' AS NVARCHAR(50)) AS ApprovalStatus,
+            audit.ActionType AS AuditActionType,
+            audit.ActorEmail AS AuditActorEmail,
+            audit.ApprovalStatus AS AuditApprovalStatus,
+            audit.WorkDescription AS AuditWorkDescription,
+            audit.Comment AS AuditComment,
+            audit.ClientIP AS AuditClientIP,
+            audit.CreatedAt AS AuditCreatedAt,
             CAST(NULL AS NVARCHAR(255)) AS ApprovalOwnerEmail,
             CAST(NULL AS NVARCHAR(50)) AS SalespersonCode,
             CAST(NULL AS NVARCHAR(255)) AS SalespersonName,
@@ -732,9 +780,10 @@ router.get('/salesquotes/audit-log', async (req, res, next) => {
             CAST(NULL AS DATETIME2) AS ApprovalCreatedAt,
             CAST(NULL AS DATETIME2) AS ApprovalUpdatedAt
           FROM SalesQuoteSubmissionRecords r
+          ${latestAuditJoinClause}
           WHERE (${searchWhereClause})
             AND ${statusWhereClause}
-          ORDER BY r.SubmittedAt DESC
+          ORDER BY COALESCE(audit.CreatedAt, r.SubmittedAt) DESC
           OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
         `;
 
@@ -754,6 +803,13 @@ router.get('/salesquotes/audit-log', async (req, res, next) => {
         clientIP: entry.ClientIP || '',
         submittedAt: entry.SubmittedAt,
         approvalStatus: entry.ApprovalStatus || 'NoApprovalRecord',
+        auditActionType: entry.AuditActionType || '',
+        auditActorEmail: entry.AuditActorEmail || '',
+        auditApprovalStatus: entry.AuditApprovalStatus || '',
+        auditWorkDescription: entry.AuditWorkDescription || '',
+        auditComment: entry.AuditComment || '',
+        auditClientIP: entry.AuditClientIP || '',
+        auditCreatedAt: entry.AuditCreatedAt,
         approvalOwnerEmail: entry.ApprovalOwnerEmail || '',
         salespersonCode: entry.SalespersonCode || '',
         salespersonName: entry.SalespersonName || '',

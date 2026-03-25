@@ -229,6 +229,19 @@ After quote creation/update:
 - **API**: Full CRUD endpoints for approval operations + PatchSalesQuote for Work Status
 - **Database**: `SalesQuoteApprovals` table with unique constraint on SalesQuoteNumber
 
+### Audit Log System
+- **Implementation**: `api/src/utils/salesQuoteAuditLog.js` - comprehensive audit tracking
+- **Database**: `SalesQuoteAuditLog` table with indexes on SalesQuoteNumber+CreatedAt and CreatedAt
+- **Tracked Events**: Updated, Approved, Rejected, Revise (with ActionType field)
+- **Captured Data**: SalesQuoteNumber, ActionType, ActorEmail, ApprovalStatus, WorkDescription, Comment, ClientIP, CreatedAt
+- **API Endpoint**: `POST /api/salesquotes/audit-events` - public endpoint for recording audit events
+- **Integration Points**:
+  - Approval actions (approve/reject/revise) automatically log audit events
+  - Quote updates/editing log "Updated" events
+  - Work Status updates on Approved quotes include context in comment
+- **Backoffice Display**: Sales Quotes Audit tab shows latest audit activity with actor email and timestamp
+- **Error Handling**: Audit log failures are logged but don't block primary operations
+
 ---
 
 ## Database Migrations

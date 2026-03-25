@@ -11,7 +11,7 @@ import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showErro
 import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal, isApprovedWorkStatusOnlyMode } from './ui.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
-import { recordQuoteSubmission } from './records.js';
+import { recordQuoteSubmission, recordQuoteAuditEvent } from './records.js';
 import { submitForApproval, createApprovalRecord, sendApprovalRequest as sendApprovalRequestModule, checkApprovalStatus, APPROVAL_STATUS, resubmitForApproval, requestRevisionForApprovedQuote, showApprovalActionModal } from './approvals.js';
 import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
@@ -3280,11 +3280,28 @@ export async function handleSendQuote() {
       try {
         await recordQuoteSubmission({
           salesQuoteNumber: quoteNumber,
-          workDescription: sanitizedData.workDescription || ''
+          workDescription: sanitizedData.workDescription || '',
+          remark: sanitizedData.remark || ''
         });
       } catch (recordError) {
         recordSaveError = recordError;
         console.error('Failed to save Sales Quote submission record:', recordError);
+      }
+    }
+
+    if (isEditMode && quoteNumber) {
+      try {
+        await recordQuoteAuditEvent({
+          salesQuoteNumber: quoteNumber,
+          actionType: 'Updated',
+          approvalStatus: state.quote.approvalStatus || state.approval.currentStatus || '',
+          workDescription: sanitizedData.workDescription || '',
+          comment: isApprovedWorkStatusUpdate
+            ? `Work Status updated to ${sanitizedData.workStatus || ''}`.trim()
+            : ''
+        });
+      } catch (auditError) {
+        console.error('Failed to save Sales Quote audit event:', auditError);
       }
     }
 

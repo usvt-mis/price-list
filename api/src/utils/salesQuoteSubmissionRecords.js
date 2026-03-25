@@ -15,6 +15,20 @@ async function ensureSalesQuoteSubmissionRecordsTable(pool) {
     `);
 
     if (existsResult.recordset.length > 0) {
+      const remarkColumnResult = await pool.request().query(`
+        SELECT 1
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = '${TABLE_NAME}'
+          AND COLUMN_NAME = 'Remark'
+      `);
+
+      if (remarkColumnResult.recordset.length === 0) {
+        await pool.request().query(`
+          ALTER TABLE ${TABLE_NAME}
+          ADD Remark NVARCHAR(255) NULL;
+        `);
+      }
+
       return;
     }
 
@@ -24,6 +38,7 @@ async function ensureSalesQuoteSubmissionRecordsTable(pool) {
         SalesQuoteNumber NVARCHAR(50) NOT NULL,
         SenderEmail NVARCHAR(255) NOT NULL,
         WorkDescription NVARCHAR(MAX) NULL,
+        Remark NVARCHAR(255) NULL,
         ClientIP NVARCHAR(50) NULL,
         SubmittedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
         CONSTRAINT UQ_${TABLE_NAME}_SalesQuoteNumber UNIQUE (SalesQuoteNumber)

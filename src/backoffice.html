@@ -3237,6 +3237,24 @@
   }
 
   function getSalesQuoteAuditLastActivity(entry) {
+    const auditActionType = entry.auditActionType || '';
+    const auditCreatedAt = entry.auditCreatedAt;
+
+    if (auditActionType && auditCreatedAt) {
+      switch (auditActionType) {
+        case 'Updated':
+          return { label: 'Sales Quote updated', timestamp: auditCreatedAt };
+        case 'Approved':
+          return { label: 'Approved by director', timestamp: auditCreatedAt };
+        case 'Rejected':
+          return { label: 'Rejected by director', timestamp: auditCreatedAt };
+        case 'Revise':
+          return { label: 'Revision requested', timestamp: auditCreatedAt };
+        default:
+          return { label: auditActionType, timestamp: auditCreatedAt };
+      }
+    }
+
     const status = entry.approvalStatus || 'NoApprovalRecord';
 
     if (status === 'Approved' && entry.actionComment && entry.approvalUpdatedAt) {
@@ -3363,7 +3381,7 @@
         : null;
 
       return `
-        <tr class="hover:bg-slate-50" title="Client IP: ${escapeHtml(entry.clientIP || 'unknown')}">
+        <tr class="hover:bg-slate-50" title="Client IP: ${escapeHtml(entry.auditClientIP || entry.clientIP || 'unknown')}">
           <td class="px-4 py-3 align-top">
             <div class="font-semibold text-slate-900">${escapeHtml(entry.salesQuoteNumber || '-')}</div>
             ${amountText ? `<div class="mt-1 text-xs text-slate-500">Total ${amountText}</div>` : ''}
@@ -3381,8 +3399,9 @@
           <td class="px-4 py-3 align-top">
             <div class="space-y-2">
               <span class="bo-chip ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span>
+              ${entry.auditActorEmail ? `<div class="text-xs text-slate-500">Last action by ${escapeHtml(entry.auditActorEmail)}</div>` : ''}
               ${entry.salesDirectorEmail ? `<div class="text-xs text-slate-500">Director ${escapeHtml(entry.salesDirectorEmail)}</div>` : ''}
-              ${entry.actionComment ? `<div class="max-w-sm whitespace-pre-wrap break-words text-xs text-slate-600">Comment: ${escapeHtml(entry.actionComment)}</div>` : ''}
+              ${(entry.auditComment || entry.actionComment) ? `<div class="max-w-sm whitespace-pre-wrap break-words text-xs text-slate-600">Comment: ${escapeHtml(entry.auditComment || entry.actionComment)}</div>` : ''}
             </div>
           </td>
           <td class="px-4 py-3 align-top text-slate-600">

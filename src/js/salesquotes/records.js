@@ -272,7 +272,7 @@ export async function loadQuoteSubmissionRecords() {
   }
 }
 
-export async function recordQuoteSubmission({ salesQuoteNumber, workDescription }) {
+export async function recordQuoteSubmission({ salesQuoteNumber, workDescription, remark = '' }) {
   const response = await fetch('/api/salesquotes/records', {
     method: 'POST',
     headers: {
@@ -280,7 +280,8 @@ export async function recordQuoteSubmission({ salesQuoteNumber, workDescription 
     },
     body: JSON.stringify({
       salesQuoteNumber,
-      workDescription
+      workDescription,
+      remark
     })
   });
 
@@ -291,6 +292,35 @@ export async function recordQuoteSubmission({ salesQuoteNumber, workDescription 
 
   const data = await response.json();
   return data;
+}
+
+export async function recordQuoteAuditEvent({
+  salesQuoteNumber,
+  actionType,
+  approvalStatus = '',
+  workDescription = '',
+  comment = ''
+}) {
+  const response = await fetch('/api/salesquotes/audit-events', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      salesQuoteNumber,
+      actionType,
+      approvalStatus,
+      workDescription,
+      comment
+    })
+  });
+
+  if (!response.ok) {
+    const errorPayload = await response.json().catch(() => null);
+    throw new Error(errorPayload?.error || 'Failed to save Sales Quote audit event');
+  }
+
+  return response.json().catch(() => ({}));
 }
 
 export function setupQuoteSubmissionRecordEventListeners() {

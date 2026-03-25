@@ -8,6 +8,7 @@ const router = express.Router();
 const { getPool } = require('../db');
 const { validateAuth, extractUserEmail } = require('../middleware/authExpress');
 const logger = require('../utils/logger');
+const { logSalesQuoteAuditEvent } = require('../utils/salesQuoteAuditLog');
 
 const VALID_STATUSES = ['Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled', 'BeingRevised'];
 const PENDING_REVISION_THRESHOLD_MS = 1000;
@@ -117,6 +118,12 @@ function getAuthenticatedEmail(req) {
 
 function getAuthenticatedRole(req) {
   return req.user?.effectiveRole || req.effectiveRole || 'NoRole';
+}
+
+function getClientIP(req) {
+  return (req.headers['x-forwarded-for'] || '').split(',')[0]?.trim() ||
+         req.headers['x-client-ip'] ||
+         'unknown';
 }
 
 /**
@@ -640,6 +647,24 @@ router.post('/:quoteNumber/approve', async (req, res, next) => {
       salespersonEmail: approval.SalespersonEmail
     });
 
+    try {
+      await logSalesQuoteAuditEvent(pool, {
+        salesQuoteNumber: quoteNumber,
+        actionType: 'Approved',
+        actorEmail: clientEmail,
+        approvalStatus: updated?.ApprovalStatus || 'Approved',
+        workDescription: updated?.WorkDescription || approval?.WorkDescription || null,
+        clientIP: getClientIP(req)
+      });
+    } catch (auditError) {
+      logger.error('APPROVALS', 'AuditLogFailed', `Failed to record approval audit for ${quoteNumber}`, {
+        salesQuoteNumber: quoteNumber,
+        actionType: 'Approved',
+        actorEmail: clientEmail,
+        error: auditError.message
+      });
+    }
+
     res.json({
       message: 'Quote approved successfully',
       approval: mapApprovalRecord(updated)
@@ -714,6 +739,25 @@ router.post('/:quoteNumber/reject', async (req, res, next) => {
       comment: comment.trim()
     });
 
+    try {
+      await logSalesQuoteAuditEvent(pool, {
+        salesQuoteNumber: quoteNumber,
+        actionType: 'Rejected',
+        actorEmail: clientEmail,
+        approvalStatus: updated?.ApprovalStatus || 'Rejected',
+        workDescription: updated?.WorkDescription || approval?.WorkDescription || null,
+        comment: comment.trim(),
+        clientIP: getClientIP(req)
+      });
+    } catch (auditError) {
+      logger.error('APPROVALS', 'AuditLogFailed', `Failed to record rejection audit for ${quoteNumber}`, {
+        salesQuoteNumber: quoteNumber,
+        actionType: 'Rejected',
+        actorEmail: clientEmail,
+        error: auditError.message
+      });
+    }
+
     res.json({
       message: 'Quote rejected. Salesperson can now edit and resubmit.',
       approval: mapApprovalRecord(updated)
@@ -787,6 +831,25 @@ router.post('/:quoteNumber/revise', async (req, res, next) => {
       salespersonEmail: approval.SalespersonEmail,
       comment: comment.trim()
     });
+
+    try {
+      await logSalesQuoteAuditEvent(pool, {
+        salesQuoteNumber: quoteNumber,
+        actionType: 'Revise',
+        actorEmail: clientEmail,
+        approvalStatus: updated?.ApprovalStatus || 'Revise',
+        workDescription: updated?.WorkDescription || approval?.WorkDescription || null,
+        comment: comment.trim(),
+        clientIP: getClientIP(req)
+      });
+    } catch (auditError) {
+      logger.error('APPROVALS', 'AuditLogFailed', `Failed to record revise audit for ${quoteNumber}`, {
+        salesQuoteNumber: quoteNumber,
+        actionType: 'Revise',
+        actorEmail: clientEmail,
+        error: auditError.message
+      });
+    }
 
     res.json({
       message: 'Revision requested. Salesperson can now edit and resubmit.',

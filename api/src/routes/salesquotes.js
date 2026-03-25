@@ -3,6 +3,7 @@ const sql = require('mssql');
 const { getPool } = require('../db');
 const { extractUserEmail } = require('../middleware/authExpress');
 const { ensureSalesQuoteSubmissionRecordsTable } = require('../utils/salesQuoteSubmissionRecords');
+const { logSalesQuoteAuditEvent } = require('../utils/salesQuoteAuditLog');
 const { ensureSalesQuoteUserPreferencesTable } = require('../utils/salesQuoteUserPreferences');
 const {
   TABLE_NAME: BACKOFFICE_SETTINGS_TABLE,
@@ -31,6 +32,7 @@ function mapSubmissionRecord(record) {
     salesQuoteNumber: record.SalesQuoteNumber,
     senderEmail: record.SenderEmail,
     workDescription: record.WorkDescription || '',
+    remark: record.Remark || '',
     submittedAt: record.SubmittedAt
   };
 }
@@ -230,7 +232,7 @@ router.get('/records', async (req, res, next) => {
     let whereClause = 'WHERE SenderEmail = @senderEmail';
     if (search) {
       request.input('search', sql.NVarChar, `%${search}%`);
-      whereClause += ' AND (SalesQuoteNumber LIKE @search OR WorkDescription LIKE @search)';
+      whereClause += ' AND (SalesQuoteNumber LIKE @search OR WorkDescription LIKE @search OR Remark LIKE @search)';
     }
 
     const result = await request.query(`
@@ -239,6 +241,7 @@ router.get('/records', async (req, res, next) => {
         SalesQuoteNumber,
         SenderEmail,
         WorkDescription,
+        Remark,
         SubmittedAt
       FROM SalesQuoteSubmissionRecords
       ${whereClause}
@@ -263,6 +266,9 @@ router.post('/records', async (req, res, next) => {
   const workDescription = typeof req.body?.workDescription === 'string'
     ? req.body.workDescription.trim()
     : '';
+  const remark = typeof req.body?.remark === 'string'
+    ? req.body.remark.replace(/[\r\n]+/g, ' ').trim()
+    : '';
 
   if (!salesQuoteNumber) {
     return res.status(400).json({ error: 'Sales Quote Number is required' });
@@ -280,6 +286,7 @@ router.post('/records', async (req, res, next) => {
           SalesQuoteNumber,
           SenderEmail,
           WorkDescription,
+          Remark,
           SubmittedAt
         FROM SalesQuoteSubmissionRecords
         WHERE SalesQuoteNumber = @salesQuoteNumber
@@ -296,12 +303,14 @@ router.post('/records', async (req, res, next) => {
       .input('salesQuoteNumber', sql.NVarChar, salesQuoteNumber)
       .input('senderEmail', sql.NVarChar, senderEmail)
       .input('workDescription', sql.NVarChar(sql.MAX), workDescription || null)
+      .input('remark', sql.NVarChar(255), remark || null)
       .input('clientIP', sql.NVarChar(50), getClientIP(req))
       .query(`
         INSERT INTO SalesQuoteSubmissionRecords (
           SalesQuoteNumber,
           SenderEmail,
           WorkDescription,
+          Remark,
           ClientIP
         )
         OUTPUT
@@ -309,11 +318,13 @@ router.post('/records', async (req, res, next) => {
           INSERTED.SalesQuoteNumber,
           INSERTED.SenderEmail,
           INSERTED.WorkDescription,
+          INSERTED.Remark,
           INSERTED.SubmittedAt
         VALUES (
           @salesQuoteNumber,
           @senderEmail,
           @workDescription,
+          @remark,
           @clientIP
         )
       `);
@@ -334,6 +345,7 @@ router.post('/records', async (req, res, next) => {
               SalesQuoteNumber,
               SenderEmail,
               WorkDescription,
+              Remark,
               SubmittedAt
             FROM SalesQuoteSubmissionRecords
             WHERE SalesQuoteNumber = @salesQuoteNumber
@@ -350,6 +362,48 @@ router.post('/records', async (req, res, next) => {
       }
     }
 
+    next(error);
+  }
+});
+
+router.post('/audit-events', async (req, res, next) => {
+  const actorEmail = getAuthenticatedEmail(req);
+  if (!actorEmail) {
+    return res.status(401).json({ error: 'Unable to determine current user email' });
+  }
+
+  const salesQuoteNumber = String(req.body?.salesQuoteNumber || '').trim();
+  const actionType = String(req.body?.actionType || '').trim();
+  const approvalStatus = String(req.body?.approvalStatus || '').trim();
+  const workDescription = typeof req.body?.workDescription === 'string'
+    ? req.body.workDescription.trim()
+    : '';
+  const comment = typeof req.body?.comment === 'string'
+    ? req.body.comment.trim()
+    : '';
+
+  if (!salesQuoteNumber) {
+    return res.status(400).json({ error: 'Sales Quote Number is required' });
+  }
+
+  if (!actionType) {
+    return res.status(400).json({ error: 'Action Type is required' });
+  }
+
+  try {
+    const pool = await getPool();
+    await logSalesQuoteAuditEvent(pool, {
+      salesQuoteNumber,
+      actionType,
+      actorEmail,
+      approvalStatus: approvalStatus || null,
+      workDescription: workDescription || null,
+      comment: comment || null,
+      clientIP: getClientIP(req)
+    });
+
+    res.status(201).json({ message: 'Audit event recorded' });
+  } catch (error) {
     next(error);
   }
 });
