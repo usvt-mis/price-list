@@ -6,6 +6,16 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-25 - Time Board Feature
+Added Time Board for viewing and managing man-hours data across all jobs and calculations:
+- **New Page**: `/timeboard.html` with calm, professional UI design
+- **API Route**: `GET /api/timeboard` - Returns combined Onsite and Workshop man-hours data
+- **Access Control**: Manager, Executive, and Sales Director roles only
+- **Data Display**: Shows SaveId, RunNumber, CreatorEmail, BranchId, BranchName, CreatedAt, JobsCount, TotalManhours
+- **Table Layout**: Sorted by CreatedAt DESC with status badges for man-hours completion
+- **Landing Page Card**: New Time Board card visible to Manager/Executive/SalesDirector roles
+- **Implementation**: `api/src/routes/timeboard.js`, `src/timeboard.html`, `server.js`, `src/index.html`
+
 ### 2026-03-25 - Manager Role and Backoffice Tab
 Added Manager role with dedicated backoffice tab for user management:
 - **New Role**: Manager role with management access and view permissions for calculations and reports
@@ -67,6 +77,7 @@ Removed deprecated files to streamline the codebase:
 | Onsite | Field/onsite service | `ONS-YYYY-XXX` |
 | Workshop | Workshop/facility | `WKS-YYYY-XXX` |
 | Sales Quotes | Business Central integration | BC Quote Number |
+| Time Board | Man-hours data view | Manager/Executive/SD only |
 
 ---
 
@@ -109,6 +120,13 @@ Final Price = PricePerUnit × (1 + commission%)
 ## File Structure
 
 ```
+src/
+├── index.html      # Landing page with calculator selection
+├── onsite.html     # Onsite calculator
+├── workshop.html   # Workshop calculator
+├── salesquotes.html # Sales Quotes interface
+└── timeboard.html  # Time Board (Manager/Executive/SD only)
+
 src/js/
 ├── core/           # Shared utilities
 ├── auth/           # Authentication
@@ -118,6 +136,8 @@ src/js/
 
 api/src/
 ├── routes/         # Express.js routes
+│   ├── timeboard.js # Time Board API
+│   └── ...
 ├── db.js           # Database pool
 ├── middleware/     # Express middleware
 ├── utils/          # Shared utilities
@@ -207,7 +227,8 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 **Role Detection**: `isSalesDirector()`, `canApproveQuotes()`, `isSalesOnly()` in `src/js/auth/mode-detection.js`
 
 **Access Control**:
-- Landing Page: Cards disabled for users without Sales/SalesDirector/Executive roles
+- Landing Page: Cards disabled for users without Sales/SalesDirector/Executive/Manager roles
+- Time Board: Visible only to Manager/Executive/SalesDirector roles
 - Sales Quotes Page: "Account Pending" screen for unauthorized users
 - Local development bypass: `localhost` and `127.0.0.1` auto-grant access
 
@@ -379,11 +400,39 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 
 ---
 
+## Time Board
+
+**Purpose**: View and manage man-hours data across all Onsite and Workshop calculations
+
+**Access Control**: Manager, Executive, and Sales Director roles only
+
+**API Endpoint**:
+- `GET /api/timeboard` - Returns combined man-hours data from Onsite and Workshop calculations
+  - Requires authentication and role-based access control
+  - Returns: SaveId, RunNumber, CreatorEmail, BranchId, BranchName, CreatedAt, JobsCount, TotalManhours
+  - Sorted by CreatedAt DESC
+
+**UI Features**:
+- Calm, professional design with CSS variable theming
+- Table layout with status badges for man-hours completion
+- Responsive design for desktop and mobile
+- Combined view of Onsite and Workshop data
+
+**Implementation**:
+- Frontend: `src/timeboard.html`
+- API: `api/src/routes/timeboard.js`
+- Route registration: `server.js`
+- Landing page integration: `src/index.html` (Time Board card)
+
+---
+
 ## Backoffice User Management
 
 **Theming System**: CSS variables with `--bo-*` prefix for consistent theming
 
 **Tabs**: Executives, Sales, Sales Directors, Managers, Customers, Audit, Sales Quotes Audit, Deletion, Settings, Signatures, Sales Director Signature
+
+**Time Board Access**: Manager, Executive, and Sales Director roles have access to the Time Board feature for viewing man-hours data across all calculations.
 
 **Key Features:**
 - Sales Directors Tab: Role assignment, search, filter, pagination

@@ -1,0 +1,458 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Time Board - Price List Calculator</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>"/>
+  <link rel="stylesheet" href="/css/output.css">
+  <style>
+    :root {
+      --calm-bg: #f8fafc;
+      --calm-surface: #ffffff;
+      --calm-border: #e2e8f0;
+      --calm-text-primary: #1e293b;
+      --calm-text-secondary: #64748b;
+      --calm-text-muted: #94a3b8;
+      --calm-accent: #6366f1;
+      --calm-accent-light: #eef2ff;
+      --calm-success: #10b981;
+      --calm-success-light: #ecfdf5;
+      --calm-warning: #f59e0b;
+      --calm-warning-light: #fffbeb;
+      --calm-error: #ef4444;
+      --calm-error-light: #fef2f2;
+    }
+
+    body {
+      background: var(--calm-bg);
+      min-height: 100vh;
+    }
+
+    .calm-card {
+      background: var(--calm-surface);
+      border: 1px solid var(--calm-border);
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .calm-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .calm-table thead th {
+      text-align: center;
+      padding: 14px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--calm-text-secondary);
+      border-bottom: 2px solid var(--calm-border);
+      background: var(--calm-bg);
+    }
+
+    .calm-table thead th:nth-child(2),
+    .calm-table thead th:nth-child(3) {
+      text-align: left;
+    }
+
+    .calm-table tbody td {
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--calm-text-primary);
+      border-bottom: 1px solid var(--calm-border);
+      text-align: center;
+    }
+
+    .calm-table tbody td:nth-child(2),
+    .calm-table tbody td:nth-child(3) {
+      text-align: left;
+    }
+
+    .calm-table tbody tr:hover {
+      background: var(--calm-accent-light);
+    }
+
+    .calm-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Status badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .status-badge.done {
+      background: var(--calm-success-light);
+      color: var(--calm-success);
+    }
+
+    .status-badge.pending {
+      background: var(--calm-warning-light);
+      color: var(--calm-warning);
+    }
+
+    .status-badge.missing {
+      background: var(--calm-error-light);
+      color: var(--calm-error);
+    }
+
+    .status-badge.neutral {
+      background: var(--calm-bg);
+      color: var(--calm-text-muted);
+    }
+
+    /* Column width - all equal except first column */
+    .col-narrow { width: 60px; }
+    .col-equal { width: 1fr; }
+
+    /* Search input */
+    .calm-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--calm-border);
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--calm-text-primary);
+      background: var(--calm-surface);
+      transition: all 0.2s ease;
+    }
+
+    .calm-input:focus {
+      outline: none;
+      border-color: var(--calm-accent);
+      box-shadow: 0 0 0 3px var(--calm-accent-light);
+    }
+
+    .calm-input::placeholder {
+      color: var(--calm-text-muted);
+    }
+
+    /* Pagination button */
+    .calm-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--calm-border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--calm-text-primary);
+      background: var(--calm-surface);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .calm-btn:hover:not(:disabled) {
+      background: var(--calm-bg);
+      border-color: var(--calm-text-muted);
+    }
+
+    .calm-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Navigation link */
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--calm-text-secondary);
+      background: var(--calm-surface);
+      border: 1px solid var(--calm-border);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--calm-text-primary);
+      border-color: var(--calm-text-muted);
+      background: var(--calm-bg);
+    }
+
+    /* Stats */
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--calm-text-primary);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--calm-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Loading state */
+    .loading-cell {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--calm-text-muted);
+    }
+
+    .loading-cell::after {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--calm-border);
+      border-top-color: var(--calm-accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="p-6">
+  <div class="max-w-[1600px] mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold text-slate-800">Time Board</h1>
+        <p class="text-sm text-slate-500 mt-1">Work progress tracking</p>
+      </div>
+      <a href="/" class="nav-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back to Menu
+      </a>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="calm-card p-4 mb-6">
+      <div class="flex items-center gap-4">
+        <div class="flex-1 max-w-md">
+          <input id="searchInput" type="text" placeholder="Search by SQ or SV..."
+            class="calm-input">
+        </div>
+        <div id="stats" class="flex items-center gap-6">
+          <div>
+            <div class="stat-label">Total</div>
+            <div id="statTotal" class="stat-value">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="calm-card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="calm-table">
+          <thead>
+            <tr>
+              <th class="col-narrow">No.</th>
+              <th class="col-equal">SQ</th>
+              <th class="col-equal">SV</th>
+              <th class="col-equal">Inspection</th>
+              <th class="col-equal">Confirm</th>
+              <th class="col-equal">PR</th>
+              <th class="col-equal">PO</th>
+              <th class="col-equal">FG</th>
+              <th class="col-equal">Estimate</th>
+              <th class="col-equal">Request</th>
+            </tr>
+          </thead>
+          <tbody id="timeboardBody">
+            <tr>
+              <td colspan="10" class="loading-cell">Loading data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200">
+        <span id="paginationInfo" class="text-sm text-slate-500">Showing 0-0 of 0</span>
+        <div class="flex items-center gap-2">
+          <button id="prevPage" class="calm-btn" disabled>← Previous</button>
+          <button id="nextPage" class="calm-btn" disabled>Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ROLE } from './js/core/config.js';
+
+    const state = {
+      data: [],
+      filteredData: [],
+      currentPage: 1,
+      pageSize: 50,
+      searchQuery: ''
+    };
+
+    // Check access (Manager + Executive only)
+    async function checkAccess() {
+      try {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          return true;
+        }
+        const response = await fetch('/api/auth/me');
+        if (!response.ok) {
+          window.location.href = '/';
+          return false;
+        }
+        const userData = await response.json();
+        const userRole = userData.effectiveRole;
+        if (userRole !== ROLE.MANAGER && userRole !== ROLE.EXECUTIVE && userRole !== ROLE.SALES_DIRECTOR) {
+          alert('Access denied. Time Board is only available to Managers, Executives, and Sales Directors.');
+          window.location.href = '/';
+          return false;
+        }
+        return true;
+      } catch (error) {
+        console.error('Access check failed:', error);
+        window.location.href = '/';
+        return false;
+      }
+    }
+
+    // Fetch timeboard data from BC
+    // Data structure: { sq, sv, inspection, confirm, pr, po, fg, estimate, request } - all dates except sq, sv
+    async function fetchData() {
+      try {
+        const response = await fetch('/api/timeboard');
+        if (!response.ok) throw new Error('Failed to fetch data');
+        const data = await response.json();
+        state.data = data;
+        applyFilters();
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // Show empty state for now
+        state.data = [];
+        applyFilters();
+      }
+    }
+
+    // Render date cell
+    function renderDate(dateStr) {
+      if (!dateStr || dateStr === '-' || dateStr === '') {
+        return '<span class="text-slate-300">—</span>';
+      }
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) {
+        return `<span class="text-slate-400">${dateStr}</span>`;
+      }
+      return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
+    }
+
+    // Render date
+    function renderDate(dateStr) {
+      if (!dateStr || dateStr === '-') {
+        return '<span class="date-cell text-slate-400">—</span>';
+      }
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) {
+        return `<span class="date-cell text-slate-400">${dateStr}</span>`;
+      }
+      return `<span class="date-cell">${date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}</span>`;
+    }
+
+    // Apply filters and search (search by SQ or SV)
+    function applyFilters() {
+      let filtered = [...state.data];
+
+      if (state.searchQuery) {
+        const query = state.searchQuery.toLowerCase();
+        filtered = filtered.filter(item =>
+          String(item.sq || '').toLowerCase().includes(query) ||
+          String(item.sv || '').toLowerCase().includes(query)
+        );
+      }
+
+      state.filteredData = filtered;
+      state.currentPage = 1;
+      render();
+    }
+
+    // Render table
+    function render() {
+      const start = (state.currentPage - 1) * state.pageSize;
+      const end = start + state.pageSize;
+      const pageData = state.filteredData.slice(start, end);
+
+      const tbody = document.getElementById('timeboardBody');
+
+      if (pageData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="loading-cell">No records found</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = pageData.map((item, index) => {
+        const rowNumber = start + index + 1;
+        return `
+          <tr>
+            <td class="font-mono text-slate-400">${rowNumber}</td>
+            <td class="font-medium">${item.sq || '-'}</td>
+            <td class="font-medium">${item.sv || '-'}</td>
+            <td>${renderDate(item.inspection)}</td>
+            <td>${renderDate(item.confirm)}</td>
+            <td>${renderDate(item.pr)}</td>
+            <td>${renderDate(item.po)}</td>
+            <td>${renderDate(item.fg)}</td>
+            <td>${renderDate(item.estimate)}</td>
+            <td>${renderDate(item.request)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      // Update stats
+      document.getElementById('statTotal').textContent = state.filteredData.length;
+
+      // Update pagination
+      const totalPages = Math.ceil(state.filteredData.length / state.pageSize);
+      document.getElementById('paginationInfo').textContent =
+        `Showing ${state.filteredData.length > 0 ? start + 1 : 0}-${Math.min(end, state.filteredData.length)} of ${state.filteredData.length}`;
+      document.getElementById('prevPage').disabled = state.currentPage <= 1;
+      document.getElementById('nextPage').disabled = state.currentPage >= totalPages;
+    }
+
+    // Event listeners
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      state.searchQuery = e.target.value;
+      applyFilters();
+    });
+
+    document.getElementById('prevPage').addEventListener('click', () => {
+      if (state.currentPage > 1) {
+        state.currentPage--;
+        render();
+      }
+    });
+
+    document.getElementById('nextPage').addEventListener('click', () => {
+      const totalPages = Math.ceil(state.filteredData.length / state.pageSize);
+      if (state.currentPage < totalPages) {
+        state.currentPage++;
+        render();
+      }
+    });
+
+    // Initialize
+    if (await checkAccess()) {
+      fetchData();
+    }
+  </script>
+</body>
+</html>

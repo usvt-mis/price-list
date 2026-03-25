@@ -114,6 +114,20 @@
 
     <!-- Calculator Selection Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <!-- Time Board Card (Manager/Executive only) -->
+      <a id="timeBoardCard" href="/timeboard.html" class="hidden bg-white rounded-3xl shadow-xl p-8 card-hover">
+        <div class="flex flex-col items-center text-center">
+          <div class="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mb-6">
+            <svg class="w-10 h-10 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-slate-900 mb-3">Time Board</h2>
+          <p class="text-slate-600">View and manage man-hours data across all jobs and calculations.</p>
+          <span class="text-xs text-teal-600 font-medium mt-1">Manager • Executive • Sales Director</span>
+        </div>
+      </a>
+
       <!-- Calculator Card -->
       <button id="calculatorMenuTrigger" type="button" class="block w-full bg-white rounded-3xl shadow-xl p-8 card-hover text-left">
         <div class="flex flex-col items-center text-center">
@@ -191,24 +205,27 @@
     const userEmailDisplay = document.getElementById('userEmailDisplay');
 
     // Roles that can access Calculator and Sales Quotes
-    const ALLOWED_ROLES = ['Sales', 'SalesDirector', 'Executive'];
+    const ALLOWED_ROLES = ['Sales', 'SalesDirector', 'Executive', 'Manager'];
+
+    // Roles that can access Time Board (Manager + Executive + SalesDirector)
+    const TIMEBOARD_ROLES = ['Manager', 'Executive', 'SalesDirector'];
 
     /**
      * Check if current user can access calculators
-     * @returns {Promise<boolean>} True if user has access
+     * @returns {Promise<{hasAccess: boolean, userRole: string|null}>} Access status and user role
      */
     async function checkUserAccess() {
       try {
         // In local development, grant access
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          return true;
+          return { hasAccess: true, userRole: 'Executive' };
         }
 
         // Fetch user info from auth endpoint
         const response = await fetch('/api/auth/me');
         if (!response.ok) {
           // If not authenticated, deny access
-          return false;
+          return { hasAccess: false, userRole: null };
         }
 
         const userData = await response.json();
@@ -220,23 +237,30 @@
         }
 
         // Check if user has one of the allowed roles
-        return ALLOWED_ROLES.includes(userRole);
+        return { hasAccess: ALLOWED_ROLES.includes(userRole), userRole };
 
       } catch (error) {
         console.error('Error checking user access:', error);
         // On error, deny access for safety
-        return false;
+        return { hasAccess: false, userRole: null };
       }
     }
 
     /**
      * Apply role-based access control to the UI
      * @param {boolean} hasAccess - Whether user has access
+     * @param {string|null} userRole - User's role for Time Board check
      */
-    function applyAccessControl(hasAccess) {
+    function applyAccessControl(hasAccess, userRole = null) {
       const calculatorCard = document.getElementById('calculatorMenuTrigger');
       const salesQuotesCard = document.querySelector('a[href="/salesquotes.html"]');
+      const timeBoardCard = document.getElementById('timeBoardCard');
       const backofficeLink = document.querySelector('a[href="/backoffice.html"]');
+
+      // Handle Time Board visibility (Manager + Executive only)
+      if (timeBoardCard && userRole && TIMEBOARD_ROLES.includes(userRole)) {
+        timeBoardCard.classList.remove('hidden');
+      }
 
       if (!hasAccess) {
         // Show awaiting assignment banner
@@ -274,8 +298,8 @@
 
     // Initialize access control on page load
     async function initializeAccessControl() {
-      const hasAccess = await checkUserAccess();
-      applyAccessControl(hasAccess);
+      const { hasAccess, userRole } = await checkUserAccess();
+      applyAccessControl(hasAccess, userRole);
     }
 
     function openCalculatorMenu() {

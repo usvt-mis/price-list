@@ -71,6 +71,7 @@ const workshopLaborRouter = require('./api/src/routes/workshop/labor');
 const businessCentralRouter = require('./api/src/routes/business-central');
 const salesQuotesRouter = require('./api/src/routes/salesquotes');
 const salesQuotesApprovalsRouter = require('./api/src/routes/salesquotes-approvals');
+const timeboardRouter = require('./api/src/routes/timeboard');
 
 // Import authentication middleware
 const { requireAuth } = require('./api/src/middleware/authExpress');
@@ -152,6 +153,10 @@ app.get('/salesquotes.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'salesquotes.html'));
 });
 
+app.get('/timeboard.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'timeboard.html'));
+});
+
 // ============================================================
 // API Routes
 // ============================================================
@@ -226,6 +231,9 @@ app.use('/api/salesquotes', requireAuth, salesQuotesRouter);
 
 // Sales Quote approvals workflow (requires authentication)
 app.use('/api/salesquotes/approvals', requireAuth, salesQuotesApprovalsRouter);
+
+// Time Board (requires authentication - Manager/Executive checked in route)
+app.use('/api/timeboard', requireAuth, timeboardRouter);
 
 // Sales Director signature public endpoint (no auth required)
 const salesdirectorSignaturePublicRouter = require('./api/src/routes/salesdirector-signature-public');
