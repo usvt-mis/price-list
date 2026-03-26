@@ -6,6 +6,20 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-26 - Time Board Date Columns Enhancement
+Enhanced Time Board with creation date columns for better tracking:
+- **New Date Columns**: Added 5 new creation date columns to Time Board table:
+  - SQ Created (Sales Quote creation date)
+  - SV Created (Service creation date)
+  - SH Created (Service Header creation date)
+  - ST Created (Service Type creation date)
+  - Posted ST Created (Posted Service Type creation date)
+- **CSS Updates**: Updated nth-child selectors to accommodate new column positions (3 → 4)
+- **Table Layout**: Updated colspan from 9 to 14 for empty state rows
+- **SQ Grouping Logic**: Added logic to show SQ number only on first row of each SQ group to avoid duplicate displays
+- **Data Structure**: Updated to include new date fields (sqCreated, svCreated, shCreated, stCreated, postedStCreated)
+- **Implementation**: Updated `src/timeboard.html` table header, CSS, and rendering logic
+
 ### 2026-03-26 - Time Board Data Structure Refactoring
 Refactored Time Board data structure property names for improved code readability:
 - **Property Renaming**: Updated data structure properties to more descriptive names:
