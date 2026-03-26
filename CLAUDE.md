@@ -6,6 +6,17 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-26 - Time Board Server-Side Sorting and Offset Control
+Enhanced Time Board with server-side sorting and configurable offset for better data management:
+- **Sort Toggle**: Added DESC/ASC sort toggle buttons for controlling sort direction
+- **Server-Side Sorting**: Moved sorting logic from client-side to server-side via `orderBy` parameter
+- **Offset Control**: Added configurable offset input (default: 50) for API data retrieval
+- **Status Badge Update**: Changed "On-Hold" status badge styling from amber to slate for better visual hierarchy
+- **State Management**: Added `sortDirection` and `offset` to application state
+- **Event Listeners**: Added handlers for offset input change and sort toggle buttons
+- **API Enhancement**: Updated timeboard endpoint to accept `orderBy` query parameter
+- **Implementation**: Updated `api/src/routes/business-central/gateway.js`, `src/timeboard.html`
+
 ### 2026-03-26 - Time Board Sorting Enhancement
 Enhanced Time Board with date-based sorting for better data organization:
 - **SV Created Sorting**: Added automatic sorting by SV Created date (newest first)

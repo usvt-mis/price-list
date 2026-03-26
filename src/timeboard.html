@@ -117,8 +117,8 @@
     }
 
     .status-badge.on-hold {
-      background: #fef3c7;
-      color: #d97706;
+      background: #f1f5f9;
+      color: #64748b;
     }
 
     .status-badge.finish {
@@ -323,6 +323,11 @@
           <input id="searchInput" type="text" placeholder="Search by SQ or SV..."
             class="calm-input">
         </div>
+        <div class="flex items-center gap-2">
+          <label for="offsetInput" class="text-sm text-slate-500">Offset:</label>
+          <input id="offsetInput" type="number" min="0" value="50"
+            class="calm-input w-24">
+        </div>
         <div class="branch-filter">
           <button class="branch-btn active" data-branch="ALL">ALL</button>
           <button class="branch-btn" data-branch="URY">URY</button>
@@ -331,6 +336,13 @@
           <button class="branch-btn" data-branch="UPB">UPB</button>
           <button class="branch-btn" data-branch="UKK">UKK</button>
           <button class="branch-btn" data-branch="USR">USR</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-slate-500">Sort:</span>
+          <div class="branch-filter">
+            <button class="branch-btn sort-toggle-btn active" data-sort="DESC">▼ DESC</button>
+            <button class="branch-btn sort-toggle-btn" data-sort="ASC">▲ ASC</button>
+          </div>
         </div>
         <div id="stats" class="flex items-center gap-6">
           <div>
@@ -391,7 +403,9 @@
       currentPage: 1,
       pageSize: 50,
       searchQuery: '',
-      selectedBranch: 'ALL'
+      selectedBranch: 'ALL',
+      sortDirection: 'DESC',
+      offset: 50
     };
 
     // Show loading modal
@@ -441,7 +455,8 @@
       try {
         // Build query parameters
         const params = new URLSearchParams();
-        params.append('offset', state.pageSize);
+        params.append('offset', state.offset);
+        params.append('orderBy', state.sortDirection);
 
         // Only send branch parameter if specific branch selected (not ALL)
         if (state.selectedBranch !== 'ALL') {
@@ -524,12 +539,7 @@
         );
       }
 
-      // Sort by SV Created date (newest first)
-      filtered.sort((a, b) => {
-        const dateA = a.svCreated ? new Date(a.svCreated).getTime() : 0;
-        const dateB = b.svCreated ? new Date(b.svCreated).getTime() : 0;
-        return dateB - dateA; // Descending order
-      });
+      // Note: Sorting is now handled server-side via orderBy parameter
 
       state.filteredData = filtered;
       state.currentPage = 1;
@@ -599,13 +609,33 @@
       applyFilters();
     });
 
+    // Offset input - refetch when changed
+    document.getElementById('offsetInput').addEventListener('change', async (e) => {
+      const value = parseInt(e.target.value);
+      if (!isNaN(value) && value >= 0) {
+        state.offset = value;
+        await refetchForBranch();
+      }
+    });
+
     // Branch filter buttons
     document.querySelectorAll('.branch-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('sort-toggle-btn')) return; // Skip sort toggle buttons
         document.querySelectorAll('.branch-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
         state.selectedBranch = e.target.dataset.branch;
         await refetchForBranch(); // Server-side filtering via API
+      });
+    });
+
+    // Sort toggle buttons
+    document.querySelectorAll('.sort-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        document.querySelectorAll('.sort-toggle-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        state.sortDirection = e.target.dataset.sort;
+        await refetchForBranch();
       });
     });
 

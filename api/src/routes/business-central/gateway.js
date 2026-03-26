@@ -360,7 +360,8 @@ router.get('/timeboard', (req, res, next) => {
     method: 'GET',
     queryParams: {
       branch: req.query.branch,
-      offset: req.query.offset
+      offset: req.query.offset,
+      orderBy: req.query.orderBy
     }
   });
 });
