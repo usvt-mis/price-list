@@ -6,6 +6,13 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-26 - Time Board Data Handling Fix
+Fixed Time Board data handling to properly extract table rows from API response:
+- **Data Extraction**: Changed `state.data = data` to `state.data = data.tableRows || []`
+- **API Response Structure**: BC Gateway API returns `{ tableRows: [...] }` structure
+- **Fallback Handling**: Added fallback to empty array for robust error handling
+- **Implementation**: Updated `src/timeboard.html` data fetching logic
+
 ### 2026-03-26 - Time Board Branch Filtering
 Enhanced Time Board with server-side branch filtering and improved landing page access control:
 - **Branch Filter**: Added branch filter buttons (ALL, URY, UCB, USB, UPB, UKK, USR) to Time Board
