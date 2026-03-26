@@ -6,6 +6,12 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-26 - Documentation Update
+Updated project documentation for consistency and maintenance:
+- **CLAUDE.md**: Updated changelog with latest documentation entry
+- **Documentation Sync**: Ensured all documentation files reflect current project state
+- **Maintenance**: General documentation cleanup and organization
+
 ### 2026-03-25 - Time Board Feature
 Added Time Board for viewing and managing man-hours data across all jobs and calculations:
 - **New Page**: `/timeboard.html` with calm, professional UI design
