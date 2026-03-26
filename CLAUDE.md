@@ -6,6 +6,19 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-26 - Time Board Data Structure Refactoring
+Refactored Time Board data structure property names for improved code readability:
+- **Property Renaming**: Updated data structure properties to more descriptive names:
+  - `sq` → `sqNumber` (Sales Quote number)
+  - `sv` → `svNumber` (Service number)
+  - `sh` → `shNumber` (Service Header number)
+  - `st` → `stNumber` (Service Type number)
+  - `postedSt` → `postedStNumber` (Posted Service Type number)
+- **Comment Update**: Updated inline documentation to reflect new data structure
+- **Filtering Logic**: Updated search filtering to use new property names
+- **Table Rendering**: Updated table row rendering to use new property names
+- **Implementation**: Updated `src/timeboard.html` data handling and rendering logic
+
 ### 2026-03-26 - Time Board Loading Modal Enhancement
 Enhanced Time Board with professional loading modal for better user experience:
 - **Loading Modal**: Added full-screen modal with backdrop blur (8px) and centered spinner

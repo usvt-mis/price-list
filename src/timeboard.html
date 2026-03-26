@@ -415,7 +415,7 @@
     }
 
     // Fetch timeboard data from BC Gateway
-    // Data structure: { sq, sv, status, percent, sh, st, postedSt, expectedDate }
+    // Data structure: { sqNumber, svNumber, status, percent, shNumber, stNumber, postedStNumber, expectedDate }
     async function fetchData() {
       showLoading('Loading timeboard data...');
       try {
@@ -487,8 +487,8 @@
       if (state.searchQuery) {
         const query = state.searchQuery.toLowerCase();
         filtered = filtered.filter(item =>
-          String(item.sq || '').toLowerCase().includes(query) ||
-          String(item.sv || '').toLowerCase().includes(query)
+          String(item.sqNumber || '').toLowerCase().includes(query) ||
+          String(item.svNumber || '').toLowerCase().includes(query)
         );
       }
 
@@ -522,13 +522,13 @@
         return `
           <tr>
             <td class="font-mono text-slate-400">${rowNumber}</td>
-            <td class="font-medium">${item.sq || '-'}</td>
-            <td class="font-medium">${item.sv || '-'}</td>
+            <td class="font-medium">${item.sqNumber || '-'}</td>
+            <td class="font-medium">${item.svNumber || '-'}</td>
             <td>${renderStatus(item.status)}</td>
             <td>${item.percent ?? '-'}</td>
-            <td>${item.sh || '-'}</td>
-            <td>${item.st || '-'}</td>
-            <td>${item.postedSt || '-'}</td>
+            <td>${item.shNumber || '-'}</td>
+            <td>${item.stNumber || '-'}</td>
+            <td>${item.postedStNumber || '-'}</td>
             <td>${renderExpectedDate(item.expectedDate)}</td>
           </tr>
         `;
