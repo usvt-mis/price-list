@@ -6,6 +6,19 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-26 - Time Board Loading Modal Enhancement
+Enhanced Time Board with professional loading modal for better user experience:
+- **Loading Modal**: Added full-screen modal with backdrop blur (8px) and centered spinner
+- **Modal Styling**: Gradient background (white to slate-50), rounded corners (16px), enhanced shadow
+- **Spinner Animation**: 40px spinner with 3px border, 0.8s linear infinite animation
+- **Loading States**: Contextual messages for different operations:
+  - "Loading timeboard data..." for initial data fetch
+  - "Filtering by branch..." for branch filter changes
+  - "Initializing Time Board..." for page initialization
+- **Functions**: Added `showLoading(message)` and `hideLoading()` helper functions
+- **Empty State**: Updated styling with centered text and slate-400 color
+- **Implementation**: Updated `src/timeboard.html` with new modal HTML, CSS, and JavaScript
+
 ### 2026-03-26 - Time Board Column Structure Refactor
 Refactored Time Board table columns to display new data structure from BC Gateway API:
 - **Column Changes**: Reduced from 11 to 9 columns

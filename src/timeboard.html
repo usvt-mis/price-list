@@ -197,24 +197,49 @@
       letter-spacing: 0.05em;
     }
 
-    /* Loading state */
-    .loading-cell {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--calm-text-muted);
+    /* Loading Modal */
+    .loading-modal {
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .loading-cell::after {
-      content: '';
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--calm-border);
+    .loading-modal.hidden {
+      display: none;
+    }
+
+    .loading-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(30, 41, 59, 0.3);
+      backdrop-filter: blur(8px);
+    }
+
+    .loading-content {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 32px 40px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.96) 100%);
+      box-shadow: 0 24px 54px rgba(0, 0, 0, 0.12);
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--calm-border);
       border-top-color: var(--calm-accent);
       border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-left: 10px;
-      vertical-align: middle;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loading-message {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--calm-text-secondary);
     }
 
     @keyframes spin {
@@ -267,6 +292,15 @@
       </a>
     </div>
 
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="loading-modal fixed inset-0 hidden z-50">
+      <div class="loading-backdrop"></div>
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <p class="loading-message">Loading data...</p>
+      </div>
+    </div>
+
     <!-- Filters Bar -->
     <div class="calm-card p-4 mb-6">
       <div class="flex items-center gap-6">
@@ -311,7 +345,7 @@
           </thead>
           <tbody id="timeboardBody">
             <tr>
-              <td colspan="9" class="loading-cell">Loading data...</td>
+              <td colspan="9" class="text-center py-16 text-slate-400">No data available</td>
             </tr>
           </tbody>
         </table>
@@ -339,6 +373,20 @@
       searchQuery: '',
       selectedBranch: 'ALL'
     };
+
+    // Show loading modal
+    function showLoading(message = 'Loading data...') {
+      const modal = document.getElementById('loadingModal');
+      const messageEl = modal.querySelector('.loading-message');
+      messageEl.textContent = message;
+      modal.classList.remove('hidden');
+    }
+
+    // Hide loading modal
+    function hideLoading() {
+      const modal = document.getElementById('loadingModal');
+      modal.classList.add('hidden');
+    }
 
     // Check access (Manager + Executive only)
     async function checkAccess() {
@@ -369,6 +417,7 @@
     // Fetch timeboard data from BC Gateway
     // Data structure: { sq, sv, status, percent, sh, st, postedSt, expectedDate }
     async function fetchData() {
+      showLoading('Loading timeboard data...');
       try {
         // Build query parameters
         const params = new URLSearchParams();
@@ -389,6 +438,8 @@
         // Show empty state for now
         state.data = [];
         applyFilters();
+      } finally {
+        hideLoading();
       }
     }
 
@@ -448,7 +499,9 @@
 
     // Refetch data when branch filter changes (server-side filtering)
     async function refetchForBranch() {
+      showLoading('Filtering by branch...');
       await fetchData();
+      // hideLoading() called in fetchData's finally block
     }
 
     // Render table
@@ -460,7 +513,7 @@
       const tbody = document.getElementById('timeboardBody');
 
       if (pageData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="loading-cell">No records found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-16 text-slate-400">No records found</td></tr>`;
         return;
       }
 
@@ -525,6 +578,7 @@
 
     // Initialize
     if (await checkAccess()) {
+      showLoading('Initializing Time Board...');
       fetchData();
     }
   </script>
