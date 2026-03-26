@@ -220,6 +220,35 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    /* Branch filter */
+    .branch-filter {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .branch-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--calm-border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--calm-text-secondary);
+      background: var(--calm-surface);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .branch-btn:hover {
+      background: var(--calm-bg);
+    }
+
+    .branch-btn.active {
+      background: var(--calm-accent);
+      color: white;
+      border-color: var(--calm-accent);
+    }
   </style>
 </head>
 <body class="p-6">
@@ -240,10 +269,19 @@
 
     <!-- Filters Bar -->
     <div class="calm-card p-4 mb-6">
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-6">
         <div class="flex-1 max-w-md">
           <input id="searchInput" type="text" placeholder="Search by SQ or SV..."
             class="calm-input">
+        </div>
+        <div class="branch-filter">
+          <button class="branch-btn active" data-branch="ALL">ALL</button>
+          <button class="branch-btn" data-branch="URY">URY</button>
+          <button class="branch-btn" data-branch="UCB">UCB</button>
+          <button class="branch-btn" data-branch="USB">USB</button>
+          <button class="branch-btn" data-branch="UPB">UPB</button>
+          <button class="branch-btn" data-branch="UKK">UKK</button>
+          <button class="branch-btn" data-branch="USR">USR</button>
         </div>
         <div id="stats" class="flex items-center gap-6">
           <div>
@@ -268,13 +306,14 @@
               <th class="col-equal">PR</th>
               <th class="col-equal">PO</th>
               <th class="col-equal">FG</th>
+              <th class="col-equal">ST</th>
               <th class="col-equal">Estimate</th>
               <th class="col-equal">Request</th>
             </tr>
           </thead>
           <tbody id="timeboardBody">
             <tr>
-              <td colspan="10" class="loading-cell">Loading data...</td>
+              <td colspan="11" class="loading-cell">Loading data...</td>
             </tr>
           </tbody>
         </table>
@@ -299,7 +338,8 @@
       filteredData: [],
       currentPage: 1,
       pageSize: 50,
-      searchQuery: ''
+      searchQuery: '',
+      selectedBranch: 'ALL'
     };
 
     // Check access (Manager + Executive only)
@@ -328,11 +368,20 @@
       }
     }
 
-    // Fetch timeboard data from BC
-    // Data structure: { sq, sv, inspection, confirm, pr, po, fg, estimate, request } - all dates except sq, sv
+    // Fetch timeboard data from BC Gateway
+    // Data structure: { sq, sv, branch, inspection, confirm, pr, po, fg, st, estimate, request } - all dates except sq, sv, branch
     async function fetchData() {
       try {
-        const response = await fetch('/api/timeboard');
+        // Build query parameters
+        const params = new URLSearchParams();
+        params.append('offset', state.pageSize);
+
+        // Only send branch parameter if specific branch selected (not ALL)
+        if (state.selectedBranch !== 'ALL') {
+          params.append('branch', state.selectedBranch);
+        }
+
+        const response = await fetch(`/api/business-central/gateway/timeboard?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch data');
         const data = await response.json();
         state.data = data;
@@ -357,22 +406,12 @@
       return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
     }
 
-    // Render date
-    function renderDate(dateStr) {
-      if (!dateStr || dateStr === '-') {
-        return '<span class="date-cell text-slate-400">—</span>';
-      }
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) {
-        return `<span class="date-cell text-slate-400">${dateStr}</span>`;
-      }
-      return `<span class="date-cell">${date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}</span>`;
-    }
-
-    // Apply filters and search (search by SQ or SV)
+    // Apply filters and search (search by SQ or SV, filter by branch)
+    // Note: Branch filtering is now done server-side, search is still client-side
     function applyFilters() {
       let filtered = [...state.data];
 
+      // Search filter (client-side only)
       if (state.searchQuery) {
         const query = state.searchQuery.toLowerCase();
         filtered = filtered.filter(item =>
@@ -386,6 +425,11 @@
       render();
     }
 
+    // Refetch data when branch filter changes (server-side filtering)
+    async function refetchForBranch() {
+      await fetchData();
+    }
+
     // Render table
     function render() {
       const start = (state.currentPage - 1) * state.pageSize;
@@ -395,7 +439,7 @@
       const tbody = document.getElementById('timeboardBody');
 
       if (pageData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="loading-cell">No records found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" class="loading-cell">No records found</td></tr>`;
         return;
       }
 
@@ -411,6 +455,7 @@
             <td>${renderDate(item.pr)}</td>
             <td>${renderDate(item.po)}</td>
             <td>${renderDate(item.fg)}</td>
+            <td>${renderDate(item.st)}</td>
             <td>${renderDate(item.estimate)}</td>
             <td>${renderDate(item.request)}</td>
           </tr>
@@ -432,6 +477,16 @@
     document.getElementById('searchInput').addEventListener('input', (e) => {
       state.searchQuery = e.target.value;
       applyFilters();
+    });
+
+    // Branch filter buttons
+    document.querySelectorAll('.branch-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        document.querySelectorAll('.branch-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        state.selectedBranch = e.target.dataset.branch;
+        await refetchForBranch(); // Server-side filtering via API
+      });
     });
 
     document.getElementById('prevPage').addEventListener('click', () => {

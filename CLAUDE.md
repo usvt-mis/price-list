@@ -6,6 +6,15 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-26 - Time Board Branch Filtering
+Enhanced Time Board with server-side branch filtering and improved landing page access control:
+- **Branch Filter**: Added branch filter buttons (ALL, URY, UCB, USB, UPB, UKK, USR) to Time Board
+- **Server-Side Filtering**: Branch filtering now handled via BC Gateway API endpoint
+- **New Column**: Added "ST" column to Time Board table
+- **BC Gateway Route**: Added `GET /api/business-central/gateway/timeboard` endpoint
+- **Access Control Refactor**: Landing page now hides cards instead of disabling them when user lacks access
+- **Implementation**: Updated `api/src/routes/business-central/gateway.js`, `src/timeboard.html`, `src/index.html`
+
 ### 2026-03-26 - Documentation Update
 Updated project documentation for consistency and maintenance:
 - **CLAUDE.md**: Updated changelog with latest documentation entry

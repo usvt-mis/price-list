@@ -255,44 +255,28 @@
       const calculatorCard = document.getElementById('calculatorMenuTrigger');
       const salesQuotesCard = document.querySelector('a[href="/salesquotes.html"]');
       const timeBoardCard = document.getElementById('timeBoardCard');
-      const backofficeLink = document.querySelector('a[href="/backoffice.html"]');
 
-      // Handle Time Board visibility (Manager + Executive only)
-      if (timeBoardCard && userRole && TIMEBOARD_ROLES.includes(userRole)) {
-        timeBoardCard.classList.remove('hidden');
+      // Time Board: Only show to Manager, Executive, SalesDirector
+      if (timeBoardCard) {
+        if (userRole && TIMEBOARD_ROLES.includes(userRole)) {
+          timeBoardCard.classList.remove('hidden');
+        } else {
+          timeBoardCard.classList.add('hidden');
+        }
       }
 
-      if (!hasAccess) {
-        // Show awaiting assignment banner
-        awaitingAssignmentBanner.classList.remove('hidden');
-
-        // Disable calculator and sales quotes cards
-        if (calculatorCard) {
-          calculatorCard.classList.add('access-denied-card');
-          calculatorMenuTrigger?.removeEventListener('click', openCalculatorMenu);
-        }
-        if (salesQuotesCard) {
-          salesQuotesCard.classList.add('access-denied-card');
-          salesQuotesCard.removeAttribute('href');
-          salesQuotesCard.style.cursor = 'not-allowed';
-        }
-
-        // Keep backoffice link accessible for administrators
-        if (backofficeLink) {
-          // No changes - backoffice remains accessible
-        }
-      } else {
-        // User has access - ensure everything is enabled
+      // Calculator & Sales Quotes: Hide if no access
+      if (hasAccess) {
+        // Show cards
+        if (calculatorCard) calculatorCard.classList.remove('hidden');
+        if (salesQuotesCard) salesQuotesCard.classList.remove('hidden');
         awaitingAssignmentBanner.classList.add('hidden');
-
-        if (calculatorCard) {
-          calculatorCard.classList.remove('access-denied-card');
-        }
-        if (salesQuotesCard) {
-          salesQuotesCard.classList.remove('access-denied-card');
-          salesQuotesCard.href = '/salesquotes.html';
-          salesQuotesCard.style.cursor = '';
-        }
+      } else {
+        // Hide cards
+        if (calculatorCard) calculatorCard.classList.add('hidden');
+        if (salesQuotesCard) salesQuotesCard.classList.add('hidden');
+        // Show banner only if user has no access at all
+        awaitingAssignmentBanner.classList.remove('hidden');
       }
     }
 

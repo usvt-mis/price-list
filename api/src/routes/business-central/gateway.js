@@ -73,6 +73,11 @@ const GATEWAY_ENDPOINTS = {
     pathEnv: 'PSQ_PATH',
     keyEnv: 'PSQ_KEY',
     method: 'POST'
+  },
+  getTimeBoard: {
+    defaultPath: 'GetTimeBoard',
+    keyEnv: 'GTB_KEY',
+    method: 'GET'
   }
 };
 
@@ -348,6 +353,16 @@ router.post('/update-sales-quote', (req, res, next) => {
 
 router.post('/patch-sales-quote', (req, res, next) => {
   proxyGatewayRequest(req, res, next, 'patchSalesQuote', 'PatchSalesQuote');
+});
+
+router.get('/timeboard', (req, res, next) => {
+  proxyGatewayRequest(req, res, next, 'getTimeBoard', 'GetTimeBoard', {
+    method: 'GET',
+    queryParams: {
+      branch: req.query.branch,
+      offset: req.query.offset
+    }
+  });
 });
 
 module.exports = router;
