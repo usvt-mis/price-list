@@ -507,6 +507,14 @@
     function applyFilters() {
       let filtered = [...state.data];
 
+      // Filter out records without SQ
+      filtered = filtered.filter(item => item.sqNumber && item.sqNumber.trim() !== '');
+
+      // Filter out Finished status
+      filtered = filtered.filter(item =>
+        !item.status || item.status.toLowerCase() !== 'finished'
+      );
+
       // Search filter (client-side only)
       if (state.searchQuery) {
         const query = state.searchQuery.toLowerCase();

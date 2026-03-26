@@ -6,6 +6,13 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-26 - Time Board Filtering Enhancement
+Enhanced Time Board with improved data filtering for cleaner display:
+- **SQ Number Filter**: Added filter to exclude records without Sales Quote numbers
+- **Status Filter**: Added filter to exclude records with "Finished" status
+- **Filter Logic**: Applied in `applyFilters()` function before search filtering
+- **Implementation**: Updated `src/timeboard.html` filtering logic
+
 ### 2026-03-26 - Time Board Date Columns Enhancement
 Enhanced Time Board with creation date columns for better tracking:
 - **New Date Columns**: Added 5 new creation date columns to Time Board table:
