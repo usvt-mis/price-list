@@ -301,19 +301,17 @@
               <th class="col-narrow">No.</th>
               <th class="col-equal">SQ</th>
               <th class="col-equal">SV</th>
-              <th class="col-equal">Inspection</th>
-              <th class="col-equal">Confirm</th>
-              <th class="col-equal">PR</th>
-              <th class="col-equal">PO</th>
-              <th class="col-equal">FG</th>
+              <th class="col-equal">Status</th>
+              <th class="col-equal">Percent</th>
+              <th class="col-equal">SH</th>
               <th class="col-equal">ST</th>
-              <th class="col-equal">Estimate</th>
-              <th class="col-equal">Request</th>
+              <th class="col-equal">Posted ST</th>
+              <th class="col-equal">Expected Date</th>
             </tr>
           </thead>
           <tbody id="timeboardBody">
             <tr>
-              <td colspan="11" class="loading-cell">Loading data...</td>
+              <td colspan="9" class="loading-cell">Loading data...</td>
             </tr>
           </tbody>
         </table>
@@ -369,7 +367,7 @@
     }
 
     // Fetch timeboard data from BC Gateway
-    // Data structure: { sq, sv, branch, inspection, confirm, pr, po, fg, st, estimate, request } - all dates except sq, sv, branch
+    // Data structure: { sq, sv, status, percent, sh, st, postedSt, expectedDate }
     async function fetchData() {
       try {
         // Build query parameters
@@ -406,6 +404,29 @@
       return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
     }
 
+    // Render status badge
+    function renderStatus(status) {
+      if (!status) return '<span class="text-slate-300">—</span>';
+      const statusLower = status.toLowerCase();
+      let badgeClass = 'neutral';
+      if (statusLower === 'done' || statusLower === 'completed' || statusLower === 'approved') {
+        badgeClass = 'done';
+      } else if (statusLower === 'pending' || statusLower === 'in progress') {
+        badgeClass = 'pending';
+      } else if (statusLower === 'missing' || statusLower === 'error' || statusLower === 'cancelled') {
+        badgeClass = 'missing';
+      }
+      return `<span class="status-badge ${badgeClass}">${status}</span>`;
+    }
+
+    // Render expected date
+    function renderExpectedDate(dateStr) {
+      if (!dateStr || dateStr === '' || dateStr === '0001-01-01') {
+        return '<span class="text-slate-300">—</span>';
+      }
+      return renderDate(dateStr);
+    }
+
     // Apply filters and search (search by SQ or SV, filter by branch)
     // Note: Branch filtering is now done server-side, search is still client-side
     function applyFilters() {
@@ -439,7 +460,7 @@
       const tbody = document.getElementById('timeboardBody');
 
       if (pageData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="loading-cell">No records found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="loading-cell">No records found</td></tr>`;
         return;
       }
 
@@ -450,14 +471,12 @@
             <td class="font-mono text-slate-400">${rowNumber}</td>
             <td class="font-medium">${item.sq || '-'}</td>
             <td class="font-medium">${item.sv || '-'}</td>
-            <td>${renderDate(item.inspection)}</td>
-            <td>${renderDate(item.confirm)}</td>
-            <td>${renderDate(item.pr)}</td>
-            <td>${renderDate(item.po)}</td>
-            <td>${renderDate(item.fg)}</td>
-            <td>${renderDate(item.st)}</td>
-            <td>${renderDate(item.estimate)}</td>
-            <td>${renderDate(item.request)}</td>
+            <td>${renderStatus(item.status)}</td>
+            <td>${item.percent ?? '-'}</td>
+            <td>${item.sh || '-'}</td>
+            <td>${item.st || '-'}</td>
+            <td>${item.postedSt || '-'}</td>
+            <td>${renderExpectedDate(item.expectedDate)}</td>
           </tr>
         `;
       }).join('');

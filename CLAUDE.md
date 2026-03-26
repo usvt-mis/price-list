@@ -6,6 +6,16 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-26 - Time Board Column Structure Refactor
+Refactored Time Board table columns to display new data structure from BC Gateway API:
+- **Column Changes**: Reduced from 11 to 9 columns
+  - Removed: Inspection, Confirm, PR, PO, FG, Estimate, Request
+  - Added: Status, Percent, SH, Posted ST, Expected Date
+- **Status Rendering**: Added `renderStatus()` function with color-coded badges (done/pending/missing)
+- **Expected Date Rendering**: Added `renderExpectedDate()` function with fallback handling for empty/invalid dates
+- **Data Structure**: Updated to use new API response fields (status, percent, sh, st, postedSt, expectedDate)
+- **Implementation**: Updated `src/timeboard.html` table header, data rendering, and helper functions
+
 ### 2026-03-26 - Time Board Data Handling Fix
 Fixed Time Board data handling to properly extract table rows from API response:
 - **Data Extraction**: Changed `state.data = data` to `state.data = data.tableRows || []`
@@ -429,20 +439,24 @@ sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
 **Access Control**: Manager, Executive, and Sales Director roles only
 
 **API Endpoint**:
-- `GET /api/timeboard` - Returns combined man-hours data from Onsite and Workshop calculations
+- `GET /api/business-central/gateway/timeboard` - Returns timeboard data from BC Gateway API
   - Requires authentication and role-based access control
-  - Returns: SaveId, RunNumber, CreatorEmail, BranchId, BranchName, CreatedAt, JobsCount, TotalManhours
+  - Returns: sq, sv, status, percent, sh, st, postedSt, expectedDate
+  - Server-side branch filtering via query parameter
   - Sorted by CreatedAt DESC
 
 **UI Features**:
 - Calm, professional design with CSS variable theming
-- Table layout with status badges for man-hours completion
+- Table layout with 9 columns: No., SQ, SV, Status, Percent, SH, ST, Posted ST, Expected Date
+- Status badges with color coding (done/pending/missing)
+- Expected date rendering with fallback for empty/invalid dates
+- Branch filter buttons (ALL, URY, UCB, USB, UPB, UKK, USR)
+- Search functionality by SQ or SV number
 - Responsive design for desktop and mobile
-- Combined view of Onsite and Workshop data
 
 **Implementation**:
 - Frontend: `src/timeboard.html`
-- API: `api/src/routes/timeboard.js`
+- API: `api/src/routes/business-central/gateway.js` (timeboard endpoint)
 - Route registration: `server.js`
 - Landing page integration: `src/index.html` (Time Board card)
 
