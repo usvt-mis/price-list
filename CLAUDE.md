@@ -6,6 +6,13 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-26 - Time Board Sorting Enhancement
+Enhanced Time Board with date-based sorting for better data organization:
+- **SV Created Sorting**: Added automatic sorting by SV Created date (newest first)
+- **Sort Logic**: Applied in `applyFilters()` function after filtering
+- **Descending Order**: Records with newer SV Created dates appear first
+- **Implementation**: Updated `src/timeboard.html` with sort function
+
 ### 2026-03-26 - Time Board Filtering Enhancement
 Enhanced Time Board with improved data filtering for cleaner display:
 - **SQ Number Filter**: Added filter to exclude records without Sales Quote numbers

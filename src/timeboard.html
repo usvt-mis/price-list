@@ -524,6 +524,13 @@
         );
       }
 
+      // Sort by SV Created date (newest first)
+      filtered.sort((a, b) => {
+        const dateA = a.svCreated ? new Date(a.svCreated).getTime() : 0;
+        const dateB = b.svCreated ? new Date(b.svCreated).getTime() : 0;
+        return dateB - dateA; // Descending order
+      });
+
       state.filteredData = filtered;
       state.currentPage = 1;
       render();
