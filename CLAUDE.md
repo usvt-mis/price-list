@@ -6,6 +6,12 @@ Guidance for Codex (Codex.ai/code) when working with this repository.
 
 ## Changelog
 
+### 2026-03-26 - Documentation Maintenance
+Updated project documentation for consistency and maintenance:
+- **CLAUDE.md**: Updated changelog with latest documentation entry
+- **Documentation Sync**: Ensured all documentation files reflect current project state
+- **Maintenance**: General documentation cleanup and organization
+
 ### 2026-03-26 - Time Board Server-Side Sorting and Offset Control
 Enhanced Time Board with server-side sorting and configurable offset for better data management:
 - **Sort Toggle**: Added DESC/ASC sort toggle buttons for controlling sort direction
