@@ -231,28 +231,11 @@ async function toggleQuoteTimeline(quoteNumber) {
   }
 }
 
-/**
- * Fetch approval status for a quote
- */
-async function fetchApprovalStatus(quoteNumber) {
-  try {
-    const response = await fetch(`/api/salesquotes/approvals/${quoteNumber}`);
-    if (response.ok) {
-      const data = await response.json();
-      return data.approval || null;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function getApprovalStatusBadge(approval) {
-  if (!approval) {
+function getApprovalStatusBadge(status) {
+  if (!status) {
     return '<span class="text-xs text-slate-400">No status</span>';
   }
 
-  const status = approval.approvalStatus || 'Draft';
   const label = STATUS_LABELS[status] || status;
   const badgeClass = STATUS_BADGE_CLASSES[status] || 'sq-status-badge-draft';
 
@@ -332,15 +315,7 @@ async function renderRecords(records) {
     return;
   }
 
-  // Fetch approval status for all records
-  const recordsWithStatus = await Promise.all(
-    records.map(async (record) => {
-      const approval = await fetchApprovalStatus(record.salesQuoteNumber);
-      return { ...record, approval };
-    })
-  );
-
-  container.innerHTML = recordsWithStatus.map((record) => {
+  container.innerHTML = records.map((record) => {
     const description = record.workDescription
       ? `<div class="max-w-xl whitespace-pre-wrap break-words text-sm text-slate-700">${escapeHtml(record.workDescription)}</div>`
       : '<span class="text-sm text-slate-400">No work description</span>';
@@ -362,7 +337,7 @@ async function renderRecords(records) {
           </button>
         </td>
         <td class="px-4 py-3">${description}</td>
-        <td class="px-4 py-3">${getApprovalStatusBadge(record.approval)}</td>
+        <td class="px-4 py-3">${getApprovalStatusBadge(record.approvalStatus)}</td>
         <td class="px-4 py-3 whitespace-nowrap text-slate-600">${escapeHtml(formatSubmittedAt(record.submittedAt))}</td>
         <td class="px-4 py-3 whitespace-nowrap">
           <button

@@ -12,103 +12,117 @@ const { logSalesQuoteAuditEvent } = require('../utils/salesQuoteAuditLog');
 
 const VALID_STATUSES = ['Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled', 'BeingRevised'];
 const PENDING_REVISION_THRESHOLD_MS = 1000;
+let ensureApprovalTablePromise = null;
 
 /**
  * Ensure SalesQuoteApprovals table exists
  */
 async function ensureApprovalTable(pool) {
+  if (ensureApprovalTablePromise) {
+    return ensureApprovalTablePromise;
+  }
+
+  ensureApprovalTablePromise = (async () => {
   const statusConstraintSql = VALID_STATUSES.map((status) => `'${status}'`).join(', ');
 
-  await pool.request().query(`
-    IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SalesQuoteApprovals]') AND type in (N'U'))
-    BEGIN
-      CREATE TABLE SalesQuoteApprovals (
-        Id INT IDENTITY(1,1) PRIMARY KEY,
-        SalesQuoteNumber NVARCHAR(50) NOT NULL,
-        SalespersonEmail NVARCHAR(255) NOT NULL,
-        ApprovalOwnerEmail NVARCHAR(255) NULL,
-        SalespersonCode NVARCHAR(50) NOT NULL,
-        SalespersonName NVARCHAR(255) NULL,
-        CustomerName NVARCHAR(255) NULL,
-        WorkDescription NVARCHAR(MAX) NULL,
-        TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
-        ApprovalStatus NVARCHAR(50) NOT NULL DEFAULT 'Draft',
-        SubmittedForApprovalAt DATETIME2 NULL,
-        SalesDirectorEmail NVARCHAR(255) NULL,
-        SalesDirectorActionAt DATETIME2 NULL,
-        ActionComment NVARCHAR(MAX) NULL,
-        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-        UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-        CONSTRAINT UQ_SalesQuoteApprovals_QuoteNumber UNIQUE (SalesQuoteNumber),
-        CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
-          ApprovalStatus IN (${statusConstraintSql})
-        )
-      );
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SalesQuoteApprovals]') AND type in (N'U'))
+      BEGIN
+        CREATE TABLE SalesQuoteApprovals (
+          Id INT IDENTITY(1,1) PRIMARY KEY,
+          SalesQuoteNumber NVARCHAR(50) NOT NULL,
+          SalespersonEmail NVARCHAR(255) NOT NULL,
+          ApprovalOwnerEmail NVARCHAR(255) NULL,
+          SalespersonCode NVARCHAR(50) NOT NULL,
+          SalespersonName NVARCHAR(255) NULL,
+          CustomerName NVARCHAR(255) NULL,
+          WorkDescription NVARCHAR(MAX) NULL,
+          TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
+          ApprovalStatus NVARCHAR(50) NOT NULL DEFAULT 'Draft',
+          SubmittedForApprovalAt DATETIME2 NULL,
+          SalesDirectorEmail NVARCHAR(255) NULL,
+          SalesDirectorActionAt DATETIME2 NULL,
+          ActionComment NVARCHAR(MAX) NULL,
+          CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+          UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+          CONSTRAINT UQ_SalesQuoteApprovals_QuoteNumber UNIQUE (SalesQuoteNumber),
+          CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
+            ApprovalStatus IN (${statusConstraintSql})
+          )
+        );
 
-      CREATE INDEX IX_SalesQuoteApprovals_Status_Submitted
-        ON SalesQuoteApprovals (ApprovalStatus, SubmittedForApprovalAt);
+        CREATE INDEX IX_SalesQuoteApprovals_Status_Submitted
+          ON SalesQuoteApprovals (ApprovalStatus, SubmittedForApprovalAt);
 
-      CREATE INDEX IX_SalesQuoteApprovals_Salesperson
-        ON SalesQuoteApprovals (SalespersonEmail, ApprovalStatus);
-    END
-  `);
+        CREATE INDEX IX_SalesQuoteApprovals_Salesperson
+          ON SalesQuoteApprovals (SalespersonEmail, ApprovalStatus);
+      END
+    `);
 
-  await pool.request().query(`
-    IF COL_LENGTH('dbo.SalesQuoteApprovals', 'ApprovalOwnerEmail') IS NULL
-    BEGIN
-      BEGIN TRY
-        ALTER TABLE dbo.SalesQuoteApprovals
-        ADD ApprovalOwnerEmail NVARCHAR(255) NULL;
-      END TRY
-      BEGIN CATCH
-        IF ERROR_NUMBER() <> 2705
-          THROW;
-      END CATCH
-    END;
-  `);
-
-  await pool.request().query(`
-    IF OBJECT_ID(N'dbo.SalesQuoteApprovals', N'U') IS NOT NULL
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1
-        FROM sys.check_constraints
-        WHERE parent_object_id = OBJECT_ID(N'dbo.SalesQuoteApprovals')
-          AND name = 'CK_SalesQuoteApprovals_Status'
-          AND definition LIKE '%BeingRevised%'
-      )
+    await pool.request().query(`
+      IF COL_LENGTH('dbo.SalesQuoteApprovals', 'ApprovalOwnerEmail') IS NULL
       BEGIN
         BEGIN TRY
           ALTER TABLE dbo.SalesQuoteApprovals
-          DROP CONSTRAINT CK_SalesQuoteApprovals_Status;
+          ADD ApprovalOwnerEmail NVARCHAR(255) NULL;
         END TRY
         BEGIN CATCH
-          IF ERROR_NUMBER() NOT IN (3727, 3728)
+          IF ERROR_NUMBER() <> 2705
             THROW;
-        END CATCH;
+        END CATCH
+      END;
+    `);
 
+    await pool.request().query(`
+      IF OBJECT_ID(N'dbo.SalesQuoteApprovals', N'U') IS NOT NULL
+      BEGIN
         IF NOT EXISTS (
           SELECT 1
           FROM sys.check_constraints
           WHERE parent_object_id = OBJECT_ID(N'dbo.SalesQuoteApprovals')
             AND name = 'CK_SalesQuoteApprovals_Status'
+            AND definition LIKE '%BeingRevised%'
         )
         BEGIN
-          ALTER TABLE dbo.SalesQuoteApprovals
-          WITH CHECK ADD CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
-            ApprovalStatus IN (${statusConstraintSql})
-          );
-        END
-      END
-    END;
-  `);
+          BEGIN TRY
+            ALTER TABLE dbo.SalesQuoteApprovals
+            DROP CONSTRAINT CK_SalesQuoteApprovals_Status;
+          END TRY
+          BEGIN CATCH
+            IF ERROR_NUMBER() NOT IN (3727, 3728)
+              THROW;
+          END CATCH;
 
-  await pool.request().query(`
-    UPDATE dbo.SalesQuoteApprovals
-    SET ApprovalOwnerEmail = SalespersonEmail
-    WHERE ApprovalOwnerEmail IS NULL
-      AND SalespersonEmail IS NOT NULL;
-  `);
+          IF NOT EXISTS (
+            SELECT 1
+            FROM sys.check_constraints
+            WHERE parent_object_id = OBJECT_ID(N'dbo.SalesQuoteApprovals')
+              AND name = 'CK_SalesQuoteApprovals_Status'
+          )
+          BEGIN
+            ALTER TABLE dbo.SalesQuoteApprovals
+            WITH CHECK ADD CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
+              ApprovalStatus IN (${statusConstraintSql})
+            );
+          END
+        END
+      END;
+    `);
+
+    await pool.request().query(`
+      UPDATE dbo.SalesQuoteApprovals
+      SET ApprovalOwnerEmail = SalespersonEmail
+      WHERE ApprovalOwnerEmail IS NULL
+        AND SalespersonEmail IS NOT NULL;
+    `);
+  })();
+
+  try {
+    await ensureApprovalTablePromise;
+  } catch (error) {
+    ensureApprovalTablePromise = null;
+    throw error;
+  }
 }
 
 function getAuthenticatedEmail(req) {

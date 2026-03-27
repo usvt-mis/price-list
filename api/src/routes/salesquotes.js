@@ -36,7 +36,8 @@ function mapSubmissionRecord(record) {
     senderEmail: record.SenderEmail,
     workDescription: record.WorkDescription || '',
     remark: record.Remark || '',
-    submittedAt: record.SubmittedAt
+    submittedAt: record.SubmittedAt,
+    approvalStatus: record.ApprovalStatus || null
   };
 }
 
@@ -363,16 +364,36 @@ router.get('/records', async (req, res, next) => {
     }
 
     const result = await request.query(`
-      SELECT
-        Id,
-        SalesQuoteNumber,
-        SenderEmail,
-        WorkDescription,
-        Remark,
-        SubmittedAt
-      FROM SalesQuoteSubmissionRecords
-      ${whereClause}
-      ORDER BY SubmittedAt DESC, Id DESC
+      IF OBJECT_ID(N'dbo.SalesQuoteApprovals', N'U') IS NOT NULL
+      BEGIN
+        SELECT
+          r.Id,
+          r.SalesQuoteNumber,
+          r.SenderEmail,
+          r.WorkDescription,
+          r.Remark,
+          r.SubmittedAt,
+          a.ApprovalStatus
+        FROM SalesQuoteSubmissionRecords r
+        LEFT JOIN SalesQuoteApprovals a
+          ON a.SalesQuoteNumber = r.SalesQuoteNumber
+        ${whereClause.replace(/SalesQuoteNumber/g, 'r.SalesQuoteNumber').replace(/WorkDescription/g, 'r.WorkDescription').replace(/Remark/g, 'r.Remark').replace(/SenderEmail/g, 'r.SenderEmail')}
+        ORDER BY r.SubmittedAt DESC, r.Id DESC
+      END
+      ELSE
+      BEGIN
+        SELECT
+          r.Id,
+          r.SalesQuoteNumber,
+          r.SenderEmail,
+          r.WorkDescription,
+          r.Remark,
+          r.SubmittedAt,
+          CAST(NULL AS NVARCHAR(50)) AS ApprovalStatus
+        FROM SalesQuoteSubmissionRecords r
+        ${whereClause.replace(/SalesQuoteNumber/g, 'r.SalesQuoteNumber').replace(/WorkDescription/g, 'r.WorkDescription').replace(/Remark/g, 'r.Remark').replace(/SenderEmail/g, 'r.SenderEmail')}
+        ORDER BY r.SubmittedAt DESC, r.Id DESC
+      END
     `);
 
     res.status(200).json({

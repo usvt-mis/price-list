@@ -2508,9 +2508,6 @@ export async function closeQuoteCreatedModal() {
   // Switch to My Records tab after modal closes and load records
   setTimeout(async () => {
     switchTab('records');
-    // Load records after switching tabs so newly created quote appears
-    const { loadQuoteSubmissionRecords } = await import('./records.js');
-    await loadQuoteSubmissionRecords();
   }, 300);
 }
 
