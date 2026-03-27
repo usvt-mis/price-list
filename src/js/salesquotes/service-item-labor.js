@@ -396,6 +396,27 @@ export function initConfirmNewSerLaborUi() {
   const laborRows = el('confirmNewSerLaborRows');
   const selectAllJobs = el('confirmNewSerSelectAllJobs');
 
+  const updateJobManHours = (target, { shouldRender = false } = {}) => {
+    const mhIndex = target?.dataset?.confirmSerJobMh;
+    if (mhIndex === undefined) {
+      return false;
+    }
+
+    const job = modalState.jobs[Number(mhIndex)];
+    if (!job) {
+      return true;
+    }
+
+    const nextValue = Math.max(0, Number.parseFloat(target.value || '0') || 0);
+    job.effectiveManHours = Number(nextValue.toFixed(2));
+
+    if (shouldRender) {
+      renderJobsTable();
+    }
+
+    return true;
+  };
+
   selectAllJobs?.addEventListener('change', () => {
     modalState.jobs.forEach((job) => {
       job.checked = selectAllJobs.checked;
@@ -406,7 +427,6 @@ export function initConfirmNewSerLaborUi() {
 
   laborRows?.addEventListener('change', (event) => {
     const checkIndex = event.target?.dataset?.confirmSerJobCheck;
-    const mhIndex = event.target?.dataset?.confirmSerJobMh;
 
     if (checkIndex !== undefined) {
       const job = modalState.jobs[Number(checkIndex)];
@@ -420,16 +440,11 @@ export function initConfirmNewSerLaborUi() {
       return;
     }
 
-    if (mhIndex !== undefined) {
-      const job = modalState.jobs[Number(mhIndex)];
-      if (!job) {
-        return;
-      }
+    updateJobManHours(event.target, { shouldRender: true });
+  });
 
-      const nextValue = Math.max(0, Number.parseFloat(event.target.value || '0') || 0);
-      job.effectiveManHours = Number(nextValue.toFixed(2));
-      renderJobsTable();
-    }
+  laborRows?.addEventListener('input', (event) => {
+    updateJobManHours(event.target);
   });
 }
 

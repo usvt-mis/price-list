@@ -2497,8 +2497,6 @@ async function confirmNewSerCreation() {
   const isEditingExistingSerProfile = state.ui.editingExistingSerProfile;
   const confirmSnapshot = getConfirmNewSerSnapshot();
 
-  await syncConfirmNewSerLaborProfile(confirmSnapshot, { forceReload: true });
-
   const builderValidation = !confirmSnapshot.workType
     ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
     : (confirmSnapshot.workType === 'Motor' && !formatMotorKwValue(confirmSnapshot.motorKw || '')
