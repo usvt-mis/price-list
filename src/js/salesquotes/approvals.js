@@ -1878,17 +1878,6 @@ function renderQuotePreview(container, quoteData, approval, directorSignature, s
           </div>
         </details>
 
-        ${approval.workDescription ? `
-          <details class="approval-preview-collapsible">
-            <summary>Work Description</summary>
-            <div class="approval-preview-collapsible-body">
-              <div class="approval-preview-print-note rounded-xl border border-slate-200">
-                <p class="text-sm text-slate-700 whitespace-pre-wrap">${escapeHtml(approval.workDescription)}</p>
-              </div>
-            </div>
-          </details>
-        ` : ''}
-
         ${renderApprovalActionComment(approval, pendingRevisionRequest, actionCommentLabel)}
 
         <div class="approval-preview-table-wrap">
