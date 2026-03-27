@@ -2383,6 +2383,7 @@ function hideConfirmNewSerModal({ resetFormState = true } = {}) {
       state.ui.pendingSerCreationEdit = false;
       state.ui.editingExistingSerProfile = false;
       if (resetFormState) {
+        delete modal.dataset.originalServiceItemDescription;
         resetServiceItemBuilder('confirm');
         resetConfirmNewSerLaborProfile();
       }
@@ -2539,7 +2540,9 @@ async function saveExistingServiceItemLaborProfile(confirmSnapshot = null) {
   const serviceItemNo = document.getElementById('editLineUsvtServiceItemNo')?.value?.trim() || '';
   const groupNo = document.getElementById('editLineUsvtGroupNo')?.value?.trim() || '1';
   const customerNo = state.quote.customerNo || '';
-  const serviceItemDesc = document.getElementById('editLineUsvtServiceItemDescription')?.value?.trim() || '';
+  const confirmModal = document.getElementById('confirmNewSerModal');
+  const originalDescription = String(confirmModal?.dataset.originalServiceItemDescription || '').trim();
+  const serviceItemDesc = applyConfirmNewSerSnapshotToSource(snapshot, 'edit').trim();
   const validationError = getConfirmNewSerLaborValidation(snapshot);
 
   if (!serviceItemNo) {
@@ -2561,16 +2564,31 @@ async function saveExistingServiceItemLaborProfile(confirmSnapshot = null) {
     newSerButton.style.opacity = '0.7';
   }
 
+  let laborProfileSaved = false;
   try {
     await saveConfirmNewSerLaborProfile(serviceItemNo, snapshot, {
       description: serviceItemDesc,
       customerNo,
       groupNo
     });
-    showSuccess(`Workshop job list saved for Service Item ${serviceItemNo}`);
+    laborProfileSaved = true;
+
+    if (serviceItemDesc !== originalDescription) {
+      await updateServiceItemDescription(serviceItemNo, serviceItemDesc);
+    }
+
+    if (confirmModal) {
+      confirmModal.dataset.originalServiceItemDescription = serviceItemDesc;
+    }
+
+    showSuccess(`Service Item ${serviceItemNo} saved successfully`);
   } catch (error) {
     console.error('Failed to save existing Service Item labor profile:', error);
-    showError(error.message || 'Failed to save workshop job list. Please try again.');
+    if (laborProfileSaved && serviceItemDesc !== originalDescription) {
+      showError(error.message || 'Workshop job list was saved, but updating the Service Item description failed. Please try again.');
+    } else {
+      showError(error.message || 'Failed to save workshop job list. Please try again.');
+    }
   } finally {
     updateNewSerButtonStateForEditModal(state.ui.editingLineId);
   }
@@ -3313,6 +3331,65 @@ async function createServiceItem(description, customerNo, groupNo, serviceType =
       newSerButton.disabled = false;
       // Button state will be updated by createServiceItemAndLockFields() function
     }
+  }
+}
+
+async function updateServiceItemDescription(serviceItemNo, description) {
+  const API_URL = GATEWAY_API.UPDATE_SERVICE_ITEM;
+  const normalizedServiceItemNo = String(serviceItemNo || '').trim();
+  const normalizedDescription = String(description || '').trim();
+
+  if (!normalizedServiceItemNo) {
+    throw new Error('Service Item No is required to update a Service Item');
+  }
+
+  if (!normalizedDescription) {
+    throw new Error('Service Item Description is required to update a Service Item');
+  }
+
+  const requestBody = {
+    serviceItemNo: normalizedServiceItemNo,
+    description: normalizedDescription
+  };
+
+  console.log('Updating Service Item with payload:', JSON.stringify(requestBody, null, 2));
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error ${response.status}: ${errorText}`);
+    }
+
+    const responseText = await response.text();
+    let responseData = {};
+    if (responseText) {
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        responseData = { raw: responseText };
+      }
+    }
+    const resultEntry = responseData?.result?.Results?.[0]
+      || responseData?.Results?.[0]
+      || responseData?.result
+      || responseData;
+
+    if (resultEntry && resultEntry.Success === false) {
+      throw new Error(resultEntry.Error || 'Failed to update Service Item');
+    }
+
+    return responseData;
+  } catch (error) {
+    console.error('UpdateServiceItem API call failed:', error);
+    throw error;
   }
 }
 
@@ -5280,6 +5357,9 @@ async function showConfirmNewSerModalForEdit() {
   updateConfirmNewSerPrimaryActionLabel();
 
   const existingDescription = document.getElementById('editLineUsvtServiceItemDescription')?.value?.trim() || '';
+  if (modal) {
+    modal.dataset.originalServiceItemDescription = existingDescription;
+  }
 
   if (isEditingExistingSerProfile) {
     try {

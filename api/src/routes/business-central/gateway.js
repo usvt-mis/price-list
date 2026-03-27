@@ -41,6 +41,13 @@ const GATEWAY_ENDPOINTS = {
     keyEnv: 'CSI_KEY',
     method: 'POST'
   },
+  updateServiceItem: {
+    defaultPath: 'UpdateServiceItem',
+    pathEnv: 'USI_PATH',
+    keyEnv: 'USI_KEY',
+    fallbackKeyEnvs: ['CSI_KEY'],
+    method: 'POST'
+  },
   createServiceOrderFromSQ: {
     defaultPath: 'CreateServiceOrderFromSQ',
     pathEnv: 'CSOFSQ_PATH',
@@ -322,6 +329,10 @@ router.post('/create-sales-quote-without-number', (req, res, next) => {
 
 router.post('/create-service-item', (req, res, next) => {
   proxyGatewayRequest(req, res, next, 'createServiceItem', 'CreateServiceItem');
+});
+
+router.post('/update-service-item', (req, res, next) => {
+  proxyGatewayRequest(req, res, next, 'updateServiceItem', 'UpdateServiceItem');
 });
 
 router.post('/create-service-order-from-sq', (req, res, next) => {
