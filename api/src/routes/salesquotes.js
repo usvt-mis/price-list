@@ -136,6 +136,21 @@ function normalizeServiceItemLaborJob(rawJob = {}, index = 0) {
   };
 }
 
+function mapAuditEventRecord(record) {
+  return {
+    id: record.Id,
+    salesQuoteNumber: record.SalesQuoteNumber,
+    actionType: record.ActionType,
+    actorEmail: record.ActorEmail || '',
+    approvalStatus: record.ApprovalStatus || '',
+    workDescription: record.WorkDescription || '',
+    comment: record.Comment || '',
+    clientIP: record.ClientIP || '',
+    createdAt: record.CreatedAt,
+    source: record.EventSource || 'audit'
+  };
+}
+
 function mapServiceItemLaborProfile(record, jobs = []) {
   return {
     serviceItemNo: record.ServiceItemNo,
@@ -441,6 +456,19 @@ router.post('/records', async (req, res, next) => {
         )
       `);
 
+    try {
+      await logSalesQuoteAuditEvent(pool, {
+        salesQuoteNumber,
+        actionType: 'Created',
+        actorEmail: senderEmail,
+        workDescription: workDescription || null,
+        comment: remark || null,
+        clientIP: getClientIP(req)
+      });
+    } catch (auditError) {
+      console.error(`Failed to record Sales Quote create audit for ${salesQuoteNumber}:`, auditError);
+    }
+
     res.status(201).json({
       message: 'Record saved successfully',
       record: mapSubmissionRecord(insertResult.recordset[0])
@@ -474,6 +502,86 @@ router.post('/records', async (req, res, next) => {
       }
     }
 
+    next(error);
+  }
+});
+
+router.get('/audit-events/:quoteNumber', async (req, res, next) => {
+  const userEmail = getAuthenticatedEmail(req);
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unable to determine current user email' });
+  }
+
+  const salesQuoteNumber = String(req.params?.quoteNumber || '').trim();
+  if (!salesQuoteNumber) {
+    return res.status(400).json({ error: 'Sales Quote Number is required' });
+  }
+
+  try {
+    const pool = await getPool();
+    await ensureSalesQuoteAuditLogTable(pool);
+    await ensureSalesQuoteSubmissionRecordsTable(pool);
+
+    const result = await pool.request()
+      .input('salesQuoteNumber', sql.NVarChar(50), salesQuoteNumber)
+      .query(`
+        WITH TimelineEntries AS (
+          SELECT
+            l.Id,
+            l.SalesQuoteNumber,
+            l.ActionType,
+            l.ActorEmail,
+            l.ApprovalStatus,
+            l.WorkDescription,
+            l.Comment,
+            l.ClientIP,
+            l.CreatedAt,
+            CAST('audit' AS NVARCHAR(20)) AS EventSource
+          FROM SalesQuoteAuditLog l
+          WHERE l.SalesQuoteNumber = @salesQuoteNumber
+
+          UNION ALL
+
+          SELECT
+            r.Id,
+            r.SalesQuoteNumber,
+            CAST('Created' AS NVARCHAR(50)) AS ActionType,
+            r.SenderEmail AS ActorEmail,
+            CAST(NULL AS NVARCHAR(50)) AS ApprovalStatus,
+            r.WorkDescription,
+            r.Remark AS Comment,
+            r.ClientIP,
+            r.SubmittedAt AS CreatedAt,
+            CAST('submission-record' AS NVARCHAR(20)) AS EventSource
+          FROM SalesQuoteSubmissionRecords r
+          WHERE r.SalesQuoteNumber = @salesQuoteNumber
+            AND NOT EXISTS (
+              SELECT 1
+              FROM SalesQuoteAuditLog l
+              WHERE l.SalesQuoteNumber = r.SalesQuoteNumber
+                AND l.ActionType = 'Created'
+            )
+        )
+        SELECT
+          Id,
+          SalesQuoteNumber,
+          ActionType,
+          ActorEmail,
+          ApprovalStatus,
+          WorkDescription,
+          Comment,
+          ClientIP,
+          CreatedAt,
+          EventSource
+        FROM TimelineEntries
+        ORDER BY CreatedAt DESC, Id DESC
+      `);
+
+    res.status(200).json({
+      salesQuoteNumber,
+      events: result.recordset.map(mapAuditEventRecord)
+    });
+  } catch (error) {
     next(error);
   }
 });
