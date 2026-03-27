@@ -1,77 +1,133 @@
 <!-- Confirm New SER Modal -->
 <div id="confirmNewSerModal" class="sales-alert-modal fixed inset-0 hidden z-[150] transition-opacity duration-200" style="z-index: 150;">
   <div class="sales-alert-dialog">
-    <div id="confirmNewSerModalContent" class="sales-alert-panel transform transition-all duration-200" style="opacity: 0; transform: translateY(-10px);">
+    <div id="confirmNewSerModalContent" class="sales-alert-panel confirm-new-ser-panel overflow-hidden transform transition-all duration-200" style="opacity: 0; transform: translateY(-10px);">
       <div class="sales-alert-header">
         <p class="sales-alert-status sales-alert-status-info">Confirm Action</p>
-        <h3 class="sales-alert-title">Create New Service Item?</h3>
-        <p class="sales-alert-text">A new Service Item will be created from the description below.</p>
       </div>
 
-      <div class="sales-alert-body">
-        <div class="sales-alert-section sales-alert-section-info">
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div class="md:col-span-2">
-              <p class="mb-2 block text-sm font-medium text-slate-700">Repair Type</p>
-              <div class="flex flex-wrap gap-3">
-                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
-                  <input type="radio" name="confirmNewSerWorkType" id="confirmNewSerWorkTypeMotor" value="Motor" checked>
-                  <span>Motor</span>
-                </label>
-                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
-                  <input type="radio" name="confirmNewSerWorkType" id="confirmNewSerWorkTypePump" value="Pump">
-                  <span>Pump</span>
-                </label>
-                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
-                  <input type="radio" name="confirmNewSerWorkType" id="confirmNewSerWorkTypeElGt" value="EL/GT">
-                  <span>EL/GT</span>
-                </label>
+      <div class="sales-alert-body confirm-new-ser-body">
+        <div class="confirm-new-ser-layout">
+          <div class="confirm-new-ser-form-column space-y-5">
+            <div class="sales-alert-section sales-alert-section-info">
+              <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="md:col-span-2">
+                  <p class="mb-2 block text-sm font-medium text-slate-700">Repair Type</p>
+                  <div class="flex flex-wrap gap-3">
+                    <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                      <input type="radio" name="confirmNewSerWorkType" id="confirmNewSerWorkTypeMotor" value="Motor" checked>
+                      <span>Motor</span>
+                    </label>
+                    <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                      <input type="radio" name="confirmNewSerWorkType" id="confirmNewSerWorkTypePump" value="Pump">
+                      <span>Pump</span>
+                    </label>
+                    <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                      <input type="radio" name="confirmNewSerWorkType" id="confirmNewSerWorkTypeElGt" value="EL/GT">
+                      <span>EL/GT</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div id="confirmNewSerServiceTypeWrap" class="md:col-span-2">
+                  <p class="mb-2 block text-sm font-medium text-slate-700">Service Type</p>
+                  <div class="flex flex-wrap gap-3">
+                    <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                      <input type="radio" name="confirmNewSerServiceType" id="confirmNewSerServiceTypeOverhaul" value="Overhaul" checked>
+                      <span>Overhaul</span>
+                    </label>
+                    <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                      <input type="radio" name="confirmNewSerServiceType" id="confirmNewSerServiceTypeRewind" value="Rewind">
+                      <span>Rewind</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div id="confirmNewSerMotorFields" class="hidden">
+                  <label class="mb-1 block text-sm font-medium text-slate-700">Motor kW</label>
+                  <input type="text" id="confirmNewSerMotorKw" inputmode="decimal" placeholder="e.g. 7.5" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm">
+                </div>
+
+                <div id="confirmNewSerDriveTypeWrap" class="hidden md:col-span-2">
+                  <p class="mb-2 block text-sm font-medium text-slate-700">Drive Type</p>
+                  <div class="flex flex-wrap gap-3">
+                    <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                      <input type="radio" name="confirmNewSerDriveType" id="confirmNewSerDriveTypeAc" value="AC" checked>
+                      <span>AC</span>
+                    </label>
+                    <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                      <input type="radio" name="confirmNewSerDriveType" id="confirmNewSerDriveTypeDc" value="DC">
+                      <span>DC</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="md:col-span-2">
+                  <p class="mb-1 block text-sm font-medium text-slate-700">Branch</p>
+                  <div id="confirmNewSerBranchDisplay" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 shadow-sm">
+                    Loading branch...
+                  </div>
+                </div>
+
+                <div class="md:col-span-2">
+                  <label class="mb-1 block text-sm font-medium text-slate-700">Details</label>
+                  <input type="text" id="confirmNewSerDetails" placeholder="Optional details" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm">
+                </div>
               </div>
             </div>
 
-            <div id="confirmNewSerServiceTypeWrap" class="md:col-span-2">
-              <p class="mb-2 block text-sm font-medium text-slate-700">Service Type</p>
-              <div class="flex flex-wrap gap-3">
-                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
-                  <input type="radio" name="confirmNewSerServiceType" id="confirmNewSerServiceTypeOverhaul" value="Overhaul" checked>
-                  <span>Overhaul</span>
-                </label>
-                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
-                  <input type="radio" name="confirmNewSerServiceType" id="confirmNewSerServiceTypeRewind" value="Rewind">
-                  <span>Rewind</span>
-                </label>
-              </div>
-            </div>
-
-            <div id="confirmNewSerMotorFields" class="hidden">
-              <label class="mb-1 block text-sm font-medium text-slate-700">Motor kW</label>
-              <input type="text" id="confirmNewSerMotorKw" inputmode="decimal" placeholder="e.g. 7.5" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm">
-            </div>
-
-            <div id="confirmNewSerDriveTypeWrap" class="hidden md:col-span-2">
-              <p class="mb-2 block text-sm font-medium text-slate-700">Drive Type</p>
-              <div class="flex flex-wrap gap-3">
-                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
-                  <input type="radio" name="confirmNewSerDriveType" id="confirmNewSerDriveTypeAc" value="AC" checked>
-                  <span>AC</span>
-                </label>
-                <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
-                  <input type="radio" name="confirmNewSerDriveType" id="confirmNewSerDriveTypeDc" value="DC">
-                  <span>DC</span>
-                </label>
-              </div>
-            </div>
-
-            <div class="md:col-span-2">
-              <label class="mb-1 block text-sm font-medium text-slate-700">Details</label>
-              <input type="text" id="confirmNewSerDetails" placeholder="Optional details" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm">
+            <div class="sales-alert-section sales-alert-section-info">
+              <p class="sales-alert-label">Generated Description</p>
+              <p id="confirmNewSerDescription" class="sales-alert-value">Generate Automatically</p>
             </div>
           </div>
-        </div>
 
-        <div class="sales-alert-section sales-alert-section-info">
-          <p class="sales-alert-label">Generated Description</p>
-          <p id="confirmNewSerDescription" class="sales-alert-value">Generate Automatically</p>
+          <div class="sales-alert-section sales-alert-section-info confirm-new-ser-jobs-column">
+            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p class="sales-alert-label mb-1">Job List</p>
+                <p id="confirmNewSerLaborMeta" class="text-xs text-slate-500"></p>
+              </div>
+              <p id="confirmNewSerLaborStatus" class="text-sm text-slate-500">Enter Motor kW to load the workshop job list.</p>
+            </div>
+
+            <div class="mt-4">
+              <p class="mb-2 block text-sm font-medium text-slate-700">Job Source</p>
+              <div class="seg-control seg-control-drive-type" aria-label="Job Source">
+                <input type="radio" id="confirmNewSerRepairModeWorkshop" name="confirmNewSerRepairMode" value="Workshop" checked>
+                <label for="confirmNewSerRepairModeWorkshop" class="seg-control-item">
+                  <span class="seg-control-label">Workshop</span>
+                </label>
+                <input type="radio" id="confirmNewSerRepairModeOnsite" name="confirmNewSerRepairMode" value="Onsite">
+                <label for="confirmNewSerRepairModeOnsite" class="seg-control-item">
+                  <span class="seg-control-label">Onsite</span>
+                </label>
+              </div>
+            </div>
+
+            <div id="confirmNewSerLaborPanel">
+              <div id="confirmNewSerLaborTableWrap" class="confirm-new-ser-jobs-table confirm-new-ser-jobs-table-shell mt-4 hidden overflow-hidden">
+                <div class="confirm-new-ser-jobs-scroll overflow-auto">
+                  <table class="confirm-new-ser-jobs-grid min-w-full text-sm">
+                    <thead class="confirm-new-ser-jobs-head">
+                      <tr>
+                        <th class="w-14 px-3 py-3 text-center">
+                          <input type="checkbox" id="confirmNewSerSelectAllJobs" class="rounded border-slate-300 text-slate-900 focus:ring-slate-400">
+                        </th>
+                        <th class="px-4 py-3 text-left font-semibold uppercase tracking-[0.16em]">Job</th>
+                        <th class="px-4 py-3 text-right font-semibold uppercase tracking-[0.16em]">Manhours</th>
+                      </tr>
+                    </thead>
+                    <tbody id="confirmNewSerLaborRows" class="confirm-new-ser-jobs-body"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div id="confirmNewSerLaborEmpty" class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                Enter Motor kW to load the workshop job list.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

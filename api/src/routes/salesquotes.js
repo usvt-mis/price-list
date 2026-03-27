@@ -6,6 +6,9 @@ const { ensureSalesQuoteSubmissionRecordsTable } = require('../utils/salesQuoteS
 const { logSalesQuoteAuditEvent } = require('../utils/salesQuoteAuditLog');
 const { ensureSalesQuoteUserPreferencesTable } = require('../utils/salesQuoteUserPreferences');
 const {
+  ensureSalesQuoteServiceItemLaborTables
+} = require('../utils/salesQuoteServiceItemLabor');
+const {
   TABLE_NAME: BACKOFFICE_SETTINGS_TABLE,
   ensureBackofficeSettingsTable,
   safeParseSettingValue
@@ -53,6 +56,115 @@ function safeParsePreferenceValue(rawValue) {
   } catch (error) {
     return null;
   }
+}
+
+function normalizeNullableString(value, maxLength = null) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) {
+    return null;
+  }
+
+  if (maxLength && normalized.length > maxLength) {
+    return normalized.slice(0, maxLength);
+  }
+
+  return normalized;
+}
+
+function normalizeNullableDecimal(value, digits = 2) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+
+  return Number(numeric.toFixed(digits));
+}
+
+function normalizeBoolean(value, defaultValue = false) {
+  if (value === null || value === undefined || value === '') {
+    return defaultValue;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) {
+      return defaultValue;
+    }
+
+    if (['true', '1', 'yes', 'y'].includes(normalized)) {
+      return true;
+    }
+
+    if (['false', '0', 'no', 'n'].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return defaultValue;
+}
+
+function normalizeNullableInt(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const numeric = Number.parseInt(value, 10);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function normalizeServiceItemLaborJob(rawJob = {}, index = 0) {
+  return {
+    jobId: normalizeNullableInt(rawJob.jobId),
+    jobCode: normalizeNullableString(rawJob.jobCode, 50),
+    jobName: normalizeNullableString(rawJob.jobName, 255) || `Job ${index + 1}`,
+    originalManHours: normalizeNullableDecimal(rawJob.originalManHours, 2) ?? 0,
+    effectiveManHours: normalizeNullableDecimal(rawJob.effectiveManHours, 2) ?? 0,
+    isChecked: normalizeBoolean(rawJob.isChecked, true),
+    sortOrder: normalizeNullableInt(rawJob.sortOrder) ?? (index + 1)
+  };
+}
+
+function mapServiceItemLaborProfile(record, jobs = []) {
+  return {
+    serviceItemNo: record.ServiceItemNo,
+    serviceItemDescription: record.ServiceItemDescription || '',
+    workType: record.WorkType,
+    serviceType: record.ServiceType || '',
+    motorKw: record.MotorKw === null || record.MotorKw === undefined ? null : Number(record.MotorKw),
+    motorDriveType: record.MotorDriveType || '',
+    branchId: record.BranchId === null || record.BranchId === undefined ? null : Number(record.BranchId),
+    motorTypeId: record.MotorTypeId === null || record.MotorTypeId === undefined ? null : Number(record.MotorTypeId),
+    customerNo: record.CustomerNo || '',
+    groupNo: record.GroupNo || '',
+    createdByEmail: record.CreatedByEmail || '',
+    updatedByEmail: record.UpdatedByEmail || '',
+    createdAt: record.CreatedAt,
+    updatedAt: record.UpdatedAt,
+    jobs: jobs.map((job) => ({
+      id: job.Id,
+      jobId: Number(job.JobId),
+      jobCode: job.JobCode || '',
+      jobName: job.JobName || '',
+      originalManHours: Number(job.OriginalManHours || 0),
+      effectiveManHours: Number(job.EffectiveManHours || 0),
+      isChecked: Boolean(job.IsChecked),
+      sortOrder: Number(job.SortOrder || 0),
+      createdAt: job.CreatedAt,
+      updatedAt: job.UpdatedAt
+    }))
+  };
 }
 
 router.get('/preferences/:key', async (req, res, next) => {
@@ -403,6 +515,256 @@ router.post('/audit-events', async (req, res, next) => {
     });
 
     res.status(201).json({ message: 'Audit event recorded' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/service-item-labor/:serviceItemNo', async (req, res, next) => {
+  try {
+    const serviceItemNo = normalizeNullableString(req.params.serviceItemNo, 50);
+    if (!serviceItemNo) {
+      return res.status(400).json({ error: 'Service Item No is required' });
+    }
+
+    const pool = await getPool();
+    await ensureSalesQuoteServiceItemLaborTables(pool);
+
+    const profileResult = await pool.request()
+      .input('serviceItemNo', sql.NVarChar(50), serviceItemNo)
+      .query(`
+        SELECT TOP 1
+          ServiceItemNo,
+          ServiceItemDescription,
+          WorkType,
+          ServiceType,
+          MotorKw,
+          MotorDriveType,
+          BranchId,
+          MotorTypeId,
+          CustomerNo,
+          GroupNo,
+          CreatedByEmail,
+          UpdatedByEmail,
+          CreatedAt,
+          UpdatedAt
+        FROM SalesQuoteServiceItemProfiles
+        WHERE ServiceItemNo = @serviceItemNo
+      `);
+
+    if (profileResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'Service Item labor profile not found' });
+    }
+
+    const jobsResult = await pool.request()
+      .input('serviceItemNo', sql.NVarChar(50), serviceItemNo)
+      .query(`
+        SELECT
+          Id,
+          ServiceItemNo,
+          JobId,
+          JobCode,
+          JobName,
+          OriginalManHours,
+          EffectiveManHours,
+          IsChecked,
+          SortOrder,
+          CreatedAt,
+          UpdatedAt
+        FROM SalesQuoteServiceItemLaborJobs
+        WHERE ServiceItemNo = @serviceItemNo
+        ORDER BY SortOrder ASC, Id ASC
+      `);
+
+    res.status(200).json({
+      profile: mapServiceItemLaborProfile(profileResult.recordset[0], jobsResult.recordset)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
+  const userEmail = getAuthenticatedEmail(req);
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unable to determine current user email' });
+  }
+
+  const serviceItemNo = normalizeNullableString(req.params.serviceItemNo, 50);
+  if (!serviceItemNo) {
+    return res.status(400).json({ error: 'Service Item No is required' });
+  }
+
+  const workType = normalizeNullableString(req.body?.workType, 50);
+  if (!workType) {
+    return res.status(400).json({ error: 'Work Type is required' });
+  }
+
+  const jobs = Array.isArray(req.body?.jobs)
+    ? req.body.jobs.map((job, index) => normalizeServiceItemLaborJob(job, index))
+    : [];
+
+  try {
+    const pool = await getPool();
+    await ensureSalesQuoteServiceItemLaborTables(pool);
+
+    const transaction = new sql.Transaction(pool);
+    await transaction.begin();
+
+    try {
+      await new sql.Request(transaction)
+        .input('serviceItemNo', sql.NVarChar(50), serviceItemNo)
+        .input('serviceItemDescription', sql.NVarChar(255), normalizeNullableString(req.body?.serviceItemDescription, 255))
+        .input('workType', sql.NVarChar(50), workType)
+        .input('serviceType', sql.NVarChar(20), normalizeNullableString(req.body?.serviceType, 20))
+        .input('motorKw', sql.Decimal(10, 2), normalizeNullableDecimal(req.body?.motorKw, 2))
+        .input('motorDriveType', sql.NVarChar(2), normalizeNullableString(req.body?.motorDriveType, 2))
+        .input('branchId', sql.Int, normalizeNullableInt(req.body?.branchId))
+        .input('motorTypeId', sql.Int, normalizeNullableInt(req.body?.motorTypeId))
+        .input('customerNo', sql.NVarChar(50), normalizeNullableString(req.body?.customerNo, 50))
+        .input('groupNo', sql.NVarChar(20), normalizeNullableString(req.body?.groupNo, 20))
+        .input('userEmail', sql.NVarChar(255), userEmail)
+        .query(`
+          UPDATE SalesQuoteServiceItemProfiles
+          SET ServiceItemDescription = @serviceItemDescription,
+              WorkType = @workType,
+              ServiceType = @serviceType,
+              MotorKw = @motorKw,
+              MotorDriveType = @motorDriveType,
+              BranchId = @branchId,
+              MotorTypeId = @motorTypeId,
+              CustomerNo = @customerNo,
+              GroupNo = @groupNo,
+              UpdatedByEmail = @userEmail,
+              UpdatedAt = GETUTCDATE()
+          WHERE ServiceItemNo = @serviceItemNo;
+
+          IF @@ROWCOUNT = 0
+          BEGIN
+            INSERT INTO SalesQuoteServiceItemProfiles (
+              ServiceItemNo,
+              ServiceItemDescription,
+              WorkType,
+              ServiceType,
+              MotorKw,
+              MotorDriveType,
+              BranchId,
+              MotorTypeId,
+              CustomerNo,
+              GroupNo,
+              CreatedByEmail,
+              UpdatedByEmail
+            )
+            VALUES (
+              @serviceItemNo,
+              @serviceItemDescription,
+              @workType,
+              @serviceType,
+              @motorKw,
+              @motorDriveType,
+              @branchId,
+              @motorTypeId,
+              @customerNo,
+              @groupNo,
+              @userEmail,
+              @userEmail
+            );
+          END
+        `);
+
+      await new sql.Request(transaction)
+        .input('serviceItemNo', sql.NVarChar(50), serviceItemNo)
+        .query(`
+          DELETE FROM SalesQuoteServiceItemLaborJobs
+          WHERE ServiceItemNo = @serviceItemNo
+        `);
+
+      for (const job of jobs) {
+        await new sql.Request(transaction)
+          .input('serviceItemNo', sql.NVarChar(50), serviceItemNo)
+          .input('jobId', sql.Int, job.jobId ?? 0)
+          .input('jobCode', sql.NVarChar(50), job.jobCode)
+          .input('jobName', sql.NVarChar(255), job.jobName)
+          .input('originalManHours', sql.Decimal(10, 2), job.originalManHours)
+          .input('effectiveManHours', sql.Decimal(10, 2), job.effectiveManHours)
+          .input('isChecked', sql.Bit, job.isChecked)
+          .input('sortOrder', sql.Int, job.sortOrder)
+          .query(`
+            INSERT INTO SalesQuoteServiceItemLaborJobs (
+              ServiceItemNo,
+              JobId,
+              JobCode,
+              JobName,
+              OriginalManHours,
+              EffectiveManHours,
+              IsChecked,
+              SortOrder
+            )
+            VALUES (
+              @serviceItemNo,
+              @jobId,
+              @jobCode,
+              @jobName,
+              @originalManHours,
+              @effectiveManHours,
+              @isChecked,
+              @sortOrder
+            )
+          `);
+      }
+
+      const profileResult = await new sql.Request(transaction)
+        .input('serviceItemNo', sql.NVarChar(50), serviceItemNo)
+        .query(`
+          SELECT TOP 1
+            ServiceItemNo,
+            ServiceItemDescription,
+            WorkType,
+            ServiceType,
+            MotorKw,
+            MotorDriveType,
+            BranchId,
+            MotorTypeId,
+            CustomerNo,
+            GroupNo,
+            CreatedByEmail,
+            UpdatedByEmail,
+            CreatedAt,
+            UpdatedAt
+          FROM SalesQuoteServiceItemProfiles
+          WHERE ServiceItemNo = @serviceItemNo
+        `);
+
+      const jobsResult = await new sql.Request(transaction)
+        .input('serviceItemNo', sql.NVarChar(50), serviceItemNo)
+        .query(`
+          SELECT
+            Id,
+            ServiceItemNo,
+            JobId,
+            JobCode,
+            JobName,
+            OriginalManHours,
+            EffectiveManHours,
+            IsChecked,
+            SortOrder,
+            CreatedAt,
+            UpdatedAt
+          FROM SalesQuoteServiceItemLaborJobs
+          WHERE ServiceItemNo = @serviceItemNo
+          ORDER BY SortOrder ASC, Id ASC
+        `);
+
+      await transaction.commit();
+
+      res.status(200).json({
+        message: 'Service Item labor profile saved successfully',
+        profile: mapServiceItemLaborProfile(profileResult.recordset[0], jobsResult.recordset)
+      });
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   } catch (error) {
     next(error);
   }

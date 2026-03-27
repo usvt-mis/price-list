@@ -339,8 +339,8 @@ router.post('/', async (req, res, next) => {
     // Check if quote already exists
     const existing = await getApprovalByQuoteNumber(pool, salesQuoteNumber);
     if (existing) {
-      // If in SubmittedToBC status, transition to PendingApproval
-      if (existing.ApprovalStatus === 'SubmittedToBC') {
+      // If in SubmittedToBC or Cancelled status, transition to PendingApproval
+      if (existing.ApprovalStatus === 'SubmittedToBC' || existing.ApprovalStatus === 'Cancelled') {
         // Transition to PendingApproval - auto-approval removed
         let finalStatus = 'PendingApproval';
         let submittedAt = new Date().toISOString();
@@ -362,9 +362,9 @@ router.post('/', async (req, res, next) => {
 
         const updated = await getApprovalByQuoteNumber(pool, salesQuoteNumber);
 
-        logger.info('APPROVALS', 'TransitionedToPending', `Quote ${salesQuoteNumber} transitioned from SubmittedToBC to ${finalStatus}`, {
+        logger.info('APPROVALS', 'TransitionedToPending', `Quote ${salesQuoteNumber} transitioned from ${existing.ApprovalStatus} to ${finalStatus}`, {
           salesQuoteNumber,
-          previousStatus: 'SubmittedToBC',
+          previousStatus: existing.ApprovalStatus,
           newStatus: finalStatus
         });
 
@@ -888,7 +888,11 @@ router.post('/:quoteNumber/cancel', async (req, res, next) => {
       return res.status(403).json({ error: 'You can only cancel your own approval requests' });
     }
 
-    if (approval.ApprovalStatus !== 'PendingApproval') {
+    const hasPendingRevisionRequest = approval.ApprovalStatus === 'Approved' &&
+      Boolean(approval.ActionComment && approval.ActionComment.trim());
+    const canCancel = approval.ApprovalStatus === 'PendingApproval' || hasPendingRevisionRequest;
+
+    if (!canCancel) {
       return res.status(400).json({
         error: `Cannot cancel quote with status: ${approval.ApprovalStatus}`,
         currentStatus: approval.ApprovalStatus
@@ -901,6 +905,7 @@ router.post('/:quoteNumber/cancel', async (req, res, next) => {
       .query(`
         UPDATE SalesQuoteApprovals
         SET ApprovalStatus = 'Cancelled',
+            ActionComment = NULL,
             UpdatedAt = GETUTCDATE()
         WHERE SalesQuoteNumber = @salesQuoteNumber
       `);
@@ -1168,8 +1173,8 @@ router.post('/:quoteNumber/resubmit', async (req, res, next) => {
       return res.status(403).json({ error: 'You can only resubmit your own quotes' });
     }
 
-    // Allow resubmission from both 'Revise', 'Rejected', and 'BeingRevised' statuses
-    const validResubmitStatuses = ['Revise', 'Rejected', 'BeingRevised'];
+    // Allow resubmission from workflow statuses that are editable again
+    const validResubmitStatuses = ['Revise', 'Rejected', 'BeingRevised', 'Cancelled'];
     if (!validResubmitStatuses.includes(approval.ApprovalStatus)) {
       return res.status(400).json({
         error: `Cannot resubmit quote with status: ${approval.ApprovalStatus}. Valid statuses for resubmission: ${validResubmitStatuses.join(', ')}.`,

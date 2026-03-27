@@ -1089,14 +1089,24 @@ export async function submitForApproval(quoteData) {
  * Cancel pending approval request
  */
 export async function cancelApprovalRequest(quoteNumber) {
+  const isPendingRevisionRequest = state.quote.number === quoteNumber &&
+    state.approval.currentStatus === APPROVAL_STATUS.APPROVED &&
+    state.approval.hasPendingRevisionRequest === true;
+  const statusLabel = isPendingRevisionRequest ? 'Pending Revise' : 'Pending Approval';
+  const title = isPendingRevisionRequest ? 'Cancel revision approval request?' : 'Cancel approval request?';
+  const message = isPendingRevisionRequest
+    ? 'This quote will be pulled back from the revision approval queue and reopened so you can edit it normally.'
+    : 'This quote will be pulled back from the current approval queue and reopened so you can edit it normally.';
+  const confirmText = isPendingRevisionRequest ? 'Cancel Revision Approval' : 'Cancel Approval';
+
   const modalResult = await showApprovalActionModal({
-    status: 'Pending Approval',
+    status: statusLabel,
     statusTone: 'warning',
-    title: 'Cancel approval request?',
-    message: 'This quote will be removed from the current approval queue. You can send a new request again later.',
+    title,
+    message,
     contextLabel: 'Sales Quote',
     contextValue: quoteNumber,
-    confirmText: 'Cancel Request',
+    confirmText,
     confirmVariant: 'danger'
   });
 
@@ -1112,15 +1122,22 @@ export async function cancelApprovalRequest(quoteNumber) {
     });
 
     hideLoading();
-    showToast('Approval request cancelled', 'success');
+    showToast('Approval cancelled. Quote is open for editing again.', 'success');
+    void syncQuoteStatusInBc(quoteNumber, 'Open');
 
     // Reload the list
     await loadMyApprovalRequests();
 
     // Update local state
     if (state.quote.number === quoteNumber) {
-      state.approval.currentStatus = APPROVAL_STATUS.CANCELLED;
+      state.quote.status = 'Open';
+      state.quote.approvalStatus = response.approval?.approvalStatus || APPROVAL_STATUS.CANCELLED;
+      state.approval.currentStatus = response.approval?.approvalStatus || APPROVAL_STATUS.CANCELLED;
       state.approval.canEdit = true;
+      state.approval.actionComment = null;
+      state.approval.hasPendingRevisionRequest = false;
+      applyApprovalIdentity(response.approval);
+      await updateQuoteEditorModeUi();
     }
 
     return true;

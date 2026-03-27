@@ -1247,6 +1247,7 @@ export function openAddLineModal(insertIndex = null) {
       // Reset SER creation flag for Edit modal
       state.ui.serCreatedEdit = false;
       state.ui.pendingSerCreationEdit = false;
+      state.ui.editingExistingSerProfile = false;
     }, 300);
   }
 
@@ -1260,6 +1261,7 @@ export function openAddLineModal(insertIndex = null) {
       confirmModal.classList.add('hidden');
       state.ui.pendingSerCreation = false;
       state.ui.pendingSerCreationEdit = false;
+      state.ui.editingExistingSerProfile = false;
     }, 300);
   }
 
@@ -1763,6 +1765,7 @@ export async function updateQuoteEditorModeUi() {
   const printButton = el('printQuoteBtn');
   const workStatusFieldContainer = el('workStatusFieldContainer');
   const sendApprovalRequestBtn = el('sendApprovalRequestBtn');
+  const cancelApprovalBtn = el('cancelApprovalBtn');
   const requestRevisionBtn = el('requestRevisionBtn');
   const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
   const pendingRevisionRequest = hasPendingRevisionRequestState();
@@ -1899,7 +1902,7 @@ export async function updateQuoteEditorModeUi() {
       : 'Send to Business Central';
   }
 
-  if (sendApprovalRequestBtn || requestRevisionBtn) {
+  if (sendApprovalRequestBtn || cancelApprovalBtn || requestRevisionBtn) {
     const invoiceDiscount = parseFloat(el('invoiceDiscount')?.value || 0);
     const vatRate = parseFloat(el('vatRate')?.value || 7) / 100;
     const subtotal = state.quote.lines.reduce((sum, line) => {
@@ -1917,8 +1920,12 @@ export async function updateQuoteEditorModeUi() {
        approvalStatus === APPROVAL.SUBMITTED_TO_BC ||
        approvalStatus === APPROVAL.REVISE ||
        approvalStatus === APPROVAL.BEING_REVISED ||
+       approvalStatus === APPROVAL.CANCELLED ||
        approvalStatus === APPROVAL.REJECTED) &&
       total > 0;
+    const showCancelApproval = isSearchSalesQuoteMode &&
+      isCurrentUserApprovalOwner() &&
+      (approvalStatus === APPROVAL.PENDING_APPROVAL || pendingRevisionRequest);
     const canUseRevisionRequest = isCurrentUserApprovalOwner();
     const showRequestRevision = isSearchSalesQuoteMode &&
       approvalStatus === APPROVAL.APPROVED &&
@@ -1937,6 +1944,11 @@ export async function updateQuoteEditorModeUi() {
 
     if (sendApprovalRequestBtn) {
       sendApprovalRequestBtn.classList.toggle('hidden', !canRequestApproval);
+    }
+
+    if (cancelApprovalBtn) {
+      cancelApprovalBtn.classList.toggle('hidden', !showCancelApproval);
+      setActionButtonLocked(cancelApprovalBtn, false, '');
     }
 
     if (requestRevisionBtn) {
@@ -2617,6 +2629,7 @@ export function openFullscreenTable() {
       // Reset SER creation flag for Edit modal
       state.ui.serCreatedEdit = false;
       state.ui.pendingSerCreationEdit = false;
+      state.ui.editingExistingSerProfile = false;
     }, 300);
   }
 
@@ -2630,6 +2643,7 @@ export function openFullscreenTable() {
       confirmModal.classList.add('hidden');
       state.ui.pendingSerCreation = false;
       state.ui.pendingSerCreationEdit = false;
+      state.ui.editingExistingSerProfile = false;
     }, 300);
   }
 
