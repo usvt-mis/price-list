@@ -4883,7 +4883,7 @@ function renderItemDropdown(items) {
  * Open edit line modal with line data pre-populated
  * @param {string} lineId - The ID of the line to edit
  */
-function openEditLineModal(lineId) {
+async function openEditLineModal(lineId) {
   if (!ensureQuoteEditableForChanges()) {
     return;
   }
@@ -4909,12 +4909,34 @@ function openEditLineModal(lineId) {
   state.ui.dropdownFields.editMaterialNo.valid = !!(line.lineObjectNumber && line.lineObjectNumber.trim() !== '');
   state.ui.dropdownFields.editMaterialNo.touched = false;
 
+  const hasExistingSer = !!(line.usvtServiceItemNo && line.usvtServiceItemNo.trim() !== '');
+  let serviceItemDescription = String(line.usvtServiceItemDescription || '').trim();
+  if (hasExistingSer && !serviceItemDescription) {
+    try {
+      const response = await fetchWithAuth(`/api/salesquotes/service-item-labor/${encodeURIComponent(line.usvtServiceItemNo.trim())}`);
+
+      if (response.ok) {
+        const result = await response.json();
+        serviceItemDescription = String(result?.profile?.serviceItemDescription || '').trim();
+      } else if (response.status !== 404) {
+        const errorText = await response.text();
+        console.error(`Failed to load existing Service Item Description for ${line.usvtServiceItemNo}:`, errorText);
+      }
+    } catch (error) {
+      console.error('Failed to resolve existing Service Item Description for edit modal:', error);
+    }
+  }
+
+  if (serviceItemDescription && serviceItemDescription !== line.usvtServiceItemDescription) {
+    line.usvtServiceItemDescription = serviceItemDescription;
+  }
+
   // Populate modal fields with line data
   document.getElementById('editLineType').value = normalizedLineType;
   document.getElementById('editLineUsvtGroupNo').value = line.usvtGroupNo || '';
   document.getElementById('editLineUsvtServiceItemNo').value = line.usvtServiceItemNo || '';
-  document.getElementById('editLineUsvtServiceItemDescription').value = line.usvtServiceItemDescription || '';
-  populateServiceItemBuilderFromDescription('edit', line.usvtServiceItemDescription || '');
+  document.getElementById('editLineUsvtServiceItemDescription').value = serviceItemDescription;
+  populateServiceItemBuilderFromDescription('edit', serviceItemDescription);
   document.getElementById('editLineObjectNumberSearch').value = line.lineObjectNumber || '';
   document.getElementById('editLineDescription').value = line.description;
   document.getElementById('editLineQuantity').value = line.quantity;
@@ -4925,7 +4947,6 @@ function openEditLineModal(lineId) {
   document.getElementById('editLineUsvtRefSalesQuoteno').value = line.usvtRefSalesQuoteno || '';
 
   // Check if line has existing Service Item No - lock Type, Serv Item No, Serv Item Desc
-  const hasExistingSer = line.usvtServiceItemNo && line.usvtServiceItemNo.trim() !== '';
   state.ui.editLineLocked = hasExistingSer;
 
   // Initialize New SER button state based on existing line data
@@ -5093,6 +5114,9 @@ function saveEditLine() {
 
   const existingLine = state.quote.lines.find(l => l.id === lineId);
   const existingLineHasServiceItem = !!(existingLine?.usvtServiceItemNo && existingLine.usvtServiceItemNo.trim() !== '');
+  if (existingLineHasServiceItem && !String(lineData.usvtServiceItemDescription || '').trim()) {
+    lineData.usvtServiceItemDescription = String(existingLine?.usvtServiceItemDescription || '').trim();
+  }
   if (!existingLineHasServiceItem && hasServiceItemInGroupNo(lineData.usvtGroupNo, lineId)) {
     lineData.usvtServiceItemNo = '';
     lineData.usvtServiceItemDescription = '';
