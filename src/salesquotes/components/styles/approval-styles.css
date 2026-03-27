@@ -267,7 +267,7 @@
 
 .approval-job-list-header-meta {
   margin-top: 0.2rem;
-  color: rgba(255, 255, 255, 0.96);
+  color: var(--sq-text-muted);
   font-size: 0.82rem;
   line-height: 1.4;
 }
