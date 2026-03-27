@@ -3355,7 +3355,7 @@ async function updateServiceItemDescription(serviceItemNo, description) {
   console.log('Updating Service Item with payload:', JSON.stringify(requestBody, null, 2));
 
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetchWithAuth(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
