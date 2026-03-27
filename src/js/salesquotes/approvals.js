@@ -1805,8 +1805,8 @@ function renderQuotePreview(container, quoteData, approval, directorSignature, s
   const approverName = approval.salesDirectorName || pickPreviewValue(quoteData, ['approveUserName', 'ApproveUser_Name'], '-');
 
   renderApprovalPreviewHeader({
-    title: 'Sales Quote Approval',
-    subtitle: 'Review layout aligned closer to the print version',
+    title: approval.workDescription || 'Sales Quote Approval',
+    subtitle: '',
     statusLabel: statusPresentation.label,
     statusBadgeClass: statusPresentation.badgeClass
   });
