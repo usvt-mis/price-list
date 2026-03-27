@@ -389,7 +389,6 @@ function getApprovalJobListModalElements() {
     modalContent: el('approvalJobListModalContent'),
     status: el('approvalJobListModalStatus'),
     title: el('approvalJobListModalTitle'),
-    text: el('approvalJobListModalText'),
     contextValue: el('approvalJobListModalContextValue'),
     contextMeta: el('approvalJobListModalContextMeta'),
     summary: el('approvalJobListModalSummary'),
@@ -2180,7 +2179,7 @@ function renderApprovalJobListSummary(preview, pricing, totals) {
       <span class="approval-job-list-summary-value">${escapeHtml(branchName)}</span>
     </div>
     <div class="approval-job-list-summary-card">
-      <span class="approval-job-list-summary-label">Calc Price</span>
+      <span class="approval-job-list-summary-label">Standard Price</span>
       <span class="approval-job-list-summary-value">${priceValue}</span>
     </div>
   `;
@@ -2194,7 +2193,6 @@ function renderApprovalJobListTable(preview, pricing) {
       <tr>
         <td>
           <div class="approval-job-list-job">
-            <span class="approval-job-list-job-code">${escapeHtml(job.jobCode || '-')}</span>
             <span class="approval-job-list-job-name">${escapeHtml(job.jobName || '-')}</span>
           </div>
         </td>
@@ -2250,7 +2248,6 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
     modalContent,
     status,
     title,
-    text,
     contextValue,
     contextMeta,
     summary,
@@ -2258,7 +2255,7 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
     tableBody
   } = getApprovalJobListModalElements();
 
-  if (!modal || !modalContent || !status || !title || !text || !contextValue || !contextMeta || !summary || !priceNote || !tableBody) {
+  if (!modal || !modalContent || !status || !title || !contextValue || !contextMeta || !summary || !priceNote || !tableBody) {
     showToast('Job list dialog is unavailable. Please refresh the page.', 'error');
     return;
   }
@@ -2273,7 +2270,6 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
 
   status.textContent = 'Job List';
   title.textContent = `Service Item ${serviceItemNo}`;
-  text.textContent = 'Read-only workshop job list saved with this Service Item.';
   contextValue.textContent = preview.serviceItemDescription || serviceItemNo;
 
   const metaParts = [
@@ -2290,7 +2286,7 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
   tableBody.innerHTML = table.html;
 
   if (pricing) {
-    priceNote.textContent = `Calculated price uses branch defaults only: Cost/Hour + Overhead + Policy Profit from ${branch?.BranchName || 'the saved branch'}. Sales Profit and commission are not included because those values are not stored in the saved job list profile.`;
+    priceNote.textContent = `Calculated price uses branch defaults only: Cost/Hour + Overhead + Policy Profit from ${branch?.BranchName || 'the saved branch'}.`;
   } else {
     priceNote.textContent = 'Calculated price is unavailable because the saved branch rate could not be resolved. The job list remains viewable as read-only.';
   }
