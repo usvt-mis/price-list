@@ -642,6 +642,8 @@ export async function hydrateConfirmNewSerLaborProfile(serviceItemNo, snapshot =
 }
 
 function buildLaborPayload(snapshot, extra = {}) {
+  const payloadJobs = Array.isArray(extra.jobs) ? extra.jobs : modalState.jobs;
+
   return {
     serviceItemDescription: String(extra.description || '').trim() || null,
     workType: snapshot.workType || 'Motor',
@@ -654,7 +656,7 @@ function buildLaborPayload(snapshot, extra = {}) {
     motorTypeId: modalState.resolvedMotorTypeId ? Number(modalState.resolvedMotorTypeId) : null,
     customerNo: String(extra.customerNo || '').trim() || null,
     groupNo: String(extra.groupNo || '').trim() || null,
-    jobs: modalState.jobs.map((job, index) => ({
+    jobs: payloadJobs.map((job, index) => ({
       jobId: Number(job.JobId),
       jobCode: String(job.JobCode || '').trim() || null,
       jobName: String(job.JobName || '').trim(),
@@ -664,6 +666,18 @@ function buildLaborPayload(snapshot, extra = {}) {
       sortOrder: Number.isFinite(Number(job.SortOrder)) ? Number(job.SortOrder) : index + 1
     }))
   };
+}
+
+export function getConfirmNewSerLaborJobsSnapshot() {
+  return modalState.jobs.map((job, index) => ({
+    JobId: Number(job.JobId || 0),
+    JobCode: String(job.JobCode || '').trim(),
+    JobName: String(job.JobName || '').trim(),
+    ManHours: Number.isFinite(Number(job.ManHours)) ? Number(job.ManHours) : 0,
+    effectiveManHours: Number.isFinite(Number(job.effectiveManHours)) ? Number(job.effectiveManHours) : 0,
+    checked: job.checked !== false,
+    SortOrder: Number.isFinite(Number(job.SortOrder)) ? Number(job.SortOrder) : index + 1
+  }));
 }
 
 export async function saveConfirmNewSerLaborProfile(serviceItemNo, snapshot, extra = {}) {
