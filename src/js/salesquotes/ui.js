@@ -1723,6 +1723,18 @@ export function clearQuoteForm() {
 
   // Initialize Flatpickr for date fields
   initDateFields();
+
+  // Re-apply required field empty styling after programmatic reset.
+  // `Start New Quote` clears values directly, so no input/change event fires.
+  setTimeout(() => {
+    ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'salespersonCodeSearch', 'assignedUserIdSearch', 'serviceOrderType', 'division', 'branch'].forEach(updateRequiredAsterisk);
+  }, 0);
+
+  const workDescriptionField = el('quoteWorkDescription');
+  if (workDescriptionField) {
+    workDescriptionField.classList.remove('has-content');
+  }
+
   updateQuoteEditorModeUi();
 }
 

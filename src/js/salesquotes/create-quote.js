@@ -298,9 +298,10 @@ function buildServiceItemDescriptionFromBuilder({ workType, motorKw, motorIsDc, 
       return '';
     }
 
+    const driveType = motorIsDc ? 'DC' : 'AC';
     baseDescription = normalizedDetails
-      ? `Motor ${motorIsDc ? 'DC' : 'AC'} ${normalizedKw} kW ${normalizedDetails}`
-      : `Motor ${motorIsDc ? 'DC' : 'AC'} ${normalizedKw} kW`;
+      ? `${driveType} Motor ${normalizedKw} kW ${normalizedDetails}`
+      : `${driveType} Motor ${normalizedKw} kW`;
   } else {
     baseDescription = normalizedDetails ? `${normalizedWorkType} ${normalizedDetails}` : normalizedWorkType;
   }
@@ -314,14 +315,15 @@ function parseServiceItemDescription(description) {
     return null;
   }
 
-  const motorMatch = normalizedDescription.match(/^Motor\s+(AC|DC)\s+([0-9]+(?:\.[0-9]+)?)\s*kW(?:\s+(.*))?$/i);
+  const motorMatch = normalizedDescription.match(/^(?:(AC|DC)\s+Motor|Motor\s+(AC|DC))\s+([0-9]+(?:\.[0-9]+)?)\s*kW(?:\s+(.*))?$/i);
   if (motorMatch) {
+    const driveType = (motorMatch[1] || motorMatch[2] || '').toUpperCase();
     return {
       serviceType: '',
       workType: 'Motor',
-      motorKw: motorMatch[2],
-      motorIsDc: motorMatch[1].toUpperCase() === 'DC',
-      details: motorMatch[3] || ''
+      motorKw: motorMatch[3],
+      motorIsDc: driveType === 'DC',
+      details: motorMatch[4] || ''
     };
   }
 

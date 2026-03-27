@@ -207,6 +207,78 @@
   min-width: 22rem;
 }
 
+.approval-preview-table td.approval-preview-joblist-cell {
+  white-space: normal;
+  min-width: 18rem;
+}
+
+.approval-preview-joblist {
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 0.85rem;
+  background: rgba(248, 250, 252, 0.8);
+  overflow: hidden;
+}
+
+.approval-preview-joblist summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  padding: 0.65rem 0.8rem;
+  color: rgb(51 65 85);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.approval-preview-joblist summary::-webkit-details-marker {
+  display: none;
+}
+
+.approval-preview-joblist summary::after {
+  content: '+';
+  color: rgb(100 116 139);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.approval-preview-joblist[open] summary::after {
+  content: '-';
+}
+
+.approval-preview-joblist-body {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0 0.8rem 0.8rem;
+}
+
+.approval-preview-joblist-item {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: start;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+}
+
+.approval-preview-joblist-code {
+  font-weight: 700;
+  color: rgb(15 23 42);
+}
+
+.approval-preview-joblist-name {
+  white-space: normal;
+  color: rgb(51 65 85);
+}
+
+.approval-preview-joblist-hours {
+  color: rgb(71 85 105);
+  font-weight: 600;
+}
+
 .approval-preview-print-note {
   padding: 0.8rem 1rem;
   border-bottom: 1px solid rgba(226, 232, 240, 0.95);

@@ -69,6 +69,7 @@ let approvalActionModalConfig = null;
 let approvalActionModalHideTimer = null;
 let pendingApprovalsLoadSequence = 0;
 let myApprovalsLoadSequence = 0;
+const serviceItemLaborPreviewCache = new Map();
 
 function normalizePreviewLineType(value) {
   const normalized = typeof value === 'string' ? value.trim() : '';
@@ -514,7 +515,9 @@ async function fetchWithAuth(url, options = {}) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(error.error || 'Request failed');
+    const requestError = new Error(error.error || 'Request failed');
+    requestError.status = response.status;
+    throw requestError;
   }
 
   return response.json();
@@ -1611,6 +1614,9 @@ async function loadQuoteForPreview(quoteNumber) {
     // Extract quote data from gateway response format (result.data wrapper)
     const quoteData = bcResponseData.data || bcResponseData.result?.data || bcResponseData.result;
 
+    const previewLines = (quoteData.salesQuoteLines || quoteData.lines || []).map(normalizePreviewLine);
+    const serviceItemLaborMap = await loadServiceItemLaborPreviewMap(previewLines);
+
     // Fetch Sales Director signature if approved
     let directorSignature = null;
     if (approval.approvalStatus === APPROVAL_STATUS.APPROVED) {
@@ -1619,7 +1625,7 @@ async function loadQuoteForPreview(quoteNumber) {
     }
 
     // Render preview
-    renderQuotePreview(previewContainer, quoteData, approval, directorSignature);
+    renderQuotePreview(previewContainer, quoteData, approval, directorSignature, serviceItemLaborMap, previewLines);
 
     // Render action buttons based on status
     renderActionButtons(actionsContainer, approval);
@@ -1638,8 +1644,10 @@ async function loadQuoteForPreview(quoteNumber) {
 /**
  * Render quote preview content
  */
-function renderQuotePreview(container, quoteData, approval, directorSignature) {
-  const lines = (quoteData.salesQuoteLines || quoteData.lines || []).map(normalizePreviewLine);
+function renderQuotePreview(container, quoteData, approval, directorSignature, serviceItemLaborMap = {}, normalizedLines = null) {
+  const lines = Array.isArray(normalizedLines)
+    ? normalizedLines
+    : (quoteData.salesQuoteLines || quoteData.lines || []).map(normalizePreviewLine);
   const statusPresentation = getApprovalStatusPresentation(approval);
   const pendingRevisionRequest = hasPendingRevisionRequest(approval);
   const quoteNumber = pickPreviewValue(quoteData, ['number', 'quoteNumber', 'salesQuoteNumber', 'No_', 'DocNo_SaleHeader'], approval.salesQuoteNumber || currentPreviewQuoteNumber || 'N/A');
@@ -1794,6 +1802,7 @@ function renderQuotePreview(container, quoteData, approval, directorSignature) {
                 <th class="px-3 py-3 text-right font-medium">Disc Amt</th>
                 <th class="px-3 py-3 text-right font-medium">Line Total</th>
                 <th class="px-3 py-3 text-left font-medium">Service Item</th>
+                <th class="px-3 py-3 text-left font-medium">Joblist</th>
                 <th class="px-3 py-3 text-left font-medium">Service Status</th>
                 <th class="px-3 py-3 text-left font-medium">Ref. SV No.</th>
                 <th class="px-3 py-3 text-left font-medium">Print Flags</th>
@@ -1814,6 +1823,7 @@ function renderQuotePreview(container, quoteData, approval, directorSignature) {
                   <td class="px-3 py-3 text-right">${formatPreviewMoney(line.discountAmount)}</td>
                   <td class="px-3 py-3 text-right font-medium">${formatPreviewMoney(line.lineTotal)}</td>
                   <td class="px-3 py-3">${escapeHtml(line.serviceItemNo)}</td>
+                  <td class="px-3 py-3 approval-preview-joblist-cell">${renderPreviewJoblist(line, serviceItemLaborMap)}</td>
                   <td class="px-3 py-3">${escapeHtml(line.serviceStatus)}</td>
                   <td class="px-3 py-3">${escapeHtml(line.refServiceOrderNo)}</td>
                   <td class="px-3 py-3">${renderPreviewFlags(line)}</td>
@@ -1892,6 +1902,103 @@ function renderPreviewFlags(line) {
   return flags.length
     ? `<div class="flex flex-wrap gap-1">${flags.join('')}</div>`
     : '<span class="text-slate-400">-</span>';
+}
+
+async function loadServiceItemLaborPreviewMap(lines = []) {
+  const serviceItemNos = Array.from(new Set(
+    lines
+      .map((line) => String(line?.serviceItemNo || '').trim())
+      .filter((serviceItemNo) => serviceItemNo && serviceItemNo !== '-')
+  ));
+
+  if (serviceItemNos.length === 0) {
+    return {};
+  }
+
+  const entries = await Promise.all(serviceItemNos.map(async (serviceItemNo) => {
+    const cached = serviceItemLaborPreviewCache.get(serviceItemNo);
+    if (cached) {
+      return [serviceItemNo, cached];
+    }
+
+    try {
+      const response = await fetchWithAuth(`/api/salesquotes/service-item-labor/${encodeURIComponent(serviceItemNo)}`);
+      const payload = normalizeServiceItemLaborPreviewResponse(response?.profile);
+      serviceItemLaborPreviewCache.set(serviceItemNo, payload);
+      return [serviceItemNo, payload];
+    } catch (error) {
+      const fallback = {
+        status: error?.status === 404 ? 'not-found' : 'error',
+        jobs: [],
+        message: error?.status === 404
+          ? 'No joblist saved'
+          : 'Unable to load'
+      };
+      serviceItemLaborPreviewCache.set(serviceItemNo, fallback);
+      return [serviceItemNo, fallback];
+    }
+  }));
+
+  return Object.fromEntries(entries);
+}
+
+function normalizeServiceItemLaborPreviewResponse(profile) {
+  const jobs = Array.isArray(profile?.jobs)
+    ? profile.jobs
+      .filter((job) => job?.isChecked !== false)
+      .map((job) => ({
+        jobCode: String(job?.jobCode || '').trim(),
+        jobName: String(job?.jobName || '').trim() || '-',
+        effectiveManHours: toPreviewNumber(job?.effectiveManHours)
+      }))
+    : [];
+
+  return {
+    status: 'loaded',
+    jobs
+  };
+}
+
+function renderPreviewJoblist(line, serviceItemLaborMap = {}) {
+  const serviceItemNo = String(line?.serviceItemNo || '').trim();
+  if (!serviceItemNo || serviceItemNo === '-') {
+    return '<span class="text-slate-400">-</span>';
+  }
+
+  const preview = serviceItemLaborMap?.[serviceItemNo];
+  if (!preview) {
+    return '<span class="text-slate-400">-</span>';
+  }
+
+  if (preview.status === 'not-found') {
+    return '<span class="text-slate-400">No joblist saved</span>';
+  }
+
+  if (preview.status === 'error') {
+    return '<span class="text-amber-700">Unable to load</span>';
+  }
+
+  if (!Array.isArray(preview.jobs) || preview.jobs.length === 0) {
+    return '<span class="text-slate-400">No selected jobs</span>';
+  }
+
+  const totalHours = preview.jobs.reduce((sum, job) => sum + toPreviewNumber(job.effectiveManHours), 0);
+  const summary = `${formatPreviewNumber(preview.jobs.length, 0)} job${preview.jobs.length === 1 ? '' : 's'} • ${formatPreviewNumber(totalHours, Number.isInteger(totalHours) ? 0 : 2)} MH`;
+
+  return `
+    <details class="approval-preview-joblist">
+      <summary>${escapeHtml(summary)}</summary>
+      <div class="approval-preview-joblist-body">
+        ${preview.jobs.map((job) => `
+          <div class="approval-preview-joblist-item">
+            <span class="approval-preview-joblist-code">${escapeHtml(job.jobCode || '-')}</span>
+            <span class="approval-preview-joblist-name">${escapeHtml(job.jobName)}</span>
+            <span class="approval-preview-joblist-hours">${formatPreviewNumber(job.effectiveManHours, Number.isInteger(job.effectiveManHours) ? 0 : 2)} MH</span>
+          </div>
+        `).join('')}
+      </div>
+    </details>
+  `;
 }
 
 /**
