@@ -507,15 +507,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.6rem;
   cursor: pointer;
   list-style: none;
-  padding: 0.8rem 1rem;
-  font-size: 0.82rem;
+  padding: 0.58rem 1rem;
+  font-size: 0.76rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgb(71 85 105);
+  line-height: 1.2;
 }
 
 .approval-preview-collapsible summary::-webkit-details-marker {
@@ -524,7 +525,7 @@
 
 .approval-preview-collapsible summary::after {
   content: '+';
-  font-size: 1rem;
+  font-size: 0.92rem;
   line-height: 1;
   color: rgb(100 116 139);
 }
