@@ -1830,20 +1830,20 @@ function renderQuotePreview(container, quoteData, approval, directorSignature, s
               <p class="mt-3 text-sm leading-6 text-slate-600">${escapeHtml(addressParts.join(', '))}</p>
             ` : ''}
           </div>
-          <div class="grid min-w-[260px] grid-cols-2 gap-x-5 gap-y-2 text-sm">
-            <div>
+          <div class="approval-preview-summary-strip text-sm">
+            <div class="approval-preview-summary-item">
               <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Total</p>
               <p class="text-lg font-semibold text-slate-900">${formatPreviewMoney(total)}</p>
             </div>
-            <div>
+            <div class="approval-preview-summary-item">
               <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Subtotal</p>
               <p class="text-base font-semibold text-slate-900">${formatPreviewMoney(subtotal)}</p>
             </div>
-            <div>
+            <div class="approval-preview-summary-item">
               <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Lines</p>
               <p class="text-base font-semibold text-slate-900">${formatPreviewNumber(lines.length, 0)}</p>
             </div>
-            <div>
+            <div class="approval-preview-summary-item">
               <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Service Items</p>
               <p class="text-base font-semibold text-slate-900">${formatPreviewNumber(serviceItemCount, 0)}</p>
             </div>
