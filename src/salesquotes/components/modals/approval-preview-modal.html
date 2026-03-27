@@ -10,12 +10,23 @@
   <div class="approval-preview-frame flex min-h-screen items-stretch justify-stretch p-0">
     <div class="salesquotes-modal-shell sq-modal-panel approval-preview-panel flex w-full max-w-full flex-col rounded-none border-0 shadow-none" style="height: calc(100vh - 1.5rem); max-height: calc(100vh - 1.5rem);">
       <!-- Modal Header -->
-      <div class="sq-modal-header approval-preview-header flex items-center justify-between gap-4">
-        <div>
-          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Approval Preview</p>
-          <h2 id="approvalPreviewTitle" class="text-base font-semibold text-slate-900">
-            Sales Quote
-          </h2>
+      <div class="sq-modal-header approval-preview-header flex items-start justify-between gap-4">
+        <div class="approval-preview-header-main">
+          <div class="approval-preview-header-copy">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Approval Preview</p>
+            <h2 id="approvalPreviewTitle" class="text-base font-semibold text-slate-900">
+              Sales Quote Approval
+            </h2>
+            <p id="approvalPreviewSubtitle" class="mt-1 text-sm text-slate-600">
+              Review layout aligned closer to the print version
+            </p>
+          </div>
+          <div id="approvalPreviewHeaderMeta" class="approval-preview-header-meta" aria-live="polite">
+            <div class="approval-preview-header-status">
+              <span class="approval-preview-header-status-label">Status</span>
+              <span class="approval-preview-header-status-badge bg-slate-100 text-slate-600">Loading...</span>
+            </div>
+          </div>
         </div>
         <button
           type="button"

@@ -1692,6 +1692,12 @@ async function loadQuoteForPreview(quoteNumber) {
 
   if (!previewContainer) return;
 
+  renderApprovalPreviewHeader({
+    title: 'Sales Quote Approval',
+    subtitle: 'Review layout aligned closer to the print version',
+    statusLabel: 'Loading...'
+  });
+
   previewContainer.innerHTML = `
     <div class="sq-inline-loading flex items-center justify-center py-12">
       <div class="spinner sq-spinner"></div>
@@ -1731,6 +1737,12 @@ async function loadQuoteForPreview(quoteNumber) {
 
   } catch (error) {
     console.error('Failed to load quote for preview:', error);
+    renderApprovalPreviewHeader({
+      title: 'Sales Quote Approval',
+      subtitle: 'Review layout aligned closer to the print version',
+      statusLabel: 'Unavailable',
+      statusBadgeClass: 'bg-red-50 text-red-600'
+    });
     previewContainer.innerHTML = `
       <div class="text-center py-12 text-red-500">
         Failed to load quote preview: ${error.message}
@@ -1792,22 +1804,16 @@ function renderQuotePreview(container, quoteData, approval, directorSignature, s
   const serviceItemCount = lines.filter(line => line.serviceItemNo !== '-').length;
   const approverName = approval.salesDirectorName || pickPreviewValue(quoteData, ['approveUserName', 'ApproveUser_Name'], '-');
 
+  renderApprovalPreviewHeader({
+    title: 'Sales Quote Approval',
+    subtitle: 'Review layout aligned closer to the print version',
+    statusLabel: statusPresentation.label,
+    statusBadgeClass: statusPresentation.badgeClass
+  });
+
   container.innerHTML = `
     <div class="h-full min-h-0">
       <section class="approval-preview-sheet flex h-full min-h-0 flex-col">
-        <div class="approval-preview-sheet-bar flex items-center justify-between gap-3">
-          <div>
-            <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Sales Quote Approval</p>
-            <p class="mt-1 text-sm text-slate-600">Review layout aligned closer to the print version</p>
-          </div>
-          <div class="text-right">
-            <p class="text-xs uppercase tracking-[0.08em] text-slate-500">Status</p>
-            <span class="mt-1 inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${statusPresentation.badgeClass}">
-              ${statusPresentation.label}
-            </span>
-          </div>
-        </div>
-
         <div class="approval-preview-hero">
           <div>
             <div class="flex flex-wrap items-center gap-3">
@@ -1983,6 +1989,37 @@ function renderApprovalMetaItem(label, value) {
       <span class="approval-preview-meta-value">${value || '-'}</span>
     </div>
   `;
+}
+
+function renderApprovalPreviewHeader({
+  title = 'Sales Quote Approval',
+  subtitle = '',
+  statusLabel = '-',
+  statusBadgeClass = 'bg-slate-100 text-slate-600'
+} = {}) {
+  const titleEl = el('approvalPreviewTitle');
+  const subtitleEl = el('approvalPreviewSubtitle');
+  const metaEl = el('approvalPreviewHeaderMeta');
+
+  if (titleEl) {
+    titleEl.textContent = title;
+  }
+
+  if (subtitleEl) {
+    subtitleEl.textContent = subtitle;
+    subtitleEl.classList.toggle('hidden', !subtitle);
+  }
+
+  if (metaEl) {
+    metaEl.innerHTML = `
+      <div class="approval-preview-header-status">
+        <span class="approval-preview-header-status-label">Status</span>
+        <span class="approval-preview-header-status-badge ${statusBadgeClass}">
+          ${escapeHtml(statusLabel)}
+        </span>
+      </div>
+    `;
+  }
 }
 
 function renderPreviewFlags(line) {
