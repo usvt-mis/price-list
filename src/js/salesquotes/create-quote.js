@@ -2370,7 +2370,7 @@ async function showConfirmNewSerModal() {
 /**
  * Hide confirmation modal for New SER creation
  */
-function hideConfirmNewSerModal() {
+function hideConfirmNewSerModal({ resetFormState = true } = {}) {
   const modal = el('confirmNewSerModal');
   const modalContent = el('confirmNewSerModalContent');
 
@@ -2379,11 +2379,13 @@ function hideConfirmNewSerModal() {
     modalContent.style.transform = 'translateY(-10px)';
     setTimeout(() => {
       modal.classList.add('hidden');
-      resetServiceItemBuilder('confirm');
-      resetConfirmNewSerLaborProfile();
       state.ui.pendingSerCreation = false;
       state.ui.pendingSerCreationEdit = false;
       state.ui.editingExistingSerProfile = false;
+      if (resetFormState) {
+        resetServiceItemBuilder('confirm');
+        resetConfirmNewSerLaborProfile();
+      }
       updateConfirmNewSerPrimaryActionLabel();
     }, 300);
   }
@@ -2488,24 +2490,48 @@ function cancelNewSerCreation() {
  * Confirm and proceed with New SER creation
  * Handles both Add Line and Edit Line contexts
  */
-function confirmNewSerCreation() {
+async function confirmNewSerCreation() {
   const shouldUseEditFlow = state.ui.pendingSerCreationEdit;
   const isEditingExistingSerProfile = state.ui.editingExistingSerProfile;
   const confirmSnapshot = getConfirmNewSerSnapshot();
-  hideConfirmNewSerModal();
-  // Proceed with the actual creation after modal closes
-  setTimeout(() => {
-    // Check which context we're in (Add or Edit)
+
+  await syncConfirmNewSerLaborProfile(confirmSnapshot, { forceReload: true });
+
+  const builderValidation = !confirmSnapshot.workType
+    ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
+    : (confirmSnapshot.workType === 'Motor' && !formatMotorKwValue(confirmSnapshot.motorKw || '')
+      ? { message: 'Please enter the motor kW before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
+      : (confirmSnapshot.workType === 'Motor' && !isMotorKwWithinLimit(confirmSnapshot.motorKw || '')
+        ? { message: 'Motor kW must not exceed 315.00.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
+        : null));
+  const laborValidation = getConfirmNewSerLaborValidation(confirmSnapshot);
+  const validationError = builderValidation || laborValidation;
+  if (validationError) {
+    showError(validationError.message);
+    validationError.focusField?.focus?.();
+    validationError.focusElement?.focus?.();
+    return;
+  }
+
+  hideConfirmNewSerModal({ resetFormState: false });
+
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
     if (shouldUseEditFlow) {
       if (isEditingExistingSerProfile) {
-        saveExistingServiceItemLaborProfile(confirmSnapshot);
+        await saveExistingServiceItemLaborProfile(confirmSnapshot);
         return;
       }
-      createServiceItemAndLockFieldsForEdit(confirmSnapshot);
-    } else {
-      createServiceItemAndLockFields(confirmSnapshot);
+      await createServiceItemAndLockFieldsForEdit(confirmSnapshot);
+      return;
     }
-  }, 350); // Wait for modal animation to complete
+
+    await createServiceItemAndLockFields(confirmSnapshot);
+  } finally {
+    resetServiceItemBuilder('confirm');
+    resetConfirmNewSerLaborProfile();
+  }
 }
 
 async function saveExistingServiceItemLaborProfile(confirmSnapshot = null) {

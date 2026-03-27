@@ -70,6 +70,8 @@ let approvalActionModalHideTimer = null;
 let pendingApprovalsLoadSequence = 0;
 let myApprovalsLoadSequence = 0;
 const serviceItemLaborPreviewCache = new Map();
+let branchPreviewCache = null;
+let branchPreviewCachePromise = null;
 
 function normalizePreviewLineType(value) {
   const normalized = typeof value === 'string' ? value.trim() : '';
@@ -379,6 +381,103 @@ async function ensureApprovalActionModal() {
 
   bindApprovalActionModalEvents();
   return modal !== null;
+}
+
+function getApprovalJobListModalElements() {
+  return {
+    modal: el('approvalJobListModal'),
+    modalContent: el('approvalJobListModalContent'),
+    status: el('approvalJobListModalStatus'),
+    title: el('approvalJobListModalTitle'),
+    text: el('approvalJobListModalText'),
+    contextValue: el('approvalJobListModalContextValue'),
+    contextMeta: el('approvalJobListModalContextMeta'),
+    summary: el('approvalJobListModalSummary'),
+    priceNote: el('approvalJobListModalPriceNote'),
+    tableBody: el('approvalJobListModalTableBody'),
+    closeBtn: el('approvalJobListModalCloseBtn')
+  };
+}
+
+function closeApprovalJobListModal() {
+  const { modal, modalContent } = getApprovalJobListModalElements();
+  if (!modal || modal.classList.contains('hidden')) {
+    return;
+  }
+
+  if (modalContent) {
+    modalContent.style.opacity = '0';
+    modalContent.style.transform = 'translateY(-10px)';
+  }
+
+  window.setTimeout(() => {
+    modal.classList.add('hidden');
+  }, 180);
+}
+
+function bindApprovalJobListModalEvents() {
+  const { modal, closeBtn } = getApprovalJobListModalElements();
+
+  if (!modal || modal.dataset.bound === 'true') {
+    return;
+  }
+
+  closeBtn?.addEventListener('click', closeApprovalJobListModal);
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      closeApprovalJobListModal();
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+      closeApprovalJobListModal();
+    }
+  });
+
+  modal.dataset.bound = 'true';
+}
+
+async function ensureApprovalJobListModal() {
+  let modal = el('approvalJobListModal');
+
+  if (!modal) {
+    try {
+      const loaded = await loadModal('approvalJobListModal');
+      if (!loaded) {
+        throw new Error('Modal could not be loaded');
+      }
+      modal = el('approvalJobListModal');
+    } catch (error) {
+      console.error('Failed to load approval job list modal:', error);
+      showToast('Failed to open job list. Please try again.', 'error');
+      return false;
+    }
+  }
+
+  bindApprovalJobListModalEvents();
+  return modal !== null;
+}
+
+async function loadBranchPreviewMap() {
+  if (branchPreviewCache) {
+    return branchPreviewCache;
+  }
+
+  if (!branchPreviewCachePromise) {
+    branchPreviewCachePromise = fetchWithAuth('/api/branches')
+      .then((branches) => {
+        const normalizedBranches = Array.isArray(branches) ? branches : [];
+        branchPreviewCache = Object.fromEntries(
+          normalizedBranches.map((branch) => [String(branch.BranchId), branch])
+        );
+        return branchPreviewCache;
+      })
+      .finally(() => {
+        branchPreviewCachePromise = null;
+      });
+  }
+
+  return branchPreviewCachePromise;
 }
 
 export async function showApprovalActionModal(options = {}) {
@@ -1626,6 +1725,7 @@ async function loadQuoteForPreview(quoteNumber) {
 
     // Render preview
     renderQuotePreview(previewContainer, quoteData, approval, directorSignature, serviceItemLaborMap, previewLines);
+    bindApprovalPreviewJobListTriggers(previewContainer, serviceItemLaborMap);
 
     // Render action buttons based on status
     renderActionButtons(actionsContainer, approval);
@@ -1955,6 +2055,16 @@ function normalizeServiceItemLaborPreviewResponse(profile) {
 
   return {
     status: 'loaded',
+    serviceItemDescription: String(profile?.serviceItemDescription || '').trim(),
+    branchId: profile?.branchId === null || profile?.branchId === undefined
+      ? null
+      : Number(profile.branchId),
+    workType: String(profile?.workType || '').trim(),
+    serviceType: String(profile?.serviceType || '').trim(),
+    motorKw: profile?.motorKw === null || profile?.motorKw === undefined
+      ? null
+      : Number(profile.motorKw),
+    motorDriveType: String(profile?.motorDriveType || '').trim(),
     jobs
   };
 }
@@ -1982,23 +2092,250 @@ function renderPreviewJoblist(line, serviceItemLaborMap = {}) {
     return '<span class="text-slate-400">No selected jobs</span>';
   }
 
-  const totalHours = preview.jobs.reduce((sum, job) => sum + toPreviewNumber(job.effectiveManHours), 0);
-  const summary = `${formatPreviewNumber(preview.jobs.length, 0)} job${preview.jobs.length === 1 ? '' : 's'} • ${formatPreviewNumber(totalHours, Number.isInteger(totalHours) ? 0 : 2)} MH`;
+  const summary = getPreviewJoblistSummary(preview);
 
   return `
-    <details class="approval-preview-joblist">
-      <summary>${escapeHtml(summary)}</summary>
-      <div class="approval-preview-joblist-body">
-        ${preview.jobs.map((job) => `
-          <div class="approval-preview-joblist-item">
-            <span class="approval-preview-joblist-code">${escapeHtml(job.jobCode || '-')}</span>
-            <span class="approval-preview-joblist-name">${escapeHtml(job.jobName)}</span>
-            <span class="approval-preview-joblist-hours">${formatPreviewNumber(job.effectiveManHours, Number.isInteger(job.effectiveManHours) ? 0 : 2)} MH</span>
-          </div>
-        `).join('')}
-      </div>
-    </details>
+    <button
+      type="button"
+      class="approval-preview-joblist-trigger"
+      data-action="open-approval-joblist"
+      data-service-item-no="${escapeHtml(serviceItemNo)}"
+    >
+      Show Jobs
+    </button>
+    <p class="approval-preview-joblist-trigger-meta">${escapeHtml(summary)}</p>
   `;
+}
+
+function getPreviewJoblistSummary(preview) {
+  const totalHours = Array.isArray(preview?.jobs)
+    ? preview.jobs.reduce((sum, job) => sum + toPreviewNumber(job.effectiveManHours), 0)
+    : 0;
+  const totalJobs = Array.isArray(preview?.jobs) ? preview.jobs.length : 0;
+
+  return `${formatPreviewNumber(totalJobs, 0)} job${totalJobs === 1 ? '' : 's'} • ${formatPreviewNumber(totalHours, Number.isInteger(totalHours) ? 0 : 2)} MH`;
+}
+
+function getPreviewBranchPricing(branch) {
+  if (!branch) {
+    return null;
+  }
+
+  const costPerHour = toPreviewNumber(branch.CostPerHour, NaN);
+  const overheadPercent = toPreviewNumber(branch.OverheadPercent, 0);
+  const policyProfitPercent = toPreviewNumber(branch.PolicyProfit, 0);
+
+  if (!Number.isFinite(costPerHour)) {
+    return null;
+  }
+
+  return {
+    branch,
+    costPerHour,
+    overheadPercent,
+    policyProfitPercent,
+    branchMultiplier: (1 + (overheadPercent / 100)) * (1 + (policyProfitPercent / 100))
+  };
+}
+
+function getPreviewJobPricing(job, pricing) {
+  const effectiveManHours = toPreviewNumber(job?.effectiveManHours, 0);
+  const rawCost = pricing && Number.isFinite(pricing.costPerHour)
+    ? effectiveManHours * pricing.costPerHour
+    : NaN;
+  const calculatedPrice = pricing && Number.isFinite(rawCost)
+    ? rawCost * pricing.branchMultiplier
+    : NaN;
+
+  return {
+    effectiveManHours,
+    rawCost,
+    calculatedPrice
+  };
+}
+
+function formatPreviewMoneyOrDash(value) {
+  return Number.isFinite(value) ? formatPreviewMoney(value) : '-';
+}
+
+function renderApprovalJobListSummary(preview, pricing, totals) {
+  const branchName = pricing?.branch?.BranchName
+    ? String(pricing.branch.BranchName).trim()
+    : 'Branch not available';
+  const priceValue = Number.isFinite(totals.calculatedPrice)
+    ? formatPreviewMoney(totals.calculatedPrice)
+    : '-';
+
+  return `
+    <div class="approval-job-list-summary-card">
+      <span class="approval-job-list-summary-label">Selected Jobs</span>
+      <span class="approval-job-list-summary-value">${formatPreviewNumber(preview.jobs.length, 0)}</span>
+    </div>
+    <div class="approval-job-list-summary-card">
+      <span class="approval-job-list-summary-label">Total MH</span>
+      <span class="approval-job-list-summary-value">${formatPreviewNumber(totals.hours, Number.isInteger(totals.hours) ? 0 : 2)}</span>
+    </div>
+    <div class="approval-job-list-summary-card">
+      <span class="approval-job-list-summary-label">Branch</span>
+      <span class="approval-job-list-summary-value">${escapeHtml(branchName)}</span>
+    </div>
+    <div class="approval-job-list-summary-card">
+      <span class="approval-job-list-summary-label">Calc Price</span>
+      <span class="approval-job-list-summary-value">${priceValue}</span>
+    </div>
+  `;
+}
+
+function renderApprovalJobListTable(preview, pricing) {
+  const jobRows = preview.jobs.map((job) => {
+    const totals = getPreviewJobPricing(job, pricing);
+
+    return `
+      <tr>
+        <td>
+          <div class="approval-job-list-job">
+            <span class="approval-job-list-job-code">${escapeHtml(job.jobCode || '-')}</span>
+            <span class="approval-job-list-job-name">${escapeHtml(job.jobName || '-')}</span>
+          </div>
+        </td>
+        <td class="text-right">${formatPreviewNumber(totals.effectiveManHours, Number.isInteger(totals.effectiveManHours) ? 0 : 2)}</td>
+        <td class="text-right">${formatPreviewMoneyOrDash(pricing?.costPerHour)}</td>
+        <td class="text-right">${formatPreviewMoneyOrDash(totals.rawCost)}</td>
+        <td class="text-right">${formatPreviewMoneyOrDash(totals.calculatedPrice)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const totals = preview.jobs.reduce((sum, job) => {
+    const pricingRow = getPreviewJobPricing(job, pricing);
+
+    return {
+      hours: sum.hours + pricingRow.effectiveManHours,
+      rawCost: sum.rawCost + (Number.isFinite(pricingRow.rawCost) ? pricingRow.rawCost : 0),
+      calculatedPrice: sum.calculatedPrice + (Number.isFinite(pricingRow.calculatedPrice) ? pricingRow.calculatedPrice : 0)
+    };
+  }, {
+    hours: 0,
+    rawCost: 0,
+    calculatedPrice: 0
+  });
+
+  return {
+    html: `
+      ${jobRows}
+      <tr class="approval-job-list-total-row">
+        <td>Total</td>
+        <td class="text-right">${formatPreviewNumber(totals.hours, Number.isInteger(totals.hours) ? 0 : 2)}</td>
+        <td class="text-right">${formatPreviewMoneyOrDash(pricing?.costPerHour)}</td>
+        <td class="text-right">${formatPreviewMoneyOrDash(pricing ? totals.rawCost : NaN)}</td>
+        <td class="text-right">${formatPreviewMoneyOrDash(pricing ? totals.calculatedPrice : NaN)}</td>
+      </tr>
+    `,
+    totals: {
+      hours: totals.hours,
+      rawCost: pricing ? totals.rawCost : NaN,
+      calculatedPrice: pricing ? totals.calculatedPrice : NaN
+    }
+  };
+}
+
+async function showApprovalJobListModal(serviceItemNo, preview) {
+  const ready = await ensureApprovalJobListModal();
+  if (!ready) {
+    return;
+  }
+
+  const {
+    modal,
+    modalContent,
+    status,
+    title,
+    text,
+    contextValue,
+    contextMeta,
+    summary,
+    priceNote,
+    tableBody
+  } = getApprovalJobListModalElements();
+
+  if (!modal || !modalContent || !status || !title || !text || !contextValue || !contextMeta || !summary || !priceNote || !tableBody) {
+    showToast('Job list dialog is unavailable. Please refresh the page.', 'error');
+    return;
+  }
+
+  const branchMap = await loadBranchPreviewMap().catch((error) => {
+    console.warn('Failed to load branch pricing for approval job list:', error);
+    return {};
+  });
+  const branch = preview?.branchId ? branchMap?.[String(preview.branchId)] : null;
+  const pricing = getPreviewBranchPricing(branch);
+  const table = renderApprovalJobListTable(preview, pricing);
+
+  status.textContent = 'Job List';
+  title.textContent = `Service Item ${serviceItemNo}`;
+  text.textContent = 'Read-only workshop job list saved with this Service Item.';
+  contextValue.textContent = preview.serviceItemDescription || serviceItemNo;
+
+  const metaParts = [
+    preview.workType ? `Work Type: ${preview.workType}` : '',
+    preview.serviceType ? `Service Type: ${preview.serviceType}` : '',
+    Number.isFinite(preview.motorKw) ? `Motor kW: ${formatPreviewNumber(preview.motorKw, preview.motorKw % 1 === 0 ? 0 : 2)}` : '',
+    preview.motorDriveType ? `Drive: ${preview.motorDriveType}` : '',
+    branch?.BranchName ? `Branch: ${branch.BranchName}` : ''
+  ].filter(Boolean);
+
+  contextMeta.textContent = metaParts.join(' • ');
+  contextMeta.classList.toggle('hidden', metaParts.length === 0);
+  summary.innerHTML = renderApprovalJobListSummary(preview, pricing, table.totals);
+  tableBody.innerHTML = table.html;
+
+  if (pricing) {
+    priceNote.textContent = `Calculated price uses branch defaults only: Cost/Hour + Overhead + Policy Profit from ${branch?.BranchName || 'the saved branch'}. Sales Profit and commission are not included because those values are not stored in the saved job list profile.`;
+  } else {
+    priceNote.textContent = 'Calculated price is unavailable because the saved branch rate could not be resolved. The job list remains viewable as read-only.';
+  }
+  priceNote.classList.remove('hidden');
+
+  const modalHost = getApprovalActionModalHost();
+  if (modalHost) {
+    modalHost.appendChild(modal);
+  }
+
+  modal.style.zIndex = '170';
+  modal.classList.remove('hidden');
+  modalContent.style.opacity = '0';
+  modalContent.style.transform = 'translateY(-10px)';
+
+  window.requestAnimationFrame(() => {
+    modalContent.style.opacity = '1';
+    modalContent.style.transform = 'translateY(0)';
+  });
+}
+
+function bindApprovalPreviewJobListTriggers(container, serviceItemLaborMap = {}) {
+  if (!container) {
+    return;
+  }
+
+  container.querySelectorAll('[data-action="open-approval-joblist"]').forEach((button) => {
+    if (button.dataset.bound === 'true') {
+      return;
+    }
+
+    button.addEventListener('click', async () => {
+      const serviceItemNo = String(button.dataset.serviceItemNo || '').trim();
+      const preview = serviceItemLaborMap?.[serviceItemNo];
+
+      if (!serviceItemNo || !preview || preview.status !== 'loaded' || !Array.isArray(preview.jobs) || preview.jobs.length === 0) {
+        showToast('No saved jobs are available for this Service Item.', 'error');
+        return;
+      }
+
+      await showApprovalJobListModal(serviceItemNo, preview);
+    });
+
+    button.dataset.bound = 'true';
+  });
 }
 
 /**

@@ -19,7 +19,8 @@ const modalPaths = {
   'confirmNewSerModal': '/salesquotes/components/modals/confirm-new-ser-modal.html',
   'noBranchModal': '/salesquotes/components/modals/no-branch-modal.html',
   'branchMismatchModal': '/salesquotes/components/modals/branch-mismatch-modal.html',
-  'approvalActionModal': '/salesquotes/components/modals/approval-action-modal.html'
+  'approvalActionModal': '/salesquotes/components/modals/approval-action-modal.html',
+  'approvalJobListModal': '/salesquotes/components/modals/approval-job-list-modal.html'
 };
 
 /**

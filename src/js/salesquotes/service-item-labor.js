@@ -38,16 +38,42 @@ function normalizeDriveType(value) {
 }
 
 function parseMotorTypeRange(value) {
-  const normalized = String(value || '').trim();
-  const rangeMatch = normalized.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+  const normalized = String(value || '')
+    .replace(/[–—−]/g, '-')
+    .trim();
+  const rangeMatch = normalized.match(/(\d+(?:\.\d+)?)\s*(?:k\s*w)?\s*-\s*(\d+(?:\.\d+)?)\s*(?:k\s*w)?/i);
   if (rangeMatch) {
+    const min = Number(rangeMatch[1]);
+    const max = Number(rangeMatch[2]);
     return {
-      min: Number(rangeMatch[1]),
-      max: Number(rangeMatch[2])
+      min: Math.min(min, max),
+      max: Math.max(min, max)
     };
   }
 
-  const singleMatch = normalized.match(/^(\d+(?:\.\d+)?)/);
+  const kwTaggedNumbers = Array.from(normalized.matchAll(/(\d+(?:\.\d+)?)\s*k\s*w/gi))
+    .map((match) => Number(match[1]))
+    .filter((numeric) => Number.isFinite(numeric));
+
+  if (kwTaggedNumbers.length >= 2) {
+    return {
+      min: Math.min(kwTaggedNumbers[0], kwTaggedNumbers[1]),
+      max: Math.max(kwTaggedNumbers[0], kwTaggedNumbers[1])
+    };
+  }
+
+  const numericTokens = Array.from(normalized.matchAll(/\d+(?:\.\d+)?/g))
+    .map((match) => Number(match[0]))
+    .filter((numeric) => Number.isFinite(numeric));
+
+  if (numericTokens.length >= 2) {
+    return {
+      min: Math.min(numericTokens[0], numericTokens[1]),
+      max: Math.max(numericTokens[0], numericTokens[1])
+    };
+  }
+
+  const singleMatch = normalized.match(/(\d+(?:\.\d+)?)/);
   if (singleMatch) {
     const numeric = Number(singleMatch[1]);
     return {
