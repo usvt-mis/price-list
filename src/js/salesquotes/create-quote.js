@@ -2576,7 +2576,7 @@ async function saveExistingServiceItemLaborProfile(confirmSnapshot = null, labor
     laborProfileSaved = true;
 
     if (hasDescriptionChanged) {
-      await updateServiceItemDescription(serviceItemNo, serviceItemDesc);
+      await updateServiceItemDescription(serviceItemNo, serviceItemDesc, customerNo);
     }
 
     if (confirmModal) {
@@ -2587,9 +2587,15 @@ async function saveExistingServiceItemLaborProfile(confirmSnapshot = null, labor
   } catch (error) {
     console.error('Failed to save existing Service Item labor profile:', error);
     if (laborProfileSaved && hasDescriptionChanged) {
-      showError(error.message || 'Workshop job list was saved, but updating the Service Item description failed. Please try again.');
+      showError(
+        getFriendlyServiceItemUpdateErrorMessage(error, { laborProfileSaved: true })
+        || 'Workshop job list was saved, but updating the Service Item description failed. Please try again.'
+      );
     } else {
-      showError(error.message || 'Failed to save workshop job list. Please try again.');
+      showError(
+        getFriendlyServiceItemUpdateErrorMessage(error, { laborProfileSaved: false })
+        || 'Failed to save workshop job list. Please try again.'
+      );
     }
   } finally {
     updateNewSerButtonStateForEditModal(state.ui.editingLineId);
@@ -3337,10 +3343,11 @@ async function createServiceItem(description, customerNo, groupNo, serviceType =
   }
 }
 
-async function updateServiceItemDescription(serviceItemNo, description) {
+async function updateServiceItemDescription(serviceItemNo, description, customerNo = '') {
   const API_URL = GATEWAY_API.UPDATE_SERVICE_ITEM;
   const normalizedServiceItemNo = String(serviceItemNo || '').trim();
   const normalizedDescription = String(description || '').trim();
+  const normalizedCustomerNo = String(customerNo || '').trim();
 
   if (!normalizedServiceItemNo) {
     throw new Error('Service Item No is required to update a Service Item');
@@ -3352,7 +3359,8 @@ async function updateServiceItemDescription(serviceItemNo, description) {
 
   const requestBody = {
     serviceItemNo: normalizedServiceItemNo,
-    description: normalizedDescription
+    description: normalizedDescription,
+    customerNo: normalizedCustomerNo
   };
 
   console.log('Updating Service Item with payload:', JSON.stringify(requestBody, null, 2));
@@ -3368,7 +3376,9 @@ async function updateServiceItemDescription(serviceItemNo, description) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`API Error ${response.status}: ${errorText}`);
+      const error = new Error(`API Error ${response.status}: ${errorText}`);
+      error.code = getServiceItemUpdateErrorCode(errorText);
+      throw error;
     }
 
     const responseText = await response.text();
@@ -3386,7 +3396,9 @@ async function updateServiceItemDescription(serviceItemNo, description) {
       || responseData;
 
     if (resultEntry && resultEntry.Success === false) {
-      throw new Error(resultEntry.Error || 'Failed to update Service Item');
+      const error = new Error(resultEntry.Error || 'Failed to update Service Item');
+      error.code = getServiceItemUpdateErrorCode(resultEntry.Error);
+      throw error;
     }
 
     return responseData;
@@ -3394,6 +3406,36 @@ async function updateServiceItemDescription(serviceItemNo, description) {
     console.error('UpdateServiceItem API call failed:', error);
     throw error;
   }
+}
+
+function getServiceItemUpdateErrorCode(errorText) {
+  const normalizedErrorText = String(errorText || '').toLowerCase();
+  const mentionsCustomerMismatch = normalizedErrorText.includes('customer')
+    && (
+      normalizedErrorText.includes('mismatch')
+      || normalizedErrorText.includes('not match')
+      || normalizedErrorText.includes("doesn't match")
+      || normalizedErrorText.includes('does not match')
+      || normalizedErrorText.includes('different')
+      || normalizedErrorText.includes('belongs to')
+      || normalizedErrorText.includes('invalid')
+    );
+
+  if (mentionsCustomerMismatch) {
+    return 'SERVICE_ITEM_CUSTOMER_MISMATCH';
+  }
+
+  return '';
+}
+
+function getFriendlyServiceItemUpdateErrorMessage(error, { laborProfileSaved = false } = {}) {
+  if (error?.code === 'SERVICE_ITEM_CUSTOMER_MISMATCH') {
+    return laborProfileSaved
+      ? 'Workshop job list was saved, but Business Central rejected the Service Item update because this Service Item belongs to a different customer. Please verify the Service Item No or create a new SER.'
+      : 'Business Central rejected this Service Item because it belongs to a different customer. Please verify the Service Item No or create a new SER.';
+  }
+
+  return error?.message || '';
 }
 
 function normalizeServiceItemDescriptionForComparison(description) {
