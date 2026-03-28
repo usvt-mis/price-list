@@ -1768,6 +1768,8 @@ export async function updateQuoteEditorModeUi() {
   const APPROVAL = await getApprovalStatus();
   const isEditMode = state.quote.mode === 'edit' && Boolean(state.quote.number);
   const isSearchSalesQuoteMode = isSearchSalesQuoteEditorMode();
+  const quoteSync = state.ui.quoteSync || {};
+  const hasUnsyncedChanges = quoteSync.hasUnsyncedChanges === true;
   const banner = el('quoteEditorModeBanner');
   const title = el('quoteEditorModeTitle');
   const meta = el('quoteEditorModeMeta');
@@ -1777,6 +1779,7 @@ export async function updateQuoteEditorModeUi() {
   const printButton = el('printQuoteBtn');
   const workStatusFieldContainer = el('workStatusFieldContainer');
   const sendApprovalRequestBtn = el('sendApprovalRequestBtn');
+  const sendApprovalRequestBtnText = el('sendApprovalRequestBtnText');
   const cancelApprovalBtn = el('cancelApprovalBtn');
   const requestRevisionBtn = el('requestRevisionBtn');
   const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
@@ -1834,6 +1837,16 @@ export async function updateQuoteEditorModeUi() {
     }
     if (state.quote.branch) {
       metaParts.push(`Branch: ${state.quote.branch}`);
+    }
+    if (isSearchSalesQuoteMode) {
+      const syncStatusLabel = hasUnsyncedChanges
+        ? 'Unsynced changes'
+        : quoteSync.lastSyncStatus === 'failed'
+          ? 'Sync failed'
+          : quoteSync.lastSyncedSnapshot
+            ? 'Synced'
+            : 'Not tracked';
+      metaParts.push(`BC Sync: ${syncStatusLabel}`);
     }
     meta.textContent = metaParts.join(' | ');
     
@@ -1956,6 +1969,15 @@ export async function updateQuoteEditorModeUi() {
 
     if (sendApprovalRequestBtn) {
       sendApprovalRequestBtn.classList.toggle('hidden', !canRequestApproval);
+      sendApprovalRequestBtn.title = hasUnsyncedChanges
+        ? 'Latest changes will be synced to Business Central before the approval request is sent.'
+        : '';
+    }
+
+    if (sendApprovalRequestBtnText) {
+      sendApprovalRequestBtnText.textContent = hasUnsyncedChanges
+        ? 'Sync to BC & Send Approval'
+        : 'Send Approval Request';
     }
 
     if (cancelApprovalBtn) {

@@ -77,6 +77,139 @@ function ensureQuoteEditableForChanges({ allowApprovedWorkStatusOnly = false } =
   return true;
 }
 
+const BC_SYNC_TRACKED_FIELD_IDS = new Set([
+  'customerNoSearch',
+  'orderDate',
+  'requestedDeliveryDate',
+  'deliveryDate',
+  'quoteWorkDescription',
+  'contact',
+  'salespersonCodeSearch',
+  'assignedUserIdSearch',
+  'serviceOrderType',
+  'division',
+  'branch',
+  'locationCode',
+  'responsibilityCenter',
+  'invoiceDiscount',
+  'invoiceDiscountPercent',
+  'workStatus'
+]);
+
+function resetQuoteSyncState() {
+  state.ui.quoteSync.hasUnsyncedChanges = false;
+  state.ui.quoteSync.lastSyncedSnapshot = null;
+  state.ui.quoteSync.lastSyncStatus = 'idle';
+  state.ui.quoteSync.lastSyncAt = null;
+  state.ui.quoteSync.lastSyncError = '';
+}
+
+function normalizeQuoteSyncLine(line = {}) {
+  const parsedQuantity = parseFloat(line?.quantity);
+
+  return {
+    lineObjectNumber: String(line?.lineObjectNumber || ''),
+    description: String(line?.description || ''),
+    quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
+    unitPrice: Number(line?.unitPrice || 0),
+    lineType: normalizeLineType(line?.lineType),
+    discountPercent: Number(line?.discountPercent || 0),
+    discountAmount: Number(line?.discountAmount || 0),
+    usvtGroupNo: normalizeGroupNo(line?.usvtGroupNo),
+    usvtServiceItemNo: String(line?.usvtServiceItemNo || ''),
+    usvtServiceItemDescription: String(line?.usvtServiceItemDescription || ''),
+    usvtUServiceStatus: line?.usvtUServiceStatus ?? null,
+    usvtCreateSv: Boolean(line?.usvtCreateSv || line?.createSv),
+    usvtAddition: Boolean(line?.usvtAddition),
+    usvtRefSalesQuoteno: String(line?.usvtRefSalesQuoteno || ''),
+    usvtRefServiceOrderNo: String(line?.usvtRefServiceOrderNo || ''),
+    usvtShowInDocument: normalizePrintFlagValue(line?.showInDocument, true),
+    usvtHeader: normalizePrintFlagValue(line?.printHeader ?? line?.isHeader, false),
+    usvtFooter: normalizePrintFlagValue(line?.printFooter ?? line?.isFooter, false),
+    externalLineId: line?.externalLineId ?? null
+  };
+}
+
+function buildQuoteSyncSnapshot() {
+  const formData = getQuoteFormData();
+
+  const snapshot = {
+    quoteNumber: state.quote.number || '',
+    customerNo: state.quote.customerNo || formData.customerNo || '',
+    workStatus: formData.workStatus || '',
+    deliveryDate: formData.deliveryDate || '',
+    orderDate: formData.orderDate || '',
+    requestedDeliveryDate: formData.requestedDeliveryDate || '',
+    workDescription: formData.workDescription || '',
+    contactName: formData.contact || '',
+    salespersonCode: state.quote.salespersonCode || formData.salespersonCode || '',
+    assignedUserId: state.quote.assignedUserId || formData.assignedUserId || '',
+    serviceOrderType: formData.serviceOrderType || '',
+    division: formData.division || '',
+    branchCode: formData.branch || '',
+    locationCode: formData.locationCode || '',
+    responsibilityCenter: formData.responsibilityCenter || '',
+    discountAmount: Number(formData.invoiceDiscount || 0),
+    lines: state.quote.lines.map(normalizeQuoteSyncLine)
+  };
+
+  return JSON.stringify(snapshot);
+}
+
+function setQuoteSyncBaseline() {
+  if (!(state.quote.mode === 'edit' && state.quote.number)) {
+    resetQuoteSyncState();
+    return;
+  }
+
+  state.ui.quoteSync.lastSyncedSnapshot = buildQuoteSyncSnapshot();
+  state.ui.quoteSync.hasUnsyncedChanges = false;
+  state.ui.quoteSync.lastSyncStatus = 'synced';
+  state.ui.quoteSync.lastSyncAt = new Date().toISOString();
+  state.ui.quoteSync.lastSyncError = '';
+}
+
+function refreshQuoteSyncState({ updateUi = true } = {}) {
+  if (!(state.quote.mode === 'edit' && state.quote.number)) {
+    const alreadyIdle = state.ui.quoteSync.lastSyncedSnapshot === null &&
+      state.ui.quoteSync.hasUnsyncedChanges === false &&
+      state.ui.quoteSync.lastSyncStatus === 'idle' &&
+      !state.ui.quoteSync.lastSyncError;
+
+    if (alreadyIdle) {
+      return;
+    }
+
+    resetQuoteSyncState();
+    if (updateUi) {
+      void updateQuoteEditorModeUi();
+    }
+    return;
+  }
+
+  const snapshot = buildQuoteSyncSnapshot();
+  if (state.ui.quoteSync.lastSyncedSnapshot === null) {
+    state.ui.quoteSync.lastSyncedSnapshot = snapshot;
+    state.ui.quoteSync.lastSyncStatus = 'synced';
+  }
+
+  state.ui.quoteSync.hasUnsyncedChanges = snapshot !== state.ui.quoteSync.lastSyncedSnapshot;
+  if (!state.ui.quoteSync.hasUnsyncedChanges && state.ui.quoteSync.lastSyncStatus === 'failed') {
+    state.ui.quoteSync.lastSyncStatus = 'synced';
+    state.ui.quoteSync.lastSyncError = '';
+  }
+
+  if (updateUi) {
+    void updateQuoteEditorModeUi();
+  }
+}
+
+function markQuoteSyncFailed(error) {
+  state.ui.quoteSync.lastSyncStatus = 'failed';
+  state.ui.quoteSync.lastSyncError = error?.message || 'Business Central sync failed.';
+  refreshQuoteSyncState();
+}
+
 function normalizePrintFlagValue(value, fallback = false) {
   if (value === null || value === undefined) {
     return fallback;
@@ -155,6 +288,8 @@ function toggleQuoteLinePrintFlag(lineId, fieldName, value) {
   enforceGroupPrintFlagUniqueness(lineId);
   saveState();
   renderQuoteLines();
+  refreshQuoteSyncState({ updateUi: false });
+  void updateQuoteEditorModeUi();
 
   if ((fieldName === 'printHeader' || fieldName === 'printFooter') && normalizedValue) {
     const flagLabel = fieldName === 'printHeader' ? 'Header' : 'Footer';
@@ -1481,6 +1616,7 @@ function restoreDefaultBranchFields() {
 function resetQuoteEditorToCreateMode({ showFeedback = true } = {}) {
   closeOpenQuoteModals();
   initNewQuote();
+  resetQuoteSyncState();
   clearQuoteForm();
   clearQuoteLines();
   resetDropdownValidationState();
@@ -1614,6 +1750,7 @@ async function applySearchedSalesQuote(payload) {
     }
   }
 
+  setQuoteSyncBaseline();
   await updateQuoteEditorModeUi();
   saveState();
 
@@ -1785,6 +1922,7 @@ export function selectCustomerFromLocal(customer) {
   }
 
   showSuccess(`Selected: ${customer.CustomerName}`);
+  refreshQuoteSyncState();
 }
 
 // ============================================================
@@ -1849,6 +1987,7 @@ export function selectSalesperson(salesperson) {
   el('salespersonCodeDropdown')?.classList.add('hidden');
   showSuccess(`Selected: ${salesperson.SalespersonName}`);
   saveState();
+  refreshQuoteSyncState();
 }
 
 // ============================================================
@@ -1911,6 +2050,7 @@ export function selectAssignedUser(user) {
   el('assignedUserIdDropdown')?.classList.add('hidden');
   showSuccess(`Selected: ${user.UserId}`);
   saveState();
+  refreshQuoteSyncState();
 }
 
 // ============================================================
@@ -2219,6 +2359,7 @@ export function handleAddQuoteLine() {
 
   renderQuoteLines();
   renderTotals();
+  refreshQuoteSyncState();
   closeAddLineModal();
 }
 
@@ -2289,6 +2430,7 @@ function confirmRemoveLine() {
     removeQuoteLine(index);
     renderQuoteLines();
     renderTotals();
+    refreshQuoteSyncState();
     showSuccess('Line removed');
   }
 
@@ -3657,9 +3799,14 @@ function extractServiceOrderNos(payload) {
 /**
  * Send quote to Business Central
  */
-export async function handleSendQuote() {
+export async function handleSendQuote(options = {}) {
+  const {
+    suppressSuccessFeedback = false,
+    successToastMessage = 'Sales Quote synced to Business Central.'
+  } = options;
+
   if (!ensureQuoteEditableForChanges({ allowApprovedWorkStatusOnly: true })) {
-    return;
+    return { success: false };
   }
 
   const formData = getQuoteFormData();
@@ -3673,7 +3820,7 @@ export async function handleSendQuote() {
     if (!validation.isValid) {
       displayValidationErrors(validation.errors);
       showError('Please fix validation errors before sending');
-      return;
+      return { success: false };
     }
 
     sanitizedData = sanitizeQuoteData(formData);
@@ -3732,14 +3879,15 @@ export async function handleSendQuote() {
     }
 
     if (isEditMode && quoteNumber) {
+      setQuoteSyncBaseline();
       try {
         await recordQuoteAuditEvent({
           salesQuoteNumber: quoteNumber,
           actionType: 'Updated',
           approvalStatus: state.quote.approvalStatus || state.approval.currentStatus || '',
-          workDescription: sanitizedData.workDescription || '',
+          workDescription: sanitizedData?.workDescription || formData.workDescription || '',
           comment: isApprovedWorkStatusUpdate
-            ? `Work Status updated to ${sanitizedData.workStatus || ''}`.trim()
+            ? `Work Status updated to ${formData.workStatus || ''}`.trim()
             : ''
         });
       } catch (auditError) {
@@ -3750,7 +3898,12 @@ export async function handleSendQuote() {
     hideSaving();
 
     if (isEditMode) {
-      await showQuoteUpdatedSuccess(quoteNumber, serviceOrderNos);
+      if (suppressSuccessFeedback) {
+        showToast(successToastMessage, 'success');
+        await updateQuoteEditorModeUi();
+      } else {
+        await showQuoteUpdatedSuccess(quoteNumber, serviceOrderNos);
+      }
     } else {
       resetQuoteEditorToCreateMode({ showFeedback: false });
 
@@ -3782,10 +3935,20 @@ export async function handleSendQuote() {
       }
     }
 
+    return {
+      success: true,
+      quoteNumber
+    };
+
   } catch (error) {
     hideSaving();
+    markQuoteSyncFailed(error);
     console.error('Failed to send quote:', error);
     await showQuoteSendFailure(error);
+    return {
+      success: false,
+      error
+    };
   }
 }
 
@@ -3797,6 +3960,7 @@ export async function handleSendQuote() {
 export async function sendApprovalRequest() {
   const quoteNumber = state.quote.number;
   const currentStatus = state.quote.approvalStatus || state.approval.currentStatus;
+  const hasUnsyncedChanges = state.ui.quoteSync.hasUnsyncedChanges === true;
 
   if (!quoteNumber) {
     showToast('No Sales Quote loaded', 'error');
@@ -3816,6 +3980,32 @@ export async function sendApprovalRequest() {
 
     showToast('Quote is already approved. Use Revise if you need to request edits.', 'info');
     return;
+  }
+
+  if (hasUnsyncedChanges) {
+    const modalResult = await showApprovalActionModal({
+      status: 'Unsynced Changes',
+      statusTone: 'warning',
+      title: 'Sync latest quote changes before sending approval?',
+      message: 'This quote has updates that are not in Business Central yet. We will sync the latest version first, then send the approval request.',
+      contextLabel: 'Sales Quote',
+      contextValue: quoteNumber,
+      confirmText: 'Sync and Send',
+      confirmVariant: 'primary'
+    });
+
+    if (!modalResult.confirmed) {
+      return;
+    }
+
+    const syncResult = await handleSendQuote({
+      suppressSuccessFeedback: true,
+      successToastMessage: 'Latest quote changes synced to Business Central.'
+    });
+
+    if (!syncResult?.success) {
+      return;
+    }
   }
 
   const formData = getQuoteFormData();
@@ -4644,6 +4834,28 @@ export function setupEventListeners() {
   // VAT rate changes (update totals)
   el('vatRate')?.addEventListener('input', renderTotals);
 
+  const handleTrackedBcSyncFieldChange = (event) => {
+    if (!BC_SYNC_TRACKED_FIELD_IDS.has(event.target?.id)) {
+      return;
+    }
+
+    if (!(state.quote.mode === 'edit' && state.quote.number)) {
+      return;
+    }
+
+    refreshQuoteSyncState();
+  };
+
+  BC_SYNC_TRACKED_FIELD_IDS.forEach((fieldId) => {
+    const field = el(fieldId);
+    if (!field) {
+      return;
+    }
+
+    field.addEventListener('input', handleTrackedBcSyncFieldChange);
+    field.addEventListener('change', handleTrackedBcSyncFieldChange);
+  });
+
   // Close dropdowns when clicking outside
   document.addEventListener('click', (e) => {
     // Hide BC API customer dropdown
@@ -4688,6 +4900,7 @@ export function setupEventListeners() {
 
           // Re-render row to show updated button state
           renderQuoteLines();
+          refreshQuoteSyncState();
         }
       }
     }
@@ -5248,6 +5461,7 @@ function saveEditLine() {
 
   // Sync fullscreen table
   updateFullscreenTable();
+  refreshQuoteSyncState();
 
   // Close modal
   closeEditLineModal();

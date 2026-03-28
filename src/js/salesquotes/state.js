@@ -114,6 +114,13 @@ export const state = {
       locationCode: '',
       responsibilityCenter: ''
     },
+    quoteSync: {
+      hasUnsyncedChanges: false,
+      lastSyncedSnapshot: null,
+      lastSyncStatus: 'idle',
+      lastSyncAt: null,
+      lastSyncError: ''
+    },
     // Track valid dropdown selections to prevent free-text input
     // Only validate if field was "touched" (user interacted with it)
     dropdownFields: {
