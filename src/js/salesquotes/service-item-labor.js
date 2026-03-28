@@ -648,6 +648,7 @@ function buildLaborPayload(snapshot, extra = {}) {
   const payloadJobs = Array.isArray(extra.jobs) ? extra.jobs : modalState.jobs;
 
   return {
+    repairMode: snapshot.repairMode || 'Workshop',
     serviceItemDescription: String(extra.description || '').trim() || null,
     workType: snapshot.workType || 'Motor',
     serviceType: snapshot.serviceType || null,

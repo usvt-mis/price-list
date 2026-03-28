@@ -682,6 +682,7 @@ function populateConfirmNewSerBuilderFromProfile(profile, fallbackDescription = 
     return;
   }
 
+  const repairMode = String(profile?.repairMode || '').trim() || 'Workshop';
   const workType = String(profile?.workType || '').trim() || 'Motor';
   const serviceType = String(profile?.serviceType || '').trim() || 'Overhaul';
   const driveType = String(profile?.motorDriveType || '').trim().toUpperCase() === 'DC' ? 'DC' : 'AC';
@@ -703,7 +704,7 @@ function populateConfirmNewSerBuilderFromProfile(profile, fallbackDescription = 
 
   if (refs.repairModeOptions?.length) {
     refs.repairModeOptions.forEach((option) => {
-      option.checked = option.value === 'Workshop';
+      option.checked = option.value === repairMode;
     });
   }
 
@@ -724,6 +725,7 @@ function populateConfirmNewSerBuilderFromProfile(profile, fallbackDescription = 
   }
 
   syncServiceItemDescriptionFromBuilder('confirm', { preserveExistingDescription: false });
+  updateConfirmNewSerLaborPanelVisibility();
 
   if (description && refs.description?.textContent?.trim() !== description) {
     refs.description.textContent = description;

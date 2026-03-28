@@ -18,6 +18,7 @@ async function ensureSalesQuoteServiceItemLaborTables(pool) {
       BEGIN
         CREATE TABLE ${PROFILE_TABLE_NAME} (
           ServiceItemNo NVARCHAR(50) NOT NULL PRIMARY KEY,
+          RepairMode NVARCHAR(20) NULL,
           ServiceItemDescription NVARCHAR(255) NULL,
           WorkType NVARCHAR(50) NOT NULL,
           ServiceType NVARCHAR(20) NULL,
@@ -36,6 +37,14 @@ async function ensureSalesQuoteServiceItemLaborTables(pool) {
         CREATE INDEX IX_${PROFILE_TABLE_NAME}_BranchId ON ${PROFILE_TABLE_NAME}(BranchId);
         CREATE INDEX IX_${PROFILE_TABLE_NAME}_MotorTypeId ON ${PROFILE_TABLE_NAME}(MotorTypeId);
         CREATE INDEX IX_${PROFILE_TABLE_NAME}_UpdatedAt ON ${PROFILE_TABLE_NAME}(UpdatedAt);
+      END
+    `);
+
+    await pool.request().query(`
+      IF COL_LENGTH('${PROFILE_TABLE_NAME}', 'RepairMode') IS NULL
+      BEGIN
+        ALTER TABLE ${PROFILE_TABLE_NAME}
+        ADD RepairMode NVARCHAR(20) NULL;
       END
     `);
 

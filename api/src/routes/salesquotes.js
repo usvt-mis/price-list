@@ -156,8 +156,20 @@ function mapAuditEventRecord(record) {
 }
 
 function mapServiceItemLaborProfile(record, jobs = []) {
+  const normalizedRepairMode = String(record.RepairMode || '').trim();
+  const inferredRepairMode = normalizedRepairMode
+    || (
+      record.WorkType === 'Motor'
+      && record.MotorKw !== null
+      && record.MotorKw !== undefined
+      && jobs.length === 0
+        ? 'Onsite'
+        : 'Workshop'
+    );
+
   return {
     serviceItemNo: record.ServiceItemNo,
+    repairMode: inferredRepairMode,
     serviceItemDescription: record.ServiceItemDescription || '',
     workType: record.WorkType,
     serviceType: record.ServiceType || '',
@@ -667,6 +679,7 @@ router.get('/service-item-labor/:serviceItemNo', async (req, res, next) => {
       .query(`
         SELECT TOP 1
           ServiceItemNo,
+          RepairMode,
           ServiceItemDescription,
           WorkType,
           ServiceType,
@@ -746,6 +759,7 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
     try {
       await new sql.Request(transaction)
         .input('serviceItemNo', sql.NVarChar(50), serviceItemNo)
+        .input('repairMode', sql.NVarChar(20), normalizeNullableString(req.body?.repairMode, 20))
         .input('serviceItemDescription', sql.NVarChar(255), normalizeNullableString(req.body?.serviceItemDescription, 255))
         .input('workType', sql.NVarChar(50), workType)
         .input('serviceType', sql.NVarChar(20), normalizeNullableString(req.body?.serviceType, 20))
@@ -758,7 +772,8 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
         .input('userEmail', sql.NVarChar(255), userEmail)
         .query(`
           UPDATE SalesQuoteServiceItemProfiles
-          SET ServiceItemDescription = @serviceItemDescription,
+          SET RepairMode = @repairMode,
+              ServiceItemDescription = @serviceItemDescription,
               WorkType = @workType,
               ServiceType = @serviceType,
               MotorKw = @motorKw,
@@ -775,6 +790,7 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
           BEGIN
             INSERT INTO SalesQuoteServiceItemProfiles (
               ServiceItemNo,
+              RepairMode,
               ServiceItemDescription,
               WorkType,
               ServiceType,
@@ -789,6 +805,7 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
             )
             VALUES (
               @serviceItemNo,
+              @repairMode,
               @serviceItemDescription,
               @workType,
               @serviceType,
@@ -850,6 +867,7 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
         .query(`
           SELECT TOP 1
             ServiceItemNo,
+            RepairMode,
             ServiceItemDescription,
             WorkType,
             ServiceType,
