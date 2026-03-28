@@ -54,6 +54,12 @@ const GATEWAY_ENDPOINTS = {
     keyEnv: 'CSOFSQ_KEY',
     method: 'POST'
   },
+  updateServiceOrderFromSQ: {
+    defaultPath: 'UpdateServiceOrderFromSQ',
+    pathEnv: 'USOFSQ_PATH',
+    keyEnv: 'USOFSQ_KEY',
+    method: 'POST'
+  },
   getSalesQuotesFromNumber: {
     defaultPath: 'GetSalesQuotesFromNumber',
     pathEnv: 'GSQFN_PATH',
@@ -337,6 +343,10 @@ router.post('/update-service-item', (req, res, next) => {
 
 router.post('/create-service-order-from-sq', (req, res, next) => {
   proxyGatewayRequest(req, res, next, 'createServiceOrderFromSQ', 'CreateServiceOrderFromSQ');
+});
+
+router.post('/update-service-order-from-sq', (req, res, next) => {
+  proxyGatewayRequest(req, res, next, 'updateServiceOrderFromSQ', 'UpdateServiceOrderFromSQ');
 });
 
 router.get('/sales-quotes/from-number', (req, res, next) => {

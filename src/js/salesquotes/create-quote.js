@@ -3457,10 +3457,12 @@ function hasServiceItemDescriptionChanged(originalDescription, nextDescription) 
  * @throws {Error} If API call fails
  */
 async function createServiceOrderFromSQ(salesQuoteId, branchCode) {
-  const API_URL = GATEWAY_API.CREATE_SERVICE_ORDER_FROM_SQ;
+  const CREATE_API_URL = GATEWAY_API.CREATE_SERVICE_ORDER_FROM_SQ;
+  const UPDATE_API_URL = GATEWAY_API.UPDATE_SERVICE_ORDER_FROM_SQ;
 
-  // Track groups with Service Item No and their refServiceOrderNo values
-  const groupInfo = new Map(); // groupNo -> { hasServiceItem: boolean, refServiceOrderNo: string|null }
+  // Track groups with Service Item No and their refServiceOrderNo values.
+  // Any group with at least one populated refServiceOrderNo must go through Update.
+  const groupInfo = new Map(); // groupNo -> { hasServiceItem: boolean, refServiceOrderNo: string }
 
   for (const line of state.quote.lines) {
     const groupNo = normalizeGroupNo(line.usvtGroupNo);
@@ -3470,7 +3472,7 @@ async function createServiceOrderFromSQ(salesQuoteId, branchCode) {
     if (!groupNo || groupNo.trim() === '') continue;
 
     if (!groupInfo.has(groupNo)) {
-      groupInfo.set(groupNo, { hasServiceItem: false, refServiceOrderNo: null });
+      groupInfo.set(groupNo, { hasServiceItem: false, refServiceOrderNo: '' });
     }
 
     const info = groupInfo.get(groupNo);
@@ -3501,49 +3503,77 @@ async function createServiceOrderFromSQ(salesQuoteId, branchCode) {
     return null;
   }
 
-  // Build payload array - one entry per unique Group No
-  // If group has refServiceOrderNo, use "no" instead of "branchCode"
-  const requestBody = groupsWithServiceItem.map(({ groupNo, refServiceOrderNo }) => {
-    if (refServiceOrderNo && refServiceOrderNo.trim() !== '') {
-      // Group has existing Service Order - use "no" field
-      return {
-        salesQuoteId: salesQuoteId,
-        no: refServiceOrderNo,
-        GroupNo: parseInt(groupNo, 10)
-      };
-    } else {
-      // New Service Order - use branchCode
-      return {
-        salesQuoteId: salesQuoteId,
-        branchCode: branchCode,
-        GroupNo: parseInt(groupNo, 10)
-      };
-    }
+  const createRequestBody = groupsWithServiceItem
+    .filter(({ refServiceOrderNo }) => !refServiceOrderNo || refServiceOrderNo.trim() === '')
+    .map(({ groupNo }) => ({
+      salesQuoteId,
+      branchCode,
+      GroupNo: parseInt(groupNo, 10)
+    }));
+
+  const updateRequestBody = groupsWithServiceItem
+    .filter(({ refServiceOrderNo }) => refServiceOrderNo && refServiceOrderNo.trim() !== '')
+    .map(({ groupNo, refServiceOrderNo }) => ({
+      salesQuoteId,
+      serviceOrderNo: refServiceOrderNo.trim(),
+      GroupNo: parseInt(groupNo, 10)
+    }));
+
+  console.log('Service Order sync plan:', {
+    createGroups: createRequestBody.map(item => item.GroupNo),
+    updateGroups: updateRequestBody.map(item => ({
+      groupNo: item.GroupNo,
+      serviceOrderNo: item.serviceOrderNo
+    }))
   });
 
-  console.log('Creating Service Order from SQ with payload:', JSON.stringify(requestBody, null, 2));
-
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
+    const responses = [];
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API Error ${response.status}: ${errorText}`);
+    if (createRequestBody.length > 0) {
+      console.log('Creating Service Order from SQ with payload:', JSON.stringify(createRequestBody, null, 2));
+      const createResponse = await fetch(CREATE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(createRequestBody)
+      });
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        throw new Error(`Create Service Order API Error ${createResponse.status}: ${errorText}`);
+      }
+
+      const createResponseData = await createResponse.json();
+      console.log('CreateServiceOrderFromSQ API response:', createResponseData);
+      responses.push(createResponseData);
     }
 
-    const responseData = await response.json();
-    console.log('CreateServiceOrderFromSQ API response:', responseData);
+    if (updateRequestBody.length > 0) {
+      console.log('Updating Service Order from SQ with payload:', JSON.stringify(updateRequestBody, null, 2));
+      const updateResponse = await fetch(UPDATE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateRequestBody)
+      });
 
-    return responseData;
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        throw new Error(`Update Service Order API Error ${updateResponse.status}: ${errorText}`);
+      }
+
+      const updateResponseData = await updateResponse.json();
+      console.log('UpdateServiceOrderFromSQ API response:', updateResponseData);
+      responses.push(updateResponseData);
+    }
+
+    return responses.length === 1 ? responses[0] : responses;
 
   } catch (error) {
-    console.error('CreateServiceOrderFromSQ API call failed:', error);
+    console.error('Service Order sync from SQ failed:', error);
     throw error;
   }
 }

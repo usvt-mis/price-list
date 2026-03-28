@@ -14,6 +14,7 @@ export const GATEWAY_API = {
   CREATE_SERVICE_ITEM: '/api/business-central/gateway/create-service-item',
   UPDATE_SERVICE_ITEM: '/api/business-central/gateway/update-service-item',
   CREATE_SERVICE_ORDER_FROM_SQ: '/api/business-central/gateway/create-service-order-from-sq',
+  UPDATE_SERVICE_ORDER_FROM_SQ: '/api/business-central/gateway/update-service-order-from-sq',
   GET_SALES_QUOTES_FROM_NUMBER: '/api/business-central/gateway/sales-quotes/from-number',
   SMART_DROPDOWN_SQ: '/api/business-central/gateway/sales-quotes/smart-dropdown',
   UPDATE_SALES_QUOTE: '/api/business-central/gateway/update-sales-quote',

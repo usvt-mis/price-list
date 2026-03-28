@@ -19,7 +19,8 @@ router.get('/config', (req, res) => {
       process.env.GATEWAY_BASE_URL &&
       process.env.CSQWN_KEY &&
       process.env.CSI_KEY &&
-      process.env.CSOFSQ_KEY
+      process.env.CSOFSQ_KEY &&
+      process.env.USOFSQ_KEY
     ),
     mockEnabled: process.env.BC_MOCK_ENABLED === 'true'
   });
