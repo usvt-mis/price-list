@@ -6,19 +6,31 @@
 const express = require('express');
 const router = express.Router();
 const { getPool } = require('../../db');
-const { requireBackofficeSession } = require('../../middleware/twoFactorAuthExpress');
 const sql = require('mssql');
 const { ensureSalesQuoteSubmissionRecordsTable } = require('../../utils/salesQuoteSubmissionRecords');
 const { TABLE_NAME: SALESQUOTE_AUDIT_LOG_TABLE, ensureSalesQuoteAuditLogTable } = require('../../utils/salesQuoteAuditLog');
 const {
-  TABLE_NAME: BACKOFFICE_SETTINGS_TABLE,
-  ensureBackofficeSettingsTable,
-  safeParseSettingValue
+  getBackofficeSetting,
+  upsertBackofficeSetting
 } = require('../../utils/backofficeSettings');
 const signaturesRouter = require('./signatures');
 const salesdirectorSignaturesRouter = require('./salesdirector-signatures');
 
 const SALESQUOTE_PRINT_LAYOUT_KEY = 'salesquote-print-layout';
+const INDEX_MENU_VISIBILITY_KEY = 'index-menu-visibility';
+const MOTOR_JOB_DEFAULTS_KEY = 'motor-job-defaults';
+
+function normalizeMotorJobDefaults(value = {}) {
+  const uncheckedPrefixes = Array.isArray(value?.uncheckedPrefixes)
+    ? value.uncheckedPrefixes
+        .map((prefix) => String(prefix || '').trim().toLowerCase())
+        .filter(Boolean)
+    : [];
+
+  return {
+    uncheckedPrefixes: Array.from(new Set(uncheckedPrefixes))
+  };
+}
 
 /**
  * Helper to get client IP address for audit logging
@@ -36,34 +48,20 @@ function getClientIP(req) {
 router.get('/salesquotes/print-layout', async (req, res, next) => {
   try {
     const pool = await getPool();
-    await ensureBackofficeSettingsTable(pool);
+    const record = await getBackofficeSetting(pool, SALESQUOTE_PRINT_LAYOUT_KEY);
 
-    const result = await pool.request()
-      .input('settingKey', sql.NVarChar(100), SALESQUOTE_PRINT_LAYOUT_KEY)
-      .query(`
-        SELECT TOP 1
-          SettingKey,
-          SettingValue,
-          UpdatedAt,
-          UpdatedBy
-        FROM ${BACKOFFICE_SETTINGS_TABLE}
-        WHERE SettingKey = @settingKey
-      `);
-
-    if (result.recordset.length === 0) {
+    if (!record) {
       return res.status(200).json({
         settingKey: SALESQUOTE_PRINT_LAYOUT_KEY,
         value: null
       });
     }
 
-    const record = result.recordset[0];
-
     res.status(200).json({
-      settingKey: record.SettingKey,
-      value: safeParseSettingValue(record.SettingValue),
-      updatedAt: record.UpdatedAt,
-      updatedBy: record.UpdatedBy || null
+      settingKey: record.settingKey,
+      value: record.value,
+      updatedAt: record.updatedAt,
+      updatedBy: record.updatedBy
     });
   } catch (error) {
     next(error);
@@ -83,50 +81,130 @@ router.put('/salesquotes/print-layout', async (req, res, next) => {
     }
 
     const pool = await getPool();
-    await ensureBackofficeSettingsTable(pool);
-
-    const result = await pool.request()
-      .input('settingKey', sql.NVarChar(100), SALESQUOTE_PRINT_LAYOUT_KEY)
-      .input('settingValue', sql.NVarChar(sql.MAX), JSON.stringify(req.body.value))
-      .input('updatedBy', sql.NVarChar(255), session.email || null)
-      .query(`
-        UPDATE ${BACKOFFICE_SETTINGS_TABLE}
-        SET SettingValue = @settingValue,
-            UpdatedBy = @updatedBy,
-            UpdatedAt = GETUTCDATE()
-        WHERE SettingKey = @settingKey;
-
-        IF @@ROWCOUNT = 0
-        BEGIN
-          INSERT INTO ${BACKOFFICE_SETTINGS_TABLE} (
-            SettingKey,
-            SettingValue,
-            UpdatedBy
-          )
-          VALUES (
-            @settingKey,
-            @settingValue,
-            @updatedBy
-          );
-        END
-
-        SELECT TOP 1
-          SettingKey,
-          SettingValue,
-          UpdatedAt,
-          UpdatedBy
-        FROM ${BACKOFFICE_SETTINGS_TABLE}
-        WHERE SettingKey = @settingKey;
-      `);
-
-    const record = result.recordset[0];
+    const record = await upsertBackofficeSetting(
+      pool,
+      SALESQUOTE_PRINT_LAYOUT_KEY,
+      req.body.value,
+      session.email || null
+    );
 
     res.status(200).json({
       message: 'Sales Quotes print layout saved successfully',
-      settingKey: record.SettingKey,
-      value: safeParseSettingValue(record.SettingValue),
-      updatedAt: record.UpdatedAt,
-      updatedBy: record.UpdatedBy || null
+      settingKey: record.settingKey,
+      value: record.value,
+      updatedAt: record.updatedAt,
+      updatedBy: record.updatedBy
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/backoffice/index-menu-visibility
+ * Read shared card visibility scheduling for index.html
+ */
+router.get('/index-menu-visibility', async (req, res, next) => {
+  try {
+    const pool = await getPool();
+    const record = await getBackofficeSetting(pool, INDEX_MENU_VISIBILITY_KEY);
+
+    if (!record) {
+      return res.status(200).json({
+        settingKey: INDEX_MENU_VISIBILITY_KEY,
+        value: null
+      });
+    }
+
+    res.status(200).json({
+      settingKey: record.settingKey,
+      value: record.value,
+      updatedAt: record.updatedAt,
+      updatedBy: record.updatedBy
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PUT /api/backoffice/index-menu-visibility
+ * Save shared card visibility scheduling for index.html
+ */
+router.put('/index-menu-visibility', async (req, res, next) => {
+  try {
+    const session = req.session || {};
+
+    if (typeof req.body?.value === 'undefined') {
+      return res.status(400).json({ error: 'Setting value is required' });
+    }
+
+    const pool = await getPool();
+    const record = await upsertBackofficeSetting(
+      pool,
+      INDEX_MENU_VISIBILITY_KEY,
+      req.body.value,
+      session.email || null
+    );
+
+    res.status(200).json({
+      message: 'Index menu visibility saved successfully',
+      settingKey: record.settingKey,
+      value: record.value,
+      updatedAt: record.updatedAt,
+      updatedBy: record.updatedBy
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/motor-job-defaults', async (req, res, next) => {
+  try {
+    const pool = await getPool();
+    const record = await getBackofficeSetting(pool, MOTOR_JOB_DEFAULTS_KEY);
+
+    if (!record) {
+      return res.status(200).json({
+        settingKey: MOTOR_JOB_DEFAULTS_KEY,
+        value: null
+      });
+    }
+
+    res.status(200).json({
+      settingKey: record.settingKey,
+      value: normalizeMotorJobDefaults(record.value),
+      updatedAt: record.updatedAt,
+      updatedBy: record.updatedBy
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/motor-job-defaults', async (req, res, next) => {
+  try {
+    const session = req.session || {};
+
+    if (typeof req.body?.value === 'undefined') {
+      return res.status(400).json({ error: 'Setting value is required' });
+    }
+
+    const normalizedValue = normalizeMotorJobDefaults(req.body.value);
+    const pool = await getPool();
+    const record = await upsertBackofficeSetting(
+      pool,
+      MOTOR_JOB_DEFAULTS_KEY,
+      normalizedValue,
+      session.email || null
+    );
+
+    res.status(200).json({
+      message: 'Motor job defaults saved successfully',
+      settingKey: record.settingKey,
+      value: normalizeMotorJobDefaults(record.value),
+      updatedAt: record.updatedAt,
+      updatedBy: record.updatedBy
     });
   } catch (error) {
     next(error);
@@ -142,13 +220,80 @@ router.get('/branches', async (req, res, next) => {
   try {
     const pool = await getPool();
     const result = await pool.request().query(`
-      SELECT BranchId, BranchName, CostPerHour, OnsiteCostPerHour
+      SELECT BranchId, BranchName, CostPerHour, OnsiteCostPerHour, OverheadPercent, PolicyProfit
       FROM Branches
       ORDER BY BranchName
     `);
     res.status(200).json(result.recordset);
   } catch (e) {
     next(e);
+  }
+});
+
+/**
+ * PUT /api/backoffice/branches/:branchId/profit-settings
+ * Update branch-level overhead/policy profit percentages
+ */
+router.put('/branches/:branchId/profit-settings', async (req, res, next) => {
+  try {
+    const session = req.session || {};
+    const branchId = Number.parseInt(req.params.branchId, 10);
+    const overheadPercent = Number(req.body?.overheadPercent);
+    const policyProfit = Number(req.body?.policyProfit);
+
+    if (!Number.isInteger(branchId) || branchId < 1) {
+      return res.status(400).json({ error: 'Valid branch ID is required' });
+    }
+
+    if (!Number.isFinite(overheadPercent) || !Number.isFinite(policyProfit)) {
+      return res.status(400).json({ error: 'Both overheadPercent and policyProfit must be valid numbers' });
+    }
+
+    const normalizedOverheadPercent = Number(overheadPercent.toFixed(2));
+    const normalizedPolicyProfit = Number(policyProfit.toFixed(2));
+    const pool = await getPool();
+
+    const result = await pool.request()
+      .input('branchId', sql.Int, branchId)
+      .input('overheadPercent', sql.Decimal(9, 2), normalizedOverheadPercent)
+      .input('policyProfit', sql.Decimal(9, 2), normalizedPolicyProfit)
+      .query(`
+        UPDATE Branches
+        SET OverheadPercent = @overheadPercent,
+            PolicyProfit = @policyProfit
+        WHERE BranchId = @branchId;
+
+        SELECT TOP 1
+          BranchId,
+          BranchName,
+          CostPerHour,
+          OnsiteCostPerHour,
+          OverheadPercent,
+          PolicyProfit
+        FROM Branches
+        WHERE BranchId = @branchId;
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: 'Branch not found' });
+    }
+
+    const branch = result.recordset[0];
+    console.log(`Backoffice admin ${session.email || 'unknown'} updated profit settings for branch ${branch.BranchName} (${branch.BranchId})`);
+
+    res.status(200).json({
+      message: 'Branch profit settings updated successfully',
+      branch: {
+        branchId: branch.BranchId,
+        branchName: branch.BranchName,
+        costPerHour: branch.CostPerHour,
+        onsiteCostPerHour: branch.OnsiteCostPerHour,
+        overheadPercent: Number(branch.OverheadPercent || 0),
+        policyProfit: Number(branch.PolicyProfit || 0)
+      }
+    });
+  } catch (error) {
+    next(error);
   }
 });
 

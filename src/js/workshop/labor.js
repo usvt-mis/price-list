@@ -4,6 +4,7 @@
  */
 
 import { el, fmt, fetchJson, setStatus } from '../core/utils.js';
+import { getMotorJobDefaults, shouldMotorJobBeCheckedByDefault } from '../core/motor-job-defaults.js';
 import { appState, getSelectedBranch, isExecutiveMode, isCustomerMode } from './state.js';
 import { TRAVEL_RATE, API } from '../core/config.js';
 import { isDcRewindMode, isRewindMotorJob } from './service-type.js';
@@ -29,12 +30,14 @@ export async function loadLabor() {
       motorTypeId: String(motorTypeId),
       motorDriveType
     });
-    const labor = await fetchJson(`${API.WORKSHOP_LABOR}?${laborParams.toString()}`);
+    const [labor, motorJobDefaults] = await Promise.all([
+      fetchJson(`${API.WORKSHOP_LABOR}?${laborParams.toString()}`),
+      getMotorJobDefaults()
+    ]);
     // Initialize checked state BEFORE calcAll (wire arc/HVOF jobs unchecked by default)
     labor.forEach(j => {
       if (j.checked === undefined) {
-        const jobNameLower = j.JobName.toLowerCase();
-        j.checked = !(jobNameLower.startsWith('wire arc') || jobNameLower.startsWith('hvof'));
+        j.checked = shouldMotorJobBeCheckedByDefault(j.JobName, motorJobDefaults);
       }
       if (j.effectiveManHours === undefined) j.effectiveManHours = Number(j.ManHours);
     });
@@ -66,19 +69,20 @@ export function renderLabor() {
     costPerHourEl.textContent = branch ? fmt(adjustedCph) : '—';
   }
 
-  // Update table header based on mode
-  const laborTableHead = el('laborRows').previousElementSibling;
+  // Update table header based on mode. Target thead by id so DOM changes
+  // around tbody cannot accidentally break the table structure again.
+  const laborTableHead = el('laborTableHead');
   if (laborTableHead) {
     laborTableHead.innerHTML = `
       <tr class="border-b border-slate-200">
-        <th class="w-10 py-3 px-4 text-center" scope="col">
+        <th class="labor-sticky-head-cell w-10 py-3 px-4 text-center" scope="col">
           <input type="checkbox" id="selectAllJobs" class="text-blue-600 focus:ring-2 focus:ring-blue-500 rounded">
         </th>
-        <th class="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Job</th>
-        <th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Manhours</th>
-        ${isExecutiveMode() ? '<th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Raw Cost</th>' : ''}
-        ${isExecutiveMode() ? '<th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Cost+Ovh+PP</th>' : ''}
-        <th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide text-blue-600 bg-blue-50/50" scope="col">Final Price</th>
+        <th class="labor-sticky-head-cell text-left py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Job</th>
+        <th class="labor-sticky-head-cell text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Manhours</th>
+        ${isExecutiveMode() ? '<th class="labor-sticky-head-cell text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Raw Cost</th>' : ''}
+        ${isExecutiveMode() ? '<th class="labor-sticky-head-cell text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Cost+Ovh+PP</th>' : ''}
+        <th class="labor-sticky-head-cell labor-sticky-head-cell--accent text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide text-blue-600 bg-blue-50/50" scope="col">Final Price</th>
       </tr>
     `;
   }

@@ -115,7 +115,7 @@
     <!-- Calculator Selection Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <!-- Time Board Card (Manager/Executive only) -->
-      <a id="timeBoardCard" href="/timeboard.html" class="hidden bg-white rounded-3xl shadow-xl p-8 card-hover">
+      <a id="timeBoardCard" data-menu-card="timeBoard" href="/timeboard.html" class="hidden bg-white rounded-3xl shadow-xl p-8 card-hover">
         <div class="flex flex-col items-center text-center">
           <div class="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mb-6">
             <svg class="w-10 h-10 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,7 +129,7 @@
       </a>
 
       <!-- Calculator Card -->
-      <button id="calculatorMenuTrigger" type="button" class="block w-full bg-white rounded-3xl shadow-xl p-8 card-hover text-left">
+      <button id="calculatorMenuTrigger" data-menu-card="calculator" type="button" class="block w-full bg-white rounded-3xl shadow-xl p-8 card-hover text-left">
         <div class="flex flex-col items-center text-center">
           <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6">
             <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,7 +142,7 @@
       </button>
 
       <!-- Sales Quotes Card -->
-      <a href="/salesquotes.html" class="block bg-white rounded-3xl shadow-xl p-8 card-hover">
+      <a id="salesQuotesCard" data-menu-card="salesQuotes" href="/salesquotes.html" class="block bg-white rounded-3xl shadow-xl p-8 card-hover">
         <div class="flex flex-col items-center text-center">
           <div class="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mb-6">
             <svg class="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,12 +203,106 @@
     const calculatorMenuClose = document.getElementById('calculatorMenuClose');
     const awaitingAssignmentBanner = document.getElementById('awaitingAssignmentBanner');
     const userEmailDisplay = document.getElementById('userEmailDisplay');
+    const salesQuotesCard = document.getElementById('salesQuotesCard');
+    const timeBoardCard = document.getElementById('timeBoardCard');
 
     // Roles that can access Calculator and Sales Quotes
     const ALLOWED_ROLES = ['Sales', 'SalesDirector', 'Executive', 'Manager'];
 
     // Roles that can access Time Board (Manager + Executive + SalesDirector)
     const TIMEBOARD_ROLES = ['Manager', 'Executive', 'SalesDirector'];
+
+    const INDEX_MENU_VISIBILITY_DEFAULTS = {
+      calculator: {
+        enabled: true,
+        useSchedule: false,
+        startAt: '',
+        endAt: ''
+      },
+      salesQuotes: {
+        enabled: true,
+        useSchedule: false,
+        startAt: '',
+        endAt: ''
+      },
+      timeBoard: {
+        enabled: true,
+        useSchedule: false,
+        startAt: '',
+        endAt: ''
+      }
+    };
+
+    let indexMenuVisibilityConfig = { ...INDEX_MENU_VISIBILITY_DEFAULTS };
+
+    function normalizeIndexMenuVisibilityConfig(value) {
+      return {
+        calculator: {
+          enabled: value?.calculator?.enabled !== false,
+          useSchedule: value?.calculator?.useSchedule === true,
+          startAt: typeof value?.calculator?.startAt === 'string' ? value.calculator.startAt : '',
+          endAt: typeof value?.calculator?.endAt === 'string' ? value.calculator.endAt : ''
+        },
+        salesQuotes: {
+          enabled: value?.salesQuotes?.enabled !== false,
+          useSchedule: value?.salesQuotes?.useSchedule === true,
+          startAt: typeof value?.salesQuotes?.startAt === 'string' ? value.salesQuotes.startAt : '',
+          endAt: typeof value?.salesQuotes?.endAt === 'string' ? value.salesQuotes.endAt : ''
+        },
+        timeBoard: {
+          enabled: value?.timeBoard?.enabled !== false,
+          useSchedule: value?.timeBoard?.useSchedule === true,
+          startAt: typeof value?.timeBoard?.startAt === 'string' ? value.timeBoard.startAt : '',
+          endAt: typeof value?.timeBoard?.endAt === 'string' ? value.timeBoard.endAt : ''
+        }
+      };
+    }
+
+    async function loadIndexMenuVisibilityConfig() {
+      try {
+        const response = await fetch('/api/app-settings/index-menu-visibility');
+        if (!response.ok) {
+          throw new Error(`Failed to load menu settings (${response.status})`);
+        }
+
+        const data = await response.json();
+        indexMenuVisibilityConfig = normalizeIndexMenuVisibilityConfig(data.value || INDEX_MENU_VISIBILITY_DEFAULTS);
+      } catch (error) {
+        console.warn('Falling back to default landing page menu visibility:', error);
+        indexMenuVisibilityConfig = normalizeIndexMenuVisibilityConfig(INDEX_MENU_VISIBILITY_DEFAULTS);
+      }
+    }
+
+    function parseScheduleDate(value) {
+      if (!value) return null;
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function isMenuCardAllowedBySchedule(cardKey) {
+      const config = indexMenuVisibilityConfig?.[cardKey] || INDEX_MENU_VISIBILITY_DEFAULTS[cardKey];
+      if (!config || config.enabled === false) {
+        return false;
+      }
+
+      if (!config.useSchedule) {
+        return true;
+      }
+
+      const now = new Date();
+      const startAt = parseScheduleDate(config.startAt);
+      const endAt = parseScheduleDate(config.endAt);
+
+      if (startAt && now < startAt) {
+        return false;
+      }
+
+      if (endAt && now > endAt) {
+        return false;
+      }
+
+      return true;
+    }
 
     /**
      * Check if current user can access calculators
@@ -253,36 +347,40 @@
      */
     function applyAccessControl(hasAccess, userRole = null) {
       const calculatorCard = document.getElementById('calculatorMenuTrigger');
-      const salesQuotesCard = document.querySelector('a[href="/salesquotes.html"]');
-      const timeBoardCard = document.getElementById('timeBoardCard');
+      const calculatorVisible = hasAccess && isMenuCardAllowedBySchedule('calculator');
+      const salesQuotesVisible = hasAccess && isMenuCardAllowedBySchedule('salesQuotes');
+      const timeBoardVisible = Boolean(userRole && TIMEBOARD_ROLES.includes(userRole) && isMenuCardAllowedBySchedule('timeBoard'));
 
       // Time Board: Only show to Manager, Executive, SalesDirector
       if (timeBoardCard) {
-        if (userRole && TIMEBOARD_ROLES.includes(userRole)) {
+        if (timeBoardVisible) {
           timeBoardCard.classList.remove('hidden');
         } else {
           timeBoardCard.classList.add('hidden');
         }
       }
 
-      // Calculator & Sales Quotes: Hide if no access
+      if (calculatorCard) {
+        calculatorCard.classList.toggle('hidden', !calculatorVisible);
+      }
+
+      if (salesQuotesCard) {
+        salesQuotesCard.classList.toggle('hidden', !salesQuotesVisible);
+      }
+
       if (hasAccess) {
-        // Show cards
-        if (calculatorCard) calculatorCard.classList.remove('hidden');
-        if (salesQuotesCard) salesQuotesCard.classList.remove('hidden');
         awaitingAssignmentBanner.classList.add('hidden');
       } else {
-        // Hide cards
-        if (calculatorCard) calculatorCard.classList.add('hidden');
-        if (salesQuotesCard) salesQuotesCard.classList.add('hidden');
-        // Show banner only if user has no access at all
         awaitingAssignmentBanner.classList.remove('hidden');
       }
     }
 
     // Initialize access control on page load
     async function initializeAccessControl() {
-      const { hasAccess, userRole } = await checkUserAccess();
+      const [{ hasAccess, userRole }] = await Promise.all([
+        checkUserAccess(),
+        loadIndexMenuVisibilityConfig()
+      ]);
       applyAccessControl(hasAccess, userRole);
     }
 

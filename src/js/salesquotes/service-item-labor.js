@@ -1,5 +1,6 @@
 import { authState } from '../state.js';
 import { el, escapeHtml, fetchJson, fetchWithAuth } from '../core/utils.js';
+import { getMotorJobDefaults, shouldMotorJobBeCheckedByDefault } from '../core/motor-job-defaults.js';
 
 const SERVICE_ITEM_LABOR_API_BASE = '/api/salesquotes/service-item-labor';
 const OVERHAUL_JOB_PATTERNS = [
@@ -363,11 +364,13 @@ async function loadJobsForResolvedMotorType() {
     motorDriveType: snapshot.motorDriveType
   });
 
-  const jobs = await fetchJson(`/api/workshop/labor?${params.toString()}`);
+  const [jobs, motorJobDefaults] = await Promise.all([
+    fetchJson(`/api/workshop/labor?${params.toString()}`),
+    getMotorJobDefaults()
+  ]);
   modalState.jobs = Array.isArray(jobs)
     ? jobs.map((job) => {
-      const jobName = String(job.JobName || '').toLowerCase();
-      const defaultChecked = !(jobName.startsWith('wire arc') || jobName.startsWith('hvof'));
+      const defaultChecked = shouldMotorJobBeCheckedByDefault(job.JobName, motorJobDefaults);
       const defaultManHours = Number(job.ManHours || 0);
 
       return {

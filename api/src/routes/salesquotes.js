@@ -3,7 +3,10 @@ const sql = require('mssql');
 const { getPool } = require('../db');
 const { extractUserEmail } = require('../middleware/authExpress');
 const { ensureSalesQuoteSubmissionRecordsTable } = require('../utils/salesQuoteSubmissionRecords');
-const { logSalesQuoteAuditEvent } = require('../utils/salesQuoteAuditLog');
+const {
+  ensureSalesQuoteAuditLogTable,
+  logSalesQuoteAuditEvent
+} = require('../utils/salesQuoteAuditLog');
 const { ensureSalesQuoteUserPreferencesTable } = require('../utils/salesQuoteUserPreferences');
 const {
   ensureSalesQuoteServiceItemLaborTables

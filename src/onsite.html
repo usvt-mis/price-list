@@ -154,6 +154,19 @@
 
     :root {
       --onsite-sticky-stack-offset: 7rem;
+      --ons-accent: #0f766e;
+      --ons-accent-soft: #ecfeff;
+      --ons-accent-border: #bae6fd;
+      --ons-options-accent: #d97706;
+      --ons-options-soft: #fffbeb;
+      --ons-labor-accent: #2563eb;
+      --ons-labor-soft: #eff6ff;
+      --ons-materials-accent: #0f766e;
+      --ons-materials-soft: #ecfdf5;
+      --ons-travel-accent: #d97706;
+      --ons-travel-soft: #fffbeb;
+      --ons-panel-dark: #0f172a;
+      --ons-panel-line: rgba(125, 211, 252, 0.2);
     }
 
     html {
@@ -490,6 +503,201 @@
         max-width: none;
       }
     }
+
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 32%),
+        radial-gradient(circle at top right, rgba(13, 148, 136, 0.1), transparent 28%),
+        linear-gradient(180deg, #f8fbff 0%, #f4f8fb 100%);
+    }
+
+    #onsiteOptionsSection,
+    #laborSection,
+    #materialsSection,
+    #travelSection,
+    #listView > div.bg-white,
+    #detailView > div.bg-white {
+      border: 1px solid rgba(186, 230, 253, 0.95);
+      border-radius: 1.75rem;
+      overflow: hidden;
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    }
+
+    #onsiteOptionsSection .section-header,
+    #laborSection .section-header,
+    #materialsSection .section-header,
+    #travelSection .section-header {
+      border-bottom: 1px solid rgba(186, 230, 253, 0.8);
+      border-top-left-radius: 1.75rem;
+      border-top-right-radius: 1.75rem;
+    }
+
+    #onsiteOptionsSection .section-content,
+    #laborSection .section-content,
+    #materialsSection .section-content,
+    #travelSection .section-content {
+      border-bottom-left-radius: 1.75rem;
+      border-bottom-right-radius: 1.75rem;
+    }
+
+    #onsiteOptionsSection .section-header {
+      background: linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(248, 250, 252, 0.96));
+    }
+
+    #laborSection .section-header {
+      background: linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(248, 250, 252, 0.96));
+    }
+
+    #materialsSection .section-header {
+      background: linear-gradient(135deg, rgba(236, 253, 245, 0.98), rgba(248, 250, 252, 0.96));
+    }
+
+    #travelSection .section-header {
+      background: linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(248, 250, 252, 0.96));
+    }
+
+    #onsiteOptionsSection .section-header > div:first-child > div:first-child,
+    #laborSection .section-header > div:first-child > div:first-child,
+    #materialsSection .section-header > div:first-child > div:first-child,
+    #travelSection .section-header > div:first-child > div:first-child {
+      border-width: 1px;
+      border-style: solid;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    #onsiteOptionsSection .section-header > div:first-child > div:first-child {
+      background: linear-gradient(135deg, #fef3c7, #fffbeb);
+      border-color: #fde68a;
+    }
+
+    #laborSection .section-header > div:first-child > div:first-child {
+      background: linear-gradient(135deg, #dbeafe, #eff6ff);
+      border-color: #bfdbfe;
+    }
+
+    #materialsSection .section-header > div:first-child > div:first-child {
+      background: linear-gradient(135deg, #d1fae5, #ecfdf5);
+      border-color: #a7f3d0;
+    }
+
+    #travelSection .section-header > div:first-child > div:first-child {
+      background: linear-gradient(135deg, #fef3c7, #fffbeb);
+      border-color: #fde68a;
+    }
+
+    #onsiteOptionsSection .section-header svg {
+      color: var(--ons-options-accent);
+    }
+
+    #laborSection .section-header svg {
+      color: var(--ons-labor-accent);
+    }
+
+    #materialsSection .section-header svg {
+      color: var(--ons-materials-accent);
+    }
+
+    #travelSection .section-header svg {
+      color: var(--ons-travel-accent);
+    }
+
+    #branchDropdown,
+    #onsiteLaborFields > div,
+    #materialsSection .rounded-xl.border.border-emerald-200,
+    #travelSection .bg-gradient-to-br.from-sky-50.to-blue-50 {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+      border-color: rgba(191, 219, 254, 0.8);
+    }
+
+    #branchDropdown:hover,
+    #onsiteLaborFields > div:hover {
+      border-color: rgba(96, 165, 250, 0.85);
+    }
+
+    .onsite-option-card {
+      border-color: rgba(191, 219, 254, 0.7);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+      border-radius: 1.1rem;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .onsite-option-card:hover {
+      border-color: rgba(251, 191, 36, 0.7);
+      box-shadow: 0 14px 28px rgba(217, 119, 6, 0.1);
+    }
+
+    .onsite-option-card[aria-checked="true"] {
+      border-color: rgba(245, 158, 11, 0.72);
+      background: linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(255, 247, 237, 0.96));
+      box-shadow: 0 0 0 2px rgba(253, 230, 138, 0.85), 0 14px 28px rgba(217, 119, 6, 0.12);
+    }
+
+    .onsite-option-card[aria-checked="true"] .toggle-switch {
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+    }
+
+    .onsite-option-card:focus-visible {
+      outline: 2px solid rgba(245, 158, 11, 0.85);
+      outline-offset: 2px;
+    }
+
+    .onsite-option-card[aria-checked="true"] [data-status-text] {
+      color: #b45309;
+    }
+
+    #summarySection {
+      background:
+        radial-gradient(circle at top right, rgba(56, 189, 248, 0.2), transparent 24%),
+        linear-gradient(180deg, var(--ons-panel-dark) 0%, #0b1220 100%);
+      border-color: var(--ons-panel-line);
+      box-shadow: 0 24px 56px rgba(15, 23, 42, 0.2);
+    }
+
+    #grandTotalWithoutCommission,
+    #breakdownCard,
+    #percentageBreakdownCard,
+    #grandTotalBottomCard {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.86), rgba(15, 23, 42, 0.92));
+      border-color: var(--ons-panel-line);
+      border-radius: 1.5rem;
+      box-shadow: 0 18px 34px rgba(15, 23, 42, 0.16);
+    }
+
+    #subTotalCostSection,
+    #percentageBreakdownCard .bg-gradient-to-r.from-emerald-600\/30.to-emerald-700\/40 {
+      background: linear-gradient(90deg, rgba(37, 99, 235, 0.24), rgba(14, 165, 233, 0.18));
+      border-color: rgba(125, 211, 252, 0.26);
+    }
+
+    #summarySection .bg-blue-500\/20,
+    #summarySection .bg-indigo-500\/25,
+    #percentageBreakdownCard .bg-amber-500\/25 {
+      background: rgba(125, 211, 252, 0.14);
+      border-color: rgba(125, 211, 252, 0.22);
+      color: #dbeafe;
+    }
+
+    #summarySection .text-blue-100,
+    #summarySection .text-emerald-500,
+    #summarySection .text-amber-500 {
+      color: #e0f2fe;
+    }
+
+    #grandTotalBottomCard {
+      background: linear-gradient(135deg, #2563eb 0%, #0f766e 55%, #0f172a 100%);
+      box-shadow: 0 22px 46px rgba(14, 116, 144, 0.24);
+    }
+
+    #backToCalculatorBtn {
+      background: linear-gradient(90deg, #2563eb 0%, #0ea5e9 100%);
+      box-shadow: 0 16px 32px rgba(37, 99, 235, 0.26);
+      border: 1px solid rgba(96, 165, 250, 0.32);
+    }
+
+    #backToCalculatorBtn:hover {
+      background: linear-gradient(90deg, #1d4ed8 0%, #0284c7 100%);
+      box-shadow: 0 20px 38px rgba(29, 78, 216, 0.3);
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -517,7 +725,7 @@
             <div class="sticky-header-copy">
               <div class="sticky-header-title-row flex items-center gap-3">
                 <h1 class="sticky-header-title text-3xl font-bold tracking-tight">Onsite Calculator</h1>
-                <span class="type-badge px-3 py-2 text-xs font-semibold rounded bg-blue-100 text-blue-800">Onsite</span>
+                <span class="type-badge px-3 py-2 text-xs font-semibold rounded bg-sky-100 text-sky-700 border border-sky-200">Onsite</span>
               </div>
               <p class="sticky-header-subtitle text-sm text-slate-500">Field service pricing</p>
             </div>
@@ -692,7 +900,7 @@
       <!-- Details Section -->
       <section class="hidden bg-white rounded-2xl shadow p-8">
         <div class="flex items-center gap-3">
-          <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <h2 class="text-lg font-semibold text-slate-800">Details</h2>
@@ -703,7 +911,7 @@
           <div class="relative" id="salesQuoteDropdown">
             <input type="text"
                    id="salesQuoteNumber"
-                   class="w-full md:w-80 rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                   class="w-full md:w-80 rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
                    placeholder="Type to search..."
                    autocomplete="off">
             <!-- Dropdown List -->
@@ -746,14 +954,14 @@
           <div class="p-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Branch Card -->
-          <div id="branchDropdown" class="border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition-colors">
+          <div id="branchDropdown" class="border border-slate-200 rounded-xl p-4 transition-colors">
             <label class="block text-sm font-medium text-slate-700 mb-2">
               <svg class="w-4 h-4 inline mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
               </svg>
               Branch
             </label>
-            <select id="branch" class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <select id="branch" class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 focus:ring-2 focus:ring-sky-400 focus:border-sky-400">
               <option value="">Loading…</option>
             </select>
           </div>
@@ -775,9 +983,9 @@
         <!-- Scope, Priority Level, and Site Access (Onsite-specific, shown in Labor section) -->
         <div id="onsiteLaborFields" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- Scope Card -->
-          <div class="border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition-colors">
+          <div class="border border-slate-200 rounded-xl p-4 transition-colors">
             <label class="block text-sm font-medium text-slate-700 mb-2">Scope</label>
-            <select id="scope" name="scope" class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <select id="scope" name="scope" class="w-full rounded-lg border-slate-200 shadow-sm px-3 py-2 focus:ring-2 focus:ring-sky-400 focus:border-sky-400">
               <option value="">Select Scope…</option>
               <option value="low-volt">Low Volt</option>
               <option value="medium-volt">Medium Volt</option>
@@ -786,30 +994,30 @@
           </div>
 
           <!-- Priority Level Card -->
-          <div class="border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition-colors">
+          <div class="border border-slate-200 rounded-xl p-4 transition-colors">
             <label class="block text-sm font-medium text-slate-700 mb-2">Priority Level</label>
             <div class="space-y-2">
               <label class="flex items-center p-2 rounded hover:bg-slate-50 cursor-pointer">
-                <input type="radio" name="priorityLevel" value="high" class="text-blue-600 focus:ring-blue-500">
+                <input type="radio" name="priorityLevel" value="high" class="text-sky-600 focus:ring-sky-400">
                 <span class="ml-2 text-sm">High</span>
               </label>
               <label class="flex items-center p-2 rounded hover:bg-slate-50 cursor-pointer">
-                <input type="radio" name="priorityLevel" value="low" checked class="text-blue-600 focus:ring-blue-500">
+                <input type="radio" name="priorityLevel" value="low" checked class="text-sky-600 focus:ring-sky-400">
                 <span class="ml-2 text-sm">Low</span>
               </label>
             </div>
           </div>
 
           <!-- Site Access Card -->
-          <div class="border border-slate-200 rounded-xl p-4 hover:border-blue-300 transition-colors">
+          <div class="border border-slate-200 rounded-xl p-4 transition-colors">
             <label class="block text-sm font-medium text-slate-700 mb-2">Site Access</label>
             <div class="space-y-2">
               <label class="flex items-center p-2 rounded hover:bg-slate-50 cursor-pointer">
-                <input type="radio" name="siteAccess" value="easy" checked class="text-blue-600 focus:ring-blue-500">
+                <input type="radio" name="siteAccess" value="easy" checked class="text-sky-600 focus:ring-sky-400">
                 <span class="ml-2 text-sm">Easy</span>
               </label>
               <label class="flex items-center p-2 rounded hover:bg-slate-50 cursor-pointer">
-                <input type="radio" name="siteAccess" value="difficult" class="text-blue-600 focus:ring-blue-500">
+                <input type="radio" name="siteAccess" value="difficult" class="text-sky-600 focus:ring-sky-400">
                 <span class="ml-2 text-sm">Difficult</span>
               </label>
             </div>
@@ -822,12 +1030,12 @@
               <thead class="bg-gradient-to-b from-slate-50 to-slate-100 text-slate-600 sticky shadow-sm">
                 <tr class="border-b border-slate-200">
                   <th class="w-10 py-3 px-4 text-center" scope="col">
-                    <input type="checkbox" id="selectAllJobs" class="text-blue-600 focus:ring-2 focus:ring-blue-500 rounded">
+                    <input type="checkbox" id="selectAllJobs" class="text-sky-600 focus:ring-2 focus:ring-sky-400 rounded">
                   </th>
                   <th class="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Job</th>
                   <th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Manhours</th>
                   <th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide" scope="col">Cost+Ovh+PP</th>
-                  <th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide text-blue-600 bg-blue-50/50" scope="col">Final Price</th>
+                  <th class="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wide text-sky-700 bg-sky-50/80" scope="col">Final Price</th>
                 </tr>
               </thead>
               <tbody id="laborRows" class="divide-y divide-slate-100"></tbody>
@@ -877,7 +1085,7 @@
 
           <div class="relative">
             <input id="materialSearchInput" type="text"
-                   class="w-full pl-10 pr-10 py-2 text-base rounded-lg border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 transition-all duration-200"
+                   class="w-full pl-10 pr-10 py-2 text-base rounded-lg border border-slate-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400 transition-all duration-200"
                    placeholder="Type to search and add materials..." autocomplete="off"
                    aria-label="Search materials" aria-expanded="false" aria-controls="materialSearchDropdown" role="combobox" aria-autocomplete="list" aria-haspopup="listbox"/>
 
@@ -963,7 +1171,7 @@
                 step="1"
                 min="0"
                 placeholder="Enter distance in km..."
-                class="w-full rounded-lg border-2 border-slate-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all duration-200 px-4 py-3 text-lg"
+                class="w-full rounded-lg border-2 border-slate-300 focus:border-amber-400 focus:ring-2 focus:ring-amber-200 transition-all duration-200 px-4 py-3 text-lg"
               />
               <span class="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-slate-500 font-medium">km</span>
             </div>
@@ -1180,7 +1388,7 @@
     <div id="listView" class="hidden">
       <!-- Prominent New Calculation Button -->
       <div class="mb-6 flex justify-center">
-        <button id="backToCalculatorBtn" class="w-full sm:w-auto px-8 py-4 text-base font-semibold rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-3 ring-2 ring-blue-500/50">
+        <button id="backToCalculatorBtn" class="w-full sm:w-auto px-8 py-4 text-base font-semibold rounded-xl text-white shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-3 ring-2 ring-sky-400/40">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
           </svg>
@@ -1217,7 +1425,7 @@
             <label class="block text-sm font-medium text-slate-700 mb-1">Search Records</label>
             <div class="relative">
               <input type="text" id="searchRecords"
-                     class="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                     class="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-400 focus:border-sky-400"
                      placeholder="Search all columns..."
                      autocomplete="off">
               <svg class="absolute left-3 top-2.5 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

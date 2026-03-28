@@ -16,7 +16,7 @@ import { recordQuoteSubmission, recordQuoteAuditEvent } from './records.js';
 import { submitForApproval, createApprovalRecord, sendApprovalRequest as sendApprovalRequestModule, checkApprovalStatus, APPROVAL_STATUS, resubmitForApproval, requestRevisionForApprovedQuote, showApprovalActionModal, cancelApprovalRequest } from './approvals.js';
 import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
-import { initConfirmNewSerLaborUi, syncConfirmNewSerLaborProfile, resetConfirmNewSerLaborProfile, getConfirmNewSerLaborValidation, saveConfirmNewSerLaborProfile, hydrateConfirmNewSerLaborProfile } from './service-item-labor.js';
+import { initConfirmNewSerLaborUi, syncConfirmNewSerLaborProfile, resetConfirmNewSerLaborProfile, getConfirmNewSerLaborValidation, saveConfirmNewSerLaborProfile, hydrateConfirmNewSerLaborProfile, getConfirmNewSerLaborJobsSnapshot } from './service-item-labor.js';
 
 function normalizeGroupNo(value) {
   if (value === null || value === undefined) {
@@ -2496,6 +2496,7 @@ async function confirmNewSerCreation() {
   const shouldUseEditFlow = state.ui.pendingSerCreationEdit;
   const isEditingExistingSerProfile = state.ui.editingExistingSerProfile;
   const confirmSnapshot = getConfirmNewSerSnapshot();
+  const laborJobsSnapshot = getConfirmNewSerLaborJobsSnapshot();
 
   const builderValidation = !confirmSnapshot.workType
     ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
@@ -2520,21 +2521,21 @@ async function confirmNewSerCreation() {
 
     if (shouldUseEditFlow) {
       if (isEditingExistingSerProfile) {
-        await saveExistingServiceItemLaborProfile(confirmSnapshot);
+        await saveExistingServiceItemLaborProfile(confirmSnapshot, laborJobsSnapshot);
         return;
       }
-      await createServiceItemAndLockFieldsForEdit(confirmSnapshot);
+      await createServiceItemAndLockFieldsForEdit(confirmSnapshot, laborJobsSnapshot);
       return;
     }
 
-    await createServiceItemAndLockFields(confirmSnapshot);
+    await createServiceItemAndLockFields(confirmSnapshot, laborJobsSnapshot);
   } finally {
     resetServiceItemBuilder('confirm');
     resetConfirmNewSerLaborProfile();
   }
 }
 
-async function saveExistingServiceItemLaborProfile(confirmSnapshot = null) {
+async function saveExistingServiceItemLaborProfile(confirmSnapshot = null, laborJobsSnapshot = null) {
   const snapshot = confirmSnapshot || getConfirmNewSerSnapshot();
   const serviceItemNo = document.getElementById('editLineUsvtServiceItemNo')?.value?.trim() || '';
   const groupNo = document.getElementById('editLineUsvtGroupNo')?.value?.trim() || '1';
@@ -2542,6 +2543,7 @@ async function saveExistingServiceItemLaborProfile(confirmSnapshot = null) {
   const confirmModal = document.getElementById('confirmNewSerModal');
   const originalDescription = String(confirmModal?.dataset.originalServiceItemDescription || '').trim();
   const serviceItemDesc = applyConfirmNewSerSnapshotToSource(snapshot, 'edit').trim();
+  const hasDescriptionChanged = hasServiceItemDescriptionChanged(originalDescription, serviceItemDesc);
   const validationError = getConfirmNewSerLaborValidation(snapshot);
 
   if (!serviceItemNo) {
@@ -2568,11 +2570,12 @@ async function saveExistingServiceItemLaborProfile(confirmSnapshot = null) {
     await saveConfirmNewSerLaborProfile(serviceItemNo, snapshot, {
       description: serviceItemDesc,
       customerNo,
-      groupNo
+      groupNo,
+      jobs: laborJobsSnapshot
     });
     laborProfileSaved = true;
 
-    if (serviceItemDesc !== originalDescription) {
+    if (hasDescriptionChanged) {
       await updateServiceItemDescription(serviceItemNo, serviceItemDesc);
     }
 
@@ -2583,7 +2586,7 @@ async function saveExistingServiceItemLaborProfile(confirmSnapshot = null) {
     showSuccess(`Service Item ${serviceItemNo} saved successfully`);
   } catch (error) {
     console.error('Failed to save existing Service Item labor profile:', error);
-    if (laborProfileSaved && serviceItemDesc !== originalDescription) {
+    if (laborProfileSaved && hasDescriptionChanged) {
       showError(error.message || 'Workshop job list was saved, but updating the Service Item description failed. Please try again.');
     } else {
       showError(error.message || 'Failed to save workshop job list. Please try again.');
@@ -2597,7 +2600,7 @@ async function saveExistingServiceItemLaborProfile(confirmSnapshot = null) {
  * Create Service Item and lock fields in Add Line modal
  * Module-level function to be accessible from confirmNewSerCreation
  */
-async function createServiceItemAndLockFields(confirmSnapshot = null) {
+async function createServiceItemAndLockFields(confirmSnapshot = null, laborJobsSnapshot = null) {
   // If already created, do nothing
   if (state.ui.serCreated) {
     showError('Service Item already created');
@@ -2649,7 +2652,8 @@ async function createServiceItemAndLockFields(confirmSnapshot = null) {
       await saveConfirmNewSerLaborProfile(serviceItemNo, snapshot, {
         description: serviceItemDesc,
         customerNo,
-        groupNo
+        groupNo,
+        jobs: laborJobsSnapshot
       });
     } catch (profileError) {
       laborProfileSaveError = profileError;
@@ -3390,6 +3394,17 @@ async function updateServiceItemDescription(serviceItemNo, description) {
     console.error('UpdateServiceItem API call failed:', error);
     throw error;
   }
+}
+
+function normalizeServiceItemDescriptionForComparison(description) {
+  return String(description || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function hasServiceItemDescriptionChanged(originalDescription, nextDescription) {
+  return normalizeServiceItemDescriptionForComparison(originalDescription)
+    !== normalizeServiceItemDescriptionForComparison(nextDescription);
 }
 
 /**
@@ -5449,7 +5464,7 @@ function confirmNewSerCreationForEdit() {
 /**
  * Create Service Item and lock fields in Edit modal
  */
-async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null) {
+async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null, laborJobsSnapshot = null) {
   // If already created, do nothing
   if (state.ui.serCreatedEdit) {
     showError('Service Item already created');
@@ -5507,7 +5522,8 @@ async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null) {
       await saveConfirmNewSerLaborProfile(serviceItemNo, snapshot, {
         description: serviceItemDesc,
         customerNo,
-        groupNo
+        groupNo,
+        jobs: laborJobsSnapshot
       });
     } catch (profileError) {
       laborProfileSaveError = profileError;

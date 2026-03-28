@@ -55,6 +55,7 @@ const savedCalculationsRouter = require('./api/src/routes/savedCalculations');
 const sharedCalculationsRouter = require('./api/src/routes/sharedCalculations');
 const pingRouter = require('./api/src/routes/ping');
 const versionRouter = require('./api/src/routes/version');
+const appSettingsRouter = require('./api/src/routes/app-settings');
 const adminRolesRouter = require('./api/src/routes/admin/roles');
 const backofficeRouter = require('./api/src/routes/backoffice');
 const backofficeLoginRouter = require('./api/src/routes/backoffice/login');
@@ -205,6 +206,9 @@ app.use('/api/ping', pingRouter);
 
 // Version (public)
 app.use('/api/version', versionRouter);
+
+// Shared application settings (public read-only endpoints)
+app.use('/api/app-settings', appSettingsRouter);
 
 // Admin routes (requires authentication + Executive role checked in routes)
 app.use('/api/adm/roles', requireAuth, adminRolesRouter);

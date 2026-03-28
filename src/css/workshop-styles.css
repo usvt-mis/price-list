@@ -6,28 +6,28 @@
      BASE COLORS
      ======================================== */
 
-  --wks-bg: #f9fafb;              /* Match current body background (slate-50) */
+  --wks-bg: #f8fbff;              /* Bright dashboard canvas */
   --wks-surface: #ffffff;         /* White card surfaces */
-  --wks-surface-alt: #f8fafc;     /* Alternate card backgrounds (slate-50) */
+  --wks-surface-alt: #f0f9ff;     /* Alternate card backgrounds */
 
   /* ========================================
      SECTION COLORS - Keep Existing
      ======================================== */
 
   /* Labor - Blue */
-  --wks-labor: #3b82f6;           /* Blue (Tailwind blue-500) */
-  --wks-labor-bg: #eff6ff;        /* Blue background (blue-50) */
-  --wks-labor-border: #bfdbfe;    /* Blue border (blue-200) */
+  --wks-labor: #2563eb;           /* Dashboard blue */
+  --wks-labor-bg: #eff6ff;        /* Blue background */
+  --wks-labor-border: #bfdbfe;    /* Blue border */
 
   /* Materials - Emerald */
-  --wks-materials: #10b981;       /* Emerald (Tailwind emerald-500) */
-  --wks-materials-bg: #ecfdf5;    /* Emerald background (emerald-50) */
-  --wks-materials-border: #a7f3d0; /* Emerald border (emerald-200) */
+  --wks-materials: #0f766e;       /* Teal */
+  --wks-materials-bg: #ecfdf5;    /* Teal background */
+  --wks-materials-border: #a7f3d0; /* Teal border */
 
   /* Travel - Sky */
-  --wks-travel: #0ea5e9;          /* Sky (Tailwind sky-500) */
-  --wks-travel-bg: #e0f2fe;       /* Sky background (sky-50) */
-  --wks-travel-border: #bae6fd;   /* Sky border (sky-200) */
+  --wks-travel: #d97706;          /* Amber */
+  --wks-travel-bg: #fffbeb;       /* Amber background */
+  --wks-travel-border: #fde68a;   /* Amber border */
 
   /* ========================================
      HEADER COLORS - Neutral Slate
@@ -39,7 +39,7 @@
   --wks-header-shadow-sticky: 0 14px 30px rgba(15, 23, 42, 0.1);
   --wks-header-text: #1e293b;     /* slate-800 */
   --wks-header-text-muted: #64748b; /* slate-500 */
-  --wks-header-indicator: #3b82f6; /* Blue indicator (was orange) */
+  --wks-header-indicator: #0ea5e9; /* Dashboard accent indicator */
 
   /* ========================================
      UNIFIED BORDERS & SHADOWS

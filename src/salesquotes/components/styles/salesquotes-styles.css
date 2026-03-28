@@ -269,6 +269,62 @@ body {
   width: 82%;
 }
 
+.sq-history-marker {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 0 3px rgba(248, 250, 252, 0.95), 0 4px 10px rgba(15, 23, 42, 0.10);
+}
+
+.sq-history-action-created,
+.sq-history-action-updated,
+.sq-history-action-cancelled {
+  background: #eef2f7;
+  color: #475569;
+}
+
+.sq-history-action-submitted {
+  background: #e0f2fe;
+  color: #0f5d7a;
+}
+
+.sq-history-action-send-approve {
+  background: #fef3c7;
+  color: #a16207;
+}
+
+.sq-history-action-approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sq-history-action-rejected,
+.sq-history-action-revision-rejected {
+  background: #ffe4e6;
+  color: #be123c;
+}
+
+.sq-history-action-revise {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.sq-history-action-revision-requested {
+  background: #fae8ff;
+  color: #a21caf;
+}
+
+.sq-history-action-revision-approved {
+  background: #cffafe;
+  color: #0f766e;
+}
+
+.sq-history-action-resubmitted {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
 @keyframes sq-spin {
   to {
     transform: rotate(360deg);

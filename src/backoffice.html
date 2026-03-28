@@ -469,6 +469,75 @@
       gap: 1rem;
     }
 
+    .backoffice-settings-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      padding: 1rem;
+      border: 1px solid #dbe4ee;
+      border-radius: 1.25rem;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
+    }
+
+    .backoffice-settings-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.7rem 1rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #334155;
+      font-size: 0.86rem;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+
+    .backoffice-settings-nav-btn:hover {
+      border-color: #14b8a6;
+      color: #0f766e;
+      background: #f0fdfa;
+    }
+
+    .backoffice-settings-nav-btn.active {
+      border-color: #0f766e;
+      background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+      color: #ffffff;
+      box-shadow: 0 12px 24px rgba(15, 118, 110, 0.2);
+    }
+
+    .backoffice-settings-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .backoffice-settings-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      background: #ecfeff;
+      border: 1px solid #a5f3fc;
+      color: #155e75;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .backoffice-textarea-mono {
+      width: 100%;
+      min-height: 12rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 1rem;
+      padding: 1rem;
+      font: 0.9rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #0f172a;
+      background: #ffffff;
+      resize: vertical;
+    }
+
     .print-layout-group {
       border: 1px solid #e2e8f0;
       border-radius: 1.25rem;
@@ -856,6 +925,10 @@
 
       .backoffice-tab-btn {
         flex: 0 0 auto;
+      }
+
+      .backoffice-settings-nav {
+        padding: 0.85rem;
       }
     }
   </style>
@@ -1440,55 +1513,200 @@
           <div class="space-y-6">
             <div>
               <h2 class="backoffice-section-heading text-xl font-bold text-slate-900">Settings</h2>
-              <p class="backoffice-section-subtitle text-sm text-slate-500 mt-1">Manage shared backoffice configuration and saved layout values.</p>
+              <p class="backoffice-section-subtitle text-sm text-slate-500 mt-1">Manage shared landing page visibility, motor job defaults, branch profit percentages, and saved layout values.</p>
+            </div>
+
+            <div class="backoffice-settings-nav" role="tablist" aria-label="Settings categories">
+              <button type="button" class="backoffice-settings-nav-btn active" data-settings-category-btn="general">General</button>
+              <button type="button" class="backoffice-settings-nav-btn" data-settings-category-btn="calculator">Calculator</button>
+              <button type="button" class="backoffice-settings-nav-btn" data-settings-category-btn="salesquotes">Sales Quotes</button>
             </div>
 
             <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.7fr)] gap-6">
-              <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h3 class="text-lg font-semibold text-slate-900">Sales Quotes Print Layout</h3>
-                    <p class="text-sm text-slate-500 mt-1">Saved values here apply to the Sales Quotes print preview for all users.</p>
+              <div class="space-y-6">
+                <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm" data-settings-category="general">
+                  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 class="text-lg font-semibold text-slate-900">Landing Page Menu Schedule</h3>
+                      <p class="text-sm text-slate-500 mt-1">Control whether each menu card on the landing page is shown all the time or only within a scheduled time window.</p>
+                    </div>
                   </div>
-                  <button
-                    id="openSalesQuotesBtn"
-                    class="backoffice-btn-secondary inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                    type="button"
-                  >
-                    Open Sales Quotes
-                  </button>
+
+                  <div class="backoffice-note mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                    Schedule values use each viewer's local browser time. If schedule is off, the card stays visible whenever role access allows it.
+                  </div>
+
+                  <div id="indexMenuVisibilityMeta" class="mt-4 text-sm text-slate-500">Loading landing page menu settings...</div>
+                  <div id="indexMenuVisibilityControls" class="mt-5 grid gap-4"></div>
+
+                  <div class="mt-6 flex flex-wrap gap-3">
+                    <button id="indexMenuVisibilitySaveBtn" type="button" class="backoffice-btn rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
+                      Save Menu Schedule
+                    </button>
+                    <button id="indexMenuVisibilityReloadBtn" type="button" class="backoffice-btn-secondary rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                      Reload Saved
+                    </button>
+                    <button id="indexMenuVisibilityDefaultsBtn" type="button" class="backoffice-btn-secondary rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-50 transition-colors">
+                      Use Defaults
+                    </button>
+                  </div>
                 </div>
 
-                <div class="backoffice-note mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  Use <strong>px</strong> for font sizes and <strong>mm</strong> for spacing/position values. Save after adjusting, then verify from the Sales Quotes print view.
+                <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm" data-settings-category="calculator">
+                  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 class="text-lg font-semibold text-slate-900">Motor Default Job List</h3>
+                      <p class="text-sm text-slate-500 mt-1">Jobs whose names start with these prefixes will load as unchecked by default in Workshop and the Sales Quotes motor labor picker.</p>
+                    </div>
+                  </div>
+
+                  <div class="backoffice-note mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    Enter one prefix per line. Matching is case-insensitive and uses <strong>starts with</strong> logic, just like the current <code>wire arc</code> and <code>hvof</code> behavior.
+                  </div>
+
+                  <div id="motorJobDefaultsMeta" class="mt-4 text-sm text-slate-500">Loading motor job defaults...</div>
+
+                  <label class="mt-5 block">
+                    <span class="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Unchecked Prefixes</span>
+                    <textarea id="motorJobDefaultsPrefixes" class="backoffice-textarea-mono" placeholder="wire arc&#10;hvof" spellcheck="false"></textarea>
+                  </label>
+
+                  <div>
+                    <div class="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Preview Chips</div>
+                    <div id="motorJobDefaultsPreview" class="backoffice-settings-chip-list"></div>
+                  </div>
+
+                  <div class="mt-6 flex flex-wrap gap-3">
+                    <button id="motorJobDefaultsSaveBtn" type="button" class="backoffice-btn rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 transition-colors">
+                      Save Motor Defaults
+                    </button>
+                    <button id="motorJobDefaultsReloadBtn" type="button" class="backoffice-btn-secondary rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                      Reload Saved
+                    </button>
+                    <button id="motorJobDefaultsDefaultsBtn" type="button" class="backoffice-btn-secondary rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-50 transition-colors">
+                      Use Defaults
+                    </button>
+                  </div>
                 </div>
 
-                <div id="printLayoutSaveMeta" class="mt-4 text-sm text-slate-500">Loading saved layout settings...</div>
-                <div id="printLayoutVisualControls" class="mt-5 print-layout-control-groups"></div>
+                <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm" data-settings-category="calculator">
+                  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 class="text-lg font-semibold text-slate-900">Policy Profit &amp; Overhead</h3>
+                      <p class="text-sm text-slate-500 mt-1">Update shared branch percentages that feed the calculator branch multiplier.</p>
+                    </div>
+                  </div>
 
-                <div class="mt-6 flex flex-wrap gap-3">
-                  <button id="printLayoutSaveBtn" type="button" class="backoffice-btn rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
-                    Save Layout
-                  </button>
-                  <button id="printLayoutReloadBtn" type="button" class="backoffice-btn-secondary rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                    Reload Saved
-                  </button>
-                  <button id="printLayoutDefaultsBtn" type="button" class="backoffice-btn-secondary rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-50 transition-colors">
-                    Use Defaults
-                  </button>
+                  <div class="backoffice-note mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    Branch multiplier formula: <strong>(1 + Overhead% / 100) × (1 + Policy Profit% / 100)</strong>
+                  </div>
+
+                  <div id="branchProfitSettingsMeta" class="mt-4 text-sm text-slate-500">Loading branch profit settings...</div>
+
+                  <div class="mt-5 overflow-x-auto">
+                    <table class="min-w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
+                      <thead class="bg-slate-50 text-slate-600">
+                        <tr>
+                          <th class="text-left px-4 py-3 font-medium">Branch</th>
+                          <th class="text-left px-4 py-3 font-medium">Workshop Cost/Hr</th>
+                          <th class="text-left px-4 py-3 font-medium">Onsite Cost/Hr</th>
+                          <th class="text-left px-4 py-3 font-medium">Overhead %</th>
+                          <th class="text-left px-4 py-3 font-medium">Policy Profit %</th>
+                          <th class="text-left px-4 py-3 font-medium">Multiplier</th>
+                        </tr>
+                      </thead>
+                      <tbody id="branchProfitSettingsTableBody" class="divide-y divide-slate-100">
+                        <tr>
+                          <td colspan="6" class="px-4 py-8 text-center text-slate-500">Loading branch settings...</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div class="mt-6 flex flex-wrap gap-3">
+                    <button id="branchProfitSettingsSaveBtn" type="button" class="backoffice-btn rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
+                      Save Percentages
+                    </button>
+                    <button id="branchProfitSettingsReloadBtn" type="button" class="backoffice-btn-secondary rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                      Reload Branches
+                    </button>
+                  </div>
+                </div>
+
+                <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm" data-settings-category="salesquotes">
+                  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 class="text-lg font-semibold text-slate-900">Sales Quotes Print Layout</h3>
+                      <p class="text-sm text-slate-500 mt-1">Saved values here apply to the Sales Quotes print preview for all users.</p>
+                    </div>
+                    <button
+                      id="openSalesQuotesBtn"
+                      class="backoffice-btn-secondary inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                      type="button"
+                    >
+                      Open Sales Quotes
+                    </button>
+                  </div>
+
+                  <div class="backoffice-note mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    Use <strong>px</strong> for font sizes and <strong>mm</strong> for spacing/position values. Save after adjusting, then verify from the Sales Quotes print view.
+                  </div>
+
+                  <div id="printLayoutSaveMeta" class="mt-4 text-sm text-slate-500">Loading saved layout settings...</div>
+                  <div id="printLayoutVisualControls" class="mt-5 print-layout-control-groups"></div>
+
+                  <div class="mt-6 flex flex-wrap gap-3">
+                    <button id="printLayoutSaveBtn" type="button" class="backoffice-btn rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
+                      Save Layout
+                    </button>
+                    <button id="printLayoutReloadBtn" type="button" class="backoffice-btn-secondary rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                      Reload Saved
+                    </button>
+                    <button id="printLayoutDefaultsBtn" type="button" class="backoffice-btn-secondary rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-50 transition-colors">
+                      Use Defaults
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <div class="space-y-6">
-                <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm" data-settings-category="general">
                   <h3 class="text-lg font-semibold text-slate-900">Authentication</h3>
                   <p class="text-slate-600 mt-3">Backoffice is configured for Azure AD authentication only.</p>
                   <p class="text-sm text-slate-500 mt-2">Access is restricted to <code>it@uservices-thailand.com</code></p>
                 </div>
 
-                <div class="backoffice-panel backoffice-panel-strong p-6 bg-slate-900 rounded-2xl text-white shadow-sm">
+                <div class="backoffice-panel backoffice-panel-strong p-6 bg-slate-900 rounded-2xl text-white shadow-sm" data-settings-category="general">
                   <h3 class="text-lg font-semibold">What Saves Here</h3>
-                  <p class="mt-3 text-sm text-slate-200">This panel stores the Sales Quotes print layout as a shared database setting, so future print previews use the same values automatically.</p>
+                  <p class="mt-3 text-sm text-slate-200">The settings in this tab are shared across users: landing page card visibility, motor job defaults, branch markup percentages, and Sales Quotes print layout.</p>
+                </div>
+
+                <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm" data-settings-category="general">
+                  <h3 class="text-lg font-semibold text-slate-900">Scheduling Tips</h3>
+                  <ul class="mt-3 space-y-2 text-sm text-slate-600">
+                    <li>Leave both date fields empty to keep a card available continuously.</li>
+                    <li>Set only a start date to delay opening until that moment.</li>
+                    <li>Set only an end date to close the card after that moment.</li>
+                    <li>Time Board still respects role access even if you enable its card schedule.</li>
+                  </ul>
+                </div>
+
+                <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm hidden" data-settings-category="calculator">
+                  <h3 class="text-lg font-semibold text-slate-900">Motor Default Tips</h3>
+                  <ul class="mt-3 space-y-2 text-sm text-slate-600">
+                    <li>Use short prefixes like <code>wire arc</code> when several jobs share the same family.</li>
+                    <li>Leave the list empty if you want every job to load as checked by default.</li>
+                    <li>Changes here affect future loads only. Users can still manually check or uncheck jobs later.</li>
+                  </ul>
+                </div>
+
+                <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm hidden" data-settings-category="salesquotes">
+                  <h3 class="text-lg font-semibold text-slate-900">Print Layout Tips</h3>
+                  <ul class="mt-3 space-y-2 text-sm text-slate-600">
+                    <li>Save small changes in batches, then verify from the print preview.</li>
+                    <li>Use Use Defaults if the shared layout drifts too far and you need a clean baseline.</li>
+                    <li>Every save here affects all Sales Quotes users.</li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -1717,7 +1935,12 @@
     pageSize: 50,
     totalPages: 0,
     currentEmail: null,
+    currentSettingsCategory: 'general',
+    indexMenuVisibilityLoaded: false,
+    motorJobDefaultsLoaded: false,
     printLayoutLoaded: false,
+    branchProfitSettingsLoaded: false,
+    branchProfitBaseline: [],
     tabPages: {
       executives: 1,
       sales: 1,
@@ -1735,6 +1958,49 @@
       customers: []
     }
   };
+
+  const INDEX_MENU_CARD_DEFINITIONS = Object.freeze([
+    {
+      key: 'calculator',
+      label: 'Calculator',
+      description: 'Shows the calculator launcher card and its Onsite/Workshop popup menu.'
+    },
+    {
+      key: 'salesQuotes',
+      label: 'Sales Quote',
+      description: 'Shows the Sales Quote card on the landing page.'
+    },
+    {
+      key: 'timeBoard',
+      label: 'Time Board',
+      description: 'Shows the Time Board card when the current role is Manager, Executive, or Sales Director.'
+    }
+  ]);
+
+  const INDEX_MENU_VISIBILITY_DEFAULTS = Object.freeze({
+    calculator: {
+      enabled: true,
+      useSchedule: false,
+      startAt: '',
+      endAt: ''
+    },
+    salesQuotes: {
+      enabled: true,
+      useSchedule: false,
+      startAt: '',
+      endAt: ''
+    },
+    timeBoard: {
+      enabled: true,
+      useSchedule: false,
+      startAt: '',
+      endAt: ''
+    }
+  });
+
+  const MOTOR_JOB_DEFAULTS = Object.freeze({
+    uncheckedPrefixes: ['wire arc', 'hvof']
+  });
 
   const PRINT_LAYOUT_DEFAULTS = Object.freeze({
     baseFontSize: 11.4,
@@ -2543,6 +2809,561 @@
     setPrintLayoutSaveMeta('Default values loaded into the form. Click Save Layout to publish them.', 'warning');
   }
 
+  function normalizeIndexMenuVisibilitySettings(settings = {}) {
+    const normalized = {};
+
+    INDEX_MENU_CARD_DEFINITIONS.forEach((card) => {
+      const raw = settings?.[card.key] || {};
+      normalized[card.key] = {
+        enabled: raw.enabled !== false,
+        useSchedule: raw.useSchedule === true,
+        startAt: typeof raw.startAt === 'string' ? raw.startAt : '',
+        endAt: typeof raw.endAt === 'string' ? raw.endAt : ''
+      };
+    });
+
+    return normalized;
+  }
+
+  function formatSettingsSavedMeta(data, emptyMessage) {
+    if (!data?.updatedAt) {
+      return emptyMessage;
+    }
+
+    const savedAt = new Date(data.updatedAt);
+    const formattedDate = Number.isNaN(savedAt.getTime())
+      ? data.updatedAt
+      : savedAt.toLocaleString();
+    const updatedBy = data.updatedBy ? ` by ${data.updatedBy}` : '';
+    return `Last saved ${formattedDate}${updatedBy}`;
+  }
+
+  function normalizeMotorJobDefaults(settings = {}) {
+    const rawPrefixes = Array.isArray(settings?.uncheckedPrefixes)
+      ? settings.uncheckedPrefixes
+      : MOTOR_JOB_DEFAULTS.uncheckedPrefixes;
+
+    const uncheckedPrefixes = rawPrefixes
+      .map((prefix) => String(prefix || '').trim().toLowerCase())
+      .filter(Boolean);
+
+    return {
+      uncheckedPrefixes: Array.from(new Set(uncheckedPrefixes))
+    };
+  }
+
+  function parseMotorJobPrefixes(rawValue = '') {
+    return Array.from(new Set(
+      String(rawValue || '')
+        .split(/\r?\n/)
+        .map((prefix) => prefix.trim().toLowerCase())
+        .filter(Boolean)
+    ));
+  }
+
+  function renderMotorJobDefaultsPreview(prefixes = []) {
+    const previewEl = el('motorJobDefaultsPreview');
+    if (!previewEl) return;
+
+    if (!prefixes.length) {
+      previewEl.innerHTML = '<span class="text-sm text-slate-500">Every job will load as checked by default.</span>';
+      return;
+    }
+
+    previewEl.innerHTML = prefixes
+      .map((prefix) => `<span class="backoffice-settings-chip">${escapeHtml(prefix)}</span>`)
+      .join('');
+  }
+
+  function setMotorJobDefaultsMeta(message, tone = 'default') {
+    const metaEl = el('motorJobDefaultsMeta');
+    if (!metaEl) return;
+
+    metaEl.textContent = message;
+    metaEl.className = 'mt-4 text-sm';
+
+    if (tone === 'success') {
+      metaEl.classList.add('text-emerald-700');
+    } else if (tone === 'warning') {
+      metaEl.classList.add('text-amber-700');
+    } else if (tone === 'error') {
+      metaEl.classList.add('text-red-700');
+    } else {
+      metaEl.classList.add('text-slate-500');
+    }
+  }
+
+  function populateMotorJobDefaultsForm(settings = MOTOR_JOB_DEFAULTS) {
+    const normalized = normalizeMotorJobDefaults(settings);
+    const textarea = el('motorJobDefaultsPrefixes');
+    if (textarea) {
+      textarea.value = normalized.uncheckedPrefixes.join('\n');
+    }
+    renderMotorJobDefaultsPreview(normalized.uncheckedPrefixes);
+  }
+
+  function collectMotorJobDefaultsFromForm() {
+    const textarea = el('motorJobDefaultsPrefixes');
+    return normalizeMotorJobDefaults({
+      uncheckedPrefixes: parseMotorJobPrefixes(textarea?.value || '')
+    });
+  }
+
+  async function loadMotorJobDefaults(forceRefresh = false) {
+    if (backofficeState.motorJobDefaultsLoaded && !forceRefresh) {
+      return;
+    }
+
+    setMotorJobDefaultsMeta('Loading motor job defaults...');
+
+    try {
+      const response = await fetchWithAuth('/api/backoffice/motor-job-defaults');
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to load motor job defaults');
+      }
+
+      const data = await response.json();
+      populateMotorJobDefaultsForm(data.value || MOTOR_JOB_DEFAULTS);
+      setMotorJobDefaultsMeta(
+        formatSettingsSavedMeta(data, 'Using default motor job prefixes. Save to publish shared defaults.'),
+        data.value ? 'success' : 'default'
+      );
+      backofficeState.motorJobDefaultsLoaded = true;
+    } catch (error) {
+      console.error('Failed to load motor job defaults:', error);
+      populateMotorJobDefaultsForm(MOTOR_JOB_DEFAULTS);
+      setMotorJobDefaultsMeta('Failed to load saved motor job defaults. Showing defaults in the form.', 'error');
+    }
+  }
+
+  async function saveMotorJobDefaults() {
+    const saveBtn = el('motorJobDefaultsSaveBtn');
+    const originalText = saveBtn?.textContent || 'Save Motor Defaults';
+
+    try {
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+      }
+
+      const value = collectMotorJobDefaultsFromForm();
+      const response = await fetchWithAuth('/api/backoffice/motor-job-defaults', {
+        method: 'PUT',
+        body: JSON.stringify({ value })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save motor job defaults');
+      }
+
+      const data = await response.json();
+      populateMotorJobDefaultsForm(data.value || value);
+      setMotorJobDefaultsMeta(formatSettingsSavedMeta(data, 'Motor job defaults saved.'), 'success');
+      backofficeState.motorJobDefaultsLoaded = true;
+      showNotification('Motor job defaults saved successfully', 'success');
+    } catch (error) {
+      console.error('Failed to save motor job defaults:', error);
+      setMotorJobDefaultsMeta(error.message || 'Failed to save motor job defaults', 'error');
+      showNotification(error.message || 'Failed to save motor job defaults', 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+    }
+  }
+
+  function applyDefaultMotorJobDefaults() {
+    populateMotorJobDefaultsForm(MOTOR_JOB_DEFAULTS);
+    setMotorJobDefaultsMeta('Default motor prefixes loaded into the form. Click Save Motor Defaults to publish them.', 'warning');
+  }
+
+  function showSettingsCategory(category) {
+    const nextCategory = String(category || 'general').toLowerCase();
+    backofficeState.currentSettingsCategory = nextCategory;
+
+    document.querySelectorAll('[data-settings-category]').forEach((panel) => {
+      panel.classList.toggle('hidden', panel.dataset.settingsCategory !== nextCategory);
+    });
+
+    document.querySelectorAll('[data-settings-category-btn]').forEach((button) => {
+      button.classList.toggle('active', button.dataset.settingsCategoryBtn === nextCategory);
+    });
+  }
+
+  function setIndexMenuVisibilityMeta(message, tone = 'default') {
+    const metaEl = el('indexMenuVisibilityMeta');
+    if (!metaEl) return;
+
+    metaEl.textContent = message;
+    metaEl.className = 'mt-4 text-sm';
+
+    if (tone === 'success') {
+      metaEl.classList.add('text-emerald-700');
+    } else if (tone === 'warning') {
+      metaEl.classList.add('text-amber-700');
+    } else if (tone === 'error') {
+      metaEl.classList.add('text-red-700');
+    } else {
+      metaEl.classList.add('text-slate-500');
+    }
+  }
+
+  function ensureIndexMenuVisibilityEditorRendered() {
+    const container = el('indexMenuVisibilityControls');
+    if (!container || container.dataset.rendered === 'true') {
+      return;
+    }
+
+    container.innerHTML = INDEX_MENU_CARD_DEFINITIONS.map((card) => `
+      <section class="backoffice-inline-panel p-5 rounded-2xl border border-slate-200">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div class="min-w-0">
+            <h4 class="text-base font-semibold text-slate-900">${escapeHtml(card.label)}</h4>
+            <p class="mt-1 text-sm text-slate-500">${escapeHtml(card.description)}</p>
+          </div>
+          <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700">
+            <input type="checkbox" data-menu-enabled="${escapeHtml(card.key)}" class="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500">
+            Card visible
+          </label>
+        </div>
+
+        <div class="mt-4 grid gap-4 md:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] md:items-end">
+          <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700">
+            <input type="checkbox" data-menu-schedule="${escapeHtml(card.key)}" class="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500">
+            Use schedule
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Open At</span>
+            <input type="datetime-local" data-menu-start="${escapeHtml(card.key)}" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900">
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Close At</span>
+            <input type="datetime-local" data-menu-end="${escapeHtml(card.key)}" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900">
+          </label>
+        </div>
+      </section>
+    `).join('');
+
+    container.dataset.rendered = 'true';
+  }
+
+  function toDateTimeLocalValue(value) {
+    if (!value) return '';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return '';
+    }
+
+    const offsetMs = parsed.getTimezoneOffset() * 60000;
+    return new Date(parsed.getTime() - offsetMs).toISOString().slice(0, 16);
+  }
+
+  function fromDateTimeLocalValue(value) {
+    if (!value) return '';
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString();
+  }
+
+  function populateIndexMenuVisibilityForm(settings = INDEX_MENU_VISIBILITY_DEFAULTS) {
+    ensureIndexMenuVisibilityEditorRendered();
+    const normalized = normalizeIndexMenuVisibilitySettings(settings);
+
+    INDEX_MENU_CARD_DEFINITIONS.forEach((card) => {
+      const value = normalized[card.key];
+      const enabledInput = document.querySelector(`[data-menu-enabled="${card.key}"]`);
+      const scheduleInput = document.querySelector(`[data-menu-schedule="${card.key}"]`);
+      const startInput = document.querySelector(`[data-menu-start="${card.key}"]`);
+      const endInput = document.querySelector(`[data-menu-end="${card.key}"]`);
+
+      if (enabledInput) enabledInput.checked = value.enabled;
+      if (scheduleInput) scheduleInput.checked = value.useSchedule;
+      if (startInput) {
+        startInput.value = toDateTimeLocalValue(value.startAt);
+        startInput.disabled = !value.useSchedule;
+      }
+      if (endInput) {
+        endInput.value = toDateTimeLocalValue(value.endAt);
+        endInput.disabled = !value.useSchedule;
+      }
+    });
+  }
+
+  function collectIndexMenuVisibilitySettingsFromForm() {
+    ensureIndexMenuVisibilityEditorRendered();
+    const collected = {};
+
+    INDEX_MENU_CARD_DEFINITIONS.forEach((card) => {
+      const enabledInput = document.querySelector(`[data-menu-enabled="${card.key}"]`);
+      const scheduleInput = document.querySelector(`[data-menu-schedule="${card.key}"]`);
+      const startInput = document.querySelector(`[data-menu-start="${card.key}"]`);
+      const endInput = document.querySelector(`[data-menu-end="${card.key}"]`);
+      const useSchedule = Boolean(scheduleInput?.checked);
+
+      collected[card.key] = {
+        enabled: Boolean(enabledInput?.checked),
+        useSchedule,
+        startAt: useSchedule ? fromDateTimeLocalValue(startInput?.value || '') : '',
+        endAt: useSchedule ? fromDateTimeLocalValue(endInput?.value || '') : ''
+      };
+    });
+
+    return collected;
+  }
+
+  async function loadIndexMenuVisibilitySettings(forceRefresh = false) {
+    if (backofficeState.indexMenuVisibilityLoaded && !forceRefresh) {
+      return;
+    }
+
+    setIndexMenuVisibilityMeta('Loading landing page menu settings...');
+
+    try {
+      const response = await fetchWithAuth('/api/backoffice/index-menu-visibility');
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to load landing page menu settings');
+      }
+
+      const data = await response.json();
+      populateIndexMenuVisibilityForm(data.value || INDEX_MENU_VISIBILITY_DEFAULTS);
+      setIndexMenuVisibilityMeta(
+        formatSettingsSavedMeta(data, 'Using default landing page card visibility. Save to publish a shared schedule.'),
+        data.value ? 'success' : 'default'
+      );
+      backofficeState.indexMenuVisibilityLoaded = true;
+    } catch (error) {
+      console.error('Failed to load landing page menu settings:', error);
+      populateIndexMenuVisibilityForm(INDEX_MENU_VISIBILITY_DEFAULTS);
+      setIndexMenuVisibilityMeta('Failed to load saved menu settings. Showing defaults in the form.', 'error');
+    }
+  }
+
+  async function saveIndexMenuVisibilitySettings() {
+    const saveBtn = el('indexMenuVisibilitySaveBtn');
+    const originalText = saveBtn?.textContent || 'Save Menu Schedule';
+
+    try {
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+      }
+
+      const value = collectIndexMenuVisibilitySettingsFromForm();
+      const response = await fetchWithAuth('/api/backoffice/index-menu-visibility', {
+        method: 'PUT',
+        body: JSON.stringify({ value })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save landing page menu settings');
+      }
+
+      const data = await response.json();
+      populateIndexMenuVisibilityForm(data.value || value);
+      setIndexMenuVisibilityMeta(formatSettingsSavedMeta(data, 'Menu schedule saved.'), 'success');
+      backofficeState.indexMenuVisibilityLoaded = true;
+      showNotification('Landing page menu schedule saved successfully', 'success');
+    } catch (error) {
+      console.error('Failed to save landing page menu settings:', error);
+      setIndexMenuVisibilityMeta(error.message || 'Failed to save landing page menu settings', 'error');
+      showNotification(error.message || 'Failed to save landing page menu settings', 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+    }
+  }
+
+  function applyDefaultIndexMenuVisibilitySettings() {
+    populateIndexMenuVisibilityForm(INDEX_MENU_VISIBILITY_DEFAULTS);
+    setIndexMenuVisibilityMeta('Default menu visibility loaded into the form. Click Save Menu Schedule to publish them.', 'warning');
+  }
+
+  function calculateBranchMultiplier(overheadPercent, policyProfit) {
+    const overheadValue = Number(overheadPercent) || 0;
+    const policyProfitValue = Number(policyProfit) || 0;
+    return (1 + (overheadValue / 100)) * (1 + (policyProfitValue / 100));
+  }
+
+  function setBranchProfitSettingsMeta(message, tone = 'default') {
+    const metaEl = el('branchProfitSettingsMeta');
+    if (!metaEl) return;
+
+    metaEl.textContent = message;
+    metaEl.className = 'mt-4 text-sm';
+
+    if (tone === 'success') {
+      metaEl.classList.add('text-emerald-700');
+    } else if (tone === 'warning') {
+      metaEl.classList.add('text-amber-700');
+    } else if (tone === 'error') {
+      metaEl.classList.add('text-red-700');
+    } else {
+      metaEl.classList.add('text-slate-500');
+    }
+  }
+
+  function formatCurrencyCellValue(value) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+  }
+
+  function renderBranchProfitSettingsTable(branches = []) {
+    const tbody = el('branchProfitSettingsTableBody');
+    if (!tbody) return;
+
+    if (!branches.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="px-4 py-8 text-center text-slate-500">No branches found.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = branches.map((branch) => {
+      const overheadPercent = Number(branch.OverheadPercent || 0);
+      const policyProfit = Number(branch.PolicyProfit || 0);
+      const multiplier = calculateBranchMultiplier(overheadPercent, policyProfit);
+
+      return `
+        <tr data-branch-id="${branch.BranchId}">
+          <td class="px-4 py-3">
+            <div class="font-semibold text-slate-900">${escapeHtml(branch.BranchName || `Branch ${branch.BranchId}`)}</div>
+            <div class="text-xs text-slate-500">Branch ID ${branch.BranchId}</div>
+          </td>
+          <td class="px-4 py-3 text-slate-700">${formatCurrencyCellValue(branch.CostPerHour)}</td>
+          <td class="px-4 py-3 text-slate-700">${formatCurrencyCellValue(branch.OnsiteCostPerHour)}</td>
+          <td class="px-4 py-3">
+            <input type="number" step="0.01" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900" data-branch-overhead value="${overheadPercent.toFixed(2)}">
+          </td>
+          <td class="px-4 py-3">
+            <input type="number" step="0.01" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900" data-branch-policy-profit value="${policyProfit.toFixed(2)}">
+          </td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700" data-branch-multiplier>${multiplier.toFixed(4)}x</span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function readBranchProfitRows() {
+    return Array.from(document.querySelectorAll('#branchProfitSettingsTableBody tr[data-branch-id]')).map((row) => {
+      const branchId = Number.parseInt(row.dataset.branchId || '', 10);
+      const overheadPercent = Number(row.querySelector('[data-branch-overhead]')?.value || 0);
+      const policyProfit = Number(row.querySelector('[data-branch-policy-profit]')?.value || 0);
+
+      return {
+        branchId,
+        overheadPercent: Number.isFinite(overheadPercent) ? Number(overheadPercent.toFixed(2)) : 0,
+        policyProfit: Number.isFinite(policyProfit) ? Number(policyProfit.toFixed(2)) : 0
+      };
+    });
+  }
+
+  function syncBranchMultiplierPreview(row) {
+    if (!row) return;
+
+    const overheadPercent = Number(row.querySelector('[data-branch-overhead]')?.value || 0);
+    const policyProfit = Number(row.querySelector('[data-branch-policy-profit]')?.value || 0);
+    const multiplierEl = row.querySelector('[data-branch-multiplier]');
+    if (!multiplierEl) return;
+
+    multiplierEl.textContent = `${calculateBranchMultiplier(overheadPercent, policyProfit).toFixed(4)}x`;
+  }
+
+  async function loadBranchProfitSettings(forceRefresh = false) {
+    if (backofficeState.branchProfitSettingsLoaded && !forceRefresh) {
+      return;
+    }
+
+    setBranchProfitSettingsMeta('Loading branch profit settings...');
+
+    try {
+      const response = await fetchWithAuth('/api/backoffice/branches');
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to load branches');
+      }
+
+      const branches = await response.json();
+      renderBranchProfitSettingsTable(branches);
+      backofficeState.branchProfitBaseline = Array.isArray(branches)
+        ? branches.map((branch) => ({
+            branchId: Number(branch.BranchId),
+            overheadPercent: Number(Number(branch.OverheadPercent || 0).toFixed(2)),
+            policyProfit: Number(Number(branch.PolicyProfit || 0).toFixed(2))
+          }))
+        : [];
+      backofficeState.branchProfitSettingsLoaded = true;
+      setBranchProfitSettingsMeta('Branch percentages loaded. Edit values and click Save Percentages to publish changes.');
+    } catch (error) {
+      console.error('Failed to load branch profit settings:', error);
+      renderBranchProfitSettingsTable([]);
+      setBranchProfitSettingsMeta(error.message || 'Failed to load branch profit settings', 'error');
+    }
+  }
+
+  async function saveBranchProfitSettings() {
+    const saveBtn = el('branchProfitSettingsSaveBtn');
+    const originalText = saveBtn?.textContent || 'Save Percentages';
+
+    try {
+      const rows = readBranchProfitRows();
+      const changedRows = rows.filter((row) => {
+        const baseline = backofficeState.branchProfitBaseline.find((entry) => entry.branchId === row.branchId);
+        if (!baseline) return true;
+        return baseline.overheadPercent !== row.overheadPercent || baseline.policyProfit !== row.policyProfit;
+      });
+
+      if (!changedRows.length) {
+        setBranchProfitSettingsMeta('No percentage changes to save.', 'warning');
+        showNotification('No percentage changes to save', 'info');
+        return;
+      }
+
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+      }
+
+      for (const row of changedRows) {
+        const response = await fetchWithAuth(`/api/backoffice/branches/${row.branchId}/profit-settings`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            overheadPercent: row.overheadPercent,
+            policyProfit: row.policyProfit
+          })
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || `Failed to save branch ${row.branchId}`);
+        }
+      }
+
+      backofficeState.branchProfitSettingsLoaded = false;
+      await loadBranchProfitSettings(true);
+      setBranchProfitSettingsMeta(`Saved ${changedRows.length} branch profit setting${changedRows.length === 1 ? '' : 's'} successfully.`, 'success');
+      showNotification('Branch profit percentages saved successfully', 'success');
+    } catch (error) {
+      console.error('Failed to save branch profit settings:', error);
+      setBranchProfitSettingsMeta(error.message || 'Failed to save branch profit settings', 'error');
+      showNotification(error.message || 'Failed to save branch profit settings', 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+    }
+  }
+
   function showView(view) {
     el('loadingView').classList.add('hidden');
     el('azureAdLoginView').classList.add('hidden');
@@ -2778,6 +3599,10 @@
       if (el('backofficeSettingsTab')) {
         el('backofficeSettingsTab').classList.remove('hidden');
       }
+      showSettingsCategory(backofficeState.currentSettingsCategory || 'general');
+      loadIndexMenuVisibilitySettings();
+      loadMotorJobDefaults();
+      loadBranchProfitSettings();
       loadBackofficePrintLayoutSettings();
     } else if (tab === 'signatures') {
       if (el('backofficeTabSignatures')) {
@@ -3081,8 +3906,58 @@
     loadBackofficePrintLayoutSettings(true);
   });
   el('printLayoutDefaultsBtn')?.addEventListener('click', applyDefaultPrintLayoutSettings);
+  el('indexMenuVisibilitySaveBtn')?.addEventListener('click', saveIndexMenuVisibilitySettings);
+  el('indexMenuVisibilityReloadBtn')?.addEventListener('click', () => {
+    backofficeState.indexMenuVisibilityLoaded = false;
+    loadIndexMenuVisibilitySettings(true);
+  });
+  el('indexMenuVisibilityDefaultsBtn')?.addEventListener('click', applyDefaultIndexMenuVisibilitySettings);
+  el('motorJobDefaultsSaveBtn')?.addEventListener('click', saveMotorJobDefaults);
+  el('motorJobDefaultsReloadBtn')?.addEventListener('click', () => {
+    backofficeState.motorJobDefaultsLoaded = false;
+    loadMotorJobDefaults(true);
+  });
+  el('motorJobDefaultsDefaultsBtn')?.addEventListener('click', applyDefaultMotorJobDefaults);
+  el('branchProfitSettingsSaveBtn')?.addEventListener('click', saveBranchProfitSettings);
+  el('branchProfitSettingsReloadBtn')?.addEventListener('click', () => {
+    backofficeState.branchProfitSettingsLoaded = false;
+    loadBranchProfitSettings(true);
+  });
   el('openSalesQuotesBtn')?.addEventListener('click', () => {
     window.open('/salesquotes.html', '_blank', 'noopener');
+  });
+
+  el('indexMenuVisibilityControls')?.addEventListener('change', (event) => {
+    const scheduleKey = event.target?.dataset?.menuSchedule;
+    if (scheduleKey) {
+      const startInput = document.querySelector(`[data-menu-start="${scheduleKey}"]`);
+      const endInput = document.querySelector(`[data-menu-end="${scheduleKey}"]`);
+      const useSchedule = Boolean(event.target.checked);
+
+      if (startInput) startInput.disabled = !useSchedule;
+      if (endInput) endInput.disabled = !useSchedule;
+    }
+
+    setIndexMenuVisibilityMeta('Menu schedule updated locally. Click Save Menu Schedule to publish these changes.', 'warning');
+  });
+
+  el('motorJobDefaultsPrefixes')?.addEventListener('input', (event) => {
+    renderMotorJobDefaultsPreview(parseMotorJobPrefixes(event.target?.value || ''));
+    setMotorJobDefaultsMeta('Motor job defaults updated locally. Click Save Motor Defaults to publish these changes.', 'warning');
+  });
+
+  el('branchProfitSettingsTableBody')?.addEventListener('input', (event) => {
+    const row = event.target?.closest('tr[data-branch-id]');
+    if (!row) return;
+
+    syncBranchMultiplierPreview(row);
+    setBranchProfitSettingsMeta('Branch percentages updated locally. Click Save Percentages to publish these changes.', 'warning');
+  });
+
+  document.querySelectorAll('[data-settings-category-btn]').forEach((button) => {
+    button.addEventListener('click', () => {
+      showSettingsCategory(button.dataset.settingsCategoryBtn);
+    });
   });
 
   function validateEmailInput(input, tabSuffix) {

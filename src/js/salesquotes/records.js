@@ -51,18 +51,18 @@ const AUDIT_ACTION_LABELS = {
 };
 
 const AUDIT_ACTION_TONE_CLASSES = {
-  Created: 'bg-slate-100 text-slate-700',
-  SubmittedToBC: 'bg-sky-100 text-sky-700',
-  SendApprove: 'bg-amber-100 text-amber-700',
-  Updated: 'bg-slate-100 text-slate-700',
-  Approved: 'bg-emerald-100 text-emerald-700',
-  Rejected: 'bg-rose-100 text-rose-700',
-  Revise: 'bg-orange-100 text-orange-700',
-  Cancelled: 'bg-slate-200 text-slate-700',
-  RevisionRequested: 'bg-fuchsia-100 text-fuchsia-700',
-  RevisionApproved: 'bg-cyan-100 text-cyan-700',
-  RevisionRejected: 'bg-rose-100 text-rose-700',
-  Resubmitted: 'bg-indigo-100 text-indigo-700'
+  Created: 'sq-history-action-created',
+  SubmittedToBC: 'sq-history-action-submitted',
+  SendApprove: 'sq-history-action-send-approve',
+  Updated: 'sq-history-action-updated',
+  Approved: 'sq-history-action-approved',
+  Rejected: 'sq-history-action-rejected',
+  Revise: 'sq-history-action-revise',
+  Cancelled: 'sq-history-action-cancelled',
+  RevisionRequested: 'sq-history-action-revision-requested',
+  RevisionApproved: 'sq-history-action-revision-approved',
+  RevisionRejected: 'sq-history-action-revision-rejected',
+  Resubmitted: 'sq-history-action-resubmitted'
 };
 
 function escapeHtml(value) {
@@ -92,7 +92,11 @@ function getAuditActionLabel(actionType) {
 }
 
 function getAuditActionToneClass(actionType) {
-  return AUDIT_ACTION_TONE_CLASSES[actionType] || 'bg-slate-100 text-slate-700';
+  return AUDIT_ACTION_TONE_CLASSES[actionType] || 'sq-history-action-created';
+}
+
+function getAuditActionMarkerClass(actionType) {
+  return `sq-history-marker ${AUDIT_ACTION_TONE_CLASSES[actionType] || 'sq-history-action-created'}`;
 }
 
 function renderTimelineEvent(event) {
@@ -112,7 +116,7 @@ function renderTimelineEvent(event) {
 
   return `
     <li class="relative pl-7">
-      <span class="absolute left-0 top-1.5 h-3 w-3 rounded-full border-2 border-white bg-slate-300 shadow-sm"></span>
+      <span class="absolute left-0 top-1.5 ${getAuditActionMarkerClass(event.actionType)}" aria-hidden="true"></span>
       <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
