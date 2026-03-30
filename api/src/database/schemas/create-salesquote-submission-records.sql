@@ -18,9 +18,10 @@ BEGIN
     SalesQuoteNumber NVARCHAR(50) NOT NULL,
     SenderEmail NVARCHAR(255) NOT NULL,
     WorkDescription NVARCHAR(MAX) NULL,
+    Remark NVARCHAR(255) NULL,
     ClientIP NVARCHAR(50) NULL,
     SubmittedAt DATETIME2 NOT NULL CONSTRAINT DF_SalesQuoteSubmissionRecords_SubmittedAt DEFAULT GETUTCDATE(),
-    CONSTRAINT UQ_SalesQuoteSubmissionRecords_SalesQuoteNumber UNIQUE (SalesQuoteNumber)
+    CONSTRAINT UQ_SalesQuoteSubmissionRecords_SalesQuoteNumber_SenderEmail UNIQUE (SalesQuoteNumber, SenderEmail)
   );
 
   CREATE INDEX IX_SalesQuoteSubmissionRecords_SenderEmail

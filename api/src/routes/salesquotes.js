@@ -463,6 +463,7 @@ router.post('/records', async (req, res, next) => {
 
     const existingResult = await pool.request()
       .input('salesQuoteNumber', sql.NVarChar, salesQuoteNumber)
+      .input('senderEmail', sql.NVarChar, senderEmail)
       .query(`
         SELECT TOP 1
           Id,
@@ -473,6 +474,7 @@ router.post('/records', async (req, res, next) => {
           SubmittedAt
         FROM SalesQuoteSubmissionRecords
         WHERE SalesQuoteNumber = @salesQuoteNumber
+          AND SenderEmail = @senderEmail
       `);
 
     if (existingResult.recordset.length > 0) {
@@ -535,6 +537,7 @@ router.post('/records', async (req, res, next) => {
         const pool = await getPool();
         const existingResult = await pool.request()
           .input('salesQuoteNumber', sql.NVarChar, salesQuoteNumber)
+          .input('senderEmail', sql.NVarChar, senderEmail)
           .query(`
             SELECT TOP 1
               Id,
@@ -545,6 +548,7 @@ router.post('/records', async (req, res, next) => {
               SubmittedAt
             FROM SalesQuoteSubmissionRecords
             WHERE SalesQuoteNumber = @salesQuoteNumber
+              AND SenderEmail = @senderEmail
           `);
 
         if (existingResult.recordset.length > 0) {

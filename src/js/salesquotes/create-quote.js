@@ -3979,12 +3979,14 @@ export async function handleSendQuote(options = {}) {
       }
     }
 
-    if (!isEditMode && quoteNumber) {
+    const shouldRecordSubmission = !isApprovedWorkStatusUpdate && quoteNumber;
+
+    if (shouldRecordSubmission) {
       try {
         await recordQuoteSubmission({
           salesQuoteNumber: quoteNumber,
-          workDescription: sanitizedData.workDescription || '',
-          remark: sanitizedData.remark || ''
+          workDescription: sanitizedData?.workDescription || formData.workDescription || '',
+          remark: sanitizedData?.remark || formData.remark || ''
         });
       } catch (recordError) {
         recordSaveError = recordError;
@@ -4044,9 +4046,13 @@ export async function handleSendQuote(options = {}) {
         showSuccess('Quote sent to Business Central successfully!');
       }
 
-      if (recordSaveError) {
-        showToast('Quote was sent successfully, but the record could not be saved to My Records.', 'error');
-      }
+    }
+
+    if (recordSaveError) {
+      const recordSaveMessage = isEditMode
+        ? 'Quote was updated successfully, but the record could not be saved to My Records.'
+        : 'Quote was sent successfully, but the record could not be saved to My Records.';
+      showToast(recordSaveMessage, 'error');
     }
 
     return {

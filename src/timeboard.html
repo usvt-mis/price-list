@@ -289,6 +289,57 @@
       color: white;
       border-color: var(--calm-accent);
     }
+
+    .branch-select-modal {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .branch-select-modal.hidden {
+      display: none;
+    }
+
+    .branch-select-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(10px);
+    }
+
+    .branch-select-panel {
+      position: relative;
+      width: min(560px, calc(100vw - 32px));
+      padding: 28px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(241, 245, 249, 0.98) 100%);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 30px 60px rgba(15, 23, 42, 0.2);
+    }
+
+    .branch-select-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .branch-select-option {
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--calm-border);
+      background: var(--calm-surface);
+      color: var(--calm-text-primary);
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .branch-select-option:hover {
+      border-color: var(--calm-accent);
+      background: var(--calm-accent-light);
+      color: var(--calm-accent);
+    }
   </style>
 </head>
 <body class="p-6">
@@ -316,6 +367,29 @@
       </div>
     </div>
 
+    <div id="branchSelectModal" class="branch-select-modal fixed inset-0 z-40 hidden">
+      <div class="branch-select-backdrop"></div>
+      <div class="branch-select-panel">
+        <div class="space-y-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">Initial Load</p>
+            <h2 class="mt-2 text-2xl font-semibold text-slate-800">Select a branch to load</h2>
+          </div>
+          <p class="text-sm leading-6 text-slate-500">
+            Time Board no longer loads `{ALL}` automatically. Choose the branch you want to open first.
+          </p>
+        </div>
+        <div class="branch-select-grid">
+          <button type="button" class="branch-select-option" data-initial-branch="URY">URY</button>
+          <button type="button" class="branch-select-option" data-initial-branch="UCB">UCB</button>
+          <button type="button" class="branch-select-option" data-initial-branch="USB">USB</button>
+          <button type="button" class="branch-select-option" data-initial-branch="UPB">UPB</button>
+          <button type="button" class="branch-select-option" data-initial-branch="UKK">UKK</button>
+          <button type="button" class="branch-select-option" data-initial-branch="USR">USR</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Filters Bar -->
     <div class="calm-card p-4 mb-6">
       <div class="flex items-center gap-6">
@@ -323,13 +397,10 @@
           <input id="searchInput" type="text" placeholder="Search by SQ or SV..."
             class="calm-input">
         </div>
-        <div class="flex items-center gap-2">
-          <label for="offsetInput" class="text-sm text-slate-500">Offset:</label>
-          <input id="offsetInput" type="number" min="0" value="50"
-            class="calm-input w-24">
+        <div class="text-sm text-slate-500">
+          Batch size: 50 rows
         </div>
         <div class="branch-filter">
-          <button class="branch-btn active" data-branch="ALL">ALL</button>
           <button class="branch-btn" data-branch="URY">URY</button>
           <button class="branch-btn" data-branch="UCB">UCB</button>
           <button class="branch-btn" data-branch="USB">USB</button>
@@ -383,13 +454,10 @@
         </table>
       </div>
 
-      <!-- Pagination -->
+      <!-- Load More -->
       <div class="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200">
-        <span id="paginationInfo" class="text-sm text-slate-500">Showing 0-0 of 0</span>
-        <div class="flex items-center gap-2">
-          <button id="prevPage" class="calm-btn" disabled>← Previous</button>
-          <button id="nextPage" class="calm-btn" disabled>Next →</button>
-        </div>
+        <span id="paginationInfo" class="text-sm text-slate-500">Showing 0 matching rows from 0 loaded</span>
+        <button id="loadMoreBtn" class="calm-btn" disabled>Load more</button>
       </div>
     </div>
   </div>
@@ -397,15 +465,18 @@
   <script type="module">
     import { ROLE } from './js/core/config.js';
 
+    const FETCH_BATCH_SIZE = 50;
+
     const state = {
       data: [],
       filteredData: [],
-      currentPage: 1,
-      pageSize: 50,
       searchQuery: '',
-      selectedBranch: 'ALL',
+      selectedBranch: '',
       sortDirection: 'DESC',
-      offset: 50
+      fetchSize: FETCH_BATCH_SIZE,
+      hasMoreData: true,
+      isFetching: false,
+      isLoadingMore: false
     };
 
     // Show loading modal
@@ -420,6 +491,33 @@
     function hideLoading() {
       const modal = document.getElementById('loadingModal');
       modal.classList.add('hidden');
+    }
+
+    function showBranchSelectModal() {
+      document.getElementById('branchSelectModal').classList.remove('hidden');
+    }
+
+    function hideBranchSelectModal() {
+      document.getElementById('branchSelectModal').classList.add('hidden');
+    }
+
+    function setActiveBranchButton(branchCode) {
+      document.querySelectorAll('.branch-btn:not(.sort-toggle-btn)').forEach((button) => {
+        button.classList.toggle('active', button.dataset.branch === branchCode);
+      });
+    }
+
+    async function selectBranch(branchCode, loadingMessage = 'Filtering by branch...') {
+      if (!branchCode || state.selectedBranch === branchCode) {
+        if (branchCode) {
+          setActiveBranchButton(branchCode);
+        }
+        return;
+      }
+
+      state.selectedBranch = branchCode;
+      setActiveBranchButton(branchCode);
+      await refreshData(loadingMessage);
     }
 
     // Check access (Manager + Executive only)
@@ -450,31 +548,24 @@
 
     // Fetch timeboard data from BC Gateway
     // Data structure: { sqNumber, sqCreated, svNumber, svCreated, status, percent, shNumber, shCreated, stNumber, stCreated, postedStNumber, postedStCreated, expectedDate }
-    async function fetchData() {
-      showLoading('Loading timeboard data...');
+    async function requestTimeboardData(requestedSize) {
       try {
-        // Build query parameters
-        const params = new URLSearchParams();
-        params.append('offset', state.offset);
-        params.append('orderBy', state.sortDirection);
-
-        // Only send branch parameter if specific branch selected (not ALL)
-        if (state.selectedBranch !== 'ALL') {
-          params.append('branch', state.selectedBranch);
+        if (!state.selectedBranch) {
+          throw new Error('Branch selection is required before loading timeboard data');
         }
+
+        const params = new URLSearchParams();
+        params.append('offset', requestedSize);
+        params.append('orderBy', state.sortDirection);
+        params.append('branch', state.selectedBranch);
 
         const response = await fetch(`/api/business-central/gateway/timeboard?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch data');
         const data = await response.json();
-        state.data = data.tableRows || [];
-        applyFilters();
+        return data.tableRows || [];
       } catch (error) {
         console.error('Error fetching data:', error);
-        // Show empty state for now
-        state.data = [];
-        applyFilters();
-      } finally {
-        hideLoading();
+        throw error;
       }
     }
 
@@ -542,34 +633,95 @@
       // Note: Sorting is now handled server-side via orderBy parameter
 
       state.filteredData = filtered;
-      state.currentPage = 1;
       render();
     }
 
-    // Refetch data when branch filter changes (server-side filtering)
-    async function refetchForBranch() {
-      showLoading('Filtering by branch...');
-      await fetchData();
-      // hideLoading() called in fetchData's finally block
+    function updateLoadMoreUi() {
+      const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+      if (state.isLoadingMore) {
+        loadMoreBtn.textContent = 'Loading...';
+        loadMoreBtn.disabled = true;
+        return;
+      }
+
+      if (!state.hasMoreData) {
+        loadMoreBtn.textContent = 'All records loaded';
+        loadMoreBtn.disabled = true;
+        return;
+      }
+
+      loadMoreBtn.textContent = `Load ${FETCH_BATCH_SIZE} more`;
+      loadMoreBtn.disabled = state.isFetching;
+    }
+
+    async function refreshData(message = 'Loading timeboard data...') {
+      if (state.isFetching) return;
+
+      state.isFetching = true;
+      state.isLoadingMore = false;
+      state.fetchSize = FETCH_BATCH_SIZE;
+      state.hasMoreData = true;
+      updateLoadMoreUi();
+      showLoading(message);
+
+      try {
+        const rows = await requestTimeboardData(state.fetchSize);
+        state.data = rows;
+        state.hasMoreData = rows.length >= FETCH_BATCH_SIZE;
+      } catch (error) {
+        state.data = [];
+        state.hasMoreData = false;
+      } finally {
+        applyFilters();
+        state.isFetching = false;
+        hideLoading();
+        updateLoadMoreUi();
+      }
+    }
+
+    async function loadMoreData() {
+      if (state.isFetching || !state.hasMoreData) return;
+
+      const previousCount = state.data.length;
+      const nextFetchSize = state.fetchSize + FETCH_BATCH_SIZE;
+
+      state.isFetching = true;
+      state.isLoadingMore = true;
+      updateLoadMoreUi();
+
+      try {
+        const rows = await requestTimeboardData(nextFetchSize);
+        state.fetchSize = nextFetchSize;
+        state.data = rows;
+        state.hasMoreData = rows.length > previousCount;
+      } catch (error) {
+        state.hasMoreData = previousCount > 0;
+      } finally {
+        applyFilters();
+        state.isFetching = false;
+        state.isLoadingMore = false;
+        updateLoadMoreUi();
+      }
     }
 
     // Render table
     function render() {
-      const start = (state.currentPage - 1) * state.pageSize;
-      const end = start + state.pageSize;
-      const pageData = state.filteredData.slice(start, end);
-
       const tbody = document.getElementById('timeboardBody');
 
-      if (pageData.length === 0) {
+      if (state.filteredData.length === 0) {
         tbody.innerHTML = `<tr><td colspan="14" class="text-center py-16 text-slate-400">No records found</td></tr>`;
+        document.getElementById('statTotal').textContent = '0';
+        document.getElementById('paginationInfo').textContent =
+          `Showing 0 matching rows from ${state.data.length} loaded`;
+        updateLoadMoreUi();
         return;
       }
 
-      tbody.innerHTML = pageData.map((item, index) => {
-        const rowNumber = start + index + 1;
+      tbody.innerHTML = state.filteredData.map((item, index) => {
+        const rowNumber = index + 1;
         // Show SQ only on first row of each SQ group
-        const prevItem = index > 0 ? pageData[index - 1] : null;
+        const prevItem = index > 0 ? state.filteredData[index - 1] : null;
         const showSq = !prevItem || prevItem.sqNumber !== item.sqNumber;
 
         return `
@@ -595,12 +747,9 @@
       // Update stats
       document.getElementById('statTotal').textContent = state.filteredData.length;
 
-      // Update pagination
-      const totalPages = Math.ceil(state.filteredData.length / state.pageSize);
       document.getElementById('paginationInfo').textContent =
-        `Showing ${state.filteredData.length > 0 ? start + 1 : 0}-${Math.min(end, state.filteredData.length)} of ${state.filteredData.length}`;
-      document.getElementById('prevPage').disabled = state.currentPage <= 1;
-      document.getElementById('nextPage').disabled = state.currentPage >= totalPages;
+        `Showing ${state.filteredData.length} matching rows from ${state.data.length} loaded`;
+      updateLoadMoreUi();
     }
 
     // Event listeners
@@ -609,23 +758,10 @@
       applyFilters();
     });
 
-    // Offset input - refetch when changed
-    document.getElementById('offsetInput').addEventListener('change', async (e) => {
-      const value = parseInt(e.target.value);
-      if (!isNaN(value) && value >= 0) {
-        state.offset = value;
-        await refetchForBranch();
-      }
-    });
-
     // Branch filter buttons
-    document.querySelectorAll('.branch-btn').forEach(btn => {
+    document.querySelectorAll('.branch-btn:not(.sort-toggle-btn)').forEach(btn => {
       btn.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('sort-toggle-btn')) return; // Skip sort toggle buttons
-        document.querySelectorAll('.branch-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        state.selectedBranch = e.target.dataset.branch;
-        await refetchForBranch(); // Server-side filtering via API
+        await selectBranch(e.currentTarget.dataset.branch, 'Filtering by branch...');
       });
     });
 
@@ -635,29 +771,23 @@
         document.querySelectorAll('.sort-toggle-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
         state.sortDirection = e.target.dataset.sort;
-        await refetchForBranch();
+        await refreshData('Sorting timeboard data...');
       });
     });
 
-    document.getElementById('prevPage').addEventListener('click', () => {
-      if (state.currentPage > 1) {
-        state.currentPage--;
-        render();
-      }
-    });
+    document.getElementById('loadMoreBtn').addEventListener('click', loadMoreData);
 
-    document.getElementById('nextPage').addEventListener('click', () => {
-      const totalPages = Math.ceil(state.filteredData.length / state.pageSize);
-      if (state.currentPage < totalPages) {
-        state.currentPage++;
-        render();
-      }
+    document.querySelectorAll('[data-initial-branch]').forEach((button) => {
+      button.addEventListener('click', async (event) => {
+        const branchCode = event.currentTarget.dataset.initialBranch;
+        hideBranchSelectModal();
+        await selectBranch(branchCode, `Loading ${branchCode} timeboard data...`);
+      });
     });
 
     // Initialize
     if (await checkAccess()) {
-      showLoading('Initializing Time Board...');
-      fetchData();
+      showBranchSelectModal();
     }
   </script>
 </body>

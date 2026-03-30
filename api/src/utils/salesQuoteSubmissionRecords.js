@@ -29,6 +29,38 @@ async function ensureSalesQuoteSubmissionRecordsTable(pool) {
         `);
       }
 
+      const compositeUniqueConstraintResult = await pool.request().query(`
+        SELECT 1
+        FROM sys.key_constraints kc
+        INNER JOIN sys.tables t
+          ON t.object_id = kc.parent_object_id
+        WHERE kc.[type] = 'UQ'
+          AND t.[name] = '${TABLE_NAME}'
+          AND kc.[name] = 'UQ_${TABLE_NAME}_SalesQuoteNumber_SenderEmail'
+      `);
+
+      if (compositeUniqueConstraintResult.recordset.length === 0) {
+        await pool.request().query(`
+          IF EXISTS (
+            SELECT 1
+            FROM sys.key_constraints kc
+            INNER JOIN sys.tables t
+              ON t.object_id = kc.parent_object_id
+            WHERE kc.[type] = 'UQ'
+              AND t.[name] = '${TABLE_NAME}'
+              AND kc.[name] = 'UQ_${TABLE_NAME}_SalesQuoteNumber'
+          )
+          BEGIN
+            ALTER TABLE ${TABLE_NAME}
+            DROP CONSTRAINT UQ_${TABLE_NAME}_SalesQuoteNumber;
+          END
+
+          ALTER TABLE ${TABLE_NAME}
+          ADD CONSTRAINT UQ_${TABLE_NAME}_SalesQuoteNumber_SenderEmail
+          UNIQUE (SalesQuoteNumber, SenderEmail);
+        `);
+      }
+
       return;
     }
 
@@ -41,7 +73,7 @@ async function ensureSalesQuoteSubmissionRecordsTable(pool) {
         Remark NVARCHAR(255) NULL,
         ClientIP NVARCHAR(50) NULL,
         SubmittedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-        CONSTRAINT UQ_${TABLE_NAME}_SalesQuoteNumber UNIQUE (SalesQuoteNumber)
+        CONSTRAINT UQ_${TABLE_NAME}_SalesQuoteNumber_SenderEmail UNIQUE (SalesQuoteNumber, SenderEmail)
       );
 
       CREATE INDEX IX_${TABLE_NAME}_SenderEmail ON ${TABLE_NAME}(SenderEmail);
