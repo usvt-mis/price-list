@@ -85,45 +85,60 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 10px;
+      padding: 5px 11px;
       border-radius: 20px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
+      border: 1px solid transparent;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    .status-badge.dynamic {
+      background: var(--status-bg, var(--calm-bg));
+      color: var(--status-text, var(--calm-text-primary));
+      border-color: var(--status-border, var(--calm-border));
     }
 
     .status-badge.done {
       background: var(--calm-success-light);
       color: var(--calm-success);
+      border-color: #6ee7b7;
     }
 
     .status-badge.pending {
-      background: var(--calm-warning-light);
-      color: var(--calm-warning);
+      background: #fef3c7;
+      color: #b45309;
+      border-color: #f59e0b;
     }
 
     .status-badge.missing {
-      background: var(--calm-error-light);
-      color: var(--calm-error);
+      background: #fee2e2;
+      color: #dc2626;
+      border-color: #f87171;
     }
 
     .status-badge.neutral {
-      background: var(--calm-bg);
-      color: var(--calm-text-muted);
+      background: #e2e8f0;
+      color: #475569;
+      border-color: #cbd5e1;
     }
 
     .status-badge.in-process {
       background: #dbeafe;
-      color: #2563eb;
+      color: #1d4ed8;
+      border-color: #60a5fa;
     }
 
     .status-badge.on-hold {
-      background: #f1f5f9;
-      color: #64748b;
+      background: #ede9fe;
+      color: #7c3aed;
+      border-color: #a78bfa;
     }
 
     .status-badge.finish {
       background: #d1fae5;
-      color: #059669;
+      color: #047857;
+      border-color: #34d399;
     }
 
     /* Column width - all equal except first column */
@@ -375,9 +390,6 @@
             <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">Initial Load</p>
             <h2 class="mt-2 text-2xl font-semibold text-slate-800">Select a branch to load</h2>
           </div>
-          <p class="text-sm leading-6 text-slate-500">
-            Time Board no longer loads `{ALL}` automatically. Choose the branch you want to open first.
-          </p>
         </div>
         <div class="branch-select-grid">
           <button type="button" class="branch-select-option" data-initial-branch="URY">URY</button>
@@ -466,6 +478,14 @@
     import { ROLE } from './js/core/config.js';
 
     const FETCH_BATCH_SIZE = 50;
+    const STATUS_CODE_COLOR_PALETTE = Array.from({ length: 20 }, (_, index) => {
+      const hue = index * 18;
+      return {
+        background: `hsl(${hue} 100% 91%)`,
+        border: `hsl(${hue} 88% 72%)`,
+        text: `hsl(${hue} 72% 28%)`
+      };
+    });
 
     const state = {
       data: [],
@@ -569,6 +589,31 @@
       }
     }
 
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function getStatusCode(status) {
+      const trimmedStatus = String(status || '').trim();
+      const match = trimmedStatus.match(/^(\d{1,2})(?=\D|$)/);
+
+      if (!match) {
+        return null;
+      }
+
+      const code = Number.parseInt(match[1], 10);
+      if (!Number.isInteger(code) || code < 1 || code > 20) {
+        return null;
+      }
+
+      return code;
+    }
+
     // Render date cell
     function renderDate(dateStr) {
       if (!dateStr || dateStr === '-' || dateStr === '') {
@@ -578,13 +623,21 @@
       if (isNaN(date.getTime())) {
         return `<span class="text-slate-400">${dateStr}</span>`;
       }
-      return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
+      return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
     }
 
     // Render status badge
     function renderStatus(status) {
       if (!status) return '<span class="text-slate-300">—</span>';
-      const statusLower = status.toLowerCase();
+      const safeStatus = escapeHtml(status);
+      const statusCode = getStatusCode(status);
+
+      if (statusCode) {
+        const palette = STATUS_CODE_COLOR_PALETTE[statusCode - 1];
+        return `<span class="status-badge dynamic" style="--status-bg: ${palette.background}; --status-border: ${palette.border}; --status-text: ${palette.text};" data-status-code="${String(statusCode).padStart(2, '0')}">${safeStatus}</span>`;
+      }
+
+      const statusLower = String(status).toLowerCase();
       let badgeClass = 'neutral';
 
       if (statusLower === 'finish' || statusLower === 'finished' || statusLower === 'completed') {
@@ -597,7 +650,7 @@
         badgeClass = 'pending';
       }
 
-      return `<span class="status-badge ${badgeClass}">${status}</span>`;
+      return `<span class="status-badge ${badgeClass}">${safeStatus}</span>`;
     }
 
     // Render expected date
