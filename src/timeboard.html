@@ -547,7 +547,7 @@
     }
 
     // Fetch timeboard data from BC Gateway
-    // Data structure: { sqNumber, sqCreated, svNumber, svCreated, status, percent, shNumber, shCreated, stNumber, stCreated, postedStNumber, postedStCreated, expectedDate }
+    // Data structure: { sqNumber, sqCreated, svNumber, systemCreatedAt, status, percent, shNumber, shCreated, stNumber, stCreated, postedStNumber, postedStCreated, expectedDate }
     async function requestTimeboardData(requestedSize) {
       try {
         if (!state.selectedBranch) {
@@ -730,7 +730,7 @@
             <td class="font-medium">${showSq ? (item.sqNumber || '-') : ''}</td>
             <td>${renderDate(item.sqCreated)}</td>
             <td class="font-medium">${item.svNumber || '-'}</td>
-            <td>${renderDate(item.svCreated)}</td>
+            <td>${renderDate(item.systemCreatedAt)}</td>
             <td>${renderStatus(item.status)}</td>
             <td>${item.percent ?? '-'}</td>
             <td>${item.shNumber || '-'}</td>
