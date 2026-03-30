@@ -128,13 +128,21 @@
 
                 <div class="mt-4 grid gap-3 md:grid-cols-3">
                   <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
-                    <label for="confirmNewSerOnsiteScope" class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Scope</label>
-                    <select id="confirmNewSerOnsiteScope" class="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100">
-                      <option value="">Not selected</option>
-                      <option value="low-volt">Low Volt</option>
-                      <option value="medium-volt">Medium Volt</option>
-                      <option value="large">Large</option>
-                    </select>
+                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Scope</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                        <input type="radio" name="confirmNewSerOnsiteScope" id="confirmNewSerOnsiteScopeLowVolt" value="low-volt">
+                        <span>Low Volt</span>
+                      </label>
+                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                        <input type="radio" name="confirmNewSerOnsiteScope" id="confirmNewSerOnsiteScopeMediumVolt" value="medium-volt" checked>
+                        <span>Medium Volt</span>
+                      </label>
+                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                        <input type="radio" name="confirmNewSerOnsiteScope" id="confirmNewSerOnsiteScopeLarge" value="large">
+                        <span>Large</span>
+                      </label>
+                    </div>
                   </div>
                   <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Priority Level</p>

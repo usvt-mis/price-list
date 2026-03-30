@@ -80,7 +80,7 @@ const modalState = {
     serviceType: 'Overhaul',
     motorKw: '',
     motorDriveType: 'AC',
-    scope: '',
+    scope: 'medium-volt',
     priorityLevel: 'low',
     siteAccess: 'easy',
     onsiteCraneEnabled: false,
@@ -132,7 +132,7 @@ export function getCurrentOnsiteSelections() {
   const accessRadio = document.querySelector('input[name="siteAccess"]:checked');
 
   return {
-    scope: String(scopeField?.value || getSafeLocalStorageValue(ONSITE_STORAGE_KEYS.SCOPE, '')).trim(),
+    scope: String(scopeField?.value || getSafeLocalStorageValue(ONSITE_STORAGE_KEYS.SCOPE, 'medium-volt')).trim() || 'medium-volt',
     priorityLevel: String(priorityRadio?.value || getSafeLocalStorageValue(ONSITE_STORAGE_KEYS.PRIORITY_LEVEL, 'low')).trim().toLowerCase() || 'low',
     siteAccess: String(accessRadio?.value || getSafeLocalStorageValue(ONSITE_STORAGE_KEYS.SITE_ACCESS, 'easy')).trim().toLowerCase() || 'easy',
     onsiteCraneEnabled: normalizeOnsiteBoolean(getSafeLocalStorageValue(ONSITE_STORAGE_KEYS.ONSITE_CRANE_ENABLED, 'no')),
@@ -145,7 +145,7 @@ function normalizeOnsiteSelections(snapshot = {}, fallback = null) {
   const base = fallback || getCurrentOnsiteSelections();
 
   return {
-    scope: String(snapshot?.scope ?? base.scope ?? '').trim(),
+    scope: String(snapshot?.scope ?? base.scope ?? 'medium-volt').trim() || 'medium-volt',
     priorityLevel: String(snapshot?.priorityLevel ?? base.priorityLevel ?? 'low').trim().toLowerCase() || 'low',
     siteAccess: String(snapshot?.siteAccess ?? base.siteAccess ?? 'easy').trim().toLowerCase() || 'easy',
     onsiteCraneEnabled: normalizeOnsiteBoolean(snapshot?.onsiteCraneEnabled, base.onsiteCraneEnabled),
@@ -412,7 +412,7 @@ function updateLaborModeCard() {
 
 function renderOnsiteContext() {
   const contextWrap = el('confirmNewSerOnsiteContext');
-  const scopeField = el('confirmNewSerOnsiteScope');
+  const scopeOptions = document.querySelectorAll('input[name="confirmNewSerOnsiteScope"]');
   const priorityOptions = document.querySelectorAll('input[name="confirmNewSerPriorityLevel"]');
   const siteAccessOptions = document.querySelectorAll('input[name="confirmNewSerSiteAccess"]');
   const craneField = el('confirmNewSerOnsiteCraneEnabled');
@@ -425,9 +425,9 @@ function renderOnsiteContext() {
     return;
   }
 
-  if (scopeField) {
-    scopeField.value = modalState.snapshot.scope || '';
-  }
+  scopeOptions.forEach((option) => {
+    option.checked = option.value === (modalState.snapshot.scope || 'medium-volt');
+  });
 
   priorityOptions.forEach((option) => {
     option.checked = option.value === (modalState.snapshot.priorityLevel || 'low');
@@ -739,7 +739,7 @@ export function resetConfirmNewSerLaborProfile() {
     serviceType: 'Overhaul',
     motorKw: '',
     motorDriveType: 'AC',
-    scope: '',
+    scope: 'medium-volt',
     priorityLevel: 'low',
     siteAccess: 'easy',
     onsiteCraneEnabled: false,

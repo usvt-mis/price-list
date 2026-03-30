@@ -328,6 +328,7 @@ function getServiceItemBuilderRefs(prefix = 'line') {
     const selectedWorkType = document.querySelector('input[name="confirmNewSerWorkType"]:checked');
     const selectedServiceType = document.querySelector('input[name="confirmNewSerServiceType"]:checked');
     const selectedRepairMode = document.querySelector('input[name="confirmNewSerRepairMode"]:checked');
+    const selectedOnsiteScope = document.querySelector('input[name="confirmNewSerOnsiteScope"]:checked');
     return {
       repairMode: selectedRepairMode,
       repairModeOptions: document.querySelectorAll('input[name="confirmNewSerRepairMode"]'),
@@ -345,7 +346,8 @@ function getServiceItemBuilderRefs(prefix = 'line') {
       driveTypeDc: document.getElementById('confirmNewSerDriveTypeDc'),
       workTypeOptions: document.querySelectorAll('input[name="confirmNewSerWorkType"]'),
       laborPanel: document.getElementById('confirmNewSerLaborPanel'),
-      onsiteScope: document.getElementById('confirmNewSerOnsiteScope'),
+      onsiteScope: selectedOnsiteScope,
+      onsiteScopeOptions: document.querySelectorAll('input[name="confirmNewSerOnsiteScope"]'),
       onsitePriorityOptions: document.querySelectorAll('input[name="confirmNewSerPriorityLevel"]'),
       onsiteSiteAccessOptions: document.querySelectorAll('input[name="confirmNewSerSiteAccess"]'),
       onsiteCraneEnabled: document.getElementById('confirmNewSerOnsiteCraneEnabled'),
@@ -736,9 +738,10 @@ function populateConfirmNewSerBuilderFromProfile(profile, fallbackDescription = 
     refs.details.value = parsedDescription?.details || '';
   }
 
-  if (refs.onsiteScope) {
-    refs.onsiteScope.value = String(profile?.scope || '').trim();
-  }
+  const normalizedScope = String(profile?.scope || 'medium-volt').trim() || 'medium-volt';
+  refs.onsiteScopeOptions?.forEach((option) => {
+    option.checked = option.value === normalizedScope;
+  });
 
   refs.onsitePriorityOptions?.forEach((option) => {
     option.checked = option.value === (String(profile?.priorityLevel || 'low').trim().toLowerCase() || 'low');
@@ -800,7 +803,7 @@ function getConfirmNewSerSnapshot() {
     motorKw: refs.motorKw?.value || '',
     motorIsDc: refs.motorIsDc?.checked || false,
     details: refs.details?.value || '',
-    scope: refs.onsiteScope?.value || '',
+    scope: Array.from(refs.onsiteScopeOptions || []).find((option) => option.checked)?.value || 'medium-volt',
     priorityLevel: Array.from(refs.onsitePriorityOptions || []).find((option) => option.checked)?.value || 'low',
     siteAccess: Array.from(refs.onsiteSiteAccessOptions || []).find((option) => option.checked)?.value || 'easy',
     onsiteCraneEnabled: refs.onsiteCraneEnabled?.checked || false,
@@ -815,9 +818,10 @@ function seedConfirmNewSerOnsiteFields(snapshot = getCurrentOnsiteSelections()) 
     return;
   }
 
-  if (refs.onsiteScope) {
-    refs.onsiteScope.value = String(snapshot?.scope || '').trim();
-  }
+  const normalizedScope = String(snapshot?.scope || 'medium-volt').trim() || 'medium-volt';
+  refs.onsiteScopeOptions?.forEach((option) => {
+    option.checked = option.value === normalizedScope;
+  });
 
   refs.onsitePriorityOptions?.forEach((option) => {
     option.checked = option.value === (String(snapshot?.priorityLevel || 'low').trim().toLowerCase() || 'low');
@@ -2696,8 +2700,12 @@ function setupConfirmNewSerModalHandlers() {
     syncServiceItemDescriptionFromBuilder('confirm');
   });
 
-  refs.onsiteScope?.addEventListener('change', async () => {
-    await syncLaborProfile();
+  refs.onsiteScopeOptions?.forEach(option => {
+    option.addEventListener('change', async () => {
+      if (option.checked) {
+        await syncLaborProfile();
+      }
+    });
   });
 
   refs.onsitePriorityOptions?.forEach(option => {

@@ -2629,7 +2629,9 @@ button:disabled:hover {
   position: fixed;
   right: 1.25rem;
   bottom: 1.25rem;
-  z-index: 130;
+  /* Keep toasts above interactive Sales Quotes dialogs like confirmNewSerModal (150)
+     while staying below hard-stop overlays such as noBranchModal (200). */
+  z-index: 190;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
