@@ -128,21 +128,58 @@
 
                 <div class="mt-4 grid gap-3 md:grid-cols-3">
                   <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
-                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Scope</p>
-                    <p id="confirmNewSerOnsiteScopeValue" class="mt-1 text-sm font-semibold text-slate-800">Not selected</p>
+                    <label for="confirmNewSerOnsiteScope" class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Scope</label>
+                    <select id="confirmNewSerOnsiteScope" class="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100">
+                      <option value="">Not selected</option>
+                      <option value="low-volt">Low Volt</option>
+                      <option value="medium-volt">Medium Volt</option>
+                      <option value="large">Large</option>
+                    </select>
                   </div>
                   <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Priority Level</p>
-                    <p id="confirmNewSerOnsitePriorityValue" class="mt-1 text-sm font-semibold text-slate-800">Low</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                        <input type="radio" name="confirmNewSerPriorityLevel" id="confirmNewSerPriorityLevelLow" value="low" checked>
+                        <span>Low</span>
+                      </label>
+                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                        <input type="radio" name="confirmNewSerPriorityLevel" id="confirmNewSerPriorityLevelHigh" value="high">
+                        <span>High</span>
+                      </label>
+                    </div>
                   </div>
                   <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Site Access</p>
-                    <p id="confirmNewSerOnsiteAccessValue" class="mt-1 text-sm font-semibold text-slate-800">Easy</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                        <input type="radio" name="confirmNewSerSiteAccess" id="confirmNewSerSiteAccessEasy" value="easy" checked>
+                        <span>Easy</span>
+                      </label>
+                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                        <input type="radio" name="confirmNewSerSiteAccess" id="confirmNewSerSiteAccessDifficult" value="difficult">
+                        <span>Difficult</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
                 <div class="mt-4 border-t border-sky-100 pt-4">
                   <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Onsite Options</p>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                      <input type="checkbox" id="confirmNewSerOnsiteCraneEnabled" class="rounded border-slate-300 text-sky-600 focus:ring-sky-400">
+                      <span>ใช้ Crane</span>
+                    </label>
+                    <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                      <input type="checkbox" id="confirmNewSerOnsiteFourPeopleEnabled" class="rounded border-slate-300 text-sky-600 focus:ring-sky-400">
+                      <span>ใช้ 4 ผู้</span>
+                    </label>
+                    <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                      <input type="checkbox" id="confirmNewSerOnsiteSafetyEnabled" class="rounded border-slate-300 text-sky-600 focus:ring-sky-400">
+                      <span>ใช้ Safety</span>
+                    </label>
+                  </div>
                   <div id="confirmNewSerOnsiteOptionsList" class="mt-2 flex flex-wrap gap-2">
                     <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">No onsite options selected</span>
                   </div>

@@ -126,7 +126,7 @@ function getSafeLocalStorageValue(key, fallback = '') {
   }
 }
 
-function getCurrentOnsiteSelections() {
+export function getCurrentOnsiteSelections() {
   const scopeField = document.getElementById('scope');
   const priorityRadio = document.querySelector('input[name="priorityLevel"]:checked');
   const accessRadio = document.querySelector('input[name="siteAccess"]:checked');
@@ -412,9 +412,12 @@ function updateLaborModeCard() {
 
 function renderOnsiteContext() {
   const contextWrap = el('confirmNewSerOnsiteContext');
-  const scopeValueEl = el('confirmNewSerOnsiteScopeValue');
-  const priorityValueEl = el('confirmNewSerOnsitePriorityValue');
-  const accessValueEl = el('confirmNewSerOnsiteAccessValue');
+  const scopeField = el('confirmNewSerOnsiteScope');
+  const priorityOptions = document.querySelectorAll('input[name="confirmNewSerPriorityLevel"]');
+  const siteAccessOptions = document.querySelectorAll('input[name="confirmNewSerSiteAccess"]');
+  const craneField = el('confirmNewSerOnsiteCraneEnabled');
+  const fourPeopleField = el('confirmNewSerOnsiteFourPeopleEnabled');
+  const safetyField = el('confirmNewSerOnsiteSafetyEnabled');
   const optionsListEl = el('confirmNewSerOnsiteOptionsList');
   const isOnsite = normalizeRepairMode(modalState.snapshot.repairMode) === 'Onsite';
 
@@ -422,21 +425,33 @@ function renderOnsiteContext() {
     return;
   }
 
+  if (scopeField) {
+    scopeField.value = modalState.snapshot.scope || '';
+  }
+
+  priorityOptions.forEach((option) => {
+    option.checked = option.value === (modalState.snapshot.priorityLevel || 'low');
+  });
+
+  siteAccessOptions.forEach((option) => {
+    option.checked = option.value === (modalState.snapshot.siteAccess || 'easy');
+  });
+
+  if (craneField) {
+    craneField.checked = Boolean(modalState.snapshot.onsiteCraneEnabled);
+  }
+
+  if (fourPeopleField) {
+    fourPeopleField.checked = Boolean(modalState.snapshot.onsiteFourPeopleEnabled);
+  }
+
+  if (safetyField) {
+    safetyField.checked = Boolean(modalState.snapshot.onsiteSafetyEnabled);
+  }
+
   contextWrap.classList.toggle('hidden', !isOnsite);
   if (!isOnsite) {
     return;
-  }
-
-  if (scopeValueEl) {
-    scopeValueEl.textContent = ONSITE_SCOPE_LABELS[modalState.snapshot.scope] || 'Not selected';
-  }
-
-  if (priorityValueEl) {
-    priorityValueEl.textContent = ONSITE_PRIORITY_LABELS[modalState.snapshot.priorityLevel] || 'Low';
-  }
-
-  if (accessValueEl) {
-    accessValueEl.textContent = ONSITE_SITE_ACCESS_LABELS[modalState.snapshot.siteAccess] || 'Easy';
   }
 
   if (!optionsListEl) {
@@ -446,15 +461,24 @@ function renderOnsiteContext() {
   const selectedOptions = Object.entries(ONSITE_OPTION_LABELS)
     .filter(([key]) => modalState.snapshot[key])
     .map(([, label]) => label);
+  const summaryParts = [
+    ONSITE_SCOPE_LABELS[modalState.snapshot.scope] || 'Not selected',
+    ONSITE_PRIORITY_LABELS[modalState.snapshot.priorityLevel] || 'Low',
+    ONSITE_SITE_ACCESS_LABELS[modalState.snapshot.siteAccess] || 'Easy'
+  ];
 
   if (selectedOptions.length === 0) {
-    optionsListEl.innerHTML = '<span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">No onsite options selected</span>';
+    optionsListEl.innerHTML = `
+      <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">${escapeHtml(summaryParts.join(' • '))}</span>
+      <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">No onsite options selected</span>
+    `;
     return;
   }
 
-  optionsListEl.innerHTML = selectedOptions
-    .map((label) => `<span class="inline-flex items-center rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-800">${escapeHtml(label)}</span>`)
-    .join('');
+  optionsListEl.innerHTML = [
+    `<span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">${escapeHtml(summaryParts.join(' • '))}</span>`,
+    ...selectedOptions.map((label) => `<span class="inline-flex items-center rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-800">${escapeHtml(label)}</span>`)
+  ].join('');
 }
 
 function renderLaborMeta() {

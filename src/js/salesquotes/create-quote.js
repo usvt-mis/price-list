@@ -16,7 +16,7 @@ import { recordQuoteSubmission, recordQuoteAuditEvent } from './records.js';
 import { submitForApproval, createApprovalRecord, sendApprovalRequest as sendApprovalRequestModule, checkApprovalStatus, APPROVAL_STATUS, resubmitForApproval, requestRevisionForApprovedQuote, showApprovalActionModal, cancelApprovalRequest } from './approvals.js';
 import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
-import { initConfirmNewSerLaborUi, syncConfirmNewSerLaborProfile, resetConfirmNewSerLaborProfile, getConfirmNewSerLaborValidation, saveConfirmNewSerLaborProfile, hydrateConfirmNewSerLaborProfile, getConfirmNewSerLaborJobsSnapshot } from './service-item-labor.js';
+import { initConfirmNewSerLaborUi, syncConfirmNewSerLaborProfile, resetConfirmNewSerLaborProfile, getConfirmNewSerLaborValidation, saveConfirmNewSerLaborProfile, hydrateConfirmNewSerLaborProfile, getConfirmNewSerLaborJobsSnapshot, getCurrentOnsiteSelections } from './service-item-labor.js';
 
 function normalizeGroupNo(value) {
   if (value === null || value === undefined) {
@@ -344,7 +344,13 @@ function getServiceItemBuilderRefs(prefix = 'line') {
       driveTypeAc: document.getElementById('confirmNewSerDriveTypeAc'),
       driveTypeDc: document.getElementById('confirmNewSerDriveTypeDc'),
       workTypeOptions: document.querySelectorAll('input[name="confirmNewSerWorkType"]'),
-      laborPanel: document.getElementById('confirmNewSerLaborPanel')
+      laborPanel: document.getElementById('confirmNewSerLaborPanel'),
+      onsiteScope: document.getElementById('confirmNewSerOnsiteScope'),
+      onsitePriorityOptions: document.querySelectorAll('input[name="confirmNewSerPriorityLevel"]'),
+      onsiteSiteAccessOptions: document.querySelectorAll('input[name="confirmNewSerSiteAccess"]'),
+      onsiteCraneEnabled: document.getElementById('confirmNewSerOnsiteCraneEnabled'),
+      onsiteFourPeopleEnabled: document.getElementById('confirmNewSerOnsiteFourPeopleEnabled'),
+      onsiteSafetyEnabled: document.getElementById('confirmNewSerOnsiteSafetyEnabled')
     };
   }
 
@@ -730,6 +736,30 @@ function populateConfirmNewSerBuilderFromProfile(profile, fallbackDescription = 
     refs.details.value = parsedDescription?.details || '';
   }
 
+  if (refs.onsiteScope) {
+    refs.onsiteScope.value = String(profile?.scope || '').trim();
+  }
+
+  refs.onsitePriorityOptions?.forEach((option) => {
+    option.checked = option.value === (String(profile?.priorityLevel || 'low').trim().toLowerCase() || 'low');
+  });
+
+  refs.onsiteSiteAccessOptions?.forEach((option) => {
+    option.checked = option.value === (String(profile?.siteAccess || 'easy').trim().toLowerCase() || 'easy');
+  });
+
+  if (refs.onsiteCraneEnabled) {
+    refs.onsiteCraneEnabled.checked = Boolean(profile?.onsiteCraneEnabled);
+  }
+
+  if (refs.onsiteFourPeopleEnabled) {
+    refs.onsiteFourPeopleEnabled.checked = Boolean(profile?.onsiteFourPeopleEnabled);
+  }
+
+  if (refs.onsiteSafetyEnabled) {
+    refs.onsiteSafetyEnabled.checked = Boolean(profile?.onsiteSafetyEnabled);
+  }
+
   syncServiceItemDescriptionFromBuilder('confirm', { preserveExistingDescription: false });
   updateConfirmNewSerLaborPanelVisibility();
 
@@ -769,8 +799,45 @@ function getConfirmNewSerSnapshot() {
     workType,
     motorKw: refs.motorKw?.value || '',
     motorIsDc: refs.motorIsDc?.checked || false,
-    details: refs.details?.value || ''
+    details: refs.details?.value || '',
+    scope: refs.onsiteScope?.value || '',
+    priorityLevel: Array.from(refs.onsitePriorityOptions || []).find((option) => option.checked)?.value || 'low',
+    siteAccess: Array.from(refs.onsiteSiteAccessOptions || []).find((option) => option.checked)?.value || 'easy',
+    onsiteCraneEnabled: refs.onsiteCraneEnabled?.checked || false,
+    onsiteFourPeopleEnabled: refs.onsiteFourPeopleEnabled?.checked || false,
+    onsiteSafetyEnabled: refs.onsiteSafetyEnabled?.checked || false
   };
+}
+
+function seedConfirmNewSerOnsiteFields(snapshot = getCurrentOnsiteSelections()) {
+  const refs = getServiceItemBuilderRefs('confirm');
+  if (!refs.description) {
+    return;
+  }
+
+  if (refs.onsiteScope) {
+    refs.onsiteScope.value = String(snapshot?.scope || '').trim();
+  }
+
+  refs.onsitePriorityOptions?.forEach((option) => {
+    option.checked = option.value === (String(snapshot?.priorityLevel || 'low').trim().toLowerCase() || 'low');
+  });
+
+  refs.onsiteSiteAccessOptions?.forEach((option) => {
+    option.checked = option.value === (String(snapshot?.siteAccess || 'easy').trim().toLowerCase() || 'easy');
+  });
+
+  if (refs.onsiteCraneEnabled) {
+    refs.onsiteCraneEnabled.checked = Boolean(snapshot?.onsiteCraneEnabled);
+  }
+
+  if (refs.onsiteFourPeopleEnabled) {
+    refs.onsiteFourPeopleEnabled.checked = Boolean(snapshot?.onsiteFourPeopleEnabled);
+  }
+
+  if (refs.onsiteSafetyEnabled) {
+    refs.onsiteSafetyEnabled.checked = Boolean(snapshot?.onsiteSafetyEnabled);
+  }
 }
 
 function updateConfirmNewSerLaborPanelVisibility() {
@@ -2492,6 +2559,7 @@ async function showConfirmNewSerModal() {
   updateConfirmNewSerPrimaryActionLabel();
   populateServiceItemBuilderFromDescription('confirm', el('lineUsvtServiceItemDescription')?.value?.trim() || '');
   syncServiceItemDescriptionFromBuilder('confirm');
+  seedConfirmNewSerOnsiteFields();
   await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), { forceReload: true });
 
   // Show modal with animation
@@ -2554,6 +2622,9 @@ function setupConfirmNewSerModalHandlers() {
   const serviceTypeWrap = document.getElementById('confirmNewSerServiceTypeWrap');
   const motorFields = document.getElementById('confirmNewSerMotorFields');
   const driveTypeWrap = document.getElementById('confirmNewSerDriveTypeWrap');
+  const syncLaborProfile = async (options = {}) => {
+    await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), options);
+  };
 
   // Function to update visibility based on work type
   const updateVisibility = () => {
@@ -2581,7 +2652,7 @@ function setupConfirmNewSerModalHandlers() {
   refs.serviceTypeOptions?.forEach(option => {
     option.addEventListener('change', async () => {
       syncServiceItemDescriptionFromBuilder('confirm');
-      await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot());
+      await syncLaborProfile();
     });
   });
 
@@ -2589,40 +2660,66 @@ function setupConfirmNewSerModalHandlers() {
     option.addEventListener('change', async () => {
       updateVisibility();
       syncServiceItemDescriptionFromBuilder('confirm');
-      await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), { forceReload: true });
+      await syncLaborProfile({ forceReload: true });
     });
   });
 
   refs.repairModeOptions?.forEach(option => {
     option.addEventListener('change', async () => {
       updateConfirmNewSerLaborPanelVisibility();
-      await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), { forceReload: true });
+      await syncLaborProfile({ forceReload: true });
     });
   });
 
   refs.motorKw?.addEventListener('input', async () => {
     syncServiceItemDescriptionFromBuilder('confirm');
-    await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), { forceReload: true });
+    await syncLaborProfile({ forceReload: true });
   });
 
   refs.motorKw?.addEventListener('blur', async () => {
     updateMotorKwFieldValidity(refs.motorKw);
     refs.motorKw.reportValidity();
-    await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), { forceReload: true });
+    await syncLaborProfile({ forceReload: true });
   });
 
   refs.driveTypeAc?.addEventListener('change', async () => {
     syncServiceItemDescriptionFromBuilder('confirm');
-    await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), { forceReload: true });
+    await syncLaborProfile({ forceReload: true });
   });
 
   refs.driveTypeDc?.addEventListener('change', async () => {
     syncServiceItemDescriptionFromBuilder('confirm');
-    await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), { forceReload: true });
+    await syncLaborProfile({ forceReload: true });
   });
 
   refs.details?.addEventListener('input', () => {
     syncServiceItemDescriptionFromBuilder('confirm');
+  });
+
+  refs.onsiteScope?.addEventListener('change', async () => {
+    await syncLaborProfile();
+  });
+
+  refs.onsitePriorityOptions?.forEach(option => {
+    option.addEventListener('change', async () => {
+      if (option.checked) {
+        await syncLaborProfile();
+      }
+    });
+  });
+
+  refs.onsiteSiteAccessOptions?.forEach(option => {
+    option.addEventListener('change', async () => {
+      if (option.checked) {
+        await syncLaborProfile();
+      }
+    });
+  });
+
+  [refs.onsiteCraneEnabled, refs.onsiteFourPeopleEnabled, refs.onsiteSafetyEnabled].forEach((field) => {
+    field?.addEventListener('change', async () => {
+      await syncLaborProfile();
+    });
   });
 
   // Initialize visibility on first load
@@ -5704,24 +5801,27 @@ async function showConfirmNewSerModalForEdit() {
         motorIsDc: false
       });
 
-      if (profile) {
-        populateConfirmNewSerBuilderFromProfile(profile, existingDescription);
-      } else {
+        if (profile) {
+          populateConfirmNewSerBuilderFromProfile(profile, existingDescription);
+        } else {
+          populateServiceItemBuilderFromDescription('confirm', existingDescription);
+          syncServiceItemDescriptionFromBuilder('confirm');
+          seedConfirmNewSerOnsiteFields();
+        }
+      } catch (error) {
+        console.error('Failed to load existing Service Item labor profile:', error);
+        showError('Saved Service Item labor profile could not be loaded. Showing the default labor section instead.');
         populateServiceItemBuilderFromDescription('confirm', existingDescription);
         syncServiceItemDescriptionFromBuilder('confirm');
+        seedConfirmNewSerOnsiteFields();
+        await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), { forceReload: true });
       }
-    } catch (error) {
-      console.error('Failed to load existing Service Item labor profile:', error);
-      showError('Saved Service Item labor profile could not be loaded. Showing the default labor section instead.');
+    } else {
       populateServiceItemBuilderFromDescription('confirm', existingDescription);
       syncServiceItemDescriptionFromBuilder('confirm');
+      seedConfirmNewSerOnsiteFields();
       await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), { forceReload: true });
     }
-  } else {
-    populateServiceItemBuilderFromDescription('confirm', existingDescription);
-    syncServiceItemDescriptionFromBuilder('confirm');
-    await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), { forceReload: true });
-  }
 
   // Show modal with animation
   if (modal && modalContent) {
