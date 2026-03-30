@@ -1406,7 +1406,7 @@
         <div id="backofficeSalesQuotesAuditTab" class="hidden">
           <div class="backoffice-note mb-6 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
             <p class="text-sm text-emerald-800">
-              Review Sales Quote submissions together with the latest approval snapshot for each quote.
+              Review Sales Quote submissions together with the latest approval snapshot for each quote. Use View history to inspect the full audit timeline for any Sales Quote.
             </p>
           </div>
 
@@ -1958,6 +1958,39 @@
       customers: []
     }
   };
+
+  const SALESQUOTE_HISTORY_ACTION_LABELS = {
+    Created: 'Create',
+    SubmittedToBC: 'Submitted to BC',
+    SendApprove: 'Send Approve',
+    Updated: 'Updated',
+    Approved: 'Approved',
+    Rejected: 'Rejected',
+    Revise: 'Revise Requested',
+    Cancelled: 'Cancelled',
+    RevisionRequested: 'Revision Requested',
+    RevisionApproved: 'Revision Approved',
+    RevisionRejected: 'Revision Rejected',
+    Resubmitted: 'Resubmitted'
+  };
+
+  const SALESQUOTE_HISTORY_ACTION_TONE_CLASSES = {
+    Created: 'bg-slate-100 text-slate-700',
+    SubmittedToBC: 'bg-sky-100 text-sky-700',
+    SendApprove: 'bg-indigo-100 text-indigo-700',
+    Updated: 'bg-amber-100 text-amber-700',
+    Approved: 'bg-emerald-100 text-emerald-700',
+    Rejected: 'bg-rose-100 text-rose-700',
+    Revise: 'bg-orange-100 text-orange-700',
+    Cancelled: 'bg-slate-200 text-slate-700',
+    RevisionRequested: 'bg-orange-100 text-orange-700',
+    RevisionApproved: 'bg-teal-100 text-teal-700',
+    RevisionRejected: 'bg-rose-100 text-rose-700',
+    Resubmitted: 'bg-cyan-100 text-cyan-700'
+  };
+
+  const salesQuotesAuditTimelineCache = new Map();
+  let openSalesQuotesAuditTimelineQuoteNumber = '';
 
   const INDEX_MENU_CARD_DEFINITIONS = Object.freeze([
     {
@@ -3874,6 +3907,18 @@
       loadSalesQuotesAuditLog(currentPage + 1);
     });
   }
+  const backofficeSalesQuotesAuditList = el('backofficeSalesQuotesAuditList');
+  if (backofficeSalesQuotesAuditList) {
+    backofficeSalesQuotesAuditList.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action="toggle-salesquotes-audit-history"]');
+      if (!button) {
+        return;
+      }
+
+      const quoteNumber = button.getAttribute('data-quote-number') || '';
+      toggleSalesQuotesAuditTimeline(quoteNumber);
+    });
+  }
 
   // Deletion log event listeners
   const deletionSearchBtn = el('deletionSearchBtn');
@@ -4272,6 +4317,152 @@
     return date.toLocaleString();
   }
 
+  function getSalesQuotesAuditHistoryActionLabel(actionType) {
+    return SALESQUOTE_HISTORY_ACTION_LABELS[actionType] || actionType || 'Unknown';
+  }
+
+  function getSalesQuotesAuditHistoryActionToneClass(actionType) {
+    return SALESQUOTE_HISTORY_ACTION_TONE_CLASSES[actionType] || 'bg-slate-100 text-slate-700';
+  }
+
+  function renderSalesQuotesAuditTimelineEvent(event) {
+    const actionLabel = getSalesQuotesAuditHistoryActionLabel(event.actionType);
+    const actionToneClass = getSalesQuotesAuditHistoryActionToneClass(event.actionType);
+    const actorEmail = event.actorEmail
+      ? `<div class="text-xs text-slate-500">By ${escapeHtml(event.actorEmail)}</div>`
+      : '';
+    const approvalStatus = event.approvalStatus
+      ? `<div class="text-xs text-slate-500">Status: ${escapeHtml(event.approvalStatus)}</div>`
+      : '';
+    const workDescription = event.workDescription
+      ? `<div class="text-xs text-slate-500">Work: ${escapeHtml(event.workDescription)}</div>`
+      : '';
+    const comment = event.comment
+      ? `<div class="mt-1 whitespace-pre-wrap break-words text-xs text-slate-600">Comment: ${escapeHtml(event.comment)}</div>`
+      : '';
+
+    return `
+      <li class="relative pl-7">
+        <span class="absolute left-0 top-1.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 shadow-sm" aria-hidden="true"></span>
+        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${actionToneClass}">
+                ${escapeHtml(actionLabel)}
+              </span>
+              ${actorEmail}
+              ${approvalStatus}
+              ${workDescription}
+              ${comment}
+            </div>
+            <div class="whitespace-nowrap text-xs font-medium text-slate-500">${escapeHtml(formatAuditDateTime(event.createdAt))}</div>
+          </div>
+        </div>
+      </li>
+    `;
+  }
+
+  function renderSalesQuotesAuditTimelineContent(quoteNumber, events = []) {
+    if (!events.length) {
+      return `
+        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+          No audit history found for ${escapeHtml(quoteNumber)}.
+        </div>
+      `;
+    }
+
+    return `
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 class="text-sm font-semibold text-slate-900">Quote History</h3>
+            <p class="text-xs text-slate-500">${escapeHtml(quoteNumber)} has ${events.length} transaction${events.length === 1 ? '' : 's'} recorded.</p>
+          </div>
+        </div>
+        <ol class="space-y-3 border-l-2 border-slate-200 pl-4">
+          ${events.map(renderSalesQuotesAuditTimelineEvent).join('')}
+        </ol>
+      </div>
+    `;
+  }
+
+  async function fetchSalesQuotesAuditTimeline(quoteNumber) {
+    const response = await fetchWithAuth(`/api/salesquotes/audit-events/${encodeURIComponent(quoteNumber)}`);
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => null);
+      throw new Error(errorPayload?.error || 'Failed to load quote history');
+    }
+
+    const data = await response.json();
+    return Array.isArray(data.events) ? data.events : [];
+  }
+
+  function closeOpenSalesQuotesAuditTimeline(container, exceptQuoteNumber = '') {
+    container.querySelectorAll('[data-salesquotes-audit-timeline-row]').forEach((row) => {
+      const quoteNumber = row.getAttribute('data-salesquotes-audit-timeline-row') || '';
+      const shouldStayOpen = exceptQuoteNumber && quoteNumber === exceptQuoteNumber;
+      row.classList.toggle('hidden', !shouldStayOpen);
+    });
+
+    container.querySelectorAll('[data-action="toggle-salesquotes-audit-history"]').forEach((button) => {
+      const quoteNumber = button.getAttribute('data-quote-number') || '';
+      const isOpen = exceptQuoteNumber && quoteNumber === exceptQuoteNumber;
+      button.textContent = isOpen ? 'Hide history' : 'View history';
+      button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    openSalesQuotesAuditTimelineQuoteNumber = exceptQuoteNumber;
+  }
+
+  async function toggleSalesQuotesAuditTimeline(quoteNumber) {
+    const container = el('backofficeSalesQuotesAuditList');
+    if (!container || !quoteNumber) {
+      return;
+    }
+
+    const timelineRow = Array.from(container.querySelectorAll('[data-salesquotes-audit-timeline-row]'))
+      .find((row) => row.getAttribute('data-salesquotes-audit-timeline-row') === quoteNumber);
+
+    if (!timelineRow) {
+      return;
+    }
+
+    if (openSalesQuotesAuditTimelineQuoteNumber === quoteNumber && !timelineRow.classList.contains('hidden')) {
+      closeOpenSalesQuotesAuditTimeline(container, '');
+      return;
+    }
+
+    closeOpenSalesQuotesAuditTimeline(container, quoteNumber);
+    timelineRow.innerHTML = `
+      <td colspan="6" class="px-4 py-4">
+        <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Loading quote history...
+        </div>
+      </td>
+    `;
+
+    try {
+      const events = salesQuotesAuditTimelineCache.has(quoteNumber)
+        ? salesQuotesAuditTimelineCache.get(quoteNumber)
+        : await fetchSalesQuotesAuditTimeline(quoteNumber);
+
+      salesQuotesAuditTimelineCache.set(quoteNumber, events);
+      timelineRow.innerHTML = `
+        <td colspan="6" class="px-4 py-4">
+          ${renderSalesQuotesAuditTimelineContent(quoteNumber, events)}
+        </td>
+      `;
+    } catch (error) {
+      timelineRow.innerHTML = `
+        <td colspan="6" class="px-4 py-4">
+          <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            Failed to load quote history. ${escapeHtml(error.message)}
+          </div>
+        </td>
+      `;
+    }
+  }
+
   async function loadSalesQuotesAuditLog(page = null) {
     if (page === null) {
       page = backofficeState.tabPages.salesQuotesAudit || 1;
@@ -4329,6 +4520,7 @@
   function renderSalesQuotesAuditLog(entries) {
     const container = el('backofficeSalesQuotesAuditList');
     if (!container) return;
+    openSalesQuotesAuditTimelineQuoteNumber = '';
 
     if (!entries.length) {
       container.innerHTML = `
@@ -4365,6 +4557,17 @@
           <td class="px-4 py-3 align-top">
             <div class="font-semibold text-slate-900">${escapeHtml(entry.salesQuoteNumber || '-')}</div>
             ${amountText ? `<div class="mt-1 text-xs text-slate-500">Total ${amountText}</div>` : ''}
+            ${entry.salesQuoteNumber ? `
+              <button
+                type="button"
+                data-action="toggle-salesquotes-audit-history"
+                data-quote-number="${escapeHtml(entry.salesQuoteNumber)}"
+                aria-expanded="false"
+                class="mt-3 inline-flex items-center rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700"
+              >
+                View history
+              </button>
+            ` : ''}
           </td>
           <td class="px-4 py-3 align-top">
             <div class="text-sm text-slate-800">${escapeHtml(entry.senderEmail || '-')}</div>
@@ -4389,6 +4592,9 @@
             <div class="mt-1 whitespace-nowrap text-xs text-slate-500">${formatAuditDateTime(lastActivity.timestamp)}</div>
           </td>
           <td class="px-4 py-3 align-top whitespace-nowrap text-slate-600">${formatAuditDateTime(entry.submittedAt)}</td>
+        </tr>
+        <tr class="hidden bg-slate-50/70" data-salesquotes-audit-timeline-row="${escapeHtml(entry.salesQuoteNumber || '')}">
+          <td colspan="6" class="px-4 py-4"></td>
         </tr>
       `;
     }).join('');
