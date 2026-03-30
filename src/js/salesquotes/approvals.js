@@ -72,6 +72,24 @@ let myApprovalsLoadSequence = 0;
 const serviceItemLaborPreviewCache = new Map();
 let branchPreviewCache = null;
 let branchPreviewCachePromise = null;
+const PREVIEW_ONSITE_SCOPE_LABELS = {
+  'low-volt': 'Low Volt',
+  'medium-volt': 'Medium Volt',
+  large: 'Large'
+};
+const PREVIEW_ONSITE_PRIORITY_LABELS = {
+  high: 'High',
+  low: 'Low'
+};
+const PREVIEW_ONSITE_SITE_ACCESS_LABELS = {
+  easy: 'Easy',
+  difficult: 'Difficult'
+};
+const PREVIEW_ONSITE_OPTION_LABELS = {
+  onsiteCraneEnabled: 'ใช้ Crane',
+  onsiteFourPeopleEnabled: 'ใช้ 4 ผู้',
+  onsiteSafetyEnabled: 'ใช้ Safety'
+};
 
 function normalizePreviewLineType(value) {
   const normalized = typeof value === 'string' ? value.trim() : '';
@@ -392,6 +410,7 @@ function getApprovalJobListModalElements() {
     contextValue: el('approvalJobListModalContextValue'),
     contextMeta: el('approvalJobListModalContextMeta'),
     summary: el('approvalJobListModalSummary'),
+    onsiteContext: el('approvalJobListModalOnsiteContext'),
     priceNote: el('approvalJobListModalPriceNote'),
     tableBody: el('approvalJobListModalTableBody'),
     closeBtn: el('approvalJobListModalCloseBtn')
@@ -2087,6 +2106,7 @@ function normalizeServiceItemLaborPreviewResponse(profile) {
 
   return {
     status: 'loaded',
+    repairMode: String(profile?.repairMode || '').trim(),
     serviceItemDescription: String(profile?.serviceItemDescription || '').trim(),
     branchId: profile?.branchId === null || profile?.branchId === undefined
       ? null
@@ -2097,6 +2117,12 @@ function normalizeServiceItemLaborPreviewResponse(profile) {
       ? null
       : Number(profile.motorKw),
     motorDriveType: String(profile?.motorDriveType || '').trim(),
+    scope: String(profile?.scope || '').trim(),
+    priorityLevel: String(profile?.priorityLevel || '').trim().toLowerCase(),
+    siteAccess: String(profile?.siteAccess || '').trim().toLowerCase(),
+    onsiteCraneEnabled: Boolean(profile?.onsiteCraneEnabled),
+    onsiteFourPeopleEnabled: Boolean(profile?.onsiteFourPeopleEnabled),
+    onsiteSafetyEnabled: Boolean(profile?.onsiteSafetyEnabled),
     jobs
   };
 }
@@ -2146,6 +2172,71 @@ function getPreviewJoblistSummary(preview) {
   const totalJobs = Array.isArray(preview?.jobs) ? preview.jobs.length : 0;
 
   return `${formatPreviewNumber(totalJobs, 0)} job${totalJobs === 1 ? '' : 's'} • ${formatPreviewNumber(totalHours, Number.isInteger(totalHours) ? 0 : 2)} MH`;
+}
+
+function isPreviewOnsiteRepairMode(preview) {
+  return String(preview?.repairMode || '').trim().toLowerCase() === 'onsite';
+}
+
+function renderApprovalJobListOnsiteContext(preview) {
+  if (!isPreviewOnsiteRepairMode(preview)) {
+    return '';
+  }
+
+  const scopeLabel = PREVIEW_ONSITE_SCOPE_LABELS[String(preview?.scope || '').trim().toLowerCase()] || 'Not selected';
+  const priorityLabel = PREVIEW_ONSITE_PRIORITY_LABELS[String(preview?.priorityLevel || '').trim().toLowerCase()] || 'Low';
+  const siteAccessLabel = PREVIEW_ONSITE_SITE_ACCESS_LABELS[String(preview?.siteAccess || '').trim().toLowerCase()] || 'Easy';
+  const selectedOptions = Object.entries(PREVIEW_ONSITE_OPTION_LABELS)
+    .filter(([key]) => Boolean(preview?.[key]))
+    .map(([, label]) => label);
+  const summaryParts = [scopeLabel, priorityLabel, siteAccessLabel];
+  const selectedOptionCountLabel = selectedOptions.length === 0
+    ? 'No options'
+    : `${selectedOptions.length} option${selectedOptions.length === 1 ? '' : 's'}`;
+
+  const optionChips = selectedOptions.length > 0
+    ? selectedOptions.map((label) => `
+        <span class="approval-job-list-onsite-chip approval-job-list-onsite-chip-active">${escapeHtml(label)}</span>
+      `).join('')
+    : '<span class="approval-job-list-onsite-chip">No onsite options selected</span>';
+
+  return `
+    <details class="approval-job-list-onsite-card approval-job-list-onsite-details">
+      <summary class="approval-job-list-onsite-summary">
+        <div class="approval-job-list-onsite-summary-copy">
+          <p class="approval-job-list-onsite-title">Onsite Context</p>
+          <p class="approval-job-list-onsite-summary-meta">${escapeHtml(summaryParts.join(' • '))}</p>
+        </div>
+        <div class="approval-job-list-onsite-summary-side">
+          <p class="approval-job-list-onsite-badge">Onsite only</p>
+          <span class="approval-job-list-onsite-chip">${escapeHtml(selectedOptionCountLabel)}</span>
+        </div>
+      </summary>
+      <div class="approval-job-list-onsite-body">
+        <p class="approval-job-list-onsite-copy">Selections pulled from the saved Onsite labor profile.</p>
+        <div class="approval-job-list-onsite-grid">
+          <div class="approval-job-list-onsite-metric">
+            <span class="approval-job-list-onsite-metric-label">Scope</span>
+            <span class="approval-job-list-onsite-metric-value">${escapeHtml(scopeLabel)}</span>
+          </div>
+          <div class="approval-job-list-onsite-metric">
+            <span class="approval-job-list-onsite-metric-label">Priority Level</span>
+            <span class="approval-job-list-onsite-metric-value">${escapeHtml(priorityLabel)}</span>
+          </div>
+          <div class="approval-job-list-onsite-metric">
+            <span class="approval-job-list-onsite-metric-label">Site Access</span>
+            <span class="approval-job-list-onsite-metric-value">${escapeHtml(siteAccessLabel)}</span>
+          </div>
+        </div>
+        <div class="approval-job-list-onsite-options">
+          <span class="approval-job-list-onsite-options-label">Onsite Options</span>
+          <div class="approval-job-list-onsite-options-list">
+            ${optionChips}
+          </div>
+        </div>
+      </div>
+    </details>
+  `;
 }
 
 function getPreviewBranchPricing(branch) {
@@ -2284,11 +2375,12 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
     contextValue,
     contextMeta,
     summary,
+    onsiteContext,
     priceNote,
     tableBody
   } = getApprovalJobListModalElements();
 
-  if (!modal || !modalContent || !status || !title || !contextValue || !contextMeta || !summary || !priceNote || !tableBody) {
+  if (!modal || !modalContent || !status || !title || !contextValue || !contextMeta || !summary || !onsiteContext || !priceNote || !tableBody) {
     showToast('Job list dialog is unavailable. Please refresh the page.', 'error');
     return;
   }
@@ -2306,6 +2398,7 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
   contextValue.textContent = preview.serviceItemDescription || serviceItemNo;
 
   const metaParts = [
+    preview.repairMode ? `Pattern: ${preview.repairMode}` : '',
     preview.workType ? `Work Type: ${preview.workType}` : '',
     preview.serviceType ? `Service Type: ${preview.serviceType}` : '',
     Number.isFinite(preview.motorKw) ? `Motor kW: ${formatPreviewNumber(preview.motorKw, preview.motorKw % 1 === 0 ? 0 : 2)}` : '',
@@ -2316,6 +2409,8 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
   contextMeta.textContent = metaParts.join(' • ');
   contextMeta.classList.toggle('hidden', metaParts.length === 0);
   summary.innerHTML = renderApprovalJobListSummary(preview, pricing, table.totals);
+  onsiteContext.innerHTML = renderApprovalJobListOnsiteContext(preview);
+  onsiteContext.classList.toggle('hidden', !isPreviewOnsiteRepairMode(preview));
   tableBody.innerHTML = table.html;
 
   if (pricing) {

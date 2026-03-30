@@ -2507,7 +2507,7 @@ button:disabled:hover {
   margin-left: auto;
   padding: 0.22rem 0.55rem;
   border: 1px solid rgba(202, 214, 207, 0.95);
-  border-radius: 0.9rem;
+  border-radius: 0.45rem;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
