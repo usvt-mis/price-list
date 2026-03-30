@@ -1,8 +1,27 @@
 import { authState } from '../state.js';
 import { el, escapeHtml, fetchJson, fetchWithAuth } from '../core/utils.js';
 import { getMotorJobDefaults, shouldMotorJobBeCheckedByDefault } from '../core/motor-job-defaults.js';
+import { STORAGE_KEYS as ONSITE_STORAGE_KEYS } from '../onsite/config.js';
 
 const SERVICE_ITEM_LABOR_API_BASE = '/api/salesquotes/service-item-labor';
+const ONSITE_SCOPE_LABELS = {
+  'low-volt': 'Low Volt',
+  'medium-volt': 'Medium Volt',
+  large: 'Large'
+};
+const ONSITE_PRIORITY_LABELS = {
+  high: 'High',
+  low: 'Low'
+};
+const ONSITE_SITE_ACCESS_LABELS = {
+  easy: 'Easy',
+  difficult: 'Difficult'
+};
+const ONSITE_OPTION_LABELS = {
+  onsiteCraneEnabled: 'ใช้ Crane',
+  onsiteFourPeopleEnabled: 'ใช้ 4 ผู้',
+  onsiteSafetyEnabled: 'ใช้ Safety'
+};
 const OVERHAUL_JOB_PATTERNS = [
   'overhaul',
   'overhaul (dc)', 'overhaul(dc)',
@@ -60,7 +79,13 @@ const modalState = {
     workType: 'Motor',
     serviceType: 'Overhaul',
     motorKw: '',
-    motorDriveType: 'AC'
+    motorDriveType: 'AC',
+    scope: '',
+    priorityLevel: 'low',
+    siteAccess: 'easy',
+    onsiteCraneEnabled: false,
+    onsiteFourPeopleEnabled: false,
+    onsiteSafetyEnabled: false
   }
 };
 
@@ -70,6 +95,63 @@ function normalizeDriveType(value) {
 
 function normalizeRepairMode(value) {
   return String(value || '').trim().toLowerCase() === 'onsite' ? 'Onsite' : 'Workshop';
+}
+
+function normalizeOnsiteBoolean(value, fallback = false) {
+  if (value === null || value === undefined || value === '') {
+    return fallback;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (!normalized) {
+    return fallback;
+  }
+
+  return ['true', '1', 'yes', 'y'].includes(normalized);
+}
+
+function getSafeLocalStorageValue(key, fallback = '') {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function getCurrentOnsiteSelections() {
+  const scopeField = document.getElementById('scope');
+  const priorityRadio = document.querySelector('input[name="priorityLevel"]:checked');
+  const accessRadio = document.querySelector('input[name="siteAccess"]:checked');
+
+  return {
+    scope: String(scopeField?.value || getSafeLocalStorageValue(ONSITE_STORAGE_KEYS.SCOPE, '')).trim(),
+    priorityLevel: String(priorityRadio?.value || getSafeLocalStorageValue(ONSITE_STORAGE_KEYS.PRIORITY_LEVEL, 'low')).trim().toLowerCase() || 'low',
+    siteAccess: String(accessRadio?.value || getSafeLocalStorageValue(ONSITE_STORAGE_KEYS.SITE_ACCESS, 'easy')).trim().toLowerCase() || 'easy',
+    onsiteCraneEnabled: normalizeOnsiteBoolean(getSafeLocalStorageValue(ONSITE_STORAGE_KEYS.ONSITE_CRANE_ENABLED, 'no')),
+    onsiteFourPeopleEnabled: normalizeOnsiteBoolean(getSafeLocalStorageValue(ONSITE_STORAGE_KEYS.ONSITE_FOUR_PEOPLE_ENABLED, 'no')),
+    onsiteSafetyEnabled: normalizeOnsiteBoolean(getSafeLocalStorageValue(ONSITE_STORAGE_KEYS.ONSITE_SAFETY_ENABLED, 'no'))
+  };
+}
+
+function normalizeOnsiteSelections(snapshot = {}, fallback = null) {
+  const base = fallback || getCurrentOnsiteSelections();
+
+  return {
+    scope: String(snapshot?.scope ?? base.scope ?? '').trim(),
+    priorityLevel: String(snapshot?.priorityLevel ?? base.priorityLevel ?? 'low').trim().toLowerCase() || 'low',
+    siteAccess: String(snapshot?.siteAccess ?? base.siteAccess ?? 'easy').trim().toLowerCase() || 'easy',
+    onsiteCraneEnabled: normalizeOnsiteBoolean(snapshot?.onsiteCraneEnabled, base.onsiteCraneEnabled),
+    onsiteFourPeopleEnabled: normalizeOnsiteBoolean(snapshot?.onsiteFourPeopleEnabled, base.onsiteFourPeopleEnabled),
+    onsiteSafetyEnabled: normalizeOnsiteBoolean(snapshot?.onsiteSafetyEnabled, base.onsiteSafetyEnabled)
+  };
 }
 
 function getRepairModeConfig(repairMode = modalState.snapshot.repairMode) {
@@ -328,12 +410,60 @@ function updateLaborModeCard() {
   }
 }
 
+function renderOnsiteContext() {
+  const contextWrap = el('confirmNewSerOnsiteContext');
+  const scopeValueEl = el('confirmNewSerOnsiteScopeValue');
+  const priorityValueEl = el('confirmNewSerOnsitePriorityValue');
+  const accessValueEl = el('confirmNewSerOnsiteAccessValue');
+  const optionsListEl = el('confirmNewSerOnsiteOptionsList');
+  const isOnsite = normalizeRepairMode(modalState.snapshot.repairMode) === 'Onsite';
+
+  if (!contextWrap) {
+    return;
+  }
+
+  contextWrap.classList.toggle('hidden', !isOnsite);
+  if (!isOnsite) {
+    return;
+  }
+
+  if (scopeValueEl) {
+    scopeValueEl.textContent = ONSITE_SCOPE_LABELS[modalState.snapshot.scope] || 'Not selected';
+  }
+
+  if (priorityValueEl) {
+    priorityValueEl.textContent = ONSITE_PRIORITY_LABELS[modalState.snapshot.priorityLevel] || 'Low';
+  }
+
+  if (accessValueEl) {
+    accessValueEl.textContent = ONSITE_SITE_ACCESS_LABELS[modalState.snapshot.siteAccess] || 'Easy';
+  }
+
+  if (!optionsListEl) {
+    return;
+  }
+
+  const selectedOptions = Object.entries(ONSITE_OPTION_LABELS)
+    .filter(([key]) => modalState.snapshot[key])
+    .map(([, label]) => label);
+
+  if (selectedOptions.length === 0) {
+    optionsListEl.innerHTML = '<span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">No onsite options selected</span>';
+    return;
+  }
+
+  optionsListEl.innerHTML = selectedOptions
+    .map((label) => `<span class="inline-flex items-center rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-800">${escapeHtml(label)}</span>`)
+    .join('');
+}
+
 function renderLaborMeta() {
   const metaEl = el('confirmNewSerLaborMeta');
   const headJobEl = el('confirmNewSerLaborHeadJob');
   const headHoursEl = el('confirmNewSerLaborHeadManhours');
   const config = getRepairModeConfig();
   updateLaborModeCard();
+  renderOnsiteContext();
 
   if (headJobEl) {
     headJobEl.textContent = 'Job';
@@ -584,7 +714,13 @@ export function resetConfirmNewSerLaborProfile() {
     workType: 'Motor',
     serviceType: 'Overhaul',
     motorKw: '',
-    motorDriveType: 'AC'
+    motorDriveType: 'AC',
+    scope: '',
+    priorityLevel: 'low',
+    siteAccess: 'easy',
+    onsiteCraneEnabled: false,
+    onsiteFourPeopleEnabled: false,
+    onsiteSafetyEnabled: false
   };
   syncLockedBranch();
   setLaborStatus(REPAIR_MODE_CONFIGS.Workshop.statusPrompt);
@@ -594,13 +730,15 @@ export function resetConfirmNewSerLaborProfile() {
 export async function syncConfirmNewSerLaborProfile(snapshot, { forceReload = false } = {}) {
   await ensureReferenceData();
   syncLockedBranch();
+  const currentOnsiteSelections = getCurrentOnsiteSelections();
 
   modalState.snapshot = {
     repairMode: normalizeRepairMode(snapshot?.repairMode),
     workType: String(snapshot?.workType || '').trim() || 'Motor',
     serviceType: String(snapshot?.serviceType || '').trim() || 'Overhaul',
     motorKw: String(snapshot?.motorKw || '').trim(),
-    motorDriveType: snapshot?.motorIsDc ? 'DC' : 'AC'
+    motorDriveType: snapshot?.motorIsDc ? 'DC' : 'AC',
+    ...normalizeOnsiteSelections(snapshot, currentOnsiteSelections)
   };
 
   const config = getRepairModeConfig();
@@ -699,6 +837,7 @@ export function getConfirmNewSerLaborValidation(snapshot) {
 }
 
 function applyLaborProfileToModalState(profile, snapshot) {
+  const currentOnsiteSelections = getCurrentOnsiteSelections();
   const normalizedJobs = Array.isArray(profile?.jobs)
     ? profile.jobs.map((job, index) => ({
       JobId: Number(job.jobId || 0),
@@ -718,7 +857,8 @@ function applyLaborProfileToModalState(profile, snapshot) {
     motorKw: profile?.motorKw === null || profile?.motorKw === undefined
       ? String(snapshot?.motorKw || '').trim()
       : String(profile.motorKw),
-    motorDriveType: normalizeDriveType(profile?.motorDriveType || (snapshot?.motorIsDc ? 'DC' : 'AC'))
+    motorDriveType: normalizeDriveType(profile?.motorDriveType || (snapshot?.motorIsDc ? 'DC' : 'AC')),
+    ...normalizeOnsiteSelections(profile, normalizeOnsiteSelections(snapshot, currentOnsiteSelections))
   };
 
   modalState.jobs = normalizedJobs;
@@ -783,6 +923,7 @@ export async function hydrateConfirmNewSerLaborProfile(serviceItemNo, snapshot =
 function buildLaborPayload(snapshot, extra = {}) {
   const repairMode = normalizeRepairMode(snapshot?.repairMode);
   const payloadJobs = Array.isArray(extra.jobs) ? extra.jobs : modalState.jobs;
+  const onsiteSelections = normalizeOnsiteSelections(snapshot, getCurrentOnsiteSelections());
 
   return {
     repairMode,
@@ -797,6 +938,12 @@ function buildLaborPayload(snapshot, extra = {}) {
     motorTypeId: snapshot.workType === 'Motor' && modalState.resolvedMotorTypeId ? Number(modalState.resolvedMotorTypeId) : null,
     customerNo: String(extra.customerNo || '').trim() || null,
     groupNo: String(extra.groupNo || '').trim() || null,
+    scope: repairMode === 'Onsite' ? onsiteSelections.scope || null : null,
+    priorityLevel: repairMode === 'Onsite' ? onsiteSelections.priorityLevel || null : null,
+    siteAccess: repairMode === 'Onsite' ? onsiteSelections.siteAccess || null : null,
+    onsiteCraneEnabled: repairMode === 'Onsite' ? onsiteSelections.onsiteCraneEnabled : null,
+    onsiteFourPeopleEnabled: repairMode === 'Onsite' ? onsiteSelections.onsiteFourPeopleEnabled : null,
+    onsiteSafetyEnabled: repairMode === 'Onsite' ? onsiteSelections.onsiteSafetyEnabled : null,
     jobs: payloadJobs.map((job, index) => ({
       jobId: Number(job.JobId),
       jobCode: String(job.JobCode || '').trim() || null,

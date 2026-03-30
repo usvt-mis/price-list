@@ -28,6 +28,12 @@ async function ensureSalesQuoteServiceItemLaborTables(pool) {
           MotorTypeId INT NULL,
           CustomerNo NVARCHAR(50) NULL,
           GroupNo NVARCHAR(20) NULL,
+          Scope NVARCHAR(20) NULL,
+          PriorityLevel NVARCHAR(10) NULL,
+          SiteAccess NVARCHAR(20) NULL,
+          OnsiteCraneEnabled BIT NULL,
+          OnsiteFourPeopleEnabled BIT NULL,
+          OnsiteSafetyEnabled BIT NULL,
           CreatedByEmail NVARCHAR(255) NOT NULL,
           UpdatedByEmail NVARCHAR(255) NOT NULL,
           CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
@@ -45,6 +51,54 @@ async function ensureSalesQuoteServiceItemLaborTables(pool) {
       BEGIN
         ALTER TABLE ${PROFILE_TABLE_NAME}
         ADD RepairMode NVARCHAR(20) NULL;
+      END
+    `);
+
+    await pool.request().query(`
+      IF COL_LENGTH('${PROFILE_TABLE_NAME}', 'Scope') IS NULL
+      BEGIN
+        ALTER TABLE ${PROFILE_TABLE_NAME}
+        ADD Scope NVARCHAR(20) NULL;
+      END
+    `);
+
+    await pool.request().query(`
+      IF COL_LENGTH('${PROFILE_TABLE_NAME}', 'PriorityLevel') IS NULL
+      BEGIN
+        ALTER TABLE ${PROFILE_TABLE_NAME}
+        ADD PriorityLevel NVARCHAR(10) NULL;
+      END
+    `);
+
+    await pool.request().query(`
+      IF COL_LENGTH('${PROFILE_TABLE_NAME}', 'SiteAccess') IS NULL
+      BEGIN
+        ALTER TABLE ${PROFILE_TABLE_NAME}
+        ADD SiteAccess NVARCHAR(20) NULL;
+      END
+    `);
+
+    await pool.request().query(`
+      IF COL_LENGTH('${PROFILE_TABLE_NAME}', 'OnsiteCraneEnabled') IS NULL
+      BEGIN
+        ALTER TABLE ${PROFILE_TABLE_NAME}
+        ADD OnsiteCraneEnabled BIT NULL;
+      END
+    `);
+
+    await pool.request().query(`
+      IF COL_LENGTH('${PROFILE_TABLE_NAME}', 'OnsiteFourPeopleEnabled') IS NULL
+      BEGIN
+        ALTER TABLE ${PROFILE_TABLE_NAME}
+        ADD OnsiteFourPeopleEnabled BIT NULL;
+      END
+    `);
+
+    await pool.request().query(`
+      IF COL_LENGTH('${PROFILE_TABLE_NAME}', 'OnsiteSafetyEnabled') IS NULL
+      BEGIN
+        ALTER TABLE ${PROFILE_TABLE_NAME}
+        ADD OnsiteSafetyEnabled BIT NULL;
       END
     `);
 

@@ -117,6 +117,38 @@
             </div>
 
             <div id="confirmNewSerLaborPanel">
+              <div id="confirmNewSerOnsiteContext" class="mt-4 hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 px-4 py-4 shadow-sm">
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Onsite Context</p>
+                    <p class="text-xs text-slate-500">Selections pulled from the Onsite labor and onsite options sections.</p>
+                  </div>
+                  <p class="text-xs font-medium uppercase tracking-[0.16em] text-sky-700">Onsite only</p>
+                </div>
+
+                <div class="mt-4 grid gap-3 md:grid-cols-3">
+                  <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Scope</p>
+                    <p id="confirmNewSerOnsiteScopeValue" class="mt-1 text-sm font-semibold text-slate-800">Not selected</p>
+                  </div>
+                  <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Priority Level</p>
+                    <p id="confirmNewSerOnsitePriorityValue" class="mt-1 text-sm font-semibold text-slate-800">Low</p>
+                  </div>
+                  <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
+                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Site Access</p>
+                    <p id="confirmNewSerOnsiteAccessValue" class="mt-1 text-sm font-semibold text-slate-800">Easy</p>
+                  </div>
+                </div>
+
+                <div class="mt-4 border-t border-sky-100 pt-4">
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Onsite Options</p>
+                  <div id="confirmNewSerOnsiteOptionsList" class="mt-2 flex flex-wrap gap-2">
+                    <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">No onsite options selected</span>
+                  </div>
+                </div>
+              </div>
+
               
               <div id="confirmNewSerLaborTableWrap" class="confirm-new-ser-jobs-table confirm-new-ser-jobs-table-shell mt-4 hidden overflow-hidden">
                 <div class="confirm-new-ser-jobs-scroll overflow-auto">

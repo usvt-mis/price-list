@@ -119,6 +119,14 @@ function normalizeBoolean(value, defaultValue = false) {
   return defaultValue;
 }
 
+function normalizeNullableBoolean(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  return normalizeBoolean(value, false);
+}
+
 function normalizeNullableInt(value) {
   if (value === null || value === undefined || value === '') {
     return null;
@@ -179,6 +187,18 @@ function mapServiceItemLaborProfile(record, jobs = []) {
     motorTypeId: record.MotorTypeId === null || record.MotorTypeId === undefined ? null : Number(record.MotorTypeId),
     customerNo: record.CustomerNo || '',
     groupNo: record.GroupNo || '',
+    scope: record.Scope || '',
+    priorityLevel: record.PriorityLevel || '',
+    siteAccess: record.SiteAccess || '',
+    onsiteCraneEnabled: record.OnsiteCraneEnabled === null || record.OnsiteCraneEnabled === undefined
+      ? null
+      : Boolean(record.OnsiteCraneEnabled),
+    onsiteFourPeopleEnabled: record.OnsiteFourPeopleEnabled === null || record.OnsiteFourPeopleEnabled === undefined
+      ? null
+      : Boolean(record.OnsiteFourPeopleEnabled),
+    onsiteSafetyEnabled: record.OnsiteSafetyEnabled === null || record.OnsiteSafetyEnabled === undefined
+      ? null
+      : Boolean(record.OnsiteSafetyEnabled),
     createdByEmail: record.CreatedByEmail || '',
     updatedByEmail: record.UpdatedByEmail || '',
     createdAt: record.CreatedAt,
@@ -689,6 +709,12 @@ router.get('/service-item-labor/:serviceItemNo', async (req, res, next) => {
           MotorTypeId,
           CustomerNo,
           GroupNo,
+          Scope,
+          PriorityLevel,
+          SiteAccess,
+          OnsiteCraneEnabled,
+          OnsiteFourPeopleEnabled,
+          OnsiteSafetyEnabled,
           CreatedByEmail,
           UpdatedByEmail,
           CreatedAt,
@@ -748,6 +774,8 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
   const jobs = Array.isArray(req.body?.jobs)
     ? req.body.jobs.map((job, index) => normalizeServiceItemLaborJob(job, index))
     : [];
+  const repairMode = normalizeNullableString(req.body?.repairMode, 20);
+  const isOnsiteRepairMode = String(repairMode || '').trim().toLowerCase() === 'onsite';
 
   try {
     const pool = await getPool();
@@ -759,7 +787,7 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
     try {
       await new sql.Request(transaction)
         .input('serviceItemNo', sql.NVarChar(50), serviceItemNo)
-        .input('repairMode', sql.NVarChar(20), normalizeNullableString(req.body?.repairMode, 20))
+        .input('repairMode', sql.NVarChar(20), repairMode)
         .input('serviceItemDescription', sql.NVarChar(255), normalizeNullableString(req.body?.serviceItemDescription, 255))
         .input('workType', sql.NVarChar(50), workType)
         .input('serviceType', sql.NVarChar(20), normalizeNullableString(req.body?.serviceType, 20))
@@ -769,6 +797,12 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
         .input('motorTypeId', sql.Int, normalizeNullableInt(req.body?.motorTypeId))
         .input('customerNo', sql.NVarChar(50), normalizeNullableString(req.body?.customerNo, 50))
         .input('groupNo', sql.NVarChar(20), normalizeNullableString(req.body?.groupNo, 20))
+        .input('scope', sql.NVarChar(20), isOnsiteRepairMode ? normalizeNullableString(req.body?.scope, 20) : null)
+        .input('priorityLevel', sql.NVarChar(10), isOnsiteRepairMode ? normalizeNullableString(req.body?.priorityLevel, 10) : null)
+        .input('siteAccess', sql.NVarChar(20), isOnsiteRepairMode ? normalizeNullableString(req.body?.siteAccess, 20) : null)
+        .input('onsiteCraneEnabled', sql.Bit, isOnsiteRepairMode ? normalizeNullableBoolean(req.body?.onsiteCraneEnabled) : null)
+        .input('onsiteFourPeopleEnabled', sql.Bit, isOnsiteRepairMode ? normalizeNullableBoolean(req.body?.onsiteFourPeopleEnabled) : null)
+        .input('onsiteSafetyEnabled', sql.Bit, isOnsiteRepairMode ? normalizeNullableBoolean(req.body?.onsiteSafetyEnabled) : null)
         .input('userEmail', sql.NVarChar(255), userEmail)
         .query(`
           UPDATE SalesQuoteServiceItemProfiles
@@ -782,6 +816,12 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
               MotorTypeId = @motorTypeId,
               CustomerNo = @customerNo,
               GroupNo = @groupNo,
+              Scope = @scope,
+              PriorityLevel = @priorityLevel,
+              SiteAccess = @siteAccess,
+              OnsiteCraneEnabled = @onsiteCraneEnabled,
+              OnsiteFourPeopleEnabled = @onsiteFourPeopleEnabled,
+              OnsiteSafetyEnabled = @onsiteSafetyEnabled,
               UpdatedByEmail = @userEmail,
               UpdatedAt = GETUTCDATE()
           WHERE ServiceItemNo = @serviceItemNo;
@@ -800,6 +840,12 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
               MotorTypeId,
               CustomerNo,
               GroupNo,
+              Scope,
+              PriorityLevel,
+              SiteAccess,
+              OnsiteCraneEnabled,
+              OnsiteFourPeopleEnabled,
+              OnsiteSafetyEnabled,
               CreatedByEmail,
               UpdatedByEmail
             )
@@ -815,6 +861,12 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
               @motorTypeId,
               @customerNo,
               @groupNo,
+              @scope,
+              @priorityLevel,
+              @siteAccess,
+              @onsiteCraneEnabled,
+              @onsiteFourPeopleEnabled,
+              @onsiteSafetyEnabled,
               @userEmail,
               @userEmail
             );
@@ -877,6 +929,12 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
             MotorTypeId,
             CustomerNo,
             GroupNo,
+            Scope,
+            PriorityLevel,
+            SiteAccess,
+            OnsiteCraneEnabled,
+            OnsiteFourPeopleEnabled,
+            OnsiteSafetyEnabled,
             CreatedByEmail,
             UpdatedByEmail,
             CreatedAt,
