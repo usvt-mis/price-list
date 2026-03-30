@@ -85,10 +85,10 @@
           <div class="sales-alert-section sales-alert-section-info confirm-new-ser-jobs-column">
             <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
-                <p class="sales-alert-label mb-1">Job List</p>
+                <p class="sales-alert-label mb-1" id="confirmNewSerLaborTitle">Labor Section</p>
                 <p id="confirmNewSerLaborMeta" class="text-xs text-slate-500"></p>
               </div>
-              <p id="confirmNewSerLaborStatus" class="text-sm text-slate-500">Enter Motor kW to load the workshop job list.</p>
+              <p id="confirmNewSerLaborStatus" class="text-sm text-slate-500">Enter Motor kW to load the labor section.</p>
             </div>
 
             <div class="mt-4">
@@ -106,6 +106,27 @@
             </div>
 
             <div id="confirmNewSerLaborPanel">
+              <div class="mt-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 px-4 py-4 shadow-sm">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div class="min-w-0">
+                    <p id="confirmNewSerLaborPatternLabel" class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                      Workshop Pattern
+                    </p>
+                    <h4 id="confirmNewSerLaborModeTitle" class="mt-1 text-base font-semibold text-slate-800">
+                      Workshop labor section
+                    </h4>
+                    <p id="confirmNewSerLaborModeDescription" class="mt-1 text-sm text-slate-500">
+                      Loads workshop jobs by motor size and keeps the workshop save pattern for this Service Item.
+                    </p>
+                  </div>
+
+                  <div class="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-right shadow-sm">
+                    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Selected Jobs</p>
+                    <p id="confirmNewSerLaborSelectionSummary" class="mt-1 text-lg font-semibold text-slate-800">0 / 0</p>
+                  </div>
+                </div>
+              </div>
+
               <div id="confirmNewSerLaborTableWrap" class="confirm-new-ser-jobs-table confirm-new-ser-jobs-table-shell mt-4 hidden overflow-hidden">
                 <div class="confirm-new-ser-jobs-scroll overflow-auto">
                   <table class="confirm-new-ser-jobs-grid min-w-full text-sm">
@@ -114,8 +135,8 @@
                         <th class="w-14 px-3 py-3 text-center">
                           <input type="checkbox" id="confirmNewSerSelectAllJobs" class="rounded border-slate-300 text-slate-900 focus:ring-slate-400">
                         </th>
-                        <th class="px-4 py-3 text-left font-semibold uppercase tracking-[0.16em]">Job</th>
-                        <th class="px-4 py-3 text-right font-semibold uppercase tracking-[0.16em]">Manhours</th>
+                        <th class="px-4 py-3 text-left font-semibold uppercase tracking-[0.16em]" id="confirmNewSerLaborHeadJob">Job</th>
+                        <th class="px-4 py-3 text-right font-semibold uppercase tracking-[0.16em]" id="confirmNewSerLaborHeadManhours">Manhours</th>
                       </tr>
                     </thead>
                     <tbody id="confirmNewSerLaborRows" class="confirm-new-ser-jobs-body"></tbody>
@@ -124,7 +145,7 @@
               </div>
 
               <div id="confirmNewSerLaborEmpty" class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                Enter Motor kW to load the workshop job list.
+                Enter Motor kW to load the labor section.
               </div>
             </div>
           </div>

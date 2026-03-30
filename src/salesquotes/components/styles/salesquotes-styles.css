@@ -2490,6 +2490,15 @@ button:disabled:hover {
   text-decoration: line-through;
 }
 
+.confirm-new-ser-job-name.is-required {
+  color: #b45309;
+}
+
+.confirm-new-ser-job-required {
+  color: #b45309;
+  font-weight: 700;
+}
+
 .confirm-new-ser-mh-field {
   display: flex;
   align-items: center;
@@ -2513,6 +2522,12 @@ button:disabled:hover {
   background: rgba(242, 246, 244, 0.95);
 }
 
+.confirm-new-ser-mh-field.is-required {
+  border-color: rgba(245, 158, 11, 0.78);
+  background: rgba(255, 247, 237, 0.98);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.12);
+}
+
 .confirm-new-ser-mh-input {
   width: 100%;
   min-width: 0;
@@ -2532,6 +2547,10 @@ button:disabled:hover {
 
 .confirm-new-ser-mh-input.is-disabled {
   color: #92a29b !important;
+}
+
+.confirm-new-ser-mh-input.is-required::placeholder {
+  color: #b45309;
 }
 
 @media (max-width: 640px) {

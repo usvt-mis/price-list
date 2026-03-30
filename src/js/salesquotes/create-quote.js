@@ -665,6 +665,12 @@ function getConfirmNewSerPrimaryActionButton() {
   return document.querySelector('#confirmNewSerModal .sales-alert-btn-primary');
 }
 
+function getServiceItemLaborPatternLabel(repairMode = 'Workshop') {
+  return String(repairMode || '').trim().toLowerCase() === 'onsite'
+    ? 'onsite labor section'
+    : 'workshop job list';
+}
+
 function updateConfirmNewSerPrimaryActionLabel() {
   const actionButton = getConfirmNewSerPrimaryActionButton();
   if (!actionButton) {
@@ -773,8 +779,7 @@ function updateConfirmNewSerLaborPanelVisibility() {
     return;
   }
 
-  const repairMode = refs.repairMode?.value?.trim() || 'Workshop';
-  refs.laborPanel.classList.toggle('hidden', repairMode === 'Onsite');
+  refs.laborPanel.classList.remove('hidden');
 }
 
 function applyConfirmNewSerSnapshotToSource(snapshot, sourcePrefix = getPendingSerSourcePrefix()) {
@@ -2681,6 +2686,7 @@ async function confirmNewSerCreation() {
 
 async function saveExistingServiceItemLaborProfile(confirmSnapshot = null, laborJobsSnapshot = null) {
   const snapshot = confirmSnapshot || getConfirmNewSerSnapshot();
+  const laborPatternLabel = getServiceItemLaborPatternLabel(snapshot.repairMode);
   const serviceItemNo = document.getElementById('editLineUsvtServiceItemNo')?.value?.trim() || '';
   const groupNo = document.getElementById('editLineUsvtGroupNo')?.value?.trim() || '1';
   const customerNo = state.quote.customerNo || '';
@@ -2733,12 +2739,12 @@ async function saveExistingServiceItemLaborProfile(confirmSnapshot = null, labor
     if (laborProfileSaved && hasDescriptionChanged) {
       showError(
         getFriendlyServiceItemUpdateErrorMessage(error, { laborProfileSaved: true })
-        || 'Workshop job list was saved, but updating the Service Item description failed. Please try again.'
+        || `The ${laborPatternLabel} was saved, but updating the Service Item description failed. Please try again.`
       );
     } else {
       showError(
         getFriendlyServiceItemUpdateErrorMessage(error, { laborProfileSaved: false })
-        || 'Failed to save workshop job list. Please try again.'
+        || `Failed to save the ${laborPatternLabel}. Please try again.`
       );
     }
   } finally {
@@ -2758,6 +2764,7 @@ async function createServiceItemAndLockFields(confirmSnapshot = null, laborJobsS
   }
 
   const snapshot = confirmSnapshot || getConfirmNewSerSnapshot();
+  const laborPatternLabel = getServiceItemLaborPatternLabel(snapshot.repairMode);
   const builderValidation = !snapshot.workType
     ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
     : (snapshot.workType === 'Motor' && !formatMotorKwValue(snapshot.motorKw || '')
@@ -2846,7 +2853,7 @@ async function createServiceItemAndLockFields(confirmSnapshot = null, laborJobsS
     // Show success message
     showSuccess(`Service Item ${serviceItemNo} created successfully`);
     if (laborProfileSaveError) {
-      showError(`Service Item ${serviceItemNo} was created, but the workshop job list could not be saved locally.`);
+      showError(`Service Item ${serviceItemNo} was created, but the ${laborPatternLabel} could not be saved locally.`);
     }
 
   } catch (error) {
@@ -3575,7 +3582,7 @@ function getServiceItemUpdateErrorCode(errorText) {
 function getFriendlyServiceItemUpdateErrorMessage(error, { laborProfileSaved = false } = {}) {
   if (error?.code === 'SERVICE_ITEM_CUSTOMER_MISMATCH') {
     return laborProfileSaved
-      ? 'Workshop job list was saved, but Business Central rejected the Service Item update because this Service Item belongs to a different customer. Please verify the Service Item No or create a new SER.'
+      ? 'The Service Item labor profile was saved, but Business Central rejected the Service Item update because this Service Item belongs to a different customer. Please verify the Service Item No or create a new SER.'
       : 'Business Central rejected this Service Item because it belongs to a different customer. Please verify the Service Item No or create a new SER.';
   }
 
@@ -4385,7 +4392,7 @@ function updateNewSerButtonStateForEditModal(excludeLineId) {
   } else if (hasExistingServiceItemOnLine) {
     newSerButton.disabled = false;
     newSerButton.innerHTML = 'Edit SER';
-    newSerButton.title = 'Edit the saved workshop job list for this Service Item.';
+    newSerButton.title = 'Edit the saved labor profile for this Service Item.';
     newSerButton.style.cursor = '';
   } else if (hasExistingSerInGroup) {
     newSerButton.disabled = true;
@@ -5705,7 +5712,7 @@ async function showConfirmNewSerModalForEdit() {
       }
     } catch (error) {
       console.error('Failed to load existing Service Item labor profile:', error);
-      showError('Saved workshop job list could not be loaded. Showing default job list instead.');
+      showError('Saved Service Item labor profile could not be loaded. Showing the default labor section instead.');
       populateServiceItemBuilderFromDescription('confirm', existingDescription);
       syncServiceItemDescriptionFromBuilder('confirm');
       await syncConfirmNewSerLaborProfile(getConfirmNewSerSnapshot(), { forceReload: true });
@@ -5766,6 +5773,7 @@ async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null, lab
   }
 
   const snapshot = confirmSnapshot || getConfirmNewSerSnapshot();
+  const laborPatternLabel = getServiceItemLaborPatternLabel(snapshot.repairMode);
   const builderValidation = !snapshot.workType
     ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
     : (snapshot.workType === 'Motor' && !formatMotorKwValue(snapshot.motorKw || '')
@@ -5847,7 +5855,7 @@ async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null, lab
     // Show success message
     showSuccess(`Service Item ${serviceItemNo} created successfully`);
     if (laborProfileSaveError) {
-      showError(`Service Item ${serviceItemNo} was created, but the workshop job list could not be saved locally.`);
+      showError(`Service Item ${serviceItemNo} was created, but the ${laborPatternLabel} could not be saved locally.`);
     }
 
   } catch (error) {

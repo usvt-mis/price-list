@@ -15,6 +15,36 @@ const REWIND_JOB_PATTERNS = [
   'rewind (dc)', 'rewind(dc)',
   'rewind (ac)', 'rewind(ac)'
 ];
+const REPAIR_MODE_CONFIGS = {
+  Workshop: {
+    title: 'Workshop labor section',
+    label: 'Workshop Pattern',
+    description: 'Loads workshop jobs by motor size and keeps the workshop save pattern for this Service Item.',
+    statusReady: 'Workshop job list ready.',
+    statusLoading: 'Loading workshop job list...',
+    statusSaved: 'Loaded saved workshop job list.',
+    statusNoSavedJobs: 'No saved workshop jobs were found for this Service Item.',
+    statusPrompt: 'Enter Motor kW to load the workshop job list.',
+    emptyPrompt: 'Enter Motor kW to load the workshop job list.',
+    noJobsMessage: 'No workshop jobs were loaded for this motor size.',
+    savePatternLabel: 'Workshop',
+    requiresPositiveManhours: false
+  },
+  Onsite: {
+    title: 'Onsite labor section',
+    label: 'Onsite Pattern',
+    description: 'Loads onsite jobs with blank manhours so each checked row can be entered and saved with the onsite pattern.',
+    statusReady: 'Onsite labor section ready.',
+    statusLoading: 'Loading onsite labor section...',
+    statusSaved: 'Loaded saved onsite labor section.',
+    statusNoSavedJobs: 'No saved onsite jobs were found for this Service Item.',
+    statusPrompt: 'Enter Motor kW to load the onsite labor section.',
+    emptyPrompt: 'Enter Motor kW to load the onsite labor section.',
+    noJobsMessage: 'No onsite jobs were loaded for this motor size.',
+    savePatternLabel: 'Onsite',
+    requiresPositiveManhours: true
+  }
+};
 
 const modalState = {
   initialized: false,
@@ -36,6 +66,23 @@ const modalState = {
 
 function normalizeDriveType(value) {
   return String(value || '').trim().toUpperCase() === 'DC' ? 'DC' : 'AC';
+}
+
+function normalizeRepairMode(value) {
+  return String(value || '').trim().toLowerCase() === 'onsite' ? 'Onsite' : 'Workshop';
+}
+
+function getRepairModeConfig(repairMode = modalState.snapshot.repairMode) {
+  return REPAIR_MODE_CONFIGS[normalizeRepairMode(repairMode)] || REPAIR_MODE_CONFIGS.Workshop;
+}
+
+function formatManHoursValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return '0';
+  }
+
+  return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2).replace(/\.?0+$/, '');
 }
 
 function parseMotorTypeRange(value) {
@@ -248,17 +295,76 @@ function setLaborStatus(message, tone = 'muted') {
       : 'text-sm text-slate-500';
 }
 
+function requiresPositiveManhours(repairMode = modalState.snapshot.repairMode) {
+  return getRepairModeConfig(repairMode).requiresPositiveManhours;
+}
+
+function hasMissingRequiredManhours(job, repairMode = modalState.snapshot.repairMode) {
+  if (!requiresPositiveManhours(repairMode) || job?.checked === false) {
+    return false;
+  }
+
+  const effectiveManHours = Number(job?.effectiveManHours ?? job?.ManHours ?? 0);
+  return !Number.isFinite(effectiveManHours) || effectiveManHours <= 0;
+}
+
+function updateLaborModeCard() {
+  const config = getRepairModeConfig();
+  const titleEl = el('confirmNewSerLaborTitle');
+  const patternLabelEl = el('confirmNewSerLaborPatternLabel');
+  const modeTitleEl = el('confirmNewSerLaborModeTitle');
+  const descriptionEl = el('confirmNewSerLaborModeDescription');
+  const summaryEl = el('confirmNewSerLaborSelectionSummary');
+
+  if (titleEl) {
+    titleEl.textContent = config.title;
+  }
+
+  if (patternLabelEl) {
+    patternLabelEl.textContent = config.label;
+  }
+
+  if (modeTitleEl) {
+    modeTitleEl.textContent = config.title;
+  }
+
+  if (descriptionEl) {
+    descriptionEl.textContent = config.description;
+  }
+
+  if (summaryEl) {
+    const checkedCount = modalState.jobs.filter((job) => job.checked !== false).length;
+    summaryEl.textContent = `${checkedCount} / ${modalState.jobs.length}`;
+  }
+}
+
 function renderLaborMeta() {
   const metaEl = el('confirmNewSerLaborMeta');
+  const headJobEl = el('confirmNewSerLaborHeadJob');
+  const headHoursEl = el('confirmNewSerLaborHeadManhours');
+  const config = getRepairModeConfig();
+  updateLaborModeCard();
+
+  if (headJobEl) {
+    headJobEl.textContent = 'Job';
+  }
+
+  if (headHoursEl) {
+    headHoursEl.textContent = 'Manhours';
+  }
+
   if (!metaEl) {
     return;
   }
 
   const checkedCount = modalState.jobs.filter((job) => job.checked !== false).length;
   const totalCount = modalState.jobs.length;
+  const selectedHours = modalState.jobs
+    .filter((job) => job.checked !== false)
+    .reduce((sum, job) => sum + (Number(job.effectiveManHours ?? job.ManHours ?? 0) || 0), 0);
   const branchCode = String(el('branch')?.value || '').trim();
 
-  const parts = [];
+  const parts = [config.savePatternLabel];
   if (modalState.resolvedMotorTypeName) {
     parts.push(modalState.resolvedMotorTypeName);
   }
@@ -267,6 +373,7 @@ function renderLaborMeta() {
   }
   if (totalCount > 0) {
     parts.push(`${checkedCount}/${totalCount} jobs selected`);
+    parts.push(`${formatManHoursValue(selectedHours)} mh`);
   }
 
   metaEl.textContent = parts.join(' • ');
@@ -277,6 +384,7 @@ function renderJobsTable() {
   const emptyEl = el('confirmNewSerLaborEmpty');
   const tableWrap = el('confirmNewSerLaborTableWrap');
   const selectAllEl = el('confirmNewSerSelectAllJobs');
+  const config = getRepairModeConfig();
 
   renderLaborMeta();
 
@@ -290,7 +398,7 @@ function renderJobsTable() {
     emptyEl.classList.remove('hidden');
     emptyEl.textContent = modalState.snapshot.workType !== 'Motor'
       ? 'Job list is available for Motor service items only.'
-      : 'Enter Motor kW to load the workshop job list.';
+      : config.emptyPrompt;
     if (selectAllEl) {
       selectAllEl.checked = false;
       selectAllEl.indeterminate = false;
@@ -313,7 +421,11 @@ function renderJobsTable() {
     const effectiveManHours = Number(job.effectiveManHours ?? job.ManHours ?? 0);
     const isChecked = job.checked !== false;
     const rowClass = isChecked ? 'is-active' : 'is-inactive';
-    const nameClass = isChecked ? '' : 'is-muted';
+    const missingRequiredManhours = hasMissingRequiredManhours(job);
+    const nameClass = [
+      isChecked ? '' : 'is-muted',
+      missingRequiredManhours ? 'is-required' : ''
+    ].filter(Boolean).join(' ');
     const escapedJobName = escapeHtml(job.JobName || '');
 
     return `
@@ -322,17 +434,20 @@ function renderJobsTable() {
           <input type="checkbox" class="confirm-new-ser-job-check rounded border-slate-300 text-slate-900 focus:ring-slate-400" data-confirm-ser-job-check="${index}" ${isChecked ? 'checked' : ''}>
         </td>
         <td class="confirm-new-ser-job-cell confirm-new-ser-job-cell-name">
-          <div class="confirm-new-ser-job-name ${nameClass}">${escapedJobName}</div>
+          <div class="confirm-new-ser-job-name ${nameClass}">
+            ${escapedJobName}${missingRequiredManhours ? '<span class="confirm-new-ser-job-required"> *</span>' : ''}
+          </div>
         </td>
         <td class="confirm-new-ser-job-cell confirm-new-ser-job-cell-hours">
-          <div class="confirm-new-ser-mh-field ${isChecked ? '' : 'is-disabled'}">
+          <div class="confirm-new-ser-mh-field ${isChecked ? '' : 'is-disabled'} ${missingRequiredManhours ? 'is-required' : ''}">
             <input
               type="number"
               min="0"
               step="0.25"
-              class="confirm-new-ser-mh-input ${isChecked ? '' : 'is-disabled'}"
+              class="confirm-new-ser-mh-input ${isChecked ? '' : 'is-disabled'} ${missingRequiredManhours ? 'is-required' : ''}"
               data-confirm-ser-job-mh="${index}"
-              value="${Number.isFinite(effectiveManHours) ? effectiveManHours : 0}"
+              value="${missingRequiredManhours ? '' : formatManHoursValue(effectiveManHours)}"
+              placeholder="${missingRequiredManhours ? 'Required' : ''}"
               ${isChecked ? '' : 'disabled'}
             >
           </div>
@@ -344,6 +459,8 @@ function renderJobsTable() {
 
 async function loadJobsForResolvedMotorType() {
   const { resolvedMotorTypeId, snapshot } = modalState;
+  const repairMode = normalizeRepairMode(snapshot.repairMode);
+  const config = getRepairModeConfig(repairMode);
 
   if (!resolvedMotorTypeId) {
     modalState.jobs = [];
@@ -352,34 +469,50 @@ async function loadJobsForResolvedMotorType() {
     return;
   }
 
-  const loadKey = `${resolvedMotorTypeId}:${snapshot.motorDriveType}`;
+  const loadKey = `${repairMode}:${resolvedMotorTypeId}:${snapshot.motorDriveType}`;
   if (modalState.lastLoadedKey === loadKey) {
     return;
   }
 
-  setLaborStatus('Loading workshop job list...', 'active');
+  setLaborStatus(config.statusLoading, 'active');
 
-  const params = new URLSearchParams({
-    motorTypeId: String(resolvedMotorTypeId),
-    motorDriveType: snapshot.motorDriveType
-  });
-
-  const [jobs, motorJobDefaults] = await Promise.all([
-    fetchJson(`/api/workshop/labor?${params.toString()}`),
-    getMotorJobDefaults()
-  ]);
-  modalState.jobs = Array.isArray(jobs)
-    ? jobs.map((job) => {
-      const defaultChecked = shouldMotorJobBeCheckedByDefault(job.JobName, motorJobDefaults);
-      const defaultManHours = Number(job.ManHours || 0);
-
-      return {
+  if (repairMode === 'Onsite') {
+    const params = new URLSearchParams({
+      motorTypeId: String(resolvedMotorTypeId)
+    });
+    const jobs = await fetchJson(`/api/onsite/labor?${params.toString()}`);
+    modalState.jobs = Array.isArray(jobs)
+      ? jobs.map((job) => ({
         ...job,
-        checked: defaultChecked,
-        effectiveManHours: defaultManHours
-      };
-    })
-    : [];
+        checked: job.checked !== false,
+        effectiveManHours: Number(job.effectiveManHours ?? 0)
+      }))
+      : [];
+  } else {
+    const params = new URLSearchParams({
+      motorTypeId: String(resolvedMotorTypeId),
+      motorDriveType: snapshot.motorDriveType
+    });
+
+    const [jobs, motorJobDefaults] = await Promise.all([
+      fetchJson(`/api/workshop/labor?${params.toString()}`),
+      getMotorJobDefaults()
+    ]);
+
+    modalState.jobs = Array.isArray(jobs)
+      ? jobs.map((job) => {
+        const defaultChecked = shouldMotorJobBeCheckedByDefault(job.JobName, motorJobDefaults);
+        const defaultManHours = Number(job.ManHours || 0);
+
+        return {
+          ...job,
+          checked: defaultChecked,
+          effectiveManHours: defaultManHours
+        };
+      })
+      : [];
+  }
+
   sortJobsByCheckedState();
   modalState.lastLoadedKey = loadKey;
 }
@@ -464,7 +597,7 @@ export function resetConfirmNewSerLaborProfile() {
     motorDriveType: 'AC'
   };
   syncLockedBranch();
-  setLaborStatus('Enter Motor kW to load the workshop job list.');
+  setLaborStatus(REPAIR_MODE_CONFIGS.Workshop.statusPrompt);
   renderJobsTable();
 }
 
@@ -473,21 +606,14 @@ export async function syncConfirmNewSerLaborProfile(snapshot, { forceReload = fa
   syncLockedBranch();
 
   modalState.snapshot = {
-    repairMode: String(snapshot?.repairMode || '').trim() || 'Workshop',
+    repairMode: normalizeRepairMode(snapshot?.repairMode),
     workType: String(snapshot?.workType || '').trim() || 'Motor',
     serviceType: String(snapshot?.serviceType || '').trim() || 'Overhaul',
     motorKw: String(snapshot?.motorKw || '').trim(),
     motorDriveType: snapshot?.motorIsDc ? 'DC' : 'AC'
   };
 
-  if (modalState.snapshot.repairMode === 'Onsite') {
-    setResolvedMotorType(null);
-    modalState.jobs = [];
-    modalState.lastLoadedKey = '';
-    setLaborStatus('Onsite selected. Workshop job list is hidden.');
-    renderJobsTable();
-    return;
-  }
+  const config = getRepairModeConfig();
 
   if (modalState.snapshot.workType !== 'Motor') {
     setResolvedMotorType(null);
@@ -503,7 +629,7 @@ export async function syncConfirmNewSerLaborProfile(snapshot, { forceReload = fa
     setResolvedMotorType(null);
     modalState.jobs = [];
     modalState.lastLoadedKey = '';
-    setLaborStatus('Enter Motor kW to load the workshop job list.');
+    setLaborStatus(config.statusPrompt);
     renderJobsTable();
     return;
   }
@@ -525,16 +651,17 @@ export async function syncConfirmNewSerLaborProfile(snapshot, { forceReload = fa
   }
 
   await loadJobsForResolvedMotorType();
-  applyJobsByServiceType(modalState.snapshot.serviceType);
+  if (normalizeRepairMode(modalState.snapshot.repairMode) === 'Workshop') {
+    applyJobsByServiceType(modalState.snapshot.serviceType);
+  }
   sortJobsByCheckedState();
-  setLaborStatus('Workshop job list ready.');
+  setLaborStatus(config.statusReady);
   renderJobsTable();
 }
 
 export function getConfirmNewSerLaborValidation(snapshot) {
-  if (String(snapshot?.repairMode || '').trim() === 'Onsite') {
-    return null;
-  }
+  const repairMode = normalizeRepairMode(snapshot?.repairMode);
+  const config = getRepairModeConfig(repairMode);
 
   if (String(snapshot?.workType || '').trim() !== 'Motor') {
     return null;
@@ -555,9 +682,27 @@ export function getConfirmNewSerLaborValidation(snapshot) {
 
   if (!Array.isArray(modalState.jobs) || modalState.jobs.length === 0) {
     return {
-      message: 'No workshop jobs were loaded for this motor size.',
+      message: config.noJobsMessage,
       focusElement: el('confirmNewSerMotorKw')
     };
+  }
+
+  if (requiresPositiveManhours(repairMode)) {
+    const checkedJobs = modalState.jobs.filter((job) => job.checked !== false);
+    if (checkedJobs.length === 0) {
+      return {
+        message: 'Please select at least one onsite job before creating the Service Item.',
+        focusElement: el('confirmNewSerSelectAllJobs')
+      };
+    }
+
+    const missingIndex = modalState.jobs.findIndex((job) => hasMissingRequiredManhours(job, repairMode));
+    if (missingIndex !== -1) {
+      return {
+        message: 'Onsite requires manhours greater than 0 for every checked job.',
+        focusElement: document.querySelector(`[data-confirm-ser-job-mh="${missingIndex}"]`)
+      };
+    }
   }
 
   return null;
@@ -577,7 +722,7 @@ function applyLaborProfileToModalState(profile, snapshot) {
     : [];
 
   modalState.snapshot = {
-    repairMode: String(snapshot?.repairMode || '').trim() || 'Workshop',
+    repairMode: normalizeRepairMode(profile?.repairMode || snapshot?.repairMode),
     workType: String(profile?.workType || snapshot?.workType || '').trim() || 'Motor',
     serviceType: String(profile?.serviceType || snapshot?.serviceType || '').trim() || 'Overhaul',
     motorKw: profile?.motorKw === null || profile?.motorKw === undefined
@@ -589,7 +734,7 @@ function applyLaborProfileToModalState(profile, snapshot) {
   modalState.jobs = normalizedJobs;
   modalState.resolvedMotorTypeId = Number.isFinite(Number(profile?.motorTypeId)) ? Number(profile.motorTypeId) : null;
   modalState.resolvedMotorTypeName = '';
-  modalState.lastLoadedKey = `saved:${String(profile?.serviceItemNo || '').trim()}`;
+  modalState.lastLoadedKey = `saved:${modalState.snapshot.repairMode}:${String(profile?.serviceItemNo || '').trim()}`;
 
   if (modalState.resolvedMotorTypeId) {
     const matchedMotorType = modalState.motorTypes.find((motorType) => Number(motorType.MotorTypeId) === modalState.resolvedMotorTypeId);
@@ -604,8 +749,9 @@ function applyLaborProfileToModalState(profile, snapshot) {
     modalState.branchId = String(profile.branchId);
   }
 
+  const config = getRepairModeConfig(modalState.snapshot.repairMode);
   sortJobsByCheckedState();
-  setLaborStatus(normalizedJobs.length > 0 ? 'Loaded saved workshop job list.' : 'No saved jobs were found for this Service Item.');
+  setLaborStatus(normalizedJobs.length > 0 ? config.statusSaved : config.statusNoSavedJobs);
   renderJobsTable();
 }
 
@@ -645,10 +791,11 @@ export async function hydrateConfirmNewSerLaborProfile(serviceItemNo, snapshot =
 }
 
 function buildLaborPayload(snapshot, extra = {}) {
+  const repairMode = normalizeRepairMode(snapshot?.repairMode);
   const payloadJobs = Array.isArray(extra.jobs) ? extra.jobs : modalState.jobs;
 
   return {
-    repairMode: snapshot.repairMode || 'Workshop',
+    repairMode,
     serviceItemDescription: String(extra.description || '').trim() || null,
     workType: snapshot.workType || 'Motor',
     serviceType: snapshot.serviceType || null,
@@ -657,7 +804,7 @@ function buildLaborPayload(snapshot, extra = {}) {
       : null,
     motorDriveType: snapshot.workType === 'Motor' ? normalizeDriveType(snapshot.motorIsDc ? 'DC' : 'AC') : null,
     branchId: modalState.branchId ? Number(modalState.branchId) : null,
-    motorTypeId: modalState.resolvedMotorTypeId ? Number(modalState.resolvedMotorTypeId) : null,
+    motorTypeId: snapshot.workType === 'Motor' && modalState.resolvedMotorTypeId ? Number(modalState.resolvedMotorTypeId) : null,
     customerNo: String(extra.customerNo || '').trim() || null,
     groupNo: String(extra.groupNo || '').trim() || null,
     jobs: payloadJobs.map((job, index) => ({
