@@ -91,42 +91,33 @@
               <p id="confirmNewSerLaborStatus" class="text-sm text-slate-500">Enter Motor kW to load the labor section.</p>
             </div>
 
-            <div class="mt-4">
-              <p class="mb-2 block text-sm font-medium text-slate-700">Job Source</p>
-              <div class="seg-control seg-control-drive-type" aria-label="Job Source">
-                <input type="radio" id="confirmNewSerRepairModeWorkshop" name="confirmNewSerRepairMode" value="Workshop" checked>
-                <label for="confirmNewSerRepairModeWorkshop" class="seg-control-item">
-                  <span class="seg-control-label">Workshop</span>
-                </label>
-                <input type="radio" id="confirmNewSerRepairModeOnsite" name="confirmNewSerRepairMode" value="Onsite">
-                <label for="confirmNewSerRepairModeOnsite" class="seg-control-item">
-                  <span class="seg-control-label">Onsite</span>
-                </label>
+            <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-stretch">
+              <div class="min-w-0 xl:max-w-[18rem] xl:flex-[0_0_18rem]">
+                <p class="mb-2 block text-sm font-medium text-slate-700">Job Source</p>
+                <div class="seg-control seg-control-drive-type" aria-label="Job Source">
+                  <input type="radio" id="confirmNewSerRepairModeWorkshop" name="confirmNewSerRepairMode" value="Workshop" checked>
+                  <label for="confirmNewSerRepairModeWorkshop" class="seg-control-item">
+                    <span class="seg-control-label">Workshop</span>
+                  </label>
+                  <input type="radio" id="confirmNewSerRepairModeOnsite" name="confirmNewSerRepairMode" value="Onsite">
+                  <label for="confirmNewSerRepairModeOnsite" class="seg-control-item">
+                    <span class="seg-control-label">Onsite</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 px-4 py-4 shadow-sm xl:flex-1">
+                <div class="flex items-center justify-between gap-4">
+                  <p id="confirmNewSerLaborPatternLabel" class="text-sm font-semibold text-slate-700">
+                    Workshop Pattern
+                  </p>
+                  <p id="confirmNewSerLaborSelectionSummary" class="text-sm font-semibold text-slate-800">0 / 0</p>
+                </div>
               </div>
             </div>
 
             <div id="confirmNewSerLaborPanel">
-              <div class="mt-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 px-4 py-4 shadow-sm">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div class="min-w-0">
-                    <p id="confirmNewSerLaborPatternLabel" class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                      Workshop Pattern
-                    </p>
-                    <h4 id="confirmNewSerLaborModeTitle" class="mt-1 text-base font-semibold text-slate-800">
-                      Workshop labor section
-                    </h4>
-                    <p id="confirmNewSerLaborModeDescription" class="mt-1 text-sm text-slate-500">
-                      Loads workshop jobs by motor size and keeps the workshop save pattern for this Service Item.
-                    </p>
-                  </div>
-
-                  <div class="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-right shadow-sm">
-                    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Selected Jobs</p>
-                    <p id="confirmNewSerLaborSelectionSummary" class="mt-1 text-lg font-semibold text-slate-800">0 / 0</p>
-                  </div>
-                </div>
-              </div>
-
+              
               <div id="confirmNewSerLaborTableWrap" class="confirm-new-ser-jobs-table confirm-new-ser-jobs-table-shell mt-4 hidden overflow-hidden">
                 <div class="confirm-new-ser-jobs-scroll overflow-auto">
                   <table class="confirm-new-ser-jobs-grid min-w-full text-sm">

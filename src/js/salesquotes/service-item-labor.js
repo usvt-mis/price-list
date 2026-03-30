@@ -312,8 +312,6 @@ function updateLaborModeCard() {
   const config = getRepairModeConfig();
   const titleEl = el('confirmNewSerLaborTitle');
   const patternLabelEl = el('confirmNewSerLaborPatternLabel');
-  const modeTitleEl = el('confirmNewSerLaborModeTitle');
-  const descriptionEl = el('confirmNewSerLaborModeDescription');
   const summaryEl = el('confirmNewSerLaborSelectionSummary');
 
   if (titleEl) {
@@ -322,14 +320,6 @@ function updateLaborModeCard() {
 
   if (patternLabelEl) {
     patternLabelEl.textContent = config.label;
-  }
-
-  if (modeTitleEl) {
-    modeTitleEl.textContent = config.title;
-  }
-
-  if (descriptionEl) {
-    descriptionEl.textContent = config.description;
   }
 
   if (summaryEl) {
