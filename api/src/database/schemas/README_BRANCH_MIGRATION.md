@@ -23,8 +23,8 @@ If you have an old `BRANCH` column with text values (URY, USB, etc.):
 
 ```bash
 # Connect to Azure SQL
-sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
-  -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30 \
+sqlcmd -S tcp:$DB_SERVER,$DB_PORT \
+  -d "$DB_NAME" -U "$DB_USER" -P "$DB_PASSWORD" -N -l 30 \
   -i api/src/database/schemas/migrate_branch_to_branchid.sql
 ```
 

@@ -10,9 +10,8 @@
 --
 -- WARNING: This will permanently delete all historical logs!
 -- ============================================================
-
-USE [db-pricelist-calculator];
-GO
+-- Run with an explicit database context, for example:
+--   sqlcmd -S tcp:%DB_SERVER%,%DB_PORT% -d %DB_NAME% -U %DB_USER% -P "<password>" -i database/migrations/remove_database_logging.sql -N -l 30
 
 PRINT '===========================================';
 PRINT 'Remove Database Logging System Migration';

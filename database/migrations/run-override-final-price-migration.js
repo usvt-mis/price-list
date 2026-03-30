@@ -9,13 +9,10 @@
 const sql = require('mssql');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env.local') });
+const { getDatabaseConnectionSettings } = require('../../api/src/database/config');
 
 const config = {
-  server: 'sv-pricelist-calculator.database.windows.net',
-  database: 'db-pricelist-calculator',
-  user: 'mis-usvt',
-  password: 'UsT@20262026',
+  ...getDatabaseConnectionSettings(),
   options: {
     encrypt: true,
     trustServerCertificate: false,

@@ -1626,30 +1626,34 @@ function normalizePreviewLine(line, index) {
 export async function openApprovalPreviewModal(quoteNumber) {
   currentPreviewQuoteNumber = quoteNumber;
 
-  // Load modal HTML dynamically
-  const modalContainer = el('modalContainer');
-  if (!modalContainer) return;
+  showLoading('Loading quote data and approval details...', 'Opening Approval Preview');
 
   try {
-    const response = await fetch('/salesquotes/components/modals/approval-preview-modal.html');
-    const modalHtml = await response.text();
+    const loaded = await loadModal('approvalPreviewModal');
+    if (!loaded) {
+      throw new Error('Preview modal could not be loaded');
+    }
 
-    // Create modal element
-    const modalWrapper = document.createElement('div');
-    modalWrapper.innerHTML = modalHtml;
-    const modal = modalWrapper.firstElementChild;
+    const modal = el('approvalPreviewModal');
+    const modalContainer = el('modalContainer');
+    if (!modal || !modalContainer) {
+      throw new Error('Preview modal container not found');
+    }
 
     // Move modal to end of container for proper stacking
     modalContainer.appendChild(modal);
     if (typeof modal.showModal === 'function') {
       modal.showModal();
     }
-    modal.querySelector('#btnCloseApprovalPreview')?.addEventListener('click', closeApprovalPreviewModal);
-    modal.addEventListener('click', (event) => {
-      if (event.target === modal && typeof modal.close !== 'function') {
-        closeApprovalPreviewModal();
-      }
-    });
+    if (modal.dataset.bound !== 'true') {
+      modal.querySelector('#btnCloseApprovalPreview')?.addEventListener('click', closeApprovalPreviewModal);
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal && typeof modal.close !== 'function') {
+          closeApprovalPreviewModal();
+        }
+      });
+      modal.dataset.bound = 'true';
+    }
 
     // Load quote data
     await loadQuoteForPreview(quoteNumber);
@@ -1662,6 +1666,9 @@ export async function openApprovalPreviewModal(quoteNumber) {
   } catch (error) {
     console.error('Failed to load approval preview modal:', error);
     showToast('Failed to open preview', 'error');
+    currentPreviewQuoteNumber = null;
+  } finally {
+    hideLoading();
   }
 }
 

@@ -65,7 +65,7 @@ Required in Azure App Service or `.env.local`:
 ```
 DB_SERVER - SQL Server address (e.g., sv-pricelist-calculator.database.windows.net)
 DB_PORT - SQL Server port (default: 1433)
-DB_NAME - Database name (e.g., db-pricelist-calculator)
+DB_NAME - Database name (for example, your Azure SQL database name)
 DB_USER - Database username
 DB_PASSWORD - Database password
 DATABASE_CONNECTION_STRING - Full connection string (alternative to individual DB_* vars)
@@ -109,7 +109,7 @@ BACKOFFICE_REPAIR_SECRET - Secret for backoffice repair endpoint
 For sqlcmd scripts (CI/CD, diagnostics):
 ```bash
 # Use environment variables for security
-sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U $DB_USER -P "$DB_PASSWORD" -N -l 30
+sqlcmd -S tcp:$DB_SERVER,$DB_PORT -d "$DB_NAME" -U "$DB_USER" -P "$DB_PASSWORD" -N -l 30
 ```
 
 ## Deployment Methods

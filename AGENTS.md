@@ -801,18 +801,6 @@ URY=1, USB=2, USR=3, UKK=4, UPB=5, UCB=6
 
 ---
 
-## Database Migrations
-
-```bash
-# Connect to Azure SQL
-sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
-  -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30
-
-# Execute migration
-sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
-  -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30 \
-  -i api/src/database/schemas/[script].sql
-```
 
 **Important**: All migration scripts must set ANSI options before creating filtered indexes.
 

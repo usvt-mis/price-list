@@ -20,7 +20,8 @@ const modalPaths = {
   'noBranchModal': '/salesquotes/components/modals/no-branch-modal.html',
   'branchMismatchModal': '/salesquotes/components/modals/branch-mismatch-modal.html',
   'approvalActionModal': '/salesquotes/components/modals/approval-action-modal.html',
-  'approvalJobListModal': '/salesquotes/components/modals/approval-job-list-modal.html'
+  'approvalJobListModal': '/salesquotes/components/modals/approval-job-list-modal.html',
+  'approvalPreviewModal': '/salesquotes/components/modals/approval-preview-modal.html'
 };
 
 /**

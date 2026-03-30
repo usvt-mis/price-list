@@ -3,13 +3,23 @@ REM ============================================================
 REM SQL Connectivity Test Script
 REM ============================================================
 
-setlocal enabledelayedexpansion
+setlocal
 
-set SERVER=sv-pricelist-calculator.database.windows.net
-set PORT=1433
-set DATABASE=db-pricelist-calculator
-set USER=mis-usvt
-set PASSWORD=UsT@20262026
+call :load_db_env "%~dp0..\.env"
+call :load_db_env "%~dp0..\.env.local"
+
+for %%V in (DB_SERVER DB_PORT DB_NAME DB_USER DB_PASSWORD) do (
+  if not defined %%V (
+    echo ERROR: %%V is not set. Configure it in the environment or .env.local.
+    exit /b 1
+  )
+)
+
+set "SERVER=%DB_SERVER%"
+set "PORT=%DB_PORT%"
+set "DATABASE=%DB_NAME%"
+set "USER=%DB_USER%"
+set "PASSWORD=%DB_PASSWORD%"
 
 echo ============================================================
 echo SQL CONNECTIVITY TEST
@@ -47,3 +57,14 @@ echo ============================================================
 echo CONNECTIVITY TEST COMPLETED
 echo ============================================================
 pause
+
+goto :eof
+
+:load_db_env
+if not exist "%~1" exit /b 0
+
+for /f "usebackq tokens=1,* delims==" %%A in (`findstr /B /C:"DB_SERVER=" /C:"DB_PORT=" /C:"DB_NAME=" /C:"DB_USER=" /C:"DB_PASSWORD=" "%~1"`) do (
+  if not defined %%A set "%%A=%%B"
+)
+
+exit /b 0

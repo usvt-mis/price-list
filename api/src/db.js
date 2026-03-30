@@ -1,4 +1,5 @@
 const sql = require("mssql");
+const { getDatabaseConnectionSettings } = require("./database/config");
 
 let poolPromise;
 let retryCount = 0;
@@ -22,20 +23,17 @@ async function connectWithRetry() {
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
+      const connectionSettings = getDatabaseConnectionSettings();
+
       console.log(`[DB] Connection attempt ${attempt}/${MAX_RETRIES}...`);
       console.log('[DB] Environment check:');
-      console.log('  - DB_SERVER:', process.env.DB_SERVER);
-      console.log('  - DB_NAME:', process.env.DB_NAME);
-      console.log('  - DB_USER:', process.env.DB_USER);
-      console.log('  - DB_PORT:', process.env.DB_PORT);
+      console.log('  - DB_SERVER:', connectionSettings.server);
+      console.log('  - DB_NAME:', connectionSettings.database);
+      console.log('  - DB_USER:', connectionSettings.user);
+      console.log('  - DB_PORT:', connectionSettings.port);
 
-      // Use environment variables for database connection
       const config = {
-        server: process.env.DB_SERVER || 'sv-pricelist-calculator.database.windows.net',
-        database: process.env.DB_NAME || 'db-pricelist-calculator',
-        user: process.env.DB_USER || 'mis-usvt',
-        password: process.env.DB_PASSWORD || 'UsT@20262026',
-        port: parseInt(process.env.DB_PORT) || 1433,
+        ...connectionSettings,
         pool: {
           max: 10,
           min: 0,

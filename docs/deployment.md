@@ -202,7 +202,7 @@ Configure these in Azure Portal: **App Service → Configuration → Environment
 ### Database Connection String Format
 
 ```
-Server=tcp:sv-pricelist-calculator.database.windows.net,1433;Initial Catalog=db-pricelist-calculator;User ID=mis-usvt;Password=YourPassword;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+Server=tcp:${DB_SERVER},${DB_PORT};Initial Catalog=${DB_NAME};User ID=${DB_USER};Password=${DB_PASSWORD};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
 ```
 
 ### Setting Environment Variables
@@ -414,9 +414,9 @@ When deploying database changes:
 
 ```bash
 # Run migration scripts via sqlcmd
-sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 \
-  -d db-pricelist-calculator \
-  -U mis-usvt \
+sqlcmd -S tcp:$DB_SERVER,$DB_PORT \
+  -d "$DB_NAME" \
+  -U "$DB_USER" \
   -P "$DB_PASSWORD" \
   -i database/migrations/your_migration.sql
 ```

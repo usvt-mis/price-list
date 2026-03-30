@@ -3,11 +3,37 @@
 # SQL Connectivity Test Script (Bash/WSL)
 # ============================================================
 
-SERVER="sv-pricelist-calculator.database.windows.net"
-PORT="1433"
-DATABASE="db-pricelist-calculator"
-USER="mis-usvt"
-PASSWORD="UsT@20262026"
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+load_db_env_file() {
+  local env_file="$1"
+
+  if [[ ! -f "$env_file" ]]; then
+    return
+  fi
+
+  while IFS='=' read -r key value; do
+    export "$key=$value"
+  done < <(grep -E '^(DB_SERVER|DB_PORT|DB_NAME|DB_USER|DB_PASSWORD)=' "$env_file")
+}
+
+load_db_env_file "$REPO_ROOT/.env"
+load_db_env_file "$REPO_ROOT/.env.local"
+
+: "${DB_SERVER:?DB_SERVER is required. Set it in the environment or .env.local}"
+: "${DB_PORT:?DB_PORT is required. Set it in the environment or .env.local}"
+: "${DB_NAME:?DB_NAME is required. Set it in the environment or .env.local}"
+: "${DB_USER:?DB_USER is required. Set it in the environment or .env.local}"
+: "${DB_PASSWORD:?DB_PASSWORD is required. Set it in the environment or .env.local}"
+
+SERVER="$DB_SERVER"
+PORT="$DB_PORT"
+DATABASE="$DB_NAME"
+USER="$DB_USER"
+PASSWORD="$DB_PASSWORD"
 
 echo "==================================================="
 echo "SQL CONNECTIVITY TEST"

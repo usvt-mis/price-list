@@ -6,9 +6,8 @@
 --
 -- Migration execution order: Run this script AFTER the code changes are deployed
 -- to avoid errors from the backend trying to access non-existent columns.
-
-USE [db-pricelist-calculator];
-GO
+-- Run with an explicit database context, for example:
+--   sqlcmd -S tcp:%DB_SERVER%,%DB_PORT% -d %DB_NAME% -U %DB_USER% -P "<password>" -i database/migrations/remove_onsite_location_fields.sql -N -l 30
 
 PRINT 'Starting migration: Remove Onsite Location fields';
 PRINT '===============================================';

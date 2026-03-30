@@ -431,16 +431,16 @@ Diagnostic SQL scripts for troubleshooting database issues without starting the 
 **PowerShell (Windows):**
 ```powershell
 Invoke-Sqlcmd `
-  -ServerInstance "tcp:sv-pricelist-calculator.database.windows.net,1433" `
-  -Database "db-pricelist-calculator" `
-  -Username "mis-usvt" `
-  -Password "UsT@20262026" `
+  -ServerInstance "tcp:$env:DB_SERVER,$env:DB_PORT" `
+  -Database $env:DB_NAME `
+  -Username $env:DB_USER `
+  -Password $env:DB_PASSWORD `
   -InputFile "database/diagnose_backoffice_login.sql"
 ```
 
 **Bash (Cross-platform):**
 ```bash
-sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -i database/diagnose_backoffice_login.sql -N -l 30
+sqlcmd -S tcp:$DB_SERVER,$DB_PORT -d "$DB_NAME" -U "$DB_USER" -P "$DB_PASSWORD" -i database/diagnose_backoffice_login.sql -N -l 30
 ```
 
 **Security**: Never commit hardcoded passwords to version control. Use environment variables in production scripts.

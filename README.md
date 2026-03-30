@@ -232,9 +232,6 @@ This will:
 - Verify schema changes
 
 **Azure SQL Connection (for database migrations):**
-```bash
-sqlcmd -S tcp:sv-pricelist-calculator.database.windows.net,1433 -d db-pricelist-calculator -U mis-usvt -P "UsT@20262026" -N -l 30
-```
 
 **Database Schema Scripts** (`api/src/database/schemas/`):
 - `create-bccustomers-table.sql` - Create BCCustomers table for local customer cache
