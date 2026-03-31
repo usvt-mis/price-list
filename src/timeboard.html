@@ -723,12 +723,8 @@
       return '<span class="sq-group-child-symbol" aria-label="Same SQ as above">⤷</span>';
     }
 
-    function renderSvGroupCell(item, showSv) {
-      if (showSv) {
-        return item.svNumber || '-';
-      }
-
-      return '<span class="sq-group-child-symbol" aria-label="Same SV as above">⤷</span>';
+    function renderSvGroupCell(item) {
+      return item.svNumber || '-';
     }
 
     function normalizeServiceOrderNumber(value) {
@@ -1013,9 +1009,6 @@
         const prevItem = index > 0 ? displayRows[index - 1] : null;
         const nextItem = index < displayRows.length - 1 ? displayRows[index + 1] : null;
         const showSq = !prevItem || prevItem.sqNumber !== item.sqNumber;
-        const showSv = !prevItem
-          || prevItem.sqNumber !== item.sqNumber
-          || prevItem.svNumber !== item.svNumber;
         const isSameGroupAsNext = !!nextItem && nextItem.sqNumber === item.sqNumber;
         const rowClassName = isSameGroupAsNext ? 'sq-group-continued' : '';
         const purchaseLine = item.purchaseLine || null;
@@ -1024,7 +1017,7 @@
           <tr class="${rowClassName}">
             <td class="font-mono text-slate-400">${rowNumber}</td>
             <td class="font-medium">${renderSqGroupCell(item, showSq)}</td>
-            <td class="font-medium">${renderSvGroupCell(item, showSv)}</td>
+            <td class="font-medium">${renderSvGroupCell(item)}</td>
             <td>${renderDate(item.systemCreatedAt)}</td>
             <td>${purchaseLine?.pr ? escapeHtml(purchaseLine.pr) : '<span class="text-slate-300">—</span>'}</td>
             <td>${renderDate(purchaseLine?.prCreated)}</td>
