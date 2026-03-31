@@ -7,11 +7,26 @@ const envFiles = [
   path.join(repoRoot, '.env'),
   path.join(repoRoot, '.env.local')
 ];
+const isAzureAppService = Boolean(
+  process.env.WEBSITE_SITE_NAME || process.env.WEBSITE_HOSTNAME || process.env.WEBSITE_INSTANCE_ID
+);
 
 let environmentLoaded = false;
 
 function loadDatabaseEnvironment() {
   if (environmentLoaded) {
+    return;
+  }
+
+  // In Azure App Service, only host-provided App Settings should be used.
+  // Ignore any .env files that may have been uploaded with the deployment package.
+  if (isAzureAppService) {
+    const uploadedEnvFiles = envFiles.filter(envFile => fs.existsSync(envFile));
+    if (uploadedEnvFiles.length > 0) {
+      console.warn('[DB Config] Ignoring uploaded env files in Azure App Service:', uploadedEnvFiles);
+    }
+
+    environmentLoaded = true;
     return;
   }
 
