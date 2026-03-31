@@ -55,7 +55,7 @@
     }
 
     .calm-table thead th:nth-child(2),
-    .calm-table thead th:nth-child(4) {
+    .calm-table thead th:nth-child(3) {
       text-align: left;
     }
 
@@ -68,7 +68,7 @@
     }
 
     .calm-table tbody td:nth-child(2),
-    .calm-table tbody td:nth-child(4) {
+    .calm-table tbody td:nth-child(3) {
       text-align: left;
     }
 
@@ -80,43 +80,14 @@
       border-bottom: none;
     }
 
-    .sq-group-cell {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 20px;
-    }
-
-    .sq-group-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 24px;
-      height: 20px;
-      padding: 0 7px;
-      border-radius: 999px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      border: 1px solid transparent;
-    }
-
-    .sq-group-badge.parent {
-      color: #3730a3;
-      background: #e0e7ff;
-      border-color: #c7d2fe;
-    }
-
-    .sq-group-badge.child {
-      color: #92400e;
-      background: #fef3c7;
-      border-color: #fcd34d;
-    }
-
-    .sq-group-child-text {
-      font-size: 12px;
+    .sq-group-child-symbol {
+      display: block;
+      width: 100%;
+      text-align: right;
       color: var(--calm-text-secondary);
+      font-size: 15px;
+      line-height: 1;
+      white-space: nowrap;
     }
 
     /* Status badges */
@@ -373,7 +344,7 @@
 
     .branch-select-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
       margin-top: 20px;
     }
@@ -393,6 +364,12 @@
       border-color: var(--calm-accent);
       background: var(--calm-accent-light);
       color: var(--calm-accent);
+    }
+
+    @media (max-width: 520px) {
+      .branch-select-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
   </style>
 </head>
@@ -483,7 +460,6 @@
             <tr>
               <th class="col-narrow">No.</th>
               <th class="col-equal">SQ</th>
-              <th class="col-equal">SQ Created</th>
               <th class="col-equal">SV</th>
               <th class="col-equal">SV Created</th>
               <th class="col-equal">Status</th>
@@ -499,7 +475,7 @@
           </thead>
           <tbody id="timeboardBody">
             <tr>
-              <td colspan="14" class="text-center py-16 text-slate-400">No data available</td>
+              <td colspan="13" class="text-center py-16 text-slate-400">No data available</td>
             </tr>
           </tbody>
         </table>
@@ -702,20 +678,10 @@
 
     function renderSqGroupCell(item, showSq) {
       if (showSq) {
-        return `
-          <span class="sq-group-cell">
-            <span class="sq-group-badge parent">P</span>
-            <span>${item.sqNumber || '-'}</span>
-          </span>
-        `;
+        return item.sqNumber || '-';
       }
 
-      return `
-        <span class="sq-group-cell">
-          <span class="sq-group-badge child">C</span>
-          <span class="sq-group-child-text">same SQ</span>
-        </span>
-      `;
+      return '<span class="sq-group-child-symbol" aria-label="Same SQ as above">⤷</span>';
     }
 
     // Apply filters and search (search by SQ or SV, filter by branch)
@@ -820,7 +786,7 @@
       const tbody = document.getElementById('timeboardBody');
 
       if (state.filteredData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="text-center py-16 text-slate-400">No records found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="13" class="text-center py-16 text-slate-400">No records found</td></tr>`;
         document.getElementById('statTotal').textContent = '0';
         document.getElementById('paginationInfo').textContent =
           `Showing 0 matching rows from ${state.data.length} loaded`;
@@ -838,7 +804,6 @@
           <tr>
             <td class="font-mono text-slate-400">${rowNumber}</td>
             <td class="font-medium">${renderSqGroupCell(item, showSq)}</td>
-            <td>${renderDate(item.sqCreated)}</td>
             <td class="font-medium">${item.svNumber || '-'}</td>
             <td>${renderDate(item.systemCreatedAt)}</td>
             <td>${renderStatus(item.status)}</td>
