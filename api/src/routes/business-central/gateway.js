@@ -258,6 +258,8 @@ function getGatewayRequestConfig(endpointName) {
 async function proxyGatewayRequest(req, res, next, endpointName, eventType, options = {}) {
   let requestMethod;
   let url;
+  let targetHost;
+  let targetPath;
 
   try {
     const {
@@ -269,11 +271,16 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
     } = getGatewayRequestConfig(endpointName);
     requestMethod = options.method || configuredMethod;
     url = buildGatewayUrl(baseUrl, endpointPath, options.queryParams);
+    const resolvedUrl = new URL(url);
+    targetHost = resolvedUrl.host;
+    targetPath = resolvedUrl.pathname;
 
     logger.info('BC_GATEWAY', `${eventType}Start`, 'Forwarding request to Azure Function gateway', {
       endpoint: endpointPath,
       method: requestMethod,
-      functionKeyEnv
+      functionKeyEnv,
+      targetHost,
+      targetPath
     });
 
     const headers = {
@@ -315,6 +322,8 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
       endpoint: endpointName,
       method: requestMethod,
       url,
+      targetHost,
+      targetPath,
       attempt: err.gatewayAttempt || 1,
       error: err.message,
       errorName: err.name,

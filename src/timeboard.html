@@ -80,6 +80,45 @@
       border-bottom: none;
     }
 
+    .sq-group-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 20px;
+    }
+
+    .sq-group-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 20px;
+      padding: 0 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+
+    .sq-group-badge.parent {
+      color: #3730a3;
+      background: #e0e7ff;
+      border-color: #c7d2fe;
+    }
+
+    .sq-group-badge.child {
+      color: #92400e;
+      background: #fef3c7;
+      border-color: #fcd34d;
+    }
+
+    .sq-group-child-text {
+      font-size: 12px;
+      color: var(--calm-text-secondary);
+    }
+
     /* Status badges */
     .status-badge {
       display: inline-flex;
@@ -661,6 +700,24 @@
       return renderDate(dateStr);
     }
 
+    function renderSqGroupCell(item, showSq) {
+      if (showSq) {
+        return `
+          <span class="sq-group-cell">
+            <span class="sq-group-badge parent">P</span>
+            <span>${item.sqNumber || '-'}</span>
+          </span>
+        `;
+      }
+
+      return `
+        <span class="sq-group-cell">
+          <span class="sq-group-badge child">C</span>
+          <span class="sq-group-child-text">same SQ</span>
+        </span>
+      `;
+    }
+
     // Apply filters and search (search by SQ or SV, filter by branch)
     // Note: Branch filtering is now done server-side, search is still client-side
     function applyFilters() {
@@ -780,7 +837,7 @@
         return `
           <tr>
             <td class="font-mono text-slate-400">${rowNumber}</td>
-            <td class="font-medium">${showSq ? (item.sqNumber || '-') : ''}</td>
+            <td class="font-medium">${renderSqGroupCell(item, showSq)}</td>
             <td>${renderDate(item.sqCreated)}</td>
             <td class="font-medium">${item.svNumber || '-'}</td>
             <td>${renderDate(item.systemCreatedAt)}</td>
