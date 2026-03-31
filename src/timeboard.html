@@ -55,7 +55,7 @@
     }
 
     .calm-table thead th:nth-child(2),
-    .calm-table thead th:nth-child(3) {
+    .calm-table thead th:nth-child(4) {
       text-align: left;
     }
 
@@ -68,7 +68,7 @@
     }
 
     .calm-table tbody td:nth-child(2),
-    .calm-table tbody td:nth-child(3) {
+    .calm-table tbody td:nth-child(4) {
       text-align: left;
     }
 
@@ -474,9 +474,11 @@
             <tr>
               <th class="col-narrow">No.</th>
               <th class="col-equal">SQ</th>
+              <th class="col-equal">SQ Created</th>
               <th class="col-equal">SV</th>
               <th class="col-equal">SV Created</th>
               <th class="col-equal">SV Status</th>
+              <th class="col-equal">Work Status</th>
               <th class="col-equal">SV%</th>
               <th class="col-equal">PR</th>
               <th class="col-equal">PR Created</th>
@@ -484,8 +486,6 @@
               <th class="col-equal">SH</th>
               <th class="col-equal">SH Created</th>
               <th class="col-equal">ST</th>
-              <th class="col-equal">ST Created</th>
-              <th class="col-equal">Posted ST</th>
               <th class="col-equal">Posted ST Created</th>
               <th class="col-equal">Expected Date</th>
             </tr>
@@ -621,7 +621,7 @@
     }
 
     // Fetch timeboard data from BC Gateway
-    // Data structure: { sqNumber, sqCreated, svNumber, systemCreatedAt, status, percent, shNumber, shCreated, stNumber, stCreated, postedStNumber, postedStCreated, expectedDate }
+    // Data structure: { sqNumber, sqCreated, svNumber, svCreated, systemCreatedAt, status, percent, shNumber, shCreated, stNumber, stCreated, postedStNumber, postedStCreated, expectedDate, workStatus }
     async function requestTimeboardData(requestedSize) {
       try {
         if (!state.selectedBranch) {
@@ -678,6 +678,28 @@
         return `<span class="text-slate-400">${dateStr}</span>`;
       }
       return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    }
+
+    function renderText(value) {
+      const normalizedValue = String(value || '').trim();
+      if (!normalizedValue) {
+        return '<span class="text-slate-300">—</span>';
+      }
+
+      return escapeHtml(normalizedValue);
+    }
+
+    function renderPercent(value) {
+      if (value === null || value === undefined || value === '') {
+        return '<span class="text-slate-300">—</span>';
+      }
+
+      const numericValue = Number(value);
+      if (Number.isFinite(numericValue)) {
+        return escapeHtml(String(numericValue));
+      }
+
+      return renderText(value);
     }
 
     // Render status badge
@@ -895,9 +917,10 @@
       filtered = filtered.filter(item => item.sqNumber && item.sqNumber.trim() !== '');
 
       // Filter out Finished status
-      filtered = filtered.filter(item =>
-        !item.status || item.status.toLowerCase() !== 'finished'
-      );
+      filtered = filtered.filter((item) => {
+        const normalizedStatus = String(item.status || '').trim().toLowerCase();
+        return !['finish', 'finished', 'completed'].includes(normalizedStatus);
+      });
 
       // Search filter (client-side only)
       if (state.searchQuery) {
@@ -1029,18 +1052,18 @@
           <tr class="${rowClassName}">
             <td class="font-mono text-slate-400">${rowNumber}</td>
             <td class="font-medium">${renderSqGroupCell(item, showSq)}</td>
+            <td>${showSq ? renderDate(item.sqCreated) : ''}</td>
             <td class="font-medium">${renderSvGroupCell(item)}</td>
-            <td>${renderDate(item.systemCreatedAt)}</td>
+            <td>${renderDate(item.svCreated || item.systemCreatedAt)}</td>
             <td>${showSvSummary ? renderStatus(item.status) : ''}</td>
-            <td>${showSvSummary ? (item.percent ?? '-') : ''}</td>
-            <td>${purchaseLine?.pr ? escapeHtml(purchaseLine.pr) : '<span class="text-slate-300">—</span>'}</td>
+            <td>${showSvSummary ? renderText(item.workStatus) : ''}</td>
+            <td>${showSvSummary ? renderPercent(item.percent) : ''}</td>
+            <td>${renderText(purchaseLine?.pr)}</td>
             <td>${renderDate(purchaseLine?.prCreated)}</td>
-            <td>${purchaseLine?.po ? escapeHtml(purchaseLine.po) : '<span class="text-slate-300">—</span>'}</td>
-            <td>${item.shNumber || '-'}</td>
+            <td>${renderText(purchaseLine?.po)}</td>
+            <td>${renderText(item.shNumber)}</td>
             <td>${renderDate(item.shCreated)}</td>
-            <td>${item.stNumber || '-'}</td>
-            <td>${renderDate(item.stCreated)}</td>
-            <td>${item.postedStNumber || '-'}</td>
+            <td>${renderText(item.stNumber)}</td>
             <td>${renderDate(item.postedStCreated)}</td>
             <td>${renderExpectedDate(item.expectedDate)}</td>
           </tr>
