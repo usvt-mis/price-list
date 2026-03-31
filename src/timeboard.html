@@ -80,6 +80,10 @@
       border-bottom: none;
     }
 
+    .calm-table tbody tr.sq-group-continued td {
+      border-bottom-color: transparent;
+    }
+
     .sq-group-child-symbol {
       display: block;
       width: 100%;
@@ -282,6 +286,15 @@
       color: var(--calm-text-secondary);
     }
 
+    .loading-detail {
+      font-size: 12px;
+      color: var(--calm-text-muted);
+    }
+
+    .loading-detail.hidden {
+      display: none;
+    }
+
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
@@ -395,6 +408,7 @@
       <div class="loading-content">
         <div class="spinner"></div>
         <p class="loading-message">Loading data...</p>
+        <p class="loading-detail hidden"></p>
       </div>
     </div>
 
@@ -462,6 +476,9 @@
               <th class="col-equal">SQ</th>
               <th class="col-equal">SV</th>
               <th class="col-equal">SV Created</th>
+              <th class="col-equal">PR</th>
+              <th class="col-equal">PR Created</th>
+              <th class="col-equal">PO</th>
               <th class="col-equal">Status</th>
               <th class="col-equal">Percent</th>
               <th class="col-equal">SH</th>
@@ -475,7 +492,7 @@
           </thead>
           <tbody id="timeboardBody">
             <tr>
-              <td colspan="13" class="text-center py-16 text-slate-400">No data available</td>
+              <td colspan="16" class="text-center py-16 text-slate-400">No data available</td>
             </tr>
           </tbody>
         </table>
@@ -493,6 +510,7 @@
     import { ROLE } from './js/core/config.js';
 
     const FETCH_BATCH_SIZE = 50;
+    const PURCHASE_LINE_BATCH_SIZE = 100;
     const STATUS_CODE_COLOR_PALETTE = Array.from({ length: 20 }, (_, index) => {
       const hue = index * 18;
       return {
@@ -515,17 +533,38 @@
     };
 
     // Show loading modal
-    function showLoading(message = 'Loading data...') {
+    function showLoading(message = 'Loading data...', detail = '') {
       const modal = document.getElementById('loadingModal');
       const messageEl = modal.querySelector('.loading-message');
+      const detailEl = modal.querySelector('.loading-detail');
       messageEl.textContent = message;
+      if (detailEl) {
+        detailEl.textContent = detail;
+        detailEl.classList.toggle('hidden', !detail);
+      }
       modal.classList.remove('hidden');
     }
 
     // Hide loading modal
     function hideLoading() {
       const modal = document.getElementById('loadingModal');
+      const detailEl = modal.querySelector('.loading-detail');
+      if (detailEl) {
+        detailEl.textContent = '';
+        detailEl.classList.add('hidden');
+      }
       modal.classList.add('hidden');
+    }
+
+    function updateLoadingDetail(detail = '') {
+      const modal = document.getElementById('loadingModal');
+      const detailEl = modal?.querySelector('.loading-detail');
+      if (!detailEl) {
+        return;
+      }
+
+      detailEl.textContent = detail;
+      detailEl.classList.toggle('hidden', !detail);
     }
 
     function showBranchSelectModal() {
@@ -684,6 +723,162 @@
       return '<span class="sq-group-child-symbol" aria-label="Same SQ as above">⤷</span>';
     }
 
+    function renderSvGroupCell(item, showSv) {
+      if (showSv) {
+        return item.svNumber || '-';
+      }
+
+      return '<span class="sq-group-child-symbol" aria-label="Same SV as above">⤷</span>';
+    }
+
+    function normalizeServiceOrderNumber(value) {
+      return String(value || '').trim();
+    }
+
+    function getDistinctServiceOrderNumbers(rows) {
+      return Array.from(new Set(
+        (Array.isArray(rows) ? rows : [])
+          .map((row) => normalizeServiceOrderNumber(row?.svNumber))
+          .filter(Boolean)
+      ));
+    }
+
+    async function requestPurchaseLineData(serviceOrderNos) {
+      if (!Array.isArray(serviceOrderNos) || serviceOrderNos.length === 0) {
+        return {
+          success: true,
+          purchaseLines: []
+        };
+      }
+
+      const response = await fetch('/api/business-central/gateway/purchase-lines/from-service-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(serviceOrderNos)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch purchase line data');
+      }
+
+      return response.json();
+    }
+
+    async function requestPurchaseLineDataInChunks(serviceOrderNos, onProgress = () => {}) {
+      const normalizedServiceOrderNos = Array.isArray(serviceOrderNos) ? serviceOrderNos.filter(Boolean) : [];
+      const total = normalizedServiceOrderNos.length;
+      const mergedPayload = {
+        success: true,
+        serviceOrderNos: [],
+        purchaseLines: [],
+        totalCount: 0,
+        processedAt: ''
+      };
+
+      if (total === 0) {
+        onProgress(100, 0, 0);
+        return mergedPayload;
+      }
+
+      onProgress(0, 0, total);
+
+      for (let startIndex = 0; startIndex < total; startIndex += PURCHASE_LINE_BATCH_SIZE) {
+        const chunk = normalizedServiceOrderNos.slice(startIndex, startIndex + PURCHASE_LINE_BATCH_SIZE);
+        const chunkPayload = await requestPurchaseLineData(chunk);
+
+        if (chunkPayload?.success === false) {
+          throw new Error('Failed to fetch purchase line data');
+        }
+
+        mergedPayload.serviceOrderNos.push(...(Array.isArray(chunkPayload?.serviceOrderNos) ? chunkPayload.serviceOrderNos : []));
+        mergedPayload.purchaseLines.push(...(Array.isArray(chunkPayload?.purchaseLines) ? chunkPayload.purchaseLines : []));
+        mergedPayload.totalCount += Number(chunkPayload?.totalCount || 0);
+        mergedPayload.processedAt = chunkPayload?.processedAt || mergedPayload.processedAt;
+
+        const processedCount = Math.min(startIndex + chunk.length, total);
+        const percent = Math.round((processedCount / total) * 100);
+        onProgress(percent, processedCount, total);
+      }
+
+      mergedPayload.serviceOrderNos = Array.from(new Set(mergedPayload.serviceOrderNos));
+      return mergedPayload;
+    }
+
+    function normalizePurchaseLine(line) {
+      return {
+        prCreated: line?.systemCreatedAt || '',
+        pr: String(line?.documentNo || '').trim(),
+        po: String(line?.refPrToPoNo || '').trim(),
+        serviceOrderNo: normalizeServiceOrderNumber(line?.usvtRefServiceOrderNo)
+      };
+    }
+
+    function buildPurchaseLineLookup(payload) {
+      const lookup = new Map();
+      const purchaseLines = Array.isArray(payload?.purchaseLines) ? payload.purchaseLines : [];
+
+      purchaseLines.forEach((line) => {
+        const normalizedLine = normalizePurchaseLine(line);
+        if (!normalizedLine.serviceOrderNo) {
+          return;
+        }
+
+        if (!lookup.has(normalizedLine.serviceOrderNo)) {
+          lookup.set(normalizedLine.serviceOrderNo, []);
+        }
+
+        lookup.get(normalizedLine.serviceOrderNo).push(normalizedLine);
+      });
+
+      return lookup;
+    }
+
+    async function enrichRowsWithPurchaseLines(rows, options = {}) {
+      const { onProgress = () => {} } = options;
+      const serviceOrderNos = getDistinctServiceOrderNumbers(rows);
+      if (serviceOrderNos.length === 0) {
+        onProgress(100, 0, 0);
+        return rows.map((row) => ({
+          ...row,
+          purchaseLines: []
+        }));
+      }
+
+      try {
+        const payload = await requestPurchaseLineDataInChunks(serviceOrderNos, onProgress);
+        const purchaseLineLookup = buildPurchaseLineLookup(payload);
+
+        return rows.map((row) => {
+          const svNumber = normalizeServiceOrderNumber(row?.svNumber);
+          return {
+            ...row,
+            purchaseLines: purchaseLineLookup.get(svNumber) || []
+          };
+        });
+      } catch (error) {
+        console.warn('Failed to enrich timeboard rows with purchase line data:', error);
+        return rows.map((row) => ({
+          ...row,
+          purchaseLines: []
+        }));
+      }
+    }
+
+    function buildDisplayRows(rows) {
+      return (Array.isArray(rows) ? rows : []).flatMap((row) => {
+        const purchaseLines = Array.isArray(row.purchaseLines) && row.purchaseLines.length > 0
+          ? row.purchaseLines
+          : [null];
+
+        return purchaseLines.map((purchaseLine) => ({
+          ...row,
+          purchaseLine
+        }));
+      });
+    }
+
     // Apply filters and search (search by SQ or SV, filter by branch)
     // Note: Branch filtering is now done server-side, search is still client-side
     function applyFilters() {
@@ -743,7 +938,15 @@
 
       try {
         const rows = await requestTimeboardData(state.fetchSize);
-        state.data = rows;
+        const enrichedRows = await enrichRowsWithPurchaseLines(rows, {
+          onProgress: (percent, processedCount, totalCount) => {
+            const detail = totalCount > 0
+              ? `Loading purchase lines... ${percent}% (${processedCount}/${totalCount} SV)`
+              : 'Loading purchase lines... 100%';
+            updateLoadingDetail(detail);
+          }
+        });
+        state.data = enrichedRows;
         state.hasMoreData = rows.length >= FETCH_BATCH_SIZE;
       } catch (error) {
         state.data = [];
@@ -765,11 +968,20 @@
       state.isFetching = true;
       state.isLoadingMore = true;
       updateLoadMoreUi();
+      showLoading('Loading more timeboard data...');
 
       try {
         const rows = await requestTimeboardData(nextFetchSize);
+        const enrichedRows = await enrichRowsWithPurchaseLines(rows, {
+          onProgress: (percent, processedCount, totalCount) => {
+            const detail = totalCount > 0
+              ? `Loading purchase lines... ${percent}% (${processedCount}/${totalCount} SV)`
+              : 'Loading purchase lines... 100%';
+            updateLoadingDetail(detail);
+          }
+        });
         state.fetchSize = nextFetchSize;
-        state.data = rows;
+        state.data = enrichedRows;
         state.hasMoreData = rows.length > previousCount;
       } catch (error) {
         state.hasMoreData = previousCount > 0;
@@ -777,6 +989,7 @@
         applyFilters();
         state.isFetching = false;
         state.isLoadingMore = false;
+        hideLoading();
         updateLoadMoreUi();
       }
     }
@@ -784,9 +997,10 @@
     // Render table
     function render() {
       const tbody = document.getElementById('timeboardBody');
+      const displayRows = buildDisplayRows(state.filteredData);
 
-      if (state.filteredData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="13" class="text-center py-16 text-slate-400">No records found</td></tr>`;
+      if (displayRows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="16" class="text-center py-16 text-slate-400">No records found</td></tr>`;
         document.getElementById('statTotal').textContent = '0';
         document.getElementById('paginationInfo').textContent =
           `Showing 0 matching rows from ${state.data.length} loaded`;
@@ -794,18 +1008,27 @@
         return;
       }
 
-      tbody.innerHTML = state.filteredData.map((item, index) => {
+      tbody.innerHTML = displayRows.map((item, index) => {
         const rowNumber = index + 1;
-        // Show SQ only on first row of each SQ group
-        const prevItem = index > 0 ? state.filteredData[index - 1] : null;
+        const prevItem = index > 0 ? displayRows[index - 1] : null;
+        const nextItem = index < displayRows.length - 1 ? displayRows[index + 1] : null;
         const showSq = !prevItem || prevItem.sqNumber !== item.sqNumber;
+        const showSv = !prevItem
+          || prevItem.sqNumber !== item.sqNumber
+          || prevItem.svNumber !== item.svNumber;
+        const isSameGroupAsNext = !!nextItem && nextItem.sqNumber === item.sqNumber;
+        const rowClassName = isSameGroupAsNext ? 'sq-group-continued' : '';
+        const purchaseLine = item.purchaseLine || null;
 
         return `
-          <tr>
+          <tr class="${rowClassName}">
             <td class="font-mono text-slate-400">${rowNumber}</td>
             <td class="font-medium">${renderSqGroupCell(item, showSq)}</td>
-            <td class="font-medium">${item.svNumber || '-'}</td>
+            <td class="font-medium">${renderSvGroupCell(item, showSv)}</td>
             <td>${renderDate(item.systemCreatedAt)}</td>
+            <td>${purchaseLine?.pr ? escapeHtml(purchaseLine.pr) : '<span class="text-slate-300">—</span>'}</td>
+            <td>${renderDate(purchaseLine?.prCreated)}</td>
+            <td>${purchaseLine?.po ? escapeHtml(purchaseLine.po) : '<span class="text-slate-300">—</span>'}</td>
             <td>${renderStatus(item.status)}</td>
             <td>${item.percent ?? '-'}</td>
             <td>${item.shNumber || '-'}</td>
@@ -820,10 +1043,10 @@
       }).join('');
 
       // Update stats
-      document.getElementById('statTotal').textContent = state.filteredData.length;
+      document.getElementById('statTotal').textContent = displayRows.length;
 
       document.getElementById('paginationInfo').textContent =
-        `Showing ${state.filteredData.length} matching rows from ${state.data.length} loaded`;
+        `Showing ${displayRows.length} matching rows from ${state.data.length} loaded`;
       updateLoadMoreUi();
     }
 
