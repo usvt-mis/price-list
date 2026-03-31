@@ -9,11 +9,22 @@
  * - Application Insights integration (Azure native logging)
  */
 
-// Load environment variables from .env.local file
+// Load local environment variables only outside Azure App Service.
+// In App Service, production values must come from App Settings instead.
+const fs = require('fs');
 const path = require('path');
 const envPath = path.resolve(__dirname, '.env.local');
-console.log('[Server] Loading .env.local from:', envPath);
-require('dotenv').config({ path: envPath });
+const isAzureAppService = Boolean(
+  process.env.WEBSITE_SITE_NAME || process.env.WEBSITE_HOSTNAME || process.env.WEBSITE_INSTANCE_ID
+);
+const shouldLoadLocalEnvFile = !isAzureAppService && fs.existsSync(envPath);
+
+if (shouldLoadLocalEnvFile) {
+  console.log('[Server] Loading local environment variables from:', envPath);
+  require('dotenv').config({ path: envPath });
+} else {
+  console.log('[Server] Skipping .env.local load; using environment variables provided by the host');
+}
 
 // Debug: Check if environment variables are loaded
 console.log('[Server] Environment variables loaded:');
