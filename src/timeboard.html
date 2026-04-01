@@ -47,7 +47,8 @@
 
     .calm-table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
       table-layout: fixed;
     }
 
@@ -61,12 +62,25 @@
       letter-spacing: 0.05em;
       color: var(--calm-text-secondary);
       border-bottom: 2px solid var(--calm-border);
-      background: var(--calm-bg);
+      background: rgba(248, 250, 252, 0.96);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 0 rgba(226, 232, 240, 0.95);
     }
 
-    .calm-table thead th:nth-child(5),
-    .calm-table thead th:nth-child(7) {
-      text-align: left;
+    .timeboard-header-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      line-height: 1.2;
+    }
+
+    .timeboard-header-sla {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      text-transform: none;
+      color: var(--calm-text-muted);
     }
 
     .calm-table tbody td {
@@ -78,13 +92,24 @@
       text-align: center;
     }
 
-    .calm-table tbody td:nth-child(5),
-    .calm-table tbody td:nth-child(7) {
-      text-align: left;
-    }
-
     .calm-table tbody tr:hover {
       background: var(--calm-accent-light);
+    }
+
+    .calm-table tbody tr.timeboard-delayed-row td {
+      background: #fef2f2;
+      border-bottom-color: #fecaca;
+    }
+
+    .calm-table tbody tr.timeboard-delayed-row:hover td {
+      background: #fee2e2;
+    }
+
+    .calm-table tbody tr.timeboard-delayed-row .merged-doc,
+    .calm-table tbody tr.timeboard-delayed-row .merged-date,
+    .calm-table tbody tr.timeboard-delayed-row td.col-date,
+    .calm-table tbody tr.timeboard-delayed-row td.col-row-number {
+      color: #b91c1c;
     }
 
     .calm-table tbody tr:last-child td {
@@ -95,20 +120,15 @@
       border-bottom-color: transparent;
     }
 
-    .sq-group-child-symbol {
-      display: block;
-      width: 100%;
-      text-align: right;
-      color: var(--calm-text-secondary);
-      font-size: 15px;
-      line-height: 1;
-      white-space: nowrap;
-    }
-
     .col-head-doc,
     .col-head-date,
     .col-head-metric {
       letter-spacing: 0.04em;
+    }
+
+    .calm-table thead th.col-merged-doc,
+    .calm-table tbody td.col-merged-doc {
+      text-align: left;
     }
 
     .calm-table tbody td.col-doc {
@@ -143,6 +163,56 @@
       font-family: var(--font-mono);
       font-variant-numeric: tabular-nums;
       color: var(--calm-row-number-color);
+    }
+
+    .merged-doc-cell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 38px;
+      width: 100%;
+    }
+
+    .merged-doc-lines {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .merged-doc-cell .merged-doc {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.015em;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      color: var(--calm-doc-color);
+    }
+
+    .merged-doc-cell .merged-date {
+      font-size: 12.5px;
+      color: var(--calm-date-color);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .merged-repeat-symbol {
+      margin-left: auto;
+      color: var(--calm-text-secondary);
+      font-size: 15px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .scaffold-repeat-cell {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      width: 100%;
+      min-height: 20px;
     }
 
     /* Status badges */
@@ -208,8 +278,6 @@
 
     /* Column width - all equal except first column */
     .col-narrow { width: 60px; }
-    .col-win-status { width: 112px; }
-    .col-poc { width: 76px; }
     .col-equal { width: 1fr; }
 
     /* Search input */
@@ -432,6 +500,125 @@
       color: var(--calm-accent);
     }
 
+    .timeboard-table-wrap {
+      position: relative;
+      overflow-x: auto;
+      overflow-y: visible;
+      padding-bottom: 4px;
+      border-top-left-radius: inherit;
+      border-top-right-radius: inherit;
+    }
+
+    .timeboard-table-card {
+      overflow: visible;
+    }
+
+    .timeboard-top-scrollbar {
+      display: none;
+      height: 18px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      background: rgba(248, 250, 252, 0.96);
+      border-bottom: 1px solid var(--calm-border);
+      scrollbar-width: thin;
+      scrollbar-color: #94a3b8 rgba(226, 232, 240, 0.9);
+      touch-action: pan-x;
+    }
+
+    .timeboard-top-scrollbar.visible {
+      display: block;
+    }
+
+    .timeboard-top-scrollbar::-webkit-scrollbar {
+      height: 14px;
+    }
+
+    .timeboard-top-scrollbar::-webkit-scrollbar-track {
+      background: rgba(226, 232, 240, 0.9);
+    }
+
+    .timeboard-top-scrollbar::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 999px;
+      border: 3px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .timeboard-top-scrollbar-track {
+      height: 1px;
+    }
+
+    .timeboard-table-wrap .calm-table {
+      width: max(100%, 2560px);
+      min-width: 2560px;
+    }
+
+    .timeboard-sticky-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 40;
+      display: none;
+      pointer-events: none;
+      overflow: hidden;
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .timeboard-sticky-header.visible {
+      display: block;
+    }
+
+    .timeboard-sticky-header .calm-table {
+      background: var(--calm-surface);
+    }
+
+    .timeboard-sticky-scrollbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 39;
+      display: none;
+      height: 18px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      pointer-events: auto;
+      background: rgba(248, 250, 252, 0.96);
+      border: 1px solid var(--calm-border);
+      border-top: none;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      box-shadow: 0 14px 26px rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(8px);
+      scrollbar-width: thin;
+      scrollbar-color: #94a3b8 rgba(226, 232, 240, 0.9);
+      touch-action: pan-x;
+    }
+
+    .timeboard-sticky-scrollbar.visible {
+      display: block;
+    }
+
+    .timeboard-sticky-scrollbar::-webkit-scrollbar {
+      height: 14px;
+    }
+
+    .timeboard-sticky-scrollbar::-webkit-scrollbar-track {
+      background: rgba(226, 232, 240, 0.9);
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+    }
+
+    .timeboard-sticky-scrollbar::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 999px;
+      border: 3px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .timeboard-sticky-scrollbar-track {
+      height: 1px;
+    }
+
     @media (max-width: 520px) {
       .branch-select-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -487,14 +674,7 @@
 
     <!-- Filters Bar -->
     <div class="calm-card p-4 mb-6">
-      <div class="flex items-center gap-6">
-        <div class="flex-1 max-w-md">
-          <input id="searchInput" type="text" placeholder="Search by SQ or SV..."
-            class="calm-input">
-        </div>
-        <div class="text-sm text-slate-500">
-          Batch size: 50 rows
-        </div>
+      <div class="flex items-center justify-between gap-6">
         <div class="branch-filter">
           <button class="branch-btn" data-branch="URY">URY</button>
           <button class="branch-btn" data-branch="UCB">UCB</button>
@@ -520,36 +700,42 @@
     </div>
 
     <!-- Data Table -->
-    <div class="calm-card overflow-hidden">
-      <div class="overflow-x-auto">
+    <div class="calm-card timeboard-table-card">
+      <div id="timeboardStickyHeader" class="timeboard-sticky-header" aria-hidden="true"></div>
+      <div id="timeboardStickyScrollbar" class="timeboard-sticky-scrollbar" aria-hidden="true">
+        <div class="timeboard-sticky-scrollbar-track"></div>
+      </div>
+      <div id="timeboardTopScrollbar" class="timeboard-top-scrollbar" aria-hidden="true">
+        <div class="timeboard-top-scrollbar-track"></div>
+      </div>
+      <div class="timeboard-table-wrap">
         <table class="calm-table">
           <thead>
             <tr>
               <th class="col-narrow">No.</th>
-              <th class="col-equal col-win-status">Win Status</th>
-              <th class="col-equal">U-STATUS</th>
-              <th class="col-equal col-head-metric col-poc">PoC</th>
-              <th class="col-equal col-head-doc">SQ</th>
-              <th class="col-equal col-head-date">SQ Created</th>
-              <th class="col-equal col-head-doc">SV</th>
-              <th class="col-equal col-head-date">SV Created</th>
-              <th class="col-equal col-head-doc">PR</th>
-              <th class="col-equal col-head-date">PR Created</th>
-              <th class="col-equal">PR Status</th>
-              <th class="col-equal col-head-date">PR Last Update</th>
-              <th class="col-equal col-head-doc">PO</th>
-              <th class="col-equal">PO Status</th>
-              <th class="col-equal col-head-date">PO Last Update</th>
-              <th class="col-equal col-head-doc">SH</th>
-              <th class="col-equal col-head-date">SH Created</th>
-              <th class="col-equal col-head-doc">ST</th>
-              <th class="col-equal col-head-date">Posted ST Created</th>
-              <th class="col-equal col-head-date">Expected Date</th>
+              <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>SQ</span><span class="timeboard-header-sla">0m</span></div></th>
+              <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>SV</span><span class="timeboard-header-sla">1hr</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>Inspection Complete</span><span class="timeboard-header-sla">36h (work period)</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>Price Request</span><span class="timeboard-header-sla">30m</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>Price Report</span><span class="timeboard-header-sla">4h</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>SQ Complete</span><span class="timeboard-header-sla">4h</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>Confirmation</span><span class="timeboard-header-sla">4h</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>Planning Request</span><span class="timeboard-header-sla">12h (work period)</span></div></th>
+              <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>PR</span><span class="timeboard-header-sla">12h (work period)</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>PR Complete</span><span class="timeboard-header-sla">2h</span></div></th>
+              <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>PO Created</span><span class="timeboard-header-sla">12h (work period)</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>Vendor Delivered</span><span class="timeboard-header-sla">N/A</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>Goods Receipt</span><span class="timeboard-header-sla">1h</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>Factory Procedure</span><span class="timeboard-header-sla">N/A</span></div></th>
+              <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>SH Record</span><span class="timeboard-header-sla">N/A</span></div></th>
+              <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>ST</span><span class="timeboard-header-sla">N/A</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>ST Complete</span><span class="timeboard-header-sla">N/A</span></div></th>
+              <th class="col-equal col-head-date"><div class="timeboard-header-cell"><span>Expected Delivery Date</span><span class="timeboard-header-sla">N/A</span></div></th>
             </tr>
           </thead>
           <tbody id="timeboardBody">
             <tr>
-              <td colspan="20" class="text-center py-16 text-slate-400">No data available</td>
+              <td colspan="19" class="text-center py-16 text-slate-400">No data available</td>
             </tr>
           </tbody>
         </table>
@@ -568,6 +754,7 @@
 
     const FETCH_BATCH_SIZE = 50;
     const PURCHASE_LINE_BATCH_SIZE = 100;
+    let syncStickyTimeboardHeader = () => {};
     const state = {
       data: [],
       filteredData: [],
@@ -750,6 +937,306 @@
       return renderText(value);
     }
 
+    function parseValidDate(value) {
+      if (!value || value === '0001-01-01' || value === '-' || value === '') {
+        return null;
+      }
+
+      const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return null;
+      }
+
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function addDays(dateValue, days) {
+      const date = parseValidDate(dateValue);
+      if (!date) {
+        return null;
+      }
+
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + days);
+      return nextDate;
+    }
+
+    function toIsoDate(dateValue) {
+      const date = parseValidDate(dateValue);
+      if (!date) {
+        return '';
+      }
+
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function minDate(firstDate, secondDate) {
+      const first = parseValidDate(firstDate);
+      const second = parseValidDate(secondDate);
+
+      if (!first) {
+        return second;
+      }
+
+      if (!second) {
+        return first;
+      }
+
+      return first <= second ? first : second;
+    }
+
+    function maxDate(firstDate, secondDate) {
+      const first = parseValidDate(firstDate);
+      const second = parseValidDate(secondDate);
+
+      if (!first) {
+        return second;
+      }
+
+      if (!second) {
+        return first;
+      }
+
+      return first >= second ? first : second;
+    }
+
+    function getStableSeed(...parts) {
+      const source = parts
+        .flat()
+        .map((part) => String(part || ''))
+        .join('|');
+
+      let hash = 0;
+      for (let index = 0; index < source.length; index += 1) {
+        hash = ((hash << 5) - hash + source.charCodeAt(index)) | 0;
+      }
+
+      return Math.abs(hash);
+    }
+
+    function getSeededOffset(seed, salt, min, max) {
+      const safeMin = Number(min);
+      const safeMax = Number(max);
+      const span = safeMax - safeMin + 1;
+
+      if (span <= 0) {
+        return safeMin;
+      }
+
+      const mixedSeed = Math.abs((seed ^ (salt * 2654435761)) | 0);
+      return safeMin + (mixedSeed % span);
+    }
+
+    function isDateAfter(firstDate, secondDate) {
+      const first = parseValidDate(firstDate);
+      const second = parseValidDate(secondDate);
+
+      if (!first || !second) {
+        return false;
+      }
+
+      return first.getTime() > second.getTime();
+    }
+
+    function buildMockTimeline(item, purchaseLine) {
+      const seed = getStableSeed(
+        item?.sqNumber,
+        item?.svNumber,
+        purchaseLine?.pr,
+        purchaseLine?.po,
+        item?.stNumber,
+        item?.expectedDate
+      );
+
+      const sqCreated = parseValidDate(item?.sqCreated);
+      const svCreated = parseValidDate(item?.svCreated || item?.systemCreatedAt);
+      const prCreated = parseValidDate(purchaseLine?.prCreated);
+      const poCreated = parseValidDate(purchaseLine?.poCreated);
+      const shCreated = parseValidDate(item?.shCreated);
+      const stCreated = parseValidDate(item?.postedStCreated || item?.stCreated);
+      const expectedDate = parseValidDate(item?.expectedDate);
+
+      const fallbackStart = maxDate(
+        svCreated,
+        addDays(sqCreated || prCreated || poCreated || stCreated || expectedDate || new Date(), -8)
+      ) || new Date();
+
+      let inspectionComplete = maxDate(
+        addDays(svCreated || fallbackStart, -getSeededOffset(seed, 1, 0, 1)),
+        addDays(fallbackStart, -1)
+      ) || fallbackStart;
+
+      let priceRequest = maxDate(
+        addDays(inspectionComplete, getSeededOffset(seed, 2, 0, 1)),
+        inspectionComplete
+      );
+
+      let priceReport = maxDate(
+        addDays(priceRequest, getSeededOffset(seed, 3, 1, 2)),
+        priceRequest
+      );
+
+      let sqComplete = maxDate(
+        sqCreated || addDays(priceReport, getSeededOffset(seed, 4, 0, 1)),
+        addDays(priceReport, getSeededOffset(seed, 5, 0, 1))
+      );
+
+      let confirmation = maxDate(
+        addDays(sqComplete, getSeededOffset(seed, 6, 0, 2)),
+        sqComplete
+      );
+
+      let planningRequest = maxDate(
+        addDays(confirmation, getSeededOffset(seed, 7, 1, 2)),
+        confirmation
+      );
+
+      let prComplete = maxDate(
+        prCreated ? addDays(prCreated, getSeededOffset(seed, 8, 0, 1)) : null,
+        addDays(planningRequest, getSeededOffset(seed, 9, 1, 2))
+      );
+
+      let poComplete = maxDate(
+        poCreated ? addDays(poCreated, getSeededOffset(seed, 10, 0, 1)) : null,
+        addDays(prComplete, getSeededOffset(seed, 11, 1, 3))
+      );
+
+      let vendorDelivered = maxDate(
+        addDays(poComplete, getSeededOffset(seed, 12, 2, 5)),
+        expectedDate ? addDays(expectedDate, -getSeededOffset(seed, 13, 7, 12)) : null
+      );
+
+      let goodsReceipt = vendorDelivered;
+
+      let factoryProcedure = maxDate(
+        addDays(goodsReceipt, getSeededOffset(seed, 14, 1, 3)),
+        expectedDate ? addDays(expectedDate, -getSeededOffset(seed, 15, 4, 7)) : null
+      );
+
+      let stComplete = maxDate(
+        stCreated || (expectedDate ? addDays(expectedDate, -getSeededOffset(seed, 16, 1, 2)) : null),
+        addDays(factoryProcedure, getSeededOffset(seed, 17, 1, 2))
+      );
+
+      let expectedDeliveryDate = expectedDate || addDays(stComplete, getSeededOffset(seed, 18, 1, 3));
+
+      const shComparisonProfile = getSeededOffset(seed, 19, 0, 99);
+      if (shCreated) {
+        if (shComparisonProfile < 28) {
+          expectedDeliveryDate = addDays(shCreated, getSeededOffset(seed, 20, -4, -1));
+        } else if (shComparisonProfile < 62) {
+          expectedDeliveryDate = addDays(shCreated, getSeededOffset(seed, 21, 1, 5));
+        } else if (!expectedDeliveryDate) {
+          expectedDeliveryDate = addDays(shCreated, getSeededOffset(seed, 22, 0, 3));
+        }
+      }
+
+      if (expectedDeliveryDate && stComplete && stComplete >= expectedDeliveryDate) {
+        stComplete = addDays(expectedDeliveryDate, -1);
+      }
+
+      if (stComplete && factoryProcedure && factoryProcedure >= stComplete) {
+        factoryProcedure = addDays(stComplete, -1);
+      }
+
+      if (factoryProcedure && poComplete && poComplete >= factoryProcedure) {
+        poComplete = addDays(factoryProcedure, -1);
+      }
+
+      if (vendorDelivered && poComplete && poComplete >= vendorDelivered) {
+        poComplete = addDays(vendorDelivered, -1);
+      }
+
+      if (factoryProcedure && vendorDelivered && vendorDelivered >= factoryProcedure) {
+        vendorDelivered = addDays(factoryProcedure, -1);
+      }
+
+      if (poComplete && prComplete && prComplete >= poComplete) {
+        prComplete = addDays(poComplete, -1);
+      }
+
+      const orderedMilestones = [
+        inspectionComplete,
+        priceRequest,
+        priceReport,
+        sqComplete,
+        confirmation,
+        planningRequest,
+        prComplete,
+        poComplete,
+        vendorDelivered,
+        goodsReceipt,
+        factoryProcedure,
+        stComplete,
+        expectedDeliveryDate
+      ];
+
+      for (let index = 1; index < orderedMilestones.length; index += 1) {
+        if (orderedMilestones[index] && orderedMilestones[index - 1] && orderedMilestones[index] < orderedMilestones[index - 1]) {
+          orderedMilestones[index] = new Date(orderedMilestones[index - 1]);
+        }
+      }
+
+      [
+        inspectionComplete,
+        priceRequest,
+        priceReport,
+        sqComplete,
+        confirmation,
+        planningRequest,
+        prComplete,
+        poComplete,
+        vendorDelivered,
+        goodsReceipt,
+        factoryProcedure,
+        stComplete,
+        expectedDeliveryDate
+      ] = orderedMilestones;
+
+      if (shCreated && expectedDeliveryDate && shComparisonProfile < 28 && expectedDeliveryDate >= shCreated) {
+        expectedDeliveryDate = addDays(shCreated, -1);
+      }
+
+      return {
+        inspectionComplete: toIsoDate(inspectionComplete),
+        priceRequest: toIsoDate(priceRequest),
+        priceReport: toIsoDate(priceReport),
+        sqComplete: toIsoDate(sqComplete),
+        confirmation: toIsoDate(confirmation),
+        planningRequest: toIsoDate(planningRequest),
+        prComplete: toIsoDate(prComplete),
+        poComplete: toIsoDate(poComplete),
+        vendorDelivered: toIsoDate(vendorDelivered),
+        goodsReceipt: toIsoDate(goodsReceipt),
+        factoryProcedure: toIsoDate(factoryProcedure),
+        stComplete: toIsoDate(stComplete),
+        expectedDeliveryDate: toIsoDate(expectedDeliveryDate)
+      };
+    }
+
+    function renderScaffoldCell(show = true) {
+      if (!show) {
+        return '';
+      }
+
+      return '<span class="text-slate-300">—</span>';
+    }
+
+    function renderRepeatMarkerCell(show = false, arrowLabel = 'Same value as above') {
+      if (!show) {
+        return renderScaffoldCell(true);
+      }
+
+      return `
+        <div class="scaffold-repeat-cell">
+          <span class="merged-repeat-symbol" aria-label="${escapeHtml(arrowLabel)}">⤷</span>
+        </div>
+      `;
+    }
+
     function normalizeStatusKey(status) {
       return String(status || '')
         .trim()
@@ -789,40 +1276,52 @@
       return renderDate(dateStr);
     }
 
-    function renderSqGroupCell(item, showSq) {
-      if (showSq) {
-        return item.sqNumber || '-';
+    function renderMergedDocCell(docValue, dateValue, options = {}) {
+      const {
+        showArrow = false,
+        arrowLabel = 'Same value as above'
+      } = options;
+
+      if (showArrow) {
+        return `<div class="merged-doc-cell"><span class="merged-repeat-symbol" aria-label="${escapeHtml(arrowLabel)}">⤷</span></div>`;
       }
 
-      return '';
+      const normalizedDocValue = String(docValue || '').trim();
+      const docMarkup = normalizedDocValue
+        ? escapeHtml(normalizedDocValue)
+        : '<span class="text-slate-300">—</span>';
+
+      return `
+        <div class="merged-doc-cell">
+          <div class="merged-doc-lines">
+            <span class="merged-doc">${docMarkup}</span>
+            <span class="merged-date">${renderDate(dateValue)}</span>
+          </div>
+        </div>
+      `;
     }
 
-    function renderSqCreatedCell(item, showSq, suppressRepeatedMarker = false) {
+    function renderSqCombinedCell(item, showSq, suppressRepeatedMarker = false) {
       if (showSq) {
-        return renderDate(item.sqCreated);
+        return renderMergedDocCell(item.sqNumber, item.sqCreated);
       }
 
       if (suppressRepeatedMarker) {
         return '';
       }
 
-      return '<span class="sq-group-child-symbol" aria-label="Same SQ as above">⤷</span>';
+      return renderMergedDocCell('', '', {
+        showArrow: true,
+        arrowLabel: 'Same SQ as above'
+      });
     }
 
-    function renderSvGroupCell(item, showSvSummary) {
-      if (!showSvSummary) {
-        return '';
-      }
-
-      return item.svNumber || '-';
-    }
-
-    function renderSvCreatedCell(item, showSvSummary) {
+    function renderSvCombinedCell(item, showSvSummary) {
       if (showSvSummary) {
-        return renderDate(item.svCreated || item.systemCreatedAt);
+        return renderMergedDocCell(item.svNumber, item.svCreated || item.systemCreatedAt);
       }
 
-      return '<span class="sq-group-child-symbol" aria-label="Same SV as above">⤷</span>';
+      return '';
     }
 
     function shouldShowSvSummary(item, previousItem) {
@@ -929,6 +1428,13 @@
           line?.prUpdatedAt
         ),
         pr: String(line?.documentNo || '').trim(),
+        poCreated: getFirstNonEmptyValue(
+          line?.poCreated,
+          line?.refPrToPoCreated,
+          line?.purchaseOrderCreatedAt,
+          line?.poSystemCreatedAt,
+          line?.refPrToPoSystemCreatedAt
+        ),
         po: String(line?.refPrToPoNo || '').trim(),
         poStatus: String(getFirstNonEmptyValue(
           line?.poStatus,
@@ -1058,6 +1564,123 @@
       loadMoreBtn.disabled = state.isFetching;
     }
 
+    function setupStickyTimeboardHeader() {
+      const stickyHost = document.getElementById('timeboardStickyHeader');
+      const stickyScrollbar = document.getElementById('timeboardStickyScrollbar');
+      const stickyScrollbarTrack = stickyScrollbar?.querySelector('.timeboard-sticky-scrollbar-track');
+      const topScrollbar = document.getElementById('timeboardTopScrollbar');
+      const topScrollbarTrack = topScrollbar?.querySelector('.timeboard-top-scrollbar-track');
+      const tableWrap = document.querySelector('.timeboard-table-wrap');
+      const sourceTable = tableWrap?.querySelector('.calm-table');
+      const sourceHead = sourceTable?.querySelector('thead');
+      let syncingFromTable = false;
+      let syncingFromStickyScrollbar = false;
+      let syncingFromTopScrollbar = false;
+
+      if (!stickyHost || !stickyScrollbar || !stickyScrollbarTrack || !topScrollbar || !topScrollbarTrack || !tableWrap || !sourceTable || !sourceHead) {
+        syncStickyTimeboardHeader = () => {};
+        return;
+      }
+
+      const stickyTable = document.createElement('table');
+      stickyTable.className = sourceTable.className;
+      stickyTable.appendChild(sourceHead.cloneNode(true));
+      stickyHost.replaceChildren(stickyTable);
+
+      const syncWidths = () => {
+        const sourceHeadCells = Array.from(sourceHead.querySelectorAll('th'));
+        const stickyHeadCells = Array.from(stickyTable.querySelectorAll('th'));
+        const tableWidth = sourceTable.offsetWidth;
+
+        stickyTable.style.width = `${tableWidth}px`;
+        stickyScrollbarTrack.style.width = `${tableWidth}px`;
+        topScrollbarTrack.style.width = `${tableWidth}px`;
+
+        sourceHeadCells.forEach((cell, index) => {
+          if (!stickyHeadCells[index]) {
+            return;
+          }
+
+          stickyHeadCells[index].style.width = `${cell.getBoundingClientRect().width}px`;
+        });
+      };
+
+      syncStickyTimeboardHeader = () => {
+        syncWidths();
+
+        const tableRect = sourceTable.getBoundingClientRect();
+        const wrapRect = tableWrap.getBoundingClientRect();
+        const headRect = sourceHead.getBoundingClientRect();
+        const shouldShow = tableRect.top <= 0 && tableRect.bottom - headRect.height > 0;
+        const hasHorizontalOverflow = sourceTable.scrollWidth > tableWrap.clientWidth + 1;
+
+        topScrollbar.classList.toggle('visible', hasHorizontalOverflow);
+        stickyHost.classList.toggle('visible', shouldShow);
+        stickyScrollbar.classList.toggle('visible', shouldShow && hasHorizontalOverflow);
+
+        if (!syncingFromTable && topScrollbar.scrollLeft !== tableWrap.scrollLeft) {
+          syncingFromTopScrollbar = true;
+          topScrollbar.scrollLeft = tableWrap.scrollLeft;
+          syncingFromTopScrollbar = false;
+        }
+
+        if (!shouldShow) {
+          return;
+        }
+
+        stickyHost.style.left = `${wrapRect.left}px`;
+        stickyHost.style.width = `${wrapRect.width}px`;
+        stickyHost.style.height = `${headRect.height}px`;
+        stickyTable.style.transform = `translateX(${-tableWrap.scrollLeft}px)`;
+        stickyScrollbar.style.left = `${wrapRect.left}px`;
+        stickyScrollbar.style.top = `${headRect.height}px`;
+        stickyScrollbar.style.width = `${wrapRect.width}px`;
+
+        if (!syncingFromStickyScrollbar && stickyScrollbar.scrollLeft !== tableWrap.scrollLeft) {
+          syncingFromTable = true;
+          stickyScrollbar.scrollLeft = tableWrap.scrollLeft;
+          syncingFromTable = false;
+        }
+      };
+
+      window.addEventListener('scroll', syncStickyTimeboardHeader, { passive: true });
+      window.addEventListener('resize', syncStickyTimeboardHeader);
+      tableWrap.addEventListener('scroll', () => {
+        if (!syncingFromTopScrollbar && topScrollbar.scrollLeft !== tableWrap.scrollLeft) {
+          syncingFromTable = true;
+          topScrollbar.scrollLeft = tableWrap.scrollLeft;
+          syncingFromTable = false;
+        }
+
+        if (!syncingFromStickyScrollbar && stickyScrollbar.scrollLeft !== tableWrap.scrollLeft) {
+          syncingFromTable = true;
+          stickyScrollbar.scrollLeft = tableWrap.scrollLeft;
+          syncingFromTable = false;
+        }
+
+        syncStickyTimeboardHeader();
+      }, { passive: true });
+      stickyScrollbar.addEventListener('scroll', () => {
+        if (syncingFromTable) {
+          return;
+        }
+
+        syncingFromStickyScrollbar = true;
+        tableWrap.scrollLeft = stickyScrollbar.scrollLeft;
+        syncingFromStickyScrollbar = false;
+      }, { passive: true });
+      topScrollbar.addEventListener('scroll', () => {
+        if (syncingFromTable) {
+          return;
+        }
+
+        syncingFromTopScrollbar = true;
+        tableWrap.scrollLeft = topScrollbar.scrollLeft;
+        syncingFromTopScrollbar = false;
+      }, { passive: true });
+      syncStickyTimeboardHeader();
+    }
+
     async function refreshData(message = 'Loading timeboard data...') {
       if (state.isFetching) return;
 
@@ -1132,7 +1755,7 @@
       const displayRows = buildDisplayRows(state.filteredData);
 
       if (displayRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="20" class="text-center py-16 text-slate-400">No records found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="19" class="text-center py-16 text-slate-400">No records found</td></tr>`;
         document.getElementById('statTotal').textContent = '0';
         document.getElementById('paginationInfo').textContent =
           `Showing 0 matching rows from ${state.data.length} loaded`;
@@ -1146,33 +1769,71 @@
         const nextItem = index < displayRows.length - 1 ? displayRows[index + 1] : null;
         const showSq = !prevItem || prevItem.sqNumber !== item.sqNumber;
         const showSvSummary = shouldShowSvSummary(item, prevItem);
+        const hasSvNumber = Boolean(normalizeServiceOrderNumber(item.svNumber));
+        const showSvDependentDocs = showSvSummary && hasSvNumber;
         const suppressSqCreatedMarker = !showSvSummary;
         const isSameGroupAsNext = !!nextItem && nextItem.sqNumber === item.sqNumber;
-        const rowClassName = isSameGroupAsNext ? 'sq-group-continued' : '';
         const purchaseLine = item.purchaseLine || null;
+        const timeline = buildMockTimeline(item, purchaseLine);
+        const renderSvTimelineDate = (value) => (
+          hasSvNumber
+            ? renderDate(value)
+            : renderScaffoldCell(true)
+        );
+        const renderSvSummaryOnlyDate = (value) => {
+          if (!hasSvNumber) {
+            return renderScaffoldCell(true);
+          }
+
+          if (!showSvSummary) {
+            return '';
+          }
+
+          return renderDate(value);
+        };
+        const renderSvTimelineExpectedDate = (value) => (
+          hasSvNumber
+            ? renderExpectedDate(value)
+            : renderScaffoldCell(true)
+        );
+        const renderSvSummaryOnlyExpectedDate = (value) => {
+          if (!hasSvNumber) {
+            return renderScaffoldCell(true);
+          }
+
+          if (!showSvSummary) {
+            return '';
+          }
+
+          return renderExpectedDate(value);
+        };
+        const isDelayedAgainstExpected = isDateAfter(item.shCreated, timeline.expectedDeliveryDate);
+        const rowClassName = [
+          isSameGroupAsNext ? 'sq-group-continued' : '',
+          isDelayedAgainstExpected ? 'timeboard-delayed-row' : ''
+        ].filter(Boolean).join(' ');
 
         return `
           <tr class="${rowClassName}">
             <td class="col-row-number">${rowNumber}</td>
-            <td class="col-status-text col-win-status">${showSvSummary ? renderText(item.workStatus) : ''}</td>
-            <td>${showSvSummary ? renderStatus(item.status) : ''}</td>
-            <td class="col-metric col-poc">${showSvSummary ? renderPercent(item.percent) : ''}</td>
-            <td class="col-doc">${renderSqGroupCell(item, showSq)}</td>
-            <td class="col-date">${renderSqCreatedCell(item, showSq, suppressSqCreatedMarker)}</td>
-            <td class="col-doc">${renderSvGroupCell(item, showSvSummary)}</td>
-            <td class="col-date">${renderSvCreatedCell(item, showSvSummary)}</td>
-            <td class="col-doc">${renderText(purchaseLine?.pr)}</td>
-            <td class="col-date">${renderDate(purchaseLine?.prCreated)}</td>
-            <td>${renderText(purchaseLine?.prStatus)}</td>
-            <td class="col-date">${renderDate(purchaseLine?.prLastUpdate)}</td>
-            <td class="col-doc">${renderText(purchaseLine?.po)}</td>
-            <td>${renderText(purchaseLine?.poStatus)}</td>
-            <td class="col-date">${renderDate(purchaseLine?.poLastUpdate)}</td>
-            <td class="col-doc">${renderText(item.shNumber)}</td>
-            <td class="col-date">${renderDate(item.shCreated)}</td>
-            <td class="col-doc">${renderText(item.stNumber)}</td>
-            <td class="col-date">${renderDate(item.postedStCreated)}</td>
-            <td class="col-date">${renderExpectedDate(item.expectedDate)}</td>
+            <td class="col-merged-doc">${renderSqCombinedCell(item, showSq, suppressSqCreatedMarker)}</td>
+            <td class="col-merged-doc">${renderSvCombinedCell(item, showSvSummary)}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.inspectionComplete)}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.priceRequest)}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.priceReport)}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.sqComplete)}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.confirmation)}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.planningRequest)}</td>
+            <td class="col-merged-doc">${renderMergedDocCell(purchaseLine?.pr, purchaseLine?.prCreated)}</td>
+            <td class="col-date">${renderDate(timeline.prComplete)}</td>
+            <td class="col-merged-doc">${renderMergedDocCell(purchaseLine?.po, purchaseLine?.poCreated)}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.vendorDelivered)}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.goodsReceipt)}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.factoryProcedure)}</td>
+            <td class="col-merged-doc">${showSvDependentDocs ? renderMergedDocCell(item.shNumber, item.shCreated) : ''}</td>
+            <td class="col-merged-doc">${showSvDependentDocs ? renderMergedDocCell(item.stNumber, item.postedStCreated) : ''}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.stComplete)}</td>
+            <td class="col-date">${renderSvSummaryOnlyExpectedDate(timeline.expectedDeliveryDate)}</td>
           </tr>
         `;
       }).join('');
@@ -1183,14 +1844,10 @@
       document.getElementById('paginationInfo').textContent =
         `Showing ${displayRows.length} matching rows from ${state.data.length} loaded`;
       updateLoadMoreUi();
+      syncStickyTimeboardHeader();
     }
 
     // Event listeners
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-      state.searchQuery = e.target.value;
-      applyFilters();
-    });
-
     // Branch filter buttons
     document.querySelectorAll('.branch-btn:not(.sort-toggle-btn)').forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -1219,6 +1876,7 @@
     });
 
     // Initialize
+    setupStickyTimeboardHeader();
     if (await checkAccess()) {
       showBranchSelectModal();
     }
