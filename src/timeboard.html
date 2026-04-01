@@ -54,8 +54,8 @@
       background: var(--calm-bg);
     }
 
-    .calm-table thead th:nth-child(2),
-    .calm-table thead th:nth-child(4) {
+    .calm-table thead th:nth-child(5),
+    .calm-table thead th:nth-child(7) {
       text-align: left;
     }
 
@@ -67,8 +67,8 @@
       text-align: center;
     }
 
-    .calm-table tbody td:nth-child(2),
-    .calm-table tbody td:nth-child(4) {
+    .calm-table tbody td:nth-child(5),
+    .calm-table tbody td:nth-child(7) {
       text-align: left;
     }
 
@@ -107,16 +107,34 @@
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
     }
 
-    .status-badge.dynamic {
-      background: var(--status-bg, var(--calm-bg));
-      color: var(--status-text, var(--calm-text-primary));
-      border-color: var(--status-border, var(--calm-border));
+    .status-badge.in-process {
+      background: #dbeafe;
+      color: #1d4ed8;
+      border-color: #60a5fa;
     }
 
-    .status-badge.done {
-      background: var(--calm-success-light);
-      color: var(--calm-success);
-      border-color: #6ee7b7;
+    .status-badge.finished {
+      background: #d1fae5;
+      color: #047857;
+      border-color: #34d399;
+    }
+
+    .status-badge.delivered {
+      background: #ccfbf1;
+      color: #0f766e;
+      border-color: #2dd4bf;
+    }
+
+    .status-badge.invoiced {
+      background: #e0e7ff;
+      color: #4338ca;
+      border-color: #818cf8;
+    }
+
+    .status-badge.cancelled {
+      background: #fee2e2;
+      color: #dc2626;
+      border-color: #f87171;
     }
 
     .status-badge.pending {
@@ -125,34 +143,16 @@
       border-color: #f59e0b;
     }
 
-    .status-badge.missing {
-      background: #fee2e2;
-      color: #dc2626;
-      border-color: #f87171;
-    }
-
-    .status-badge.neutral {
+    .status-badge.on-hold {
       background: #e2e8f0;
       color: #475569;
       border-color: #cbd5e1;
     }
 
-    .status-badge.in-process {
-      background: #dbeafe;
-      color: #1d4ed8;
-      border-color: #60a5fa;
-    }
-
-    .status-badge.on-hold {
-      background: #ede9fe;
-      color: #7c3aed;
-      border-color: #a78bfa;
-    }
-
-    .status-badge.finish {
-      background: #d1fae5;
-      color: #047857;
-      border-color: #34d399;
+    .status-badge.unknown {
+      background: #f8fafc;
+      color: #64748b;
+      border-color: #cbd5e1;
     }
 
     /* Column width - all equal except first column */
@@ -473,13 +473,13 @@
           <thead>
             <tr>
               <th class="col-narrow">No.</th>
+              <th class="col-equal">Win Status</th>
+              <th class="col-equal">U-STATUS</th>
+              <th class="col-equal">PoC</th>
               <th class="col-equal">SQ</th>
               <th class="col-equal">SQ Created</th>
               <th class="col-equal">SV</th>
               <th class="col-equal">SV Created</th>
-              <th class="col-equal">SV Status</th>
-              <th class="col-equal">Work Status</th>
-              <th class="col-equal">SV%</th>
               <th class="col-equal">PR</th>
               <th class="col-equal">PR Created</th>
               <th class="col-equal">PO</th>
@@ -511,15 +511,6 @@
 
     const FETCH_BATCH_SIZE = 50;
     const PURCHASE_LINE_BATCH_SIZE = 100;
-    const STATUS_CODE_COLOR_PALETTE = Array.from({ length: 20 }, (_, index) => {
-      const hue = index * 18;
-      return {
-        background: `hsl(${hue} 100% 91%)`,
-        border: `hsl(${hue} 88% 72%)`,
-        text: `hsl(${hue} 72% 28%)`
-      };
-    });
-
     const state = {
       data: [],
       filteredData: [],
@@ -652,22 +643,6 @@
         .replace(/'/g, '&#39;');
     }
 
-    function getStatusCode(status) {
-      const trimmedStatus = String(status || '').trim();
-      const match = trimmedStatus.match(/^(\d{1,2})(?=\D|$)/);
-
-      if (!match) {
-        return null;
-      }
-
-      const code = Number.parseInt(match[1], 10);
-      if (!Number.isInteger(code) || code < 1 || code > 20) {
-        return null;
-      }
-
-      return code;
-    }
-
     // Render date cell
     function renderDate(dateStr) {
       if (!dateStr || dateStr === '-' || dateStr === '') {
@@ -702,29 +677,33 @@
       return renderText(value);
     }
 
+    function normalizeStatusKey(status) {
+      return String(status || '')
+        .trim()
+        .replace(/^[\d\s._-]+/, '')
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+    }
+
     // Render status badge
     function renderStatus(status) {
       if (!status) return '<span class="text-slate-300">—</span>';
-      const safeStatus = escapeHtml(status);
-      const statusCode = getStatusCode(status);
-
-      if (statusCode) {
-        const palette = STATUS_CODE_COLOR_PALETTE[statusCode - 1];
-        return `<span class="status-badge dynamic" style="--status-bg: ${palette.background}; --status-border: ${palette.border}; --status-text: ${palette.text};" data-status-code="${String(statusCode).padStart(2, '0')}">${safeStatus}</span>`;
-      }
-
-      const statusLower = String(status).toLowerCase();
-      let badgeClass = 'neutral';
-
-      if (statusLower === 'finish' || statusLower === 'finished' || statusLower === 'completed') {
-        badgeClass = 'finish';
-      } else if (statusLower === 'in process' || statusLower === 'in-process') {
-        badgeClass = 'in-process';
-      } else if (statusLower === 'on hold' || statusLower === 'on-hold') {
-        badgeClass = 'on-hold';
-      } else if (statusLower === 'pending') {
-        badgeClass = 'pending';
-      }
+      const safeStatus = escapeHtml(String(status).trim());
+      const statusLower = normalizeStatusKey(status);
+      const statusClassMap = {
+        'in process': 'in-process',
+        'in-process': 'in-process',
+        finished: 'finished',
+        finish: 'finished',
+        completed: 'finished',
+        delivered: 'delivered',
+        invoiced: 'invoiced',
+        cancelled: 'cancelled',
+        pending: 'pending',
+        'on hold': 'on-hold',
+        'on-hold': 'on-hold'
+      };
+      const badgeClass = statusClassMap[statusLower] || 'unknown';
 
       return `<span class="status-badge ${badgeClass}">${safeStatus}</span>`;
     }
@@ -1051,13 +1030,13 @@
         return `
           <tr class="${rowClassName}">
             <td class="font-mono text-slate-400">${rowNumber}</td>
+            <td>${showSvSummary ? renderText(item.workStatus) : ''}</td>
+            <td>${showSvSummary ? renderStatus(item.status) : ''}</td>
+            <td>${showSvSummary ? renderPercent(item.percent) : ''}</td>
             <td class="font-medium">${renderSqGroupCell(item, showSq)}</td>
             <td>${showSq ? renderDate(item.sqCreated) : ''}</td>
             <td class="font-medium">${renderSvGroupCell(item)}</td>
             <td>${renderDate(item.svCreated || item.systemCreatedAt)}</td>
-            <td>${showSvSummary ? renderStatus(item.status) : ''}</td>
-            <td>${showSvSummary ? renderText(item.workStatus) : ''}</td>
-            <td>${showSvSummary ? renderPercent(item.percent) : ''}</td>
             <td>${renderText(purchaseLine?.pr)}</td>
             <td>${renderDate(purchaseLine?.prCreated)}</td>
             <td>${renderText(purchaseLine?.po)}</td>
