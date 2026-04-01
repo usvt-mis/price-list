@@ -426,6 +426,84 @@
       display: none;
     }
 
+    .timeboard-inline-loader {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 60;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      min-width: min(360px, calc(100vw - 32px));
+      max-width: min(420px, calc(100vw - 32px));
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(99, 102, 241, 0.18);
+      background: linear-gradient(135deg, rgba(49, 87, 165, 0.98) 0%, rgba(79, 70, 229, 0.96) 100%);
+      color: white;
+      box-shadow: 0 22px 48px rgba(49, 87, 165, 0.28);
+      pointer-events: none;
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .timeboard-inline-loader.hidden {
+      opacity: 0;
+      transform: translateY(12px);
+      visibility: hidden;
+    }
+
+    .timeboard-inline-loader-spinner {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: rgba(255, 255, 255, 0.95);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-top: 2px;
+    }
+
+    .timeboard-inline-loader-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .timeboard-inline-loader-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: rgba(255, 255, 255, 0.98);
+    }
+
+    .timeboard-inline-loader-detail {
+      font-size: 12px;
+      line-height: 1.45;
+      color: rgba(224, 231, 255, 0.96);
+    }
+
+    .timeboard-inline-loader-detail.hidden {
+      display: none;
+    }
+
+    .timeboard-autoload-sentinel {
+      width: 100%;
+      height: 1px;
+    }
+
+    @media (max-width: 640px) {
+      .timeboard-inline-loader {
+        right: 16px;
+        left: 16px;
+        bottom: 16px;
+        min-width: 0;
+        max-width: none;
+      }
+    }
+
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
@@ -760,6 +838,15 @@
         <span id="paginationInfo" class="text-sm text-slate-500">Showing 0 matching rows from 0 loaded</span>
         <button id="loadMoreBtn" class="calm-btn" disabled>Load more</button>
       </div>
+      <div id="autoLoadSentinel" class="timeboard-autoload-sentinel" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <div id="timeboardInlineLoader" class="timeboard-inline-loader hidden" aria-live="polite" aria-atomic="true" role="status">
+    <div class="timeboard-inline-loader-spinner" aria-hidden="true"></div>
+    <div class="timeboard-inline-loader-copy">
+      <p id="timeboardInlineLoaderMessage" class="timeboard-inline-loader-title">Auto-loading next 50 SV...</p>
+      <p id="timeboardInlineLoaderDetail" class="timeboard-inline-loader-detail hidden"></p>
     </div>
   </div>
 
@@ -769,6 +856,7 @@
     const FETCH_BATCH_SIZE = 50;
     const PURCHASE_LINE_BATCH_SIZE = 100;
     const PURCHASE_ORDER_BATCH_SIZE = 100;
+    const AUTO_LOAD_TRIGGER_OFFSET = 160;
     let syncStickyTimeboardHeader = () => {};
     const state = {
       data: [],
@@ -810,6 +898,42 @@
     function updateLoadingDetail(detail = '') {
       const modal = document.getElementById('loadingModal');
       const detailEl = modal?.querySelector('.loading-detail');
+      if (!detailEl) {
+        return;
+      }
+
+      detailEl.textContent = detail;
+      detailEl.classList.toggle('hidden', !detail);
+    }
+
+    function showInlineLoader(message = `Auto-loading next ${FETCH_BATCH_SIZE} SV...`, detail = '') {
+      const loader = document.getElementById('timeboardInlineLoader');
+      const messageEl = document.getElementById('timeboardInlineLoaderMessage');
+      const detailEl = document.getElementById('timeboardInlineLoaderDetail');
+      if (!loader || !messageEl || !detailEl) {
+        return;
+      }
+
+      messageEl.textContent = message;
+      detailEl.textContent = detail;
+      detailEl.classList.toggle('hidden', !detail);
+      loader.classList.remove('hidden');
+    }
+
+    function hideInlineLoader() {
+      const loader = document.getElementById('timeboardInlineLoader');
+      const detailEl = document.getElementById('timeboardInlineLoaderDetail');
+      if (!loader || !detailEl) {
+        return;
+      }
+
+      detailEl.textContent = '';
+      detailEl.classList.add('hidden');
+      loader.classList.add('hidden');
+    }
+
+    function updateInlineLoaderDetail(detail = '') {
+      const detailEl = document.getElementById('timeboardInlineLoaderDetail');
       if (!detailEl) {
         return;
       }
@@ -1614,14 +1738,24 @@
         poCreated: getFirstNonEmptyValue(
           line?.poCreated,
           line?.refPrToPoCreated,
+          line?.refPRToPOCreated,
           line?.purchaseOrderCreatedAt,
           line?.poSystemCreatedAt,
           line?.refPrToPoSystemCreatedAt
         ),
-        po: String(line?.refPrToPoNo || '').trim(),
+        po: String(getFirstNonEmptyValue(
+          line?.po,
+          line?.refPrToPoNo,
+          line?.refPRToPONo,
+          line?.purchaseOrderNo,
+          line?.poNo,
+          line?.refPrToPo,
+          line?.refPRToPO
+        ) || '').trim(),
         poApproved: getFirstNonEmptyValue(
           line?.poApproved,
           line?.refPrToPoApproved,
+          line?.refPRToPOApproved,
           line?.purchaseOrderApprovedAt,
           line?.poApprovedAt,
           line?.poLastUpdate,
@@ -1632,12 +1766,14 @@
         poStatus: String(getFirstNonEmptyValue(
           line?.poStatus,
           line?.refPrToPoStatus,
+          line?.refPRToPOStatus,
           line?.purchaseOrderStatus,
           line?.poDocumentStatus
         ) || '').trim(),
         poLastUpdate: getFirstNonEmptyValue(
           line?.poLastUpdate,
           line?.refPrToPoLastUpdate,
+          line?.refPRToPOLastUpdate,
           line?.poUpdatedAt,
           line?.poModifiedAt
         ),
@@ -1647,7 +1783,11 @@
           line?.grCreatedAt,
           line?.postedGoodsReceiptAt
         ),
-        serviceOrderNo: normalizeServiceOrderNumber(line?.usvtRefServiceOrderNo)
+        serviceOrderNo: normalizeServiceOrderNumber(getFirstNonEmptyValue(
+          line?.usvtRefServiceOrderNo,
+          line?.serviceOrderNo,
+          line?.refServiceOrderNo
+        ))
       };
     }
 
@@ -1738,8 +1878,9 @@
       try {
         const payload = await requestPurchaseLineDataInChunks(serviceOrderNos, onProgress);
         const purchaseLineLookup = buildPurchaseLineLookup(payload);
+        const normalizedPurchaseLines = Array.from(purchaseLineLookup.values()).flat();
         const purchaseOrderPayload = await requestPurchaseOrderDataInChunks(
-          getDistinctPurchaseOrderNumbers(payload?.purchaseLines),
+          getDistinctPurchaseOrderNumbers(normalizedPurchaseLines),
           onPurchaseOrderProgress
         );
         const purchaseOrderLookup = buildPurchaseOrderLookup(purchaseOrderPayload);
@@ -1808,7 +1949,7 @@
       const loadMoreBtn = document.getElementById('loadMoreBtn');
 
       if (state.isLoadingMore) {
-        loadMoreBtn.textContent = 'Loading...';
+        loadMoreBtn.textContent = 'Auto-loading...';
         loadMoreBtn.disabled = true;
         return;
       }
@@ -1821,6 +1962,50 @@
 
       loadMoreBtn.textContent = `Load ${FETCH_BATCH_SIZE} more`;
       loadMoreBtn.disabled = state.isFetching;
+    }
+
+    function isAutoLoadSentinelNearViewport() {
+      const sentinel = document.getElementById('autoLoadSentinel');
+      if (!sentinel) {
+        return false;
+      }
+
+      const rect = sentinel.getBoundingClientRect();
+      return rect.top <= window.innerHeight + AUTO_LOAD_TRIGGER_OFFSET;
+    }
+
+    function queueAutoLoadCheck() {
+      window.requestAnimationFrame(() => {
+        if (!state.isFetching && state.hasMoreData && state.data.length > 0 && isAutoLoadSentinelNearViewport()) {
+          loadMoreData({ silent: true });
+        }
+      });
+    }
+
+    function setupAutoLoadObserver() {
+      const sentinel = document.getElementById('autoLoadSentinel');
+      if (!sentinel || typeof window.IntersectionObserver !== 'function') {
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) {
+          return;
+        }
+
+        if (state.isFetching || !state.hasMoreData || state.data.length === 0) {
+          return;
+        }
+
+        loadMoreData({ silent: true });
+      }, {
+        root: null,
+        rootMargin: `0px 0px ${AUTO_LOAD_TRIGGER_OFFSET}px 0px`,
+        threshold: 0
+      });
+
+      observer.observe(sentinel);
     }
 
     function setupStickyTimeboardHeader() {
@@ -1947,6 +2132,7 @@
       state.isLoadingMore = false;
       state.fetchSize = FETCH_BATCH_SIZE;
       state.hasMoreData = true;
+      hideInlineLoader();
       updateLoadMoreUi();
       showLoading(message);
 
@@ -1976,19 +2162,25 @@
         state.isFetching = false;
         hideLoading();
         updateLoadMoreUi();
+        queueAutoLoadCheck();
       }
     }
 
-    async function loadMoreData() {
+    async function loadMoreData(options = {}) {
       if (state.isFetching || !state.hasMoreData) return;
 
+      const { silent = false } = options;
       const previousCount = state.data.length;
       const nextFetchSize = state.fetchSize + FETCH_BATCH_SIZE;
 
       state.isFetching = true;
       state.isLoadingMore = true;
       updateLoadMoreUi();
-      showLoading('Loading more timeboard data...');
+      if (silent) {
+        showInlineLoader(`Auto-loading next ${FETCH_BATCH_SIZE} SV...`);
+      } else {
+        showLoading('Loading more timeboard data...');
+      }
 
       try {
         const rows = await requestTimeboardData(nextFetchSize);
@@ -1997,13 +2189,21 @@
             const detail = totalCount > 0
               ? `Loading purchase lines... ${percent}% (${processedCount}/${totalCount} SV)`
               : 'Loading purchase lines... 100%';
-            updateLoadingDetail(detail);
+            if (silent) {
+              updateInlineLoaderDetail(detail);
+            } else {
+              updateLoadingDetail(detail);
+            }
           },
           onPurchaseOrderProgress: (percent, processedCount, totalCount) => {
             const detail = totalCount > 0
               ? `Loading purchase orders... ${percent}% (${processedCount}/${totalCount} PO)`
               : 'Loading purchase orders... 100%';
-            updateLoadingDetail(detail);
+            if (silent) {
+              updateInlineLoaderDetail(detail);
+            } else {
+              updateLoadingDetail(detail);
+            }
           }
         });
         state.fetchSize = nextFetchSize;
@@ -2015,8 +2215,13 @@
         applyFilters();
         state.isFetching = false;
         state.isLoadingMore = false;
-        hideLoading();
+        if (silent) {
+          hideInlineLoader();
+        } else {
+          hideLoading();
+        }
         updateLoadMoreUi();
+        queueAutoLoadCheck();
       }
     }
 
@@ -2122,7 +2327,7 @@
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.confirmation, { className: slaOverdueClasses.confirmation })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.planningRequest, {
               className: slaOverdueClasses.planningRequest,
-              showRepeatMarker: Boolean(state.useMockTimeline && timeline.planningRequest),
+              showRepeatMarker: hasSvNumber,
               repeatArrowLabel: 'Same Planning Request as above'
             })}</td>
             <td class="col-merged-doc">${renderMergedDocCell(purchaseLine?.pr, purchaseLine?.prCreated, { className: slaOverdueClasses.pr })}</td>
@@ -2179,6 +2384,7 @@
 
     // Initialize
     setupStickyTimeboardHeader();
+    setupAutoLoadObserver();
     if (await checkAccess()) {
       await loadTimeboardDisplaySettings();
       showBranchSelectModal();
