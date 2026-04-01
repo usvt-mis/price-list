@@ -707,6 +707,7 @@
           </div>
         </div>
       </div>
+      <div id="timeboardDataModeMeta" class="mt-3 text-sm text-slate-500">Timeline mode: loading shared setting...</div>
     </div>
 
     <!-- Data Table -->
@@ -770,6 +771,7 @@
       filteredData: [],
       searchQuery: '',
       selectedBranch: '',
+      useMockTimeline: true,
       sortDirection: 'DESC',
       fetchSize: FETCH_BATCH_SIZE,
       hasMoreData: true,
@@ -837,6 +839,40 @@
       state.selectedBranch = branchCode;
       setActiveBranchButton(branchCode);
       await refreshData(loadingMessage);
+    }
+
+    function normalizeTimeboardDisplaySettings(settings = {}) {
+      return {
+        useMockTimeline: settings?.useMockTimeline !== false
+      };
+    }
+
+    function renderTimeboardDataModeMeta() {
+      const metaEl = document.getElementById('timeboardDataModeMeta');
+      if (!metaEl) {
+        return;
+      }
+
+      metaEl.textContent = state.useMockTimeline
+        ? 'Timeline mode: mockup timeline enabled from shared Backoffice setting.'
+        : 'Timeline mode: mockup timeline disabled. Showing only dates from real source data.';
+    }
+
+    async function loadTimeboardDisplaySettings() {
+      try {
+        const response = await fetch('/api/app-settings/timeboard-display-settings');
+        if (!response.ok) {
+          throw new Error('Failed to load Time Board data mode');
+        }
+
+        const data = await response.json();
+        state.useMockTimeline = normalizeTimeboardDisplaySettings(data.value).useMockTimeline;
+      } catch (error) {
+        console.warn('Failed to load Time Board display settings, using defaults:', error);
+        state.useMockTimeline = true;
+      }
+
+      renderTimeboardDataModeMeta();
     }
 
     // Check access (Manager + Executive only)
@@ -1246,6 +1282,33 @@
       };
     }
 
+    function buildActualTimeline(item, purchaseLine) {
+      const stCreated = parseValidDate(item?.postedStCreated || item?.stCreated);
+      const expectedDate = parseValidDate(item?.expectedDate);
+
+      return {
+        inspectionComplete: '',
+        priceRequest: '',
+        priceReport: '',
+        sqComplete: '',
+        confirmation: '',
+        planningRequest: '',
+        prComplete: '',
+        poComplete: '',
+        vendorDelivered: '',
+        goodsReceipt: '',
+        factoryProcedure: '',
+        stComplete: toIsoDate(stCreated),
+        expectedDeliveryDate: toIsoDate(expectedDate)
+      };
+    }
+
+    function buildTimeline(item, purchaseLine) {
+      return state.useMockTimeline
+        ? buildMockTimeline(item, purchaseLine)
+        : buildActualTimeline(item, purchaseLine);
+    }
+
     function renderScaffoldCell(show = true) {
       if (!show) {
         return '';
@@ -1254,13 +1317,13 @@
       return '<span class="text-slate-300">—</span>';
     }
 
-    function renderRepeatMarkerCell(show = false, arrowLabel = 'Same value as above') {
+    function renderRepeatMarkerCell(show = false, arrowLabel = 'Same value as above', className = '') {
       if (!show) {
         return renderScaffoldCell(true);
       }
 
       return `
-        <div class="scaffold-repeat-cell">
+        <div class="scaffold-repeat-cell${className ? ` ${className}` : ''}">
           <span class="merged-repeat-symbol" aria-label="${escapeHtml(arrowLabel)}">⤷</span>
         </div>
       `;
@@ -1804,22 +1867,30 @@
         const suppressSqCreatedMarker = !showSvSummary;
         const isSameGroupAsNext = !!nextItem && nextItem.sqNumber === item.sqNumber;
         const purchaseLine = item.purchaseLine || null;
-        const timeline = buildMockTimeline(item, purchaseLine);
+        const timeline = buildTimeline(item, purchaseLine);
         const renderSvTimelineDate = (value, options = {}) => (
           hasSvNumber
             ? renderDate(value, options)
             : renderScaffoldCell(true)
         );
         const renderSvSummaryOnlyDate = (value, options = {}) => {
+          const {
+            className = '',
+            showRepeatMarker = false,
+            repeatArrowLabel = 'Same value as above'
+          } = options;
+
           if (!hasSvNumber) {
             return renderScaffoldCell(true);
           }
 
           if (!showSvSummary) {
-            return '';
+            return showRepeatMarker
+              ? renderRepeatMarkerCell(true, repeatArrowLabel, className)
+              : '';
           }
 
-          return renderDate(value, options);
+          return renderDate(value, { className });
         };
         const renderSvTimelineExpectedDate = (value, options = {}) => (
           hasSvNumber
@@ -1866,7 +1937,11 @@
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.priceReport, { className: slaOverdueClasses.priceReport })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.sqComplete, { className: slaOverdueClasses.sqComplete })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.confirmation, { className: slaOverdueClasses.confirmation })}</td>
-            <td class="col-date">${renderSvSummaryOnlyDate(timeline.planningRequest, { className: slaOverdueClasses.planningRequest })}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.planningRequest, {
+              className: slaOverdueClasses.planningRequest,
+              showRepeatMarker: Boolean(state.useMockTimeline && timeline.planningRequest),
+              repeatArrowLabel: 'Same Planning Request as above'
+            })}</td>
             <td class="col-merged-doc">${renderMergedDocCell(purchaseLine?.pr, purchaseLine?.prCreated, { className: slaOverdueClasses.pr })}</td>
             <td class="col-date">${renderDate(timeline.prComplete, { className: slaOverdueClasses.prComplete })}</td>
             <td class="col-merged-doc">${renderMergedDocCell(purchaseLine?.po, purchaseLine?.poCreated, { className: slaOverdueClasses.poCreated })}</td>
@@ -1921,6 +1996,7 @@
     // Initialize
     setupStickyTimeboardHeader();
     if (await checkAccess()) {
+      await loadTimeboardDisplaySettings();
       showBranchSelectModal();
     }
 </script>

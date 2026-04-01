@@ -1552,6 +1552,46 @@
                   </div>
                 </div>
 
+                <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm" data-settings-category="general">
+                  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 class="text-lg font-semibold text-slate-900">Time Board Data Mode</h3>
+                      <p class="text-sm text-slate-500 mt-1">Choose whether Time Board should render the seeded mock timeline or show only dates that come from real source data.</p>
+                    </div>
+                  </div>
+
+                  <div class="backoffice-note mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    When mockup mode is off, timeline columns without actual source dates will show <strong>—</strong> instead of generated dates.
+                  </div>
+
+                  <div id="timeboardDisplaySettingsMeta" class="mt-4 text-sm text-slate-500">Loading Time Board data mode...</div>
+
+                  <section class="backoffice-inline-panel mt-5 p-5 rounded-2xl border border-slate-200">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div class="min-w-0">
+                        <h4 class="text-base font-semibold text-slate-900">Use Time Board mockup timeline</h4>
+                        <p class="mt-1 text-sm text-slate-500">Keeps the current seeded SLA timeline in columns like Inspection Complete, Price Request, Confirmation, and Planning Request.</p>
+                      </div>
+                      <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700">
+                        <input id="timeboardUseMockTimeline" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500">
+                        Enabled
+                      </label>
+                    </div>
+                  </section>
+
+                  <div class="mt-6 flex flex-wrap gap-3">
+                    <button id="timeboardDisplaySettingsSaveBtn" type="button" class="backoffice-btn rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 transition-colors">
+                      Save Time Board Mode
+                    </button>
+                    <button id="timeboardDisplaySettingsReloadBtn" type="button" class="backoffice-btn-secondary rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                      Reload Saved
+                    </button>
+                    <button id="timeboardDisplaySettingsDefaultsBtn" type="button" class="backoffice-btn-secondary rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-50 transition-colors">
+                      Use Defaults
+                    </button>
+                  </div>
+                </div>
+
                 <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm" data-settings-category="calculator">
                   <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -1678,7 +1718,7 @@
 
                 <div class="backoffice-panel backoffice-panel-strong p-6 bg-slate-900 rounded-2xl text-white shadow-sm" data-settings-category="general">
                   <h3 class="text-lg font-semibold">What Saves Here</h3>
-                  <p class="mt-3 text-sm text-slate-200">The settings in this tab are shared across users: landing page card visibility, motor job defaults, branch markup percentages, and Sales Quotes print layout.</p>
+                  <p class="mt-3 text-sm text-slate-200">The settings in this tab are shared across users: landing page card visibility, Time Board data mode, motor job defaults, branch markup percentages, and Sales Quotes print layout.</p>
                 </div>
 
                 <div class="backoffice-panel p-6 bg-white rounded-2xl border border-slate-200 shadow-sm" data-settings-category="general">
@@ -1937,6 +1977,7 @@
     currentEmail: null,
     currentSettingsCategory: 'general',
     indexMenuVisibilityLoaded: false,
+    timeboardDisplaySettingsLoaded: false,
     motorJobDefaultsLoaded: false,
     printLayoutLoaded: false,
     branchProfitSettingsLoaded: false,
@@ -2033,6 +2074,10 @@
 
   const MOTOR_JOB_DEFAULTS = Object.freeze({
     uncheckedPrefixes: ['wire arc', 'hvof']
+  });
+
+  const TIMEBOARD_DISPLAY_SETTINGS_DEFAULTS = Object.freeze({
+    useMockTimeline: true
   });
 
   const PRINT_LAYOUT_DEFAULTS = Object.freeze({
@@ -2858,6 +2903,12 @@
     return normalized;
   }
 
+  function normalizeTimeboardDisplaySettings(settings = {}) {
+    return {
+      useMockTimeline: settings?.useMockTimeline !== false
+    };
+  }
+
   function formatSettingsSavedMeta(data, emptyMessage) {
     if (!data?.updatedAt) {
       return emptyMessage;
@@ -3215,6 +3266,109 @@
   function applyDefaultIndexMenuVisibilitySettings() {
     populateIndexMenuVisibilityForm(INDEX_MENU_VISIBILITY_DEFAULTS);
     setIndexMenuVisibilityMeta('Default menu visibility loaded into the form. Click Save Menu Schedule to publish them.', 'warning');
+  }
+
+  function setTimeboardDisplaySettingsMeta(message, tone = 'default') {
+    const metaEl = el('timeboardDisplaySettingsMeta');
+    if (!metaEl) return;
+
+    metaEl.textContent = message;
+    metaEl.className = 'mt-4 text-sm';
+
+    if (tone === 'success') {
+      metaEl.classList.add('text-emerald-700');
+    } else if (tone === 'warning') {
+      metaEl.classList.add('text-amber-700');
+    } else if (tone === 'error') {
+      metaEl.classList.add('text-red-700');
+    } else {
+      metaEl.classList.add('text-slate-500');
+    }
+  }
+
+  function populateTimeboardDisplaySettingsForm(settings = TIMEBOARD_DISPLAY_SETTINGS_DEFAULTS) {
+    const normalized = normalizeTimeboardDisplaySettings(settings);
+    const mockTimelineInput = el('timeboardUseMockTimeline');
+    if (mockTimelineInput) {
+      mockTimelineInput.checked = normalized.useMockTimeline;
+    }
+  }
+
+  function collectTimeboardDisplaySettingsFromForm() {
+    return normalizeTimeboardDisplaySettings({
+      useMockTimeline: el('timeboardUseMockTimeline')?.checked
+    });
+  }
+
+  async function loadTimeboardDisplaySettings(forceRefresh = false) {
+    if (backofficeState.timeboardDisplaySettingsLoaded && !forceRefresh) {
+      return;
+    }
+
+    setTimeboardDisplaySettingsMeta('Loading Time Board data mode...');
+
+    try {
+      const response = await fetchWithAuth('/api/backoffice/timeboard-display-settings');
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to load Time Board data mode');
+      }
+
+      const data = await response.json();
+      populateTimeboardDisplaySettingsForm(data.value || TIMEBOARD_DISPLAY_SETTINGS_DEFAULTS);
+      setTimeboardDisplaySettingsMeta(
+        formatSettingsSavedMeta(data, 'Using default Time Board data mode. Save to publish a shared preference.'),
+        data.value ? 'success' : 'default'
+      );
+      backofficeState.timeboardDisplaySettingsLoaded = true;
+    } catch (error) {
+      console.error('Failed to load Time Board display settings:', error);
+      populateTimeboardDisplaySettingsForm(TIMEBOARD_DISPLAY_SETTINGS_DEFAULTS);
+      setTimeboardDisplaySettingsMeta('Failed to load saved Time Board data mode. Showing defaults in the form.', 'error');
+    }
+  }
+
+  async function saveTimeboardDisplaySettings() {
+    const saveBtn = el('timeboardDisplaySettingsSaveBtn');
+    const originalText = saveBtn?.textContent || 'Save Time Board Mode';
+
+    try {
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+      }
+
+      const value = collectTimeboardDisplaySettingsFromForm();
+      const response = await fetchWithAuth('/api/backoffice/timeboard-display-settings', {
+        method: 'PUT',
+        body: JSON.stringify({ value })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save Time Board data mode');
+      }
+
+      const data = await response.json();
+      populateTimeboardDisplaySettingsForm(data.value || value);
+      setTimeboardDisplaySettingsMeta(formatSettingsSavedMeta(data, 'Time Board data mode saved.'), 'success');
+      backofficeState.timeboardDisplaySettingsLoaded = true;
+      showNotification('Time Board data mode saved successfully', 'success');
+    } catch (error) {
+      console.error('Failed to save Time Board display settings:', error);
+      setTimeboardDisplaySettingsMeta(error.message || 'Failed to save Time Board data mode', 'error');
+      showNotification(error.message || 'Failed to save Time Board data mode', 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+    }
+  }
+
+  function applyDefaultTimeboardDisplaySettings() {
+    populateTimeboardDisplaySettingsForm(TIMEBOARD_DISPLAY_SETTINGS_DEFAULTS);
+    setTimeboardDisplaySettingsMeta('Default Time Board data mode loaded into the form. Click Save Time Board Mode to publish it.', 'warning');
   }
 
   function calculateBranchMultiplier(overheadPercent, policyProfit) {
@@ -3634,6 +3788,7 @@
       }
       showSettingsCategory(backofficeState.currentSettingsCategory || 'general');
       loadIndexMenuVisibilitySettings();
+      loadTimeboardDisplaySettings();
       loadMotorJobDefaults();
       loadBranchProfitSettings();
       loadBackofficePrintLayoutSettings();
@@ -3957,6 +4112,12 @@
     loadIndexMenuVisibilitySettings(true);
   });
   el('indexMenuVisibilityDefaultsBtn')?.addEventListener('click', applyDefaultIndexMenuVisibilitySettings);
+  el('timeboardDisplaySettingsSaveBtn')?.addEventListener('click', saveTimeboardDisplaySettings);
+  el('timeboardDisplaySettingsReloadBtn')?.addEventListener('click', () => {
+    backofficeState.timeboardDisplaySettingsLoaded = false;
+    loadTimeboardDisplaySettings(true);
+  });
+  el('timeboardDisplaySettingsDefaultsBtn')?.addEventListener('click', applyDefaultTimeboardDisplaySettings);
   el('motorJobDefaultsSaveBtn')?.addEventListener('click', saveMotorJobDefaults);
   el('motorJobDefaultsReloadBtn')?.addEventListener('click', () => {
     backofficeState.motorJobDefaultsLoaded = false;
@@ -3984,6 +4145,10 @@
     }
 
     setIndexMenuVisibilityMeta('Menu schedule updated locally. Click Save Menu Schedule to publish these changes.', 'warning');
+  });
+
+  el('timeboardUseMockTimeline')?.addEventListener('change', () => {
+    setTimeboardDisplaySettingsMeta('Time Board data mode updated locally. Click Save Time Board Mode to publish these changes.', 'warning');
   });
 
   el('motorJobDefaultsPrefixes')?.addEventListener('input', (event) => {

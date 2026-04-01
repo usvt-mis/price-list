@@ -19,6 +19,7 @@ const salesdirectorSignaturesRouter = require('./salesdirector-signatures');
 const SALESQUOTE_PRINT_LAYOUT_KEY = 'salesquote-print-layout';
 const INDEX_MENU_VISIBILITY_KEY = 'index-menu-visibility';
 const MOTOR_JOB_DEFAULTS_KEY = 'motor-job-defaults';
+const TIMEBOARD_DISPLAY_SETTINGS_KEY = 'timeboard-display-settings';
 
 function normalizeMotorJobDefaults(value = {}) {
   const uncheckedPrefixes = Array.isArray(value?.uncheckedPrefixes)
@@ -29,6 +30,12 @@ function normalizeMotorJobDefaults(value = {}) {
 
   return {
     uncheckedPrefixes: Array.from(new Set(uncheckedPrefixes))
+  };
+}
+
+function normalizeTimeboardDisplaySettings(value = {}) {
+  return {
+    useMockTimeline: value?.useMockTimeline !== false
   };
 }
 
@@ -203,6 +210,58 @@ router.put('/motor-job-defaults', async (req, res, next) => {
       message: 'Motor job defaults saved successfully',
       settingKey: record.settingKey,
       value: normalizeMotorJobDefaults(record.value),
+      updatedAt: record.updatedAt,
+      updatedBy: record.updatedBy
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/timeboard-display-settings', async (req, res, next) => {
+  try {
+    const pool = await getPool();
+    const record = await getBackofficeSetting(pool, TIMEBOARD_DISPLAY_SETTINGS_KEY);
+
+    if (!record) {
+      return res.status(200).json({
+        settingKey: TIMEBOARD_DISPLAY_SETTINGS_KEY,
+        value: null
+      });
+    }
+
+    res.status(200).json({
+      settingKey: record.settingKey,
+      value: normalizeTimeboardDisplaySettings(record.value),
+      updatedAt: record.updatedAt,
+      updatedBy: record.updatedBy
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/timeboard-display-settings', async (req, res, next) => {
+  try {
+    const session = req.session || {};
+
+    if (typeof req.body?.value === 'undefined') {
+      return res.status(400).json({ error: 'Setting value is required' });
+    }
+
+    const normalizedValue = normalizeTimeboardDisplaySettings(req.body.value);
+    const pool = await getPool();
+    const record = await upsertBackofficeSetting(
+      pool,
+      TIMEBOARD_DISPLAY_SETTINGS_KEY,
+      normalizedValue,
+      session.email || null
+    );
+
+    res.status(200).json({
+      message: 'Time Board display settings saved successfully',
+      settingKey: record.settingKey,
+      value: normalizeTimeboardDisplaySettings(record.value),
       updatedAt: record.updatedAt,
       updatedBy: record.updatedBy
     });
