@@ -94,6 +94,13 @@ const GATEWAY_ENDPOINTS = {
     fallbackKeyEnvs: ['GTB_KEY'],
     method: 'POST'
   },
+  getPOFromArray: {
+    defaultPath: 'getPOFromArray',
+    pathEnv: 'GPOFA_PATH',
+    keyEnv: 'GPOFA_KEY',
+    fallbackKeyEnvs: ['GPLFA_KEY', 'GTB_KEY'],
+    method: 'POST'
+  },
   getTimeBoard: {
     defaultPath: 'GetTimeBoard',
     keyEnv: 'GTB_KEY',
@@ -394,6 +401,10 @@ router.post('/patch-sales-quote', (req, res, next) => {
 
 router.post('/purchase-lines/from-service-orders', (req, res, next) => {
   proxyGatewayRequest(req, res, next, 'getPurchaseLineFromArray', 'GetPurchaseLineFromArray');
+});
+
+router.post('/purchase-orders/from-array', (req, res, next) => {
+  proxyGatewayRequest(req, res, next, 'getPOFromArray', 'GetPOFromArray');
 });
 
 router.get('/timeboard', (req, res, next) => {

@@ -685,19 +685,21 @@
     <!-- Filters Bar -->
     <div class="calm-card p-4 mb-6">
       <div class="flex items-center justify-between gap-6">
-        <div class="branch-filter">
-          <button class="branch-btn" data-branch="URY">URY</button>
-          <button class="branch-btn" data-branch="UCB">UCB</button>
-          <button class="branch-btn" data-branch="USB">USB</button>
-          <button class="branch-btn" data-branch="UPB">UPB</button>
-          <button class="branch-btn" data-branch="UKK">UKK</button>
-          <button class="branch-btn" data-branch="USR">USR</button>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-slate-500">Sort:</span>
+        <div class="flex items-center gap-4 flex-wrap">
           <div class="branch-filter">
-            <button class="branch-btn sort-toggle-btn active" data-sort="DESC">▼ DESC</button>
-            <button class="branch-btn sort-toggle-btn" data-sort="ASC">▲ ASC</button>
+            <button class="branch-btn" data-branch="URY">URY</button>
+            <button class="branch-btn" data-branch="UCB">UCB</button>
+            <button class="branch-btn" data-branch="USB">USB</button>
+            <button class="branch-btn" data-branch="UPB">UPB</button>
+            <button class="branch-btn" data-branch="UKK">UKK</button>
+            <button class="branch-btn" data-branch="USR">USR</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-slate-500">Sort:</span>
+            <div class="branch-filter">
+              <button class="branch-btn sort-toggle-btn active" data-sort="DESC">▼ DESC</button>
+              <button class="branch-btn sort-toggle-btn" data-sort="ASC">▲ ASC</button>
+            </div>
           </div>
         </div>
         <div id="stats" class="flex items-center gap-6">
@@ -734,7 +736,8 @@
               <th class="col-equal"><div class="timeboard-header-cell"><span>Planning Request</span><span class="timeboard-header-sla">12h (work period)</span></div></th>
               <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>PR</span><span class="timeboard-header-sla">12h (work period)</span></div></th>
               <th class="col-equal"><div class="timeboard-header-cell"><span>PR Complete</span><span class="timeboard-header-sla">2h</span></div></th>
-              <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>PO Created</span><span class="timeboard-header-sla">12h (work period)</span></div></th>
+              <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>PO</span><span class="timeboard-header-sla">12h (work period)</span></div></th>
+              <th class="col-equal"><div class="timeboard-header-cell"><span>PO Approved</span><span class="timeboard-header-sla">2h</span></div></th>
               <th class="col-equal"><div class="timeboard-header-cell"><span>Vendor Delivered</span><span class="timeboard-header-sla">N/A</span></div></th>
               <th class="col-equal"><div class="timeboard-header-cell"><span>Goods Receipt</span><span class="timeboard-header-sla">1h</span></div></th>
               <th class="col-equal"><div class="timeboard-header-cell"><span>Factory Procedure</span><span class="timeboard-header-sla">N/A</span></div></th>
@@ -765,6 +768,7 @@
 
     const FETCH_BATCH_SIZE = 50;
     const PURCHASE_LINE_BATCH_SIZE = 100;
+    const PURCHASE_ORDER_BATCH_SIZE = 100;
     let syncStickyTimeboardHeader = () => {};
     const state = {
       data: [],
@@ -855,7 +859,7 @@
 
       metaEl.textContent = state.useMockTimeline
         ? 'Timeline mode: mockup timeline enabled from shared Backoffice setting.'
-        : 'Timeline mode: mockup timeline disabled. Showing only dates from real source data.';
+        : '';
     }
 
     async function loadTimeboardDisplaySettings() {
@@ -1187,7 +1191,7 @@
         expectedDate ? addDays(expectedDate, -getSeededOffset(seed, 13, 7, 12)) : null
       );
 
-      let goodsReceipt = vendorDelivered;
+      let goodsReceipt = parseValidDate(purchaseLine?.goodsReceipt) || vendorDelivered;
 
       let factoryProcedure = maxDate(
         addDays(goodsReceipt, getSeededOffset(seed, 14, 1, 3)),
@@ -1298,6 +1302,7 @@
     function buildActualTimeline(item, purchaseLine) {
       const stCreated = parseValidDate(item?.postedStCreated || item?.stCreated);
       const expectedDate = parseValidDate(item?.expectedDate);
+      const goodsReceipt = parseValidDate(purchaseLine?.goodsReceipt);
 
       return {
         inspectionComplete: '',
@@ -1309,7 +1314,7 @@
         prComplete: '',
         poComplete: '',
         vendorDelivered: '',
-        goodsReceipt: '',
+        goodsReceipt: toIsoDate(goodsReceipt),
         factoryProcedure: '',
         stComplete: toIsoDate(stCreated),
         expectedDeliveryDate: toIsoDate(expectedDate)
@@ -1445,10 +1450,22 @@
       return String(value || '').trim();
     }
 
+    function normalizePurchaseOrderNumber(value) {
+      return String(value || '').trim();
+    }
+
     function getDistinctServiceOrderNumbers(rows) {
       return Array.from(new Set(
         (Array.isArray(rows) ? rows : [])
           .map((row) => normalizeServiceOrderNumber(row?.svNumber))
+          .filter(Boolean)
+      ));
+    }
+
+    function getDistinctPurchaseOrderNumbers(purchaseLines) {
+      return Array.from(new Set(
+        (Array.isArray(purchaseLines) ? purchaseLines : [])
+          .map((line) => normalizePurchaseOrderNumber(line?.po))
           .filter(Boolean)
       ));
     }
@@ -1471,6 +1488,29 @@
 
       if (!response.ok) {
         throw new Error('Failed to fetch purchase line data');
+      }
+
+      return response.json();
+    }
+
+    async function requestPurchaseOrderData(purchaseOrderNos) {
+      if (!Array.isArray(purchaseOrderNos) || purchaseOrderNos.length === 0) {
+        return {
+          success: true,
+          purchaseOrders: []
+        };
+      }
+
+      const response = await fetch('/api/business-central/gateway/purchase-orders/from-array', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(purchaseOrderNos)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch purchase order data');
       }
 
       return response.json();
@@ -1516,6 +1556,43 @@
       return mergedPayload;
     }
 
+    async function requestPurchaseOrderDataInChunks(purchaseOrderNos, onProgress = () => {}) {
+      const normalizedPurchaseOrderNos = Array.isArray(purchaseOrderNos) ? purchaseOrderNos.filter(Boolean) : [];
+      const total = normalizedPurchaseOrderNos.length;
+      const mergedPayload = {
+        success: true,
+        purchaseOrders: [],
+        totalCount: 0,
+        processedAt: ''
+      };
+
+      if (total === 0) {
+        onProgress(100, 0, 0);
+        return mergedPayload;
+      }
+
+      onProgress(0, 0, total);
+
+      for (let startIndex = 0; startIndex < total; startIndex += PURCHASE_ORDER_BATCH_SIZE) {
+        const chunk = normalizedPurchaseOrderNos.slice(startIndex, startIndex + PURCHASE_ORDER_BATCH_SIZE);
+        const chunkPayload = await requestPurchaseOrderData(chunk);
+
+        if (chunkPayload?.success === false) {
+          throw new Error('Failed to fetch purchase order data');
+        }
+
+        mergedPayload.purchaseOrders.push(...(Array.isArray(chunkPayload?.purchaseOrders) ? chunkPayload.purchaseOrders : []));
+        mergedPayload.totalCount += Number(chunkPayload?.totalCount || 0);
+        mergedPayload.processedAt = chunkPayload?.processedAt || mergedPayload.processedAt;
+
+        const processedCount = Math.min(startIndex + chunk.length, total);
+        const percent = Math.round((processedCount / total) * 100);
+        onProgress(percent, processedCount, total);
+      }
+
+      return mergedPayload;
+    }
+
     function normalizePurchaseLine(line) {
       return {
         prCreated: line?.systemCreatedAt || '',
@@ -1542,6 +1619,16 @@
           line?.refPrToPoSystemCreatedAt
         ),
         po: String(line?.refPrToPoNo || '').trim(),
+        poApproved: getFirstNonEmptyValue(
+          line?.poApproved,
+          line?.refPrToPoApproved,
+          line?.purchaseOrderApprovedAt,
+          line?.poApprovedAt,
+          line?.poLastUpdate,
+          line?.refPrToPoLastUpdate,
+          line?.poUpdatedAt,
+          line?.poModifiedAt
+        ),
         poStatus: String(getFirstNonEmptyValue(
           line?.poStatus,
           line?.refPrToPoStatus,
@@ -1554,7 +1641,29 @@
           line?.poUpdatedAt,
           line?.poModifiedAt
         ),
+        goodsReceipt: getFirstNonEmptyValue(
+          line?.goodsReceipt,
+          line?.goodsReceiptDate,
+          line?.grCreatedAt,
+          line?.postedGoodsReceiptAt
+        ),
         serviceOrderNo: normalizeServiceOrderNumber(line?.usvtRefServiceOrderNo)
+      };
+    }
+
+    function normalizePurchaseOrder(order) {
+      return {
+        po: normalizePurchaseOrderNumber(order?.po),
+        poCreated: getFirstNonEmptyValue(
+          order?.poCreated,
+          order?.createdAt,
+          order?.purchaseOrderCreatedAt
+        ),
+        goodsReceipt: getFirstNonEmptyValue(
+          order?.goodsReceipt,
+          order?.goodsReceiptDate,
+          order?.postedGoodsReceiptAt
+        )
       };
     }
 
@@ -1578,11 +1687,48 @@
       return lookup;
     }
 
+    function buildPurchaseOrderLookup(payload) {
+      const lookup = new Map();
+      const purchaseOrders = Array.isArray(payload?.purchaseOrders) ? payload.purchaseOrders : [];
+
+      purchaseOrders.forEach((order) => {
+        const normalizedOrder = normalizePurchaseOrder(order);
+        if (!normalizedOrder.po) {
+          return;
+        }
+
+        lookup.set(normalizedOrder.po, normalizedOrder);
+      });
+
+      return lookup;
+    }
+
+    function mergePurchaseOrderDataIntoPurchaseLines(purchaseLines, purchaseOrderLookup) {
+      return (Array.isArray(purchaseLines) ? purchaseLines : []).map((purchaseLine) => {
+        const poNumber = normalizePurchaseOrderNumber(purchaseLine?.po);
+        const purchaseOrder = poNumber ? purchaseOrderLookup.get(poNumber) : null;
+
+        if (!purchaseOrder) {
+          return purchaseLine;
+        }
+
+        return {
+          ...purchaseLine,
+          poCreated: getFirstNonEmptyValue(purchaseOrder.poCreated, purchaseLine?.poCreated),
+          goodsReceipt: getFirstNonEmptyValue(purchaseOrder.goodsReceipt, purchaseLine?.goodsReceipt)
+        };
+      });
+    }
+
     async function enrichRowsWithPurchaseLines(rows, options = {}) {
-      const { onProgress = () => {} } = options;
+      const {
+        onProgress = () => {},
+        onPurchaseOrderProgress = () => {}
+      } = options;
       const serviceOrderNos = getDistinctServiceOrderNumbers(rows);
       if (serviceOrderNos.length === 0) {
         onProgress(100, 0, 0);
+        onPurchaseOrderProgress(100, 0, 0);
         return rows.map((row) => ({
           ...row,
           purchaseLines: []
@@ -1592,12 +1738,19 @@
       try {
         const payload = await requestPurchaseLineDataInChunks(serviceOrderNos, onProgress);
         const purchaseLineLookup = buildPurchaseLineLookup(payload);
+        const purchaseOrderPayload = await requestPurchaseOrderDataInChunks(
+          getDistinctPurchaseOrderNumbers(payload?.purchaseLines),
+          onPurchaseOrderProgress
+        );
+        const purchaseOrderLookup = buildPurchaseOrderLookup(purchaseOrderPayload);
 
         return rows.map((row) => {
           const svNumber = normalizeServiceOrderNumber(row?.svNumber);
+          const purchaseLines = purchaseLineLookup.get(svNumber) || [];
+
           return {
             ...row,
-            purchaseLines: purchaseLineLookup.get(svNumber) || []
+            purchaseLines: mergePurchaseOrderDataIntoPurchaseLines(purchaseLines, purchaseOrderLookup)
           };
         });
       } catch (error) {
@@ -1805,6 +1958,12 @@
               ? `Loading purchase lines... ${percent}% (${processedCount}/${totalCount} SV)`
               : 'Loading purchase lines... 100%';
             updateLoadingDetail(detail);
+          },
+          onPurchaseOrderProgress: (percent, processedCount, totalCount) => {
+            const detail = totalCount > 0
+              ? `Loading purchase orders... ${percent}% (${processedCount}/${totalCount} PO)`
+              : 'Loading purchase orders... 100%';
+            updateLoadingDetail(detail);
           }
         });
         state.data = enrichedRows;
@@ -1839,6 +1998,12 @@
               ? `Loading purchase lines... ${percent}% (${processedCount}/${totalCount} SV)`
               : 'Loading purchase lines... 100%';
             updateLoadingDetail(detail);
+          },
+          onPurchaseOrderProgress: (percent, processedCount, totalCount) => {
+            const detail = totalCount > 0
+              ? `Loading purchase orders... ${percent}% (${processedCount}/${totalCount} PO)`
+              : 'Loading purchase orders... 100%';
+            updateLoadingDetail(detail);
           }
         });
         state.fetchSize = nextFetchSize;
@@ -1861,7 +2026,7 @@
       const displayRows = buildDisplayRows(state.filteredData);
 
       if (displayRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="19" class="text-center py-16 text-slate-400">No records found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="20" class="text-center py-16 text-slate-400">No records found</td></tr>`;
         document.getElementById('statTotal').textContent = '0';
         document.getElementById('paginationInfo').textContent =
           `Showing 0 matching rows from ${state.data.length} loaded`;
@@ -1932,6 +2097,11 @@
           pr: isSlaExceeded(timeline.planningRequest, purchaseLine?.prCreated, 12) ? 'timeboard-sla-overdue' : '',
           prComplete: isSlaExceeded(purchaseLine?.prCreated, timeline.prComplete, 2) ? 'timeboard-sla-overdue' : '',
           poCreated: isSlaExceeded(timeline.prComplete, purchaseLine?.poCreated, 12) ? 'timeboard-sla-overdue' : '',
+          poApproved: isSlaExceeded(
+            purchaseLine?.poCreated,
+            state.useMockTimeline ? (timeline.poComplete || purchaseLine?.poApproved) : purchaseLine?.poApproved,
+            2
+          ) ? 'timeboard-sla-overdue' : '',
           goodsReceipt: isSlaExceeded(timeline.vendorDelivered, timeline.goodsReceipt, 1) ? 'timeboard-sla-overdue' : ''
         };
         const isDelayedAgainstExpected = isDateAfter(item.shCreated, timeline.expectedDeliveryDate);
@@ -1958,6 +2128,7 @@
             <td class="col-merged-doc">${renderMergedDocCell(purchaseLine?.pr, purchaseLine?.prCreated, { className: slaOverdueClasses.pr })}</td>
             <td class="col-date">${renderDate(timeline.prComplete, { className: slaOverdueClasses.prComplete })}</td>
             <td class="col-merged-doc">${renderMergedDocCell(purchaseLine?.po, purchaseLine?.poCreated, { className: slaOverdueClasses.poCreated })}</td>
+            <td class="col-date">${renderDate(state.useMockTimeline ? (timeline.poComplete || purchaseLine?.poApproved) : purchaseLine?.poApproved, { className: slaOverdueClasses.poApproved })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.vendorDelivered)}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.goodsReceipt, { className: slaOverdueClasses.goodsReceipt })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.factoryProcedure)}</td>
