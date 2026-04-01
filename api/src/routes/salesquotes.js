@@ -37,6 +37,7 @@ function mapSubmissionRecord(record) {
     id: record.Id,
     salesQuoteNumber: record.SalesQuoteNumber,
     senderEmail: record.SenderEmail,
+    customerName: record.CustomerName || '',
     workDescription: record.WorkDescription || '',
     remark: record.Remark || '',
     submittedAt: record.SubmittedAt,
@@ -392,10 +393,26 @@ router.get('/records', async (req, res, next) => {
     const request = pool.request()
       .input('senderEmail', sql.NVarChar, senderEmail);
 
-    let whereClause = 'WHERE SenderEmail = @senderEmail';
+    let approvalsSearchClause = '';
+    let recordsOnlySearchClause = '';
     if (search) {
       request.input('search', sql.NVarChar, `%${search}%`);
-      whereClause += ' AND (SalesQuoteNumber LIKE @search OR WorkDescription LIKE @search OR Remark LIKE @search)';
+      approvalsSearchClause = `
+        AND (
+          r.SalesQuoteNumber LIKE @search
+          OR r.WorkDescription LIKE @search
+          OR r.Remark LIKE @search
+          OR COALESCE(NULLIF(r.CustomerName, ''), a.CustomerName, '') LIKE @search
+        )
+      `;
+      recordsOnlySearchClause = `
+        AND (
+          r.SalesQuoteNumber LIKE @search
+          OR r.WorkDescription LIKE @search
+          OR r.Remark LIKE @search
+          OR r.CustomerName LIKE @search
+        )
+      `;
     }
 
     const result = await request.query(`
@@ -405,6 +422,7 @@ router.get('/records', async (req, res, next) => {
           r.Id,
           r.SalesQuoteNumber,
           r.SenderEmail,
+          COALESCE(NULLIF(r.CustomerName, ''), a.CustomerName, '') AS CustomerName,
           r.WorkDescription,
           r.Remark,
           r.SubmittedAt,
@@ -412,7 +430,8 @@ router.get('/records', async (req, res, next) => {
         FROM SalesQuoteSubmissionRecords r
         LEFT JOIN SalesQuoteApprovals a
           ON a.SalesQuoteNumber = r.SalesQuoteNumber
-        ${whereClause.replace(/SalesQuoteNumber/g, 'r.SalesQuoteNumber').replace(/WorkDescription/g, 'r.WorkDescription').replace(/Remark/g, 'r.Remark').replace(/SenderEmail/g, 'r.SenderEmail')}
+        WHERE r.SenderEmail = @senderEmail
+        ${approvalsSearchClause}
         ORDER BY r.SubmittedAt DESC, r.Id DESC
       END
       ELSE
@@ -421,12 +440,14 @@ router.get('/records', async (req, res, next) => {
           r.Id,
           r.SalesQuoteNumber,
           r.SenderEmail,
+          ISNULL(r.CustomerName, '') AS CustomerName,
           r.WorkDescription,
           r.Remark,
           r.SubmittedAt,
           CAST(NULL AS NVARCHAR(50)) AS ApprovalStatus
         FROM SalesQuoteSubmissionRecords r
-        ${whereClause.replace(/SalesQuoteNumber/g, 'r.SalesQuoteNumber').replace(/WorkDescription/g, 'r.WorkDescription').replace(/Remark/g, 'r.Remark').replace(/SenderEmail/g, 'r.SenderEmail')}
+        WHERE r.SenderEmail = @senderEmail
+        ${recordsOnlySearchClause}
         ORDER BY r.SubmittedAt DESC, r.Id DESC
       END
     `);
@@ -446,6 +467,7 @@ router.post('/records', async (req, res, next) => {
   }
 
   const salesQuoteNumber = String(req.body?.salesQuoteNumber || '').trim();
+  const customerName = normalizeNullableString(req.body?.customerName, 255);
   const workDescription = typeof req.body?.workDescription === 'string'
     ? req.body.workDescription.trim()
     : '';
@@ -469,6 +491,7 @@ router.post('/records', async (req, res, next) => {
           Id,
           SalesQuoteNumber,
           SenderEmail,
+          CustomerName,
           WorkDescription,
           Remark,
           SubmittedAt
@@ -478,15 +501,37 @@ router.post('/records', async (req, res, next) => {
       `);
 
     if (existingResult.recordset.length > 0) {
+      const updatedResult = await pool.request()
+        .input('id', sql.Int, existingResult.recordset[0].Id)
+        .input('customerName', sql.NVarChar(255), customerName)
+        .input('workDescription', sql.NVarChar(sql.MAX), workDescription || null)
+        .input('remark', sql.NVarChar(255), remark || null)
+        .query(`
+          UPDATE SalesQuoteSubmissionRecords
+          SET CustomerName = @customerName,
+              WorkDescription = @workDescription,
+              Remark = @remark
+          OUTPUT
+            INSERTED.Id,
+            INSERTED.SalesQuoteNumber,
+            INSERTED.SenderEmail,
+            INSERTED.CustomerName,
+            INSERTED.WorkDescription,
+            INSERTED.Remark,
+            INSERTED.SubmittedAt
+          WHERE Id = @id
+        `);
+
       return res.status(200).json({
-        message: 'Record already exists',
-        record: mapSubmissionRecord(existingResult.recordset[0])
+        message: 'Record updated successfully',
+        record: mapSubmissionRecord(updatedResult.recordset[0] || existingResult.recordset[0])
       });
     }
 
     const insertResult = await pool.request()
       .input('salesQuoteNumber', sql.NVarChar, salesQuoteNumber)
       .input('senderEmail', sql.NVarChar, senderEmail)
+      .input('customerName', sql.NVarChar(255), customerName)
       .input('workDescription', sql.NVarChar(sql.MAX), workDescription || null)
       .input('remark', sql.NVarChar(255), remark || null)
       .input('clientIP', sql.NVarChar(50), getClientIP(req))
@@ -494,6 +539,7 @@ router.post('/records', async (req, res, next) => {
         INSERT INTO SalesQuoteSubmissionRecords (
           SalesQuoteNumber,
           SenderEmail,
+          CustomerName,
           WorkDescription,
           Remark,
           ClientIP
@@ -502,12 +548,14 @@ router.post('/records', async (req, res, next) => {
           INSERTED.Id,
           INSERTED.SalesQuoteNumber,
           INSERTED.SenderEmail,
+          INSERTED.CustomerName,
           INSERTED.WorkDescription,
           INSERTED.Remark,
           INSERTED.SubmittedAt
         VALUES (
           @salesQuoteNumber,
           @senderEmail,
+          @customerName,
           @workDescription,
           @remark,
           @clientIP
@@ -543,6 +591,7 @@ router.post('/records', async (req, res, next) => {
               Id,
               SalesQuoteNumber,
               SenderEmail,
+              CustomerName,
               WorkDescription,
               Remark,
               SubmittedAt

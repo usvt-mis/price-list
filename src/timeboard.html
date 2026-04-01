@@ -856,6 +856,7 @@
     const FETCH_BATCH_SIZE = 50;
     const PURCHASE_LINE_BATCH_SIZE = 100;
     const PURCHASE_ORDER_BATCH_SIZE = 100;
+    const APPROVAL_STATUS_CHUNK_COUNT = 2;
     const AUTO_LOAD_TRIGGER_OFFSET = 160;
     let syncStickyTimeboardHeader = () => {};
     const state = {
@@ -863,6 +864,10 @@
       filteredData: [],
       searchQuery: '',
       selectedBranch: '',
+      purchaseDocumentNos: {
+        pr: [],
+        po: []
+      },
       useMockTimeline: true,
       sortDirection: 'DESC',
       fetchSize: FETCH_BATCH_SIZE,
@@ -1578,6 +1583,10 @@
       return String(value || '').trim();
     }
 
+    function normalizePurchaseRequestNumber(value) {
+      return String(value || '').trim();
+    }
+
     function getDistinctServiceOrderNumbers(rows) {
       return Array.from(new Set(
         (Array.isArray(rows) ? rows : [])
@@ -1592,6 +1601,33 @@
           .map((line) => normalizePurchaseOrderNumber(line?.po))
           .filter(Boolean)
       ));
+    }
+
+    function getDistinctPurchaseRequestNumbers(purchaseLines) {
+      return Array.from(new Set(
+        (Array.isArray(purchaseLines) ? purchaseLines : [])
+          .map((line) => normalizePurchaseRequestNumber(line?.pr))
+          .filter(Boolean)
+      ));
+    }
+
+    function splitIntoChunkCount(items, chunkCount) {
+      const normalizedItems = Array.isArray(items) ? items.filter(Boolean) : [];
+      const normalizedChunkCount = Math.max(1, Number(chunkCount) || 1);
+      const total = normalizedItems.length;
+
+      if (total === 0) {
+        return [];
+      }
+
+      const chunkSize = Math.ceil(total / normalizedChunkCount);
+      const chunks = [];
+
+      for (let startIndex = 0; startIndex < total; startIndex += chunkSize) {
+        chunks.push(normalizedItems.slice(startIndex, startIndex + chunkSize));
+      }
+
+      return chunks;
     }
 
     async function requestPurchaseLineData(serviceOrderNos) {
@@ -1635,6 +1671,29 @@
 
       if (!response.ok) {
         throw new Error('Failed to fetch purchase order data');
+      }
+
+      return response.json();
+    }
+
+    async function requestApprovalStatusData(documentNos) {
+      if (!Array.isArray(documentNos) || documentNos.length === 0) {
+        return {
+          success: true,
+          approvalStatuses: []
+        };
+      }
+
+      const response = await fetch('/api/business-central/gateway/approval-status/from-array', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(documentNos)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch approval status data');
       }
 
       return response.json();
@@ -1710,6 +1769,44 @@
         mergedPayload.processedAt = chunkPayload?.processedAt || mergedPayload.processedAt;
 
         const processedCount = Math.min(startIndex + chunk.length, total);
+        const percent = Math.round((processedCount / total) * 100);
+        onProgress(percent, processedCount, total);
+      }
+
+      return mergedPayload;
+    }
+
+    async function requestApprovalStatusDataInChunks(documentNos, onProgress = () => {}) {
+      const normalizedDocumentNos = Array.from(new Set(
+        (Array.isArray(documentNos) ? documentNos : [])
+          .map((documentNo) => normalizePurchaseOrderNumber(documentNo))
+          .filter(Boolean)
+      ));
+      const total = normalizedDocumentNos.length;
+      const mergedPayload = {
+        success: true,
+        approvalStatuses: []
+      };
+
+      if (total === 0) {
+        onProgress(100, 0, 0);
+        return mergedPayload;
+      }
+
+      onProgress(0, 0, total);
+
+      const chunks = splitIntoChunkCount(normalizedDocumentNos, APPROVAL_STATUS_CHUNK_COUNT);
+      let processedCount = 0;
+
+      for (const chunk of chunks) {
+        const chunkPayload = await requestApprovalStatusData(chunk);
+
+        if (chunkPayload?.success === false) {
+          throw new Error('Failed to fetch approval status data');
+        }
+
+        mergedPayload.approvalStatuses.push(...(Array.isArray(chunkPayload?.approvalStatuses) ? chunkPayload.approvalStatuses : []));
+        processedCount += chunk.length;
         const percent = Math.round((processedCount / total) * 100);
         onProgress(percent, processedCount, total);
       }
@@ -1807,6 +1904,23 @@
       };
     }
 
+    function normalizeApprovalStatus(status) {
+      return {
+        documentNo: normalizePurchaseOrderNumber(getFirstNonEmptyValue(
+          status?.documentNo,
+          status?.documentNumber,
+          status?.po,
+          status?.poNo
+        )),
+        approvalDate: getFirstNonEmptyValue(
+          status?.approvalDate,
+          status?.approvedAt,
+          status?.poApproved,
+          status?.poApprovedAt
+        )
+      };
+    }
+
     function buildPurchaseLineLookup(payload) {
       const lookup = new Map();
       const purchaseLines = Array.isArray(payload?.purchaseLines) ? payload.purchaseLines : [];
@@ -1843,6 +1957,22 @@
       return lookup;
     }
 
+    function buildApprovalStatusLookup(payload) {
+      const lookup = new Map();
+      const approvalStatuses = Array.isArray(payload?.approvalStatuses) ? payload.approvalStatuses : [];
+
+      approvalStatuses.forEach((status) => {
+        const normalizedStatus = normalizeApprovalStatus(status);
+        if (!normalizedStatus.documentNo) {
+          return;
+        }
+
+        lookup.set(normalizedStatus.documentNo, normalizedStatus);
+      });
+
+      return lookup;
+    }
+
     function mergePurchaseOrderDataIntoPurchaseLines(purchaseLines, purchaseOrderLookup) {
       return (Array.isArray(purchaseLines) ? purchaseLines : []).map((purchaseLine) => {
         const poNumber = normalizePurchaseOrderNumber(purchaseLine?.po);
@@ -1860,15 +1990,37 @@
       });
     }
 
+    function mergeApprovalStatusIntoPurchaseLines(purchaseLines, approvalStatusLookup) {
+      return (Array.isArray(purchaseLines) ? purchaseLines : []).map((purchaseLine) => {
+        const poNumber = normalizePurchaseOrderNumber(purchaseLine?.po);
+        const approvalStatus = poNumber ? approvalStatusLookup.get(poNumber) : null;
+
+        if (!approvalStatus) {
+          return purchaseLine;
+        }
+
+        return {
+          ...purchaseLine,
+          poApproved: getFirstNonEmptyValue(approvalStatus.approvalDate, purchaseLine?.poApproved)
+        };
+      });
+    }
+
     async function enrichRowsWithPurchaseLines(rows, options = {}) {
       const {
         onProgress = () => {},
-        onPurchaseOrderProgress = () => {}
+        onPurchaseOrderProgress = () => {},
+        onApprovalStatusProgress = () => {}
       } = options;
       const serviceOrderNos = getDistinctServiceOrderNumbers(rows);
       if (serviceOrderNos.length === 0) {
+        state.purchaseDocumentNos = {
+          pr: [],
+          po: []
+        };
         onProgress(100, 0, 0);
         onPurchaseOrderProgress(100, 0, 0);
+        onApprovalStatusProgress(100, 0, 0);
         return rows.map((row) => ({
           ...row,
           purchaseLines: []
@@ -1879,11 +2031,22 @@
         const payload = await requestPurchaseLineDataInChunks(serviceOrderNos, onProgress);
         const purchaseLineLookup = buildPurchaseLineLookup(payload);
         const normalizedPurchaseLines = Array.from(purchaseLineLookup.values()).flat();
+        const purchaseRequestNos = getDistinctPurchaseRequestNumbers(normalizedPurchaseLines);
+        const purchaseOrderNos = getDistinctPurchaseOrderNumbers(normalizedPurchaseLines);
+        state.purchaseDocumentNos = {
+          pr: purchaseRequestNos,
+          po: purchaseOrderNos
+        };
         const purchaseOrderPayload = await requestPurchaseOrderDataInChunks(
-          getDistinctPurchaseOrderNumbers(normalizedPurchaseLines),
+          purchaseOrderNos,
           onPurchaseOrderProgress
         );
         const purchaseOrderLookup = buildPurchaseOrderLookup(purchaseOrderPayload);
+        const approvalStatusPayload = await requestApprovalStatusDataInChunks(
+          purchaseOrderNos,
+          onApprovalStatusProgress
+        );
+        const approvalStatusLookup = buildApprovalStatusLookup(approvalStatusPayload);
 
         return rows.map((row) => {
           const svNumber = normalizeServiceOrderNumber(row?.svNumber);
@@ -1891,10 +2054,17 @@
 
           return {
             ...row,
-            purchaseLines: mergePurchaseOrderDataIntoPurchaseLines(purchaseLines, purchaseOrderLookup)
+            purchaseLines: mergeApprovalStatusIntoPurchaseLines(
+              mergePurchaseOrderDataIntoPurchaseLines(purchaseLines, purchaseOrderLookup),
+              approvalStatusLookup
+            )
           };
         });
       } catch (error) {
+        state.purchaseDocumentNos = {
+          pr: [],
+          po: []
+        };
         console.warn('Failed to enrich timeboard rows with purchase line data:', error);
         return rows.map((row) => ({
           ...row,
@@ -2150,6 +2320,12 @@
               ? `Loading purchase orders... ${percent}% (${processedCount}/${totalCount} PO)`
               : 'Loading purchase orders... 100%';
             updateLoadingDetail(detail);
+          },
+          onApprovalStatusProgress: (percent, processedCount, totalCount) => {
+            const detail = totalCount > 0
+              ? `Loading approval status... ${percent}% (${processedCount}/${totalCount} PO)`
+              : 'Loading approval status... 100%';
+            updateLoadingDetail(detail);
           }
         });
         state.data = enrichedRows;
@@ -2199,6 +2375,16 @@
             const detail = totalCount > 0
               ? `Loading purchase orders... ${percent}% (${processedCount}/${totalCount} PO)`
               : 'Loading purchase orders... 100%';
+            if (silent) {
+              updateInlineLoaderDetail(detail);
+            } else {
+              updateLoadingDetail(detail);
+            }
+          },
+          onApprovalStatusProgress: (percent, processedCount, totalCount) => {
+            const detail = totalCount > 0
+              ? `Loading approval status... ${percent}% (${processedCount}/${totalCount} PO)`
+              : 'Loading approval status... 100%';
             if (silent) {
               updateInlineLoaderDetail(detail);
             } else {

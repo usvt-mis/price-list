@@ -101,6 +101,13 @@ const GATEWAY_ENDPOINTS = {
     fallbackKeyEnvs: ['GPLFA_KEY', 'GTB_KEY'],
     method: 'POST'
   },
+  getApprovalStatusFromArray: {
+    defaultPath: 'GetApprovalStatusFromArray',
+    pathEnv: 'GASFA_PATH',
+    keyEnv: 'GASFA_KEY',
+    fallbackKeyEnvs: ['GPOFA_KEY', 'GPLFA_KEY', 'GTB_KEY'],
+    method: 'POST'
+  },
   getTimeBoard: {
     defaultPath: 'GetTimeBoard',
     keyEnv: 'GTB_KEY',
@@ -405,6 +412,10 @@ router.post('/purchase-lines/from-service-orders', (req, res, next) => {
 
 router.post('/purchase-orders/from-array', (req, res, next) => {
   proxyGatewayRequest(req, res, next, 'getPOFromArray', 'GetPOFromArray');
+});
+
+router.post('/approval-status/from-array', (req, res, next) => {
+  proxyGatewayRequest(req, res, next, 'getApprovalStatusFromArray', 'GetApprovalStatusFromArray');
 });
 
 router.get('/timeboard', (req, res, next) => {

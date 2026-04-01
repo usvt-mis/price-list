@@ -3985,6 +3985,7 @@ export async function handleSendQuote(options = {}) {
       try {
         await recordQuoteSubmission({
           salesQuoteNumber: quoteNumber,
+          customerName: state.quote.customerName || formData.customerName || '',
           workDescription: sanitizedData?.workDescription || formData.workDescription || '',
           remark: sanitizedData?.remark || formData.remark || ''
         });

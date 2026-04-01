@@ -206,7 +206,7 @@ async function toggleQuoteTimeline(quoteNumber) {
 
   closeOpenTimeline(container, quoteNumber);
   timelineRow.innerHTML = `
-    <td colspan="5" class="px-4 py-4">
+    <td colspan="6" class="px-4 py-4">
       <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
         Loading quote history...
       </div>
@@ -220,13 +220,13 @@ async function toggleQuoteTimeline(quoteNumber) {
 
     timelineEventsCache.set(quoteNumber, events);
     timelineRow.innerHTML = `
-      <td colspan="5" class="px-4 py-4">
+      <td colspan="6" class="px-4 py-4">
         ${renderTimelineContent(quoteNumber, events)}
       </td>
     `;
   } catch (error) {
     timelineRow.innerHTML = `
-      <td colspan="5" class="px-4 py-4">
+      <td colspan="6" class="px-4 py-4">
         <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           Failed to load quote history. ${escapeHtml(error.message)}
         </div>
@@ -253,6 +253,9 @@ function renderRecordsSkeleton() {
         <span class="sq-records-skeleton-line sq-records-skeleton-line-sm"></span>
       </td>
       <td class="px-4 py-4">
+        <span class="sq-records-skeleton-line sq-records-skeleton-line-md"></span>
+      </td>
+      <td class="px-4 py-4">
         <div class="space-y-2">
           <span class="sq-records-skeleton-line sq-records-skeleton-line-lg"></span>
           <span class="sq-records-skeleton-line sq-records-skeleton-line-md"></span>
@@ -263,6 +266,9 @@ function renderRecordsSkeleton() {
       </td>
       <td class="px-4 py-4">
         <span class="sq-records-skeleton-line sq-records-skeleton-line-md"></span>
+      </td>
+      <td class="px-4 py-4">
+        <span class="sq-records-skeleton-line sq-records-skeleton-line-sm"></span>
       </td>
     </tr>
   `).join('');
@@ -311,7 +317,7 @@ async function renderRecords(records) {
   if (!records.length) {
     container.innerHTML = `
       <tr>
-        <td colspan="5" class="px-4 py-10 text-center text-slate-500">
+        <td colspan="6" class="px-4 py-10 text-center text-slate-500">
           No records found for your account yet.
         </td>
       </tr>
@@ -320,6 +326,9 @@ async function renderRecords(records) {
   }
 
   container.innerHTML = records.map((record) => {
+    const customerName = record.customerName
+      ? `<div class="max-w-xs break-words text-sm text-slate-700">${escapeHtml(record.customerName)}</div>`
+      : '<span class="text-sm text-slate-400">No customer name</span>';
     const description = record.workDescription
       ? `<div class="max-w-xl whitespace-pre-wrap break-words text-sm text-slate-700">${escapeHtml(record.workDescription)}</div>`
       : '<span class="text-sm text-slate-400">No work description</span>';
@@ -340,6 +349,7 @@ async function renderRecords(records) {
             ${quoteNumber}
           </button>
         </td>
+        <td class="px-4 py-3">${customerName}</td>
         <td class="px-4 py-3">${description}</td>
         <td class="px-4 py-3">${getApprovalStatusBadge(record.approvalStatus)}</td>
         <td class="px-4 py-3 whitespace-nowrap text-slate-600">${escapeHtml(formatSubmittedAt(record.submittedAt))}</td>
@@ -436,7 +446,7 @@ export async function loadQuoteSubmissionRecords() {
     console.error('Failed to load Sales Quote records:', error);
     container.innerHTML = `
       <tr>
-        <td colspan="5" class="px-4 py-10 text-center text-red-500">
+        <td colspan="6" class="px-4 py-10 text-center text-red-500">
           Failed to load records. ${escapeHtml(error.message)}
         </td>
       </tr>
@@ -449,7 +459,7 @@ export async function loadQuoteSubmissionRecords() {
   }
 }
 
-export async function recordQuoteSubmission({ salesQuoteNumber, workDescription, remark = '' }) {
+export async function recordQuoteSubmission({ salesQuoteNumber, customerName = '', workDescription, remark = '' }) {
   const response = await fetch('/api/salesquotes/records', {
     method: 'POST',
     headers: {
@@ -457,6 +467,7 @@ export async function recordQuoteSubmission({ salesQuoteNumber, workDescription,
     },
     body: JSON.stringify({
       salesQuoteNumber,
+      customerName,
       workDescription,
       remark
     })

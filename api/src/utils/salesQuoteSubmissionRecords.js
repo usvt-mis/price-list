@@ -29,6 +29,20 @@ async function ensureSalesQuoteSubmissionRecordsTable(pool) {
         `);
       }
 
+      const customerNameColumnResult = await pool.request().query(`
+        SELECT 1
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = '${TABLE_NAME}'
+          AND COLUMN_NAME = 'CustomerName'
+      `);
+
+      if (customerNameColumnResult.recordset.length === 0) {
+        await pool.request().query(`
+          ALTER TABLE ${TABLE_NAME}
+          ADD CustomerName NVARCHAR(255) NULL;
+        `);
+      }
+
       const compositeUniqueConstraintResult = await pool.request().query(`
         SELECT 1
         FROM sys.key_constraints kc
@@ -69,6 +83,7 @@ async function ensureSalesQuoteSubmissionRecordsTable(pool) {
         Id INT IDENTITY(1,1) PRIMARY KEY,
         SalesQuoteNumber NVARCHAR(50) NOT NULL,
         SenderEmail NVARCHAR(255) NOT NULL,
+        CustomerName NVARCHAR(255) NULL,
         WorkDescription NVARCHAR(MAX) NULL,
         Remark NVARCHAR(255) NULL,
         ClientIP NVARCHAR(50) NULL,
