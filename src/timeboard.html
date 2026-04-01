@@ -208,6 +208,8 @@
 
     /* Column width - all equal except first column */
     .col-narrow { width: 60px; }
+    .col-win-status { width: 112px; }
+    .col-poc { width: 76px; }
     .col-equal { width: 1fr; }
 
     /* Search input */
@@ -524,16 +526,20 @@
           <thead>
             <tr>
               <th class="col-narrow">No.</th>
-              <th class="col-equal">Win Status</th>
+              <th class="col-equal col-win-status">Win Status</th>
               <th class="col-equal">U-STATUS</th>
-              <th class="col-equal col-head-metric">PoC</th>
+              <th class="col-equal col-head-metric col-poc">PoC</th>
               <th class="col-equal col-head-doc">SQ</th>
               <th class="col-equal col-head-date">SQ Created</th>
               <th class="col-equal col-head-doc">SV</th>
               <th class="col-equal col-head-date">SV Created</th>
               <th class="col-equal col-head-doc">PR</th>
               <th class="col-equal col-head-date">PR Created</th>
+              <th class="col-equal">PR Status</th>
+              <th class="col-equal col-head-date">PR Last Update</th>
               <th class="col-equal col-head-doc">PO</th>
+              <th class="col-equal">PO Status</th>
+              <th class="col-equal col-head-date">PO Last Update</th>
               <th class="col-equal col-head-doc">SH</th>
               <th class="col-equal col-head-date">SH Created</th>
               <th class="col-equal col-head-doc">ST</th>
@@ -543,7 +549,7 @@
           </thead>
           <tbody id="timeboardBody">
             <tr>
-              <td colspan="16" class="text-center py-16 text-slate-400">No data available</td>
+              <td colspan="20" class="text-center py-16 text-slate-400">No data available</td>
             </tr>
           </tbody>
         </table>
@@ -683,6 +689,22 @@
         console.error('Error fetching data:', error);
         throw error;
       }
+    }
+
+    function getFirstNonEmptyValue(...values) {
+      for (const value of values) {
+        if (value === null || value === undefined) {
+          continue;
+        }
+
+        if (typeof value === 'string' && value.trim() === '') {
+          continue;
+        }
+
+        return value;
+      }
+
+      return '';
     }
 
     function escapeHtml(value) {
@@ -892,8 +914,34 @@
     function normalizePurchaseLine(line) {
       return {
         prCreated: line?.systemCreatedAt || '',
+        prStatus: String(getFirstNonEmptyValue(
+          line?.prStatus,
+          line?.documentStatus,
+          line?.status,
+          line?.prDocumentStatus,
+          line?.purchaseRequestStatus
+        ) || '').trim(),
+        prLastUpdate: getFirstNonEmptyValue(
+          line?.prLastUpdate,
+          line?.lastUpdate,
+          line?.systemModifiedAt,
+          line?.modifiedAt,
+          line?.prUpdatedAt
+        ),
         pr: String(line?.documentNo || '').trim(),
         po: String(line?.refPrToPoNo || '').trim(),
+        poStatus: String(getFirstNonEmptyValue(
+          line?.poStatus,
+          line?.refPrToPoStatus,
+          line?.purchaseOrderStatus,
+          line?.poDocumentStatus
+        ) || '').trim(),
+        poLastUpdate: getFirstNonEmptyValue(
+          line?.poLastUpdate,
+          line?.refPrToPoLastUpdate,
+          line?.poUpdatedAt,
+          line?.poModifiedAt
+        ),
         serviceOrderNo: normalizeServiceOrderNumber(line?.usvtRefServiceOrderNo)
       };
     }
@@ -1084,7 +1132,7 @@
       const displayRows = buildDisplayRows(state.filteredData);
 
       if (displayRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="16" class="text-center py-16 text-slate-400">No records found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="20" class="text-center py-16 text-slate-400">No records found</td></tr>`;
         document.getElementById('statTotal').textContent = '0';
         document.getElementById('paginationInfo').textContent =
           `Showing 0 matching rows from ${state.data.length} loaded`;
@@ -1106,16 +1154,20 @@
         return `
           <tr class="${rowClassName}">
             <td class="col-row-number">${rowNumber}</td>
-            <td class="col-status-text">${showSvSummary ? renderText(item.workStatus) : ''}</td>
+            <td class="col-status-text col-win-status">${showSvSummary ? renderText(item.workStatus) : ''}</td>
             <td>${showSvSummary ? renderStatus(item.status) : ''}</td>
-            <td class="col-metric">${showSvSummary ? renderPercent(item.percent) : ''}</td>
+            <td class="col-metric col-poc">${showSvSummary ? renderPercent(item.percent) : ''}</td>
             <td class="col-doc">${renderSqGroupCell(item, showSq)}</td>
             <td class="col-date">${renderSqCreatedCell(item, showSq, suppressSqCreatedMarker)}</td>
             <td class="col-doc">${renderSvGroupCell(item, showSvSummary)}</td>
             <td class="col-date">${renderSvCreatedCell(item, showSvSummary)}</td>
             <td class="col-doc">${renderText(purchaseLine?.pr)}</td>
             <td class="col-date">${renderDate(purchaseLine?.prCreated)}</td>
+            <td>${renderText(purchaseLine?.prStatus)}</td>
+            <td class="col-date">${renderDate(purchaseLine?.prLastUpdate)}</td>
             <td class="col-doc">${renderText(purchaseLine?.po)}</td>
+            <td>${renderText(purchaseLine?.poStatus)}</td>
+            <td class="col-date">${renderDate(purchaseLine?.poLastUpdate)}</td>
             <td class="col-doc">${renderText(item.shNumber)}</td>
             <td class="col-date">${renderDate(item.shCreated)}</td>
             <td class="col-doc">${renderText(item.stNumber)}</td>
@@ -1170,6 +1222,6 @@
     if (await checkAccess()) {
       showBranchSelectModal();
     }
-  </script>
+</script>
 </body>
 </html>
