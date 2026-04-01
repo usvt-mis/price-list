@@ -112,6 +112,16 @@
       color: #b91c1c;
     }
 
+    .timeboard-sla-overdue {
+      color: #b91c1c;
+      font-weight: 600;
+    }
+
+    .merged-doc-cell.timeboard-sla-overdue .merged-doc,
+    .merged-doc-cell.timeboard-sla-overdue .merged-date {
+      color: #b91c1c;
+    }
+
     .calm-table tbody tr:last-child td {
       border-bottom: none;
     }
@@ -904,15 +914,21 @@
     }
 
     // Render date cell
-    function renderDate(dateStr) {
+    function renderDate(dateStr, options = {}) {
+      const { className = '' } = options;
       if (!dateStr || dateStr === '-' || dateStr === '') {
         return '<span class="text-slate-300">—</span>';
       }
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) {
-        return `<span class="text-slate-400">${dateStr}</span>`;
+        return `<span class="${className || 'text-slate-400'}">${dateStr}</span>`;
       }
-      return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      const formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      if (!className) {
+        return formattedDate;
+      }
+
+      return `<span class="${className}">${formattedDate}</span>`;
     }
 
     function renderText(value) {
@@ -1039,6 +1055,19 @@
       }
 
       return first.getTime() > second.getTime();
+    }
+
+    function isSlaExceeded(previousDate, currentDate, maxHours) {
+      const previous = parseValidDate(previousDate);
+      const current = parseValidDate(currentDate);
+      const thresholdHours = Number(maxHours);
+
+      if (!previous || !current || !Number.isFinite(thresholdHours)) {
+        return false;
+      }
+
+      const elapsedMs = current.getTime() - previous.getTime();
+      return elapsedMs > thresholdHours * 60 * 60 * 1000;
     }
 
     function buildMockTimeline(item, purchaseLine) {
@@ -1269,17 +1298,18 @@
     }
 
     // Render expected date
-    function renderExpectedDate(dateStr) {
+    function renderExpectedDate(dateStr, options = {}) {
       if (!dateStr || dateStr === '' || dateStr === '0001-01-01') {
         return '<span class="text-slate-300">—</span>';
       }
-      return renderDate(dateStr);
+      return renderDate(dateStr, options);
     }
 
     function renderMergedDocCell(docValue, dateValue, options = {}) {
       const {
         showArrow = false,
-        arrowLabel = 'Same value as above'
+        arrowLabel = 'Same value as above',
+        className = ''
       } = options;
 
       if (showArrow) {
@@ -1292,7 +1322,7 @@
         : '<span class="text-slate-300">—</span>';
 
       return `
-        <div class="merged-doc-cell">
+        <div class="merged-doc-cell${className ? ` ${className}` : ''}">
           <div class="merged-doc-lines">
             <span class="merged-doc">${docMarkup}</span>
             <span class="merged-date">${renderDate(dateValue)}</span>
@@ -1316,9 +1346,9 @@
       });
     }
 
-    function renderSvCombinedCell(item, showSvSummary) {
+    function renderSvCombinedCell(item, showSvSummary, options = {}) {
       if (showSvSummary) {
-        return renderMergedDocCell(item.svNumber, item.svCreated || item.systemCreatedAt);
+        return renderMergedDocCell(item.svNumber, item.svCreated || item.systemCreatedAt, options);
       }
 
       return '';
@@ -1775,12 +1805,12 @@
         const isSameGroupAsNext = !!nextItem && nextItem.sqNumber === item.sqNumber;
         const purchaseLine = item.purchaseLine || null;
         const timeline = buildMockTimeline(item, purchaseLine);
-        const renderSvTimelineDate = (value) => (
+        const renderSvTimelineDate = (value, options = {}) => (
           hasSvNumber
-            ? renderDate(value)
+            ? renderDate(value, options)
             : renderScaffoldCell(true)
         );
-        const renderSvSummaryOnlyDate = (value) => {
+        const renderSvSummaryOnlyDate = (value, options = {}) => {
           if (!hasSvNumber) {
             return renderScaffoldCell(true);
           }
@@ -1789,14 +1819,14 @@
             return '';
           }
 
-          return renderDate(value);
+          return renderDate(value, options);
         };
-        const renderSvTimelineExpectedDate = (value) => (
+        const renderSvTimelineExpectedDate = (value, options = {}) => (
           hasSvNumber
-            ? renderExpectedDate(value)
+            ? renderExpectedDate(value, options)
             : renderScaffoldCell(true)
         );
-        const renderSvSummaryOnlyExpectedDate = (value) => {
+        const renderSvSummaryOnlyExpectedDate = (value, options = {}) => {
           if (!hasSvNumber) {
             return renderScaffoldCell(true);
           }
@@ -1805,7 +1835,20 @@
             return '';
           }
 
-          return renderExpectedDate(value);
+          return renderExpectedDate(value, options);
+        };
+        const slaOverdueClasses = {
+          sv: isSlaExceeded(item.sqCreated, item.svCreated || item.systemCreatedAt, 1) ? 'timeboard-sla-overdue' : '',
+          inspectionComplete: isSlaExceeded(item.svCreated || item.systemCreatedAt, timeline.inspectionComplete, 36) ? 'timeboard-sla-overdue' : '',
+          priceRequest: isSlaExceeded(timeline.inspectionComplete, timeline.priceRequest, 0.5) ? 'timeboard-sla-overdue' : '',
+          priceReport: isSlaExceeded(timeline.priceRequest, timeline.priceReport, 4) ? 'timeboard-sla-overdue' : '',
+          sqComplete: isSlaExceeded(timeline.priceReport, timeline.sqComplete, 4) ? 'timeboard-sla-overdue' : '',
+          confirmation: isSlaExceeded(timeline.sqComplete, timeline.confirmation, 4) ? 'timeboard-sla-overdue' : '',
+          planningRequest: isSlaExceeded(timeline.confirmation, timeline.planningRequest, 12) ? 'timeboard-sla-overdue' : '',
+          pr: isSlaExceeded(timeline.planningRequest, purchaseLine?.prCreated, 12) ? 'timeboard-sla-overdue' : '',
+          prComplete: isSlaExceeded(purchaseLine?.prCreated, timeline.prComplete, 2) ? 'timeboard-sla-overdue' : '',
+          poCreated: isSlaExceeded(timeline.prComplete, purchaseLine?.poCreated, 12) ? 'timeboard-sla-overdue' : '',
+          goodsReceipt: isSlaExceeded(timeline.vendorDelivered, timeline.goodsReceipt, 1) ? 'timeboard-sla-overdue' : ''
         };
         const isDelayedAgainstExpected = isDateAfter(item.shCreated, timeline.expectedDeliveryDate);
         const rowClassName = [
@@ -1817,18 +1860,18 @@
           <tr class="${rowClassName}">
             <td class="col-row-number">${rowNumber}</td>
             <td class="col-merged-doc">${renderSqCombinedCell(item, showSq, suppressSqCreatedMarker)}</td>
-            <td class="col-merged-doc">${renderSvCombinedCell(item, showSvSummary)}</td>
-            <td class="col-date">${renderSvSummaryOnlyDate(timeline.inspectionComplete)}</td>
-            <td class="col-date">${renderSvSummaryOnlyDate(timeline.priceRequest)}</td>
-            <td class="col-date">${renderSvSummaryOnlyDate(timeline.priceReport)}</td>
-            <td class="col-date">${renderSvSummaryOnlyDate(timeline.sqComplete)}</td>
-            <td class="col-date">${renderSvSummaryOnlyDate(timeline.confirmation)}</td>
-            <td class="col-date">${renderSvSummaryOnlyDate(timeline.planningRequest)}</td>
-            <td class="col-merged-doc">${renderMergedDocCell(purchaseLine?.pr, purchaseLine?.prCreated)}</td>
-            <td class="col-date">${renderDate(timeline.prComplete)}</td>
-            <td class="col-merged-doc">${renderMergedDocCell(purchaseLine?.po, purchaseLine?.poCreated)}</td>
+            <td class="col-merged-doc">${renderSvCombinedCell(item, showSvSummary, { className: slaOverdueClasses.sv })}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.inspectionComplete, { className: slaOverdueClasses.inspectionComplete })}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.priceRequest, { className: slaOverdueClasses.priceRequest })}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.priceReport, { className: slaOverdueClasses.priceReport })}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.sqComplete, { className: slaOverdueClasses.sqComplete })}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.confirmation, { className: slaOverdueClasses.confirmation })}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.planningRequest, { className: slaOverdueClasses.planningRequest })}</td>
+            <td class="col-merged-doc">${renderMergedDocCell(purchaseLine?.pr, purchaseLine?.prCreated, { className: slaOverdueClasses.pr })}</td>
+            <td class="col-date">${renderDate(timeline.prComplete, { className: slaOverdueClasses.prComplete })}</td>
+            <td class="col-merged-doc">${renderMergedDocCell(purchaseLine?.po, purchaseLine?.poCreated, { className: slaOverdueClasses.poCreated })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.vendorDelivered)}</td>
-            <td class="col-date">${renderSvSummaryOnlyDate(timeline.goodsReceipt)}</td>
+            <td class="col-date">${renderSvSummaryOnlyDate(timeline.goodsReceipt, { className: slaOverdueClasses.goodsReceipt })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.factoryProcedure)}</td>
             <td class="col-merged-doc">${showSvDependentDocs ? renderMergedDocCell(item.shNumber, item.shCreated) : ''}</td>
             <td class="col-merged-doc">${showSvDependentDocs ? renderMergedDocCell(item.stNumber, item.postedStCreated) : ''}</td>
