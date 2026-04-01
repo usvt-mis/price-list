@@ -4,6 +4,9 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Time Board - Price List Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>"/>
   <link rel="stylesheet" href="/css/output.css">
   <style>
@@ -14,6 +17,9 @@
       --calm-text-primary: #1e293b;
       --calm-text-secondary: #64748b;
       --calm-text-muted: #94a3b8;
+      --calm-doc-color: #3157a5;
+      --calm-date-color: #0f766e;
+      --calm-row-number-color: #64748b;
       --calm-accent: #6366f1;
       --calm-accent-light: #eef2ff;
       --calm-success: #10b981;
@@ -22,9 +28,12 @@
       --calm-warning-light: #fffbeb;
       --calm-error: #ef4444;
       --calm-error-light: #fef2f2;
+      --font-sans: "IBM Plex Sans", "Segoe UI", "Noto Sans Thai", system-ui, sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
     }
 
     body {
+      font-family: var(--font-sans);
       background: var(--calm-bg);
       min-height: 100vh;
     }
@@ -43,6 +52,7 @@
     }
 
     .calm-table thead th {
+      font-family: var(--font-sans);
       text-align: center;
       padding: 14px 16px;
       font-size: 12px;
@@ -62,6 +72,7 @@
     .calm-table tbody td {
       padding: 14px 16px;
       font-size: 13px;
+      line-height: 1.35;
       color: var(--calm-text-primary);
       border-bottom: 1px solid var(--calm-border);
       text-align: center;
@@ -92,6 +103,46 @@
       font-size: 15px;
       line-height: 1;
       white-space: nowrap;
+    }
+
+    .col-head-doc,
+    .col-head-date,
+    .col-head-metric {
+      letter-spacing: 0.04em;
+    }
+
+    .calm-table tbody td.col-doc {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.015em;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      color: var(--calm-doc-color);
+    }
+
+    .calm-table tbody td.col-date {
+      font-size: 12.5px;
+      color: var(--calm-date-color);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .col-metric {
+      font-weight: 600;
+      color: #334155;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .col-status-text {
+      font-weight: 500;
+      color: #334155;
+    }
+
+    .calm-table tbody td.col-row-number {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      color: var(--calm-row-number-color);
     }
 
     /* Status badges */
@@ -475,19 +526,19 @@
               <th class="col-narrow">No.</th>
               <th class="col-equal">Win Status</th>
               <th class="col-equal">U-STATUS</th>
-              <th class="col-equal">PoC</th>
-              <th class="col-equal">SQ</th>
-              <th class="col-equal">SQ Created</th>
-              <th class="col-equal">SV</th>
-              <th class="col-equal">SV Created</th>
-              <th class="col-equal">PR</th>
-              <th class="col-equal">PR Created</th>
-              <th class="col-equal">PO</th>
-              <th class="col-equal">SH</th>
-              <th class="col-equal">SH Created</th>
-              <th class="col-equal">ST</th>
-              <th class="col-equal">Posted ST Created</th>
-              <th class="col-equal">Expected Date</th>
+              <th class="col-equal col-head-metric">PoC</th>
+              <th class="col-equal col-head-doc">SQ</th>
+              <th class="col-equal col-head-date">SQ Created</th>
+              <th class="col-equal col-head-doc">SV</th>
+              <th class="col-equal col-head-date">SV Created</th>
+              <th class="col-equal col-head-doc">PR</th>
+              <th class="col-equal col-head-date">PR Created</th>
+              <th class="col-equal col-head-doc">PO</th>
+              <th class="col-equal col-head-doc">SH</th>
+              <th class="col-equal col-head-date">SH Created</th>
+              <th class="col-equal col-head-doc">ST</th>
+              <th class="col-equal col-head-date">Posted ST Created</th>
+              <th class="col-equal col-head-date">Expected Date</th>
             </tr>
           </thead>
           <tbody id="timeboardBody">
@@ -721,11 +772,35 @@
         return item.sqNumber || '-';
       }
 
+      return '';
+    }
+
+    function renderSqCreatedCell(item, showSq, suppressRepeatedMarker = false) {
+      if (showSq) {
+        return renderDate(item.sqCreated);
+      }
+
+      if (suppressRepeatedMarker) {
+        return '';
+      }
+
       return '<span class="sq-group-child-symbol" aria-label="Same SQ as above">⤷</span>';
     }
 
-    function renderSvGroupCell(item) {
+    function renderSvGroupCell(item, showSvSummary) {
+      if (!showSvSummary) {
+        return '';
+      }
+
       return item.svNumber || '-';
+    }
+
+    function renderSvCreatedCell(item, showSvSummary) {
+      if (showSvSummary) {
+        return renderDate(item.svCreated || item.systemCreatedAt);
+      }
+
+      return '<span class="sq-group-child-symbol" aria-label="Same SV as above">⤷</span>';
     }
 
     function shouldShowSvSummary(item, previousItem) {
@@ -1023,28 +1098,29 @@
         const nextItem = index < displayRows.length - 1 ? displayRows[index + 1] : null;
         const showSq = !prevItem || prevItem.sqNumber !== item.sqNumber;
         const showSvSummary = shouldShowSvSummary(item, prevItem);
+        const suppressSqCreatedMarker = !showSvSummary;
         const isSameGroupAsNext = !!nextItem && nextItem.sqNumber === item.sqNumber;
         const rowClassName = isSameGroupAsNext ? 'sq-group-continued' : '';
         const purchaseLine = item.purchaseLine || null;
 
         return `
           <tr class="${rowClassName}">
-            <td class="font-mono text-slate-400">${rowNumber}</td>
-            <td>${showSvSummary ? renderText(item.workStatus) : ''}</td>
+            <td class="col-row-number">${rowNumber}</td>
+            <td class="col-status-text">${showSvSummary ? renderText(item.workStatus) : ''}</td>
             <td>${showSvSummary ? renderStatus(item.status) : ''}</td>
-            <td>${showSvSummary ? renderPercent(item.percent) : ''}</td>
-            <td class="font-medium">${renderSqGroupCell(item, showSq)}</td>
-            <td>${showSq ? renderDate(item.sqCreated) : ''}</td>
-            <td class="font-medium">${renderSvGroupCell(item)}</td>
-            <td>${renderDate(item.svCreated || item.systemCreatedAt)}</td>
-            <td>${renderText(purchaseLine?.pr)}</td>
-            <td>${renderDate(purchaseLine?.prCreated)}</td>
-            <td>${renderText(purchaseLine?.po)}</td>
-            <td>${renderText(item.shNumber)}</td>
-            <td>${renderDate(item.shCreated)}</td>
-            <td>${renderText(item.stNumber)}</td>
-            <td>${renderDate(item.postedStCreated)}</td>
-            <td>${renderExpectedDate(item.expectedDate)}</td>
+            <td class="col-metric">${showSvSummary ? renderPercent(item.percent) : ''}</td>
+            <td class="col-doc">${renderSqGroupCell(item, showSq)}</td>
+            <td class="col-date">${renderSqCreatedCell(item, showSq, suppressSqCreatedMarker)}</td>
+            <td class="col-doc">${renderSvGroupCell(item, showSvSummary)}</td>
+            <td class="col-date">${renderSvCreatedCell(item, showSvSummary)}</td>
+            <td class="col-doc">${renderText(purchaseLine?.pr)}</td>
+            <td class="col-date">${renderDate(purchaseLine?.prCreated)}</td>
+            <td class="col-doc">${renderText(purchaseLine?.po)}</td>
+            <td class="col-doc">${renderText(item.shNumber)}</td>
+            <td class="col-date">${renderDate(item.shCreated)}</td>
+            <td class="col-doc">${renderText(item.stNumber)}</td>
+            <td class="col-date">${renderDate(item.postedStCreated)}</td>
+            <td class="col-date">${renderExpectedDate(item.expectedDate)}</td>
           </tr>
         `;
       }).join('');
