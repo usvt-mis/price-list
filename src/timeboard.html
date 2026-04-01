@@ -901,7 +901,7 @@
       }
     }
 
-    // Fetch timeboard data from BC Gateway
+    // Fetch timeboard data from local Time Board API backed by dbo.ServCostRevs
     // Data structure: { sqNumber, sqCreated, svNumber, svCreated, systemCreatedAt, status, percent, shNumber, shCreated, stNumber, stCreated, postedStNumber, postedStCreated, expectedDate, workStatus }
     async function requestTimeboardData(requestedSize) {
       try {
@@ -914,8 +914,21 @@
         params.append('orderBy', state.sortDirection);
         params.append('branch', state.selectedBranch);
 
-        const response = await fetch(`/api/business-central/gateway/timeboard?${params.toString()}`);
-        if (!response.ok) throw new Error('Failed to fetch data');
+        const response = await fetch(`/api/timeboard?${params.toString()}`);
+        if (!response.ok) {
+          let errorMessage = `Failed to fetch data (${response.status})`;
+
+          try {
+            const errorPayload = await response.json();
+            if (typeof errorPayload?.error === 'string' && errorPayload.error.trim()) {
+              errorMessage = errorPayload.error.trim();
+            }
+          } catch (parseError) {
+            console.warn('Failed to parse Time Board error response:', parseError);
+          }
+
+          throw new Error(errorMessage);
+        }
         const data = await response.json();
         return data.tableRows || [];
       } catch (error) {
