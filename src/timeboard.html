@@ -1040,7 +1040,8 @@
       { key: 'purchase-orders', label: 'Loading purchase orders', unit: 'PO' },
       { key: 'po-approvals', label: 'Loading PO approval status', unit: 'PO' },
       { key: 'pr-approvals', label: 'Loading PR approval status', unit: 'PR' },
-      { key: 'sales-quotes', label: 'Loading sales quote dates', unit: 'SQ' }
+      { key: 'sales-quotes', label: 'Loading sales quote dates', unit: 'SQ' },
+      { key: 'service-orders', label: 'Loading service order dates', unit: 'SV' }
     ];
     let syncStickyTimeboardHeader = () => {};
     const state = {
@@ -1765,8 +1766,10 @@
     function buildActualTimeline(item, purchaseLine) {
       const stCreated = parseValidDate(item?.postedStCreated || item?.stCreated);
       const expectedDate = parseValidDate(item?.expectedDate);
+      const planningRequest = parseValidDate(item?.planningRequest);
       const prComplete = parseValidDate(purchaseLine?.prComplete);
       const goodsReceipt = parseValidDate(purchaseLine?.goodsReceipt);
+      const factoryProcedure = parseValidDate(item?.factoryProcedure);
 
       return {
         inspectionComplete: '',
@@ -1774,12 +1777,12 @@
         priceReport: '',
         sqComplete: '',
         confirmation: '',
-        planningRequest: '',
+        planningRequest: toIsoDate(planningRequest),
         prComplete: toIsoDate(prComplete),
         poComplete: '',
         vendorDelivered: '',
         goodsReceipt: toIsoDate(goodsReceipt),
-        factoryProcedure: '',
+        factoryProcedure: toIsoDate(factoryProcedure),
         stComplete: toIsoDate(stCreated),
         expectedDeliveryDate: toIsoDate(expectedDate)
       };
@@ -2266,6 +2269,29 @@
       return response.json();
     }
 
+    async function requestServiceOrderData(serviceOrderNos) {
+      if (!Array.isArray(serviceOrderNos) || serviceOrderNos.length === 0) {
+        return {
+          success: true,
+          serviceOrders: []
+        };
+      }
+
+      const response = await fetch('/api/business-central/gateway/service-orders/from-array', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(serviceOrderNos)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch service order data');
+      }
+
+      return response.json();
+    }
+
     async function requestPurchaseLineDataInChunks(serviceOrderNos, onProgress = () => {}) {
       const normalizedServiceOrderNos = Array.isArray(serviceOrderNos) ? serviceOrderNos.filter(Boolean) : [];
       const total = normalizedServiceOrderNos.length;
@@ -2411,6 +2437,36 @@
       return mergedPayload;
     }
 
+    async function requestServiceOrderDataForDocuments(serviceOrderNos, onProgress = () => {}) {
+      const normalizedServiceOrderNos = Array.from(new Set(
+        (Array.isArray(serviceOrderNos) ? serviceOrderNos : [])
+          .map((serviceOrderNo) => normalizeServiceOrderNumber(serviceOrderNo))
+          .filter(Boolean)
+      ));
+      const total = normalizedServiceOrderNos.length;
+      const mergedPayload = {
+        success: true,
+        serviceOrders: []
+      };
+
+      if (total === 0) {
+        onProgress(100, 0, 0);
+        return mergedPayload;
+      }
+
+      onProgress(0, 0, total);
+      const payload = await requestServiceOrderData(normalizedServiceOrderNos);
+
+      if (payload?.success === false) {
+        throw new Error('Failed to fetch service order data');
+      }
+
+      mergedPayload.serviceOrders.push(...(Array.isArray(payload?.serviceOrders) ? payload.serviceOrders : []));
+      onProgress(100, total, total);
+
+      return mergedPayload;
+    }
+
     function normalizePurchaseLine(line) {
       return {
         prCreated: line?.systemCreatedAt || '',
@@ -2551,6 +2607,30 @@
       };
     }
 
+    function normalizeServiceOrderEntry(serviceOrder) {
+      return {
+        sv: normalizeServiceOrderNumber(getFirstNonEmptyValue(
+          serviceOrder?.sv,
+          serviceOrder?.serviceOrderNo,
+          serviceOrder?.documentNo
+        )),
+        svCreated: getFirstNonEmptyValue(
+          serviceOrder?.svCreated,
+          serviceOrder?.serviceOrderCreatedAt,
+          serviceOrder?.createdAt,
+          serviceOrder?.systemCreatedAt
+        ),
+        factoryProcedure: getFirstNonEmptyValue(
+          serviceOrder?.factoryProcedure,
+          serviceOrder?.factoryProcedureDate
+        ),
+        planningRequest: getFirstNonEmptyValue(
+          serviceOrder?.planningRequest,
+          serviceOrder?.planningRequestDate
+        )
+      };
+    }
+
     function buildPurchaseLineLookup(payload) {
       const lookup = new Map();
       const purchaseLines = Array.isArray(payload?.purchaseLines) ? payload.purchaseLines : [];
@@ -2603,6 +2683,22 @@
       return lookup;
     }
 
+    function buildServiceOrderLookup(payload) {
+      const lookup = new Map();
+      const serviceOrders = Array.isArray(payload?.serviceOrders) ? payload.serviceOrders : [];
+
+      serviceOrders.forEach((serviceOrder) => {
+        const normalizedServiceOrder = normalizeServiceOrderEntry(serviceOrder);
+        if (!normalizedServiceOrder.sv) {
+          return;
+        }
+
+        lookup.set(normalizedServiceOrder.sv, normalizedServiceOrder);
+      });
+
+      return lookup;
+    }
+
     function buildApprovalStatusLookup(payload) {
       const lookup = new Map();
       const approvalStatuses = Array.isArray(payload?.approvalStatuses) ? payload.approvalStatuses : [];
@@ -2631,6 +2727,22 @@
         ...row,
         sqCreated: getFirstNonEmptyValue(salesQuote.sqCreated, row?.sqCreated),
         expectedDate: getFirstNonEmptyValue(salesQuote.expectedDate, row?.expectedDate)
+      };
+    }
+
+    function mergeServiceOrderDataIntoRow(row, serviceOrderLookup) {
+      const svNumber = normalizeServiceOrderNumber(row?.svNumber);
+      const serviceOrder = svNumber ? serviceOrderLookup.get(svNumber) : null;
+
+      if (!serviceOrder) {
+        return row;
+      }
+
+      return {
+        ...row,
+        svCreated: getFirstNonEmptyValue(serviceOrder.svCreated, row?.svCreated, row?.systemCreatedAt),
+        factoryProcedure: getFirstNonEmptyValue(serviceOrder.factoryProcedure, row?.factoryProcedure),
+        planningRequest: getFirstNonEmptyValue(serviceOrder.planningRequest, row?.planningRequest)
       };
     }
 
@@ -2679,12 +2791,14 @@
         onPurchaseOrderProgress = () => {},
         onPurchaseOrderApprovalProgress = () => {},
         onPurchaseRequestApprovalProgress = () => {},
-        onSalesQuoteProgress = () => {}
+        onSalesQuoteProgress = () => {},
+        onServiceOrderProgress = () => {}
       } = options;
       const salesQuoteNos = getDistinctSalesQuoteNumbers(rows);
       const serviceOrderNos = getDistinctServiceOrderNumbers(rows);
       state.salesQuoteNos = salesQuoteNos;
       let salesQuoteLookup = new Map();
+      let serviceOrderLookup = new Map();
 
       if (serviceOrderNos.length === 0) {
         try {
@@ -2702,6 +2816,7 @@
         onPurchaseOrderProgress(100, 0, 0);
         onPurchaseOrderApprovalProgress(100, 0, 0);
         onPurchaseRequestApprovalProgress(100, 0, 0);
+        onServiceOrderProgress(100, 0, 0);
         return rows.map((row) => ({
           ...mergeSalesQuoteDataIntoRow(row, salesQuoteLookup),
           purchaseLines: []
@@ -2764,9 +2879,18 @@
           console.warn('Failed to enrich timeboard rows with sales quote data:', error);
         }
 
+        try {
+          const serviceOrderPayload = await requestServiceOrderDataForDocuments(serviceOrderNos, onServiceOrderProgress);
+          serviceOrderLookup = buildServiceOrderLookup(serviceOrderPayload);
+        } catch (error) {
+          console.warn('Failed to enrich timeboard rows with service order data:', error);
+          onServiceOrderProgress(100, 0, 0);
+        }
+
         return rows.map((row) => {
           const rowWithSalesQuoteData = mergeSalesQuoteDataIntoRow(row, salesQuoteLookup);
-          const svNumber = normalizeServiceOrderNumber(row?.svNumber);
+          const rowWithServiceOrderData = mergeServiceOrderDataIntoRow(rowWithSalesQuoteData, serviceOrderLookup);
+          const svNumber = normalizeServiceOrderNumber(rowWithServiceOrderData?.svNumber);
           const purchaseLines = purchaseLineLookup.get(svNumber) || [];
           const purchaseLinesWithPurchaseOrders = mergePurchaseOrderDataIntoPurchaseLines(purchaseLines, purchaseOrderLookup);
           const purchaseLinesWithPoApprovals = mergeApprovalStatusIntoPurchaseLines(
@@ -2780,7 +2904,7 @@
           );
 
           return {
-            ...rowWithSalesQuoteData,
+            ...rowWithServiceOrderData,
             purchaseLines: mergeApprovalStatusIntoPurchaseLines(
               purchaseLinesWithPoApprovals,
               purchaseRequestApprovalLookup,
@@ -3068,6 +3192,9 @@
           },
           onSalesQuoteProgress: (percent, processedCount, totalCount) => {
             loadProgress.updateStep('sales-quotes', percent, { processedCount, totalCount });
+          },
+          onServiceOrderProgress: (percent, processedCount, totalCount) => {
+            loadProgress.updateStep('service-orders', percent, { processedCount, totalCount });
           }
         });
         state.data = enrichedRows;
@@ -3124,6 +3251,9 @@
           },
           onSalesQuoteProgress: (percent, processedCount, totalCount) => {
             loadProgress.updateStep('sales-quotes', percent, { processedCount, totalCount });
+          },
+          onServiceOrderProgress: (percent, processedCount, totalCount) => {
+            loadProgress.updateStep('service-orders', percent, { processedCount, totalCount });
           }
         });
         state.fetchSize = nextFetchSize;

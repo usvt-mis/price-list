@@ -74,6 +74,13 @@ const GATEWAY_ENDPOINTS = {
     fallbackKeyEnvs: ['GSQFN_KEY', 'CSQWN_KEY'],
     method: 'POST'
   },
+  getServiceOrderFromArray: {
+    defaultPath: 'GetServiceOrderFromArray',
+    pathEnv: 'GSVFA_PATH',
+    keyEnv: 'GSVFA_KEY',
+    fallbackKeyEnvs: ['GTB_KEY'],
+    method: 'POST'
+  },
   smartDropdownSQ: {
     defaultPath: 'smartDropdownSQ',
     pathEnv: 'SDSQ_PATH',
@@ -397,6 +404,10 @@ router.get('/sales-quotes/from-number', (req, res, next) => {
 
 router.post('/sales-quotes/from-array', (req, res, next) => {
   proxyGatewayRequest(req, res, next, 'getSalesQuotesFromArray', 'GetSalesQuotesFromArray');
+});
+
+router.post('/service-orders/from-array', (req, res, next) => {
+  proxyGatewayRequest(req, res, next, 'getServiceOrderFromArray', 'GetServiceOrderFromArray');
 });
 
 router.get('/sales-quotes/smart-dropdown', (req, res, next) => {
