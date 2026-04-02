@@ -3,8 +3,9 @@ import { formatCurrency, getQuoteFormData, showError, showToast } from './ui.js'
 import { checkApprovalStatus, APPROVAL_STATUS } from './approvals.js';
 import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
+import { fetchWithAuth } from '../core/utils.js';
 
-const SIGNATURE_API_BASE = '/api/backoffice/salesperson-signatures';
+const SIGNATURE_API_BASE = '/api/salesquotes/salesperson-signatures';
 const SALESDIRECTOR_SIGNATURE_API = '/api/salesdirector-signature';
 
 const ASSET_PATHS = {
@@ -172,7 +173,7 @@ export async function fetchSalespersonSignature(salespersonCode) {
   if (!salespersonCode) return null;
 
   try {
-    const response = await fetch(`${SIGNATURE_API_BASE}/${encodeURIComponent(salespersonCode)}`);
+    const response = await fetchWithAuth(`${SIGNATURE_API_BASE}/${encodeURIComponent(salespersonCode)}`);
     if (!response.ok) {
       if (response.status === 404) {
         return null; // No signature uploaded, that's OK

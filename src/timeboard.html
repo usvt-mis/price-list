@@ -1558,6 +1558,21 @@
       return first.getTime() > second.getTime();
     }
 
+    function hasDocumentRecord(docValue, dateValue) {
+      return Boolean(String(docValue || '').trim()) || Boolean(parseValidDate(dateValue));
+    }
+
+    function isExpectedDeliveryOverdueWithoutSh(expectedDate, shNumber, shCreated, today = new Date()) {
+      const expected = parseValidDate(expectedDate);
+      const currentDate = parseValidDate(today);
+
+      if (!expected || !currentDate || hasDocumentRecord(shNumber, shCreated)) {
+        return false;
+      }
+
+      return currentDate.getTime() > expected.getTime();
+    }
+
     function isSlaExceeded(previousDate, currentDate, maxHours) {
       const previous = parseValidDate(previousDate);
       const current = parseValidDate(currentDate);
@@ -3214,7 +3229,10 @@
           ) ? 'timeboard-sla-overdue' : '',
           goodsReceipt: isSlaExceeded(timeline.vendorDelivered, timeline.goodsReceipt, 1) ? 'timeboard-sla-overdue' : ''
         };
-        const isDelayedAgainstExpected = isDateAfter(item.shCreated, timeline.expectedDeliveryDate);
+        const isDelayedAgainstExpected = (
+          isDateAfter(item.shCreated, timeline.expectedDeliveryDate)
+          || isExpectedDeliveryOverdueWithoutSh(timeline.expectedDeliveryDate, item.shNumber, item.shCreated)
+        );
         const rowClassName = [
           isSameGroupAsNext ? 'sq-group-continued' : '',
           isDelayedAgainstExpected ? 'timeboard-delayed-row' : ''

@@ -379,6 +379,44 @@ router.get('/print-layout-settings', async (req, res, next) => {
   }
 });
 
+router.get('/salesperson-signatures/:salespersonCode', async (req, res, next) => {
+  try {
+    const salespersonCode = String(req.params.salespersonCode || '').trim();
+    if (!salespersonCode) {
+      return res.status(400).json({ error: 'SalespersonCode is required' });
+    }
+
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('salespersonCode', sql.NVarChar, salespersonCode)
+      .query(`
+        SELECT TOP 1
+          sig.SalespersonCode,
+          sp.SalespersonName,
+          sig.SignatureData
+        FROM SalespersonSignatures sig
+        LEFT JOIN BCSalespeople sp ON sig.SalespersonCode = sp.SalespersonCode
+        WHERE sig.SalespersonCode = @salespersonCode
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({
+        error: 'Signature not found',
+        salespersonCode
+      });
+    }
+
+    const record = result.recordset[0];
+    return res.status(200).json({
+      salespersonCode: record.SalespersonCode,
+      salespersonName: record.SalespersonName || record.SalespersonCode,
+      signatureData: record.SignatureData || null
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/records', async (req, res, next) => {
   try {
     const senderEmail = getAuthenticatedEmail(req);
