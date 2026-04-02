@@ -80,6 +80,8 @@ router.get('/', async (req, res, next) => {
             WHEN ServiceOrderDate IS NULL OR ServiceOrderDate <= '1900-01-01' THEN NULL
             ELSE ServiceOrderDate
           END AS systemCreatedAt,
+          LTRIM(RTRIM(ISNULL(UserviceStatus, ''))) AS userviceStatus,
+          LTRIM(RTRIM(ISNULL(Status, ''))) AS documentStatus,
           LTRIM(RTRIM(COALESCE(UserviceStatus, Status, RepairStatusCode, ''))) AS status,
           LTRIM(RTRIM(ISNULL(PercentOfCompletion, ''))) AS [percent],
           LTRIM(RTRIM(ISNULL(DeliveryOrderNo, ''))) AS shNumber,

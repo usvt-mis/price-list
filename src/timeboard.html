@@ -28,6 +28,7 @@
       --calm-warning-light: #fffbeb;
       --calm-error: #ef4444;
       --calm-error-light: #fef2f2;
+      --timeboard-sticky-sq-width: 0px;
       --font-sans: "IBM Plex Sans", "Segoe UI", "Noto Sans Thai", system-ui, sans-serif;
       --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
     }
@@ -96,12 +97,28 @@
       background: var(--calm-accent-light);
     }
 
+    .calm-table tbody tr:hover td.col-sticky-sq,
+    .calm-table tbody tr:hover td.col-sticky-sv {
+      background: var(--calm-accent-light);
+    }
+
     .calm-table tbody tr.timeboard-delayed-row td {
       background: #fef2f2;
       border-bottom-color: #fecaca;
     }
 
+    .calm-table tbody tr.timeboard-delayed-row td.col-sticky-sq,
+    .calm-table tbody tr.timeboard-delayed-row td.col-sticky-sv {
+      background: #fef2f2;
+      border-bottom-color: #fecaca;
+    }
+
     .calm-table tbody tr.timeboard-delayed-row:hover td {
+      background: #fee2e2;
+    }
+
+    .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-sq,
+    .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-sv {
       background: #fee2e2;
     }
 
@@ -139,6 +156,64 @@
     .calm-table thead th.col-merged-doc,
     .calm-table tbody td.col-merged-doc {
       text-align: left;
+    }
+
+    .timeboard-table-wrap .calm-table thead th.col-sticky-sq,
+    .timeboard-table-wrap .calm-table tbody td.col-sticky-sq,
+    .timeboard-table-wrap .calm-table thead th.col-sticky-sv,
+    .timeboard-table-wrap .calm-table tbody td.col-sticky-sv {
+      position: sticky;
+      background: var(--calm-surface);
+    }
+
+    .timeboard-table-wrap .calm-table thead th.col-sticky-sq,
+    .timeboard-table-wrap .calm-table thead th.col-sticky-sv {
+      background: rgba(248, 250, 252, 0.98);
+    }
+
+    .timeboard-table-wrap .calm-table thead th.col-sticky-sq,
+    .timeboard-table-wrap .calm-table tbody td.col-sticky-sq {
+      left: 0;
+      box-shadow: inset -1px 0 0 rgba(226, 232, 240, 0.95);
+    }
+
+    .timeboard-table-wrap .calm-table thead th.col-sticky-sv,
+    .timeboard-table-wrap .calm-table tbody td.col-sticky-sv {
+      left: var(--timeboard-sticky-sq-width, 0px);
+      box-shadow: inset -1px 0 0 rgba(226, 232, 240, 0.95), 14px 0 18px -18px rgba(15, 23, 42, 0.28);
+    }
+
+    .timeboard-table-wrap .calm-table thead th.col-sticky-sq {
+      z-index: 13;
+    }
+
+    .timeboard-table-wrap .calm-table thead th.col-sticky-sv {
+      z-index: 12;
+    }
+
+    .timeboard-table-wrap .calm-table tbody td.col-sticky-sq {
+      z-index: 5;
+    }
+
+    .timeboard-table-wrap .calm-table tbody td.col-sticky-sv {
+      z-index: 4;
+    }
+
+    .timeboard-sticky-header .col-sticky-sq,
+    .timeboard-sticky-header .col-sticky-sv {
+      position: relative;
+      background: rgba(248, 250, 252, 0.98);
+      will-change: transform;
+    }
+
+    .timeboard-sticky-header .col-sticky-sq {
+      z-index: 3;
+      box-shadow: inset -1px 0 0 rgba(226, 232, 240, 0.95);
+    }
+
+    .timeboard-sticky-header .col-sticky-sv {
+      z-index: 2;
+      box-shadow: inset -1px 0 0 rgba(226, 232, 240, 0.95), 14px 0 18px -18px rgba(15, 23, 42, 0.28);
     }
 
     .calm-table tbody td.col-doc {
@@ -200,6 +275,107 @@
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
       color: var(--calm-doc-color);
+    }
+
+    .timeboard-doc-tooltip-trigger {
+      display: inline-flex;
+      align-items: center;
+      cursor: help;
+      text-decoration: underline dotted rgba(49, 87, 165, 0.45);
+      text-underline-offset: 3px;
+    }
+
+    .timeboard-doc-tooltip-trigger:focus-visible {
+      outline: 2px solid rgba(99, 102, 241, 0.45);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    .timeboard-hover-card {
+      position: fixed;
+      left: 0;
+      top: 0;
+      transform: translate3d(0, 0, 0);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      min-width: 240px;
+      max-width: 340px;
+      padding: 12px 14px;
+      border: 1px solid rgba(148, 163, 184, 0.26);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.97);
+      color: #e2e8f0;
+      box-shadow: 0 18px 38px rgba(15, 23, 42, 0.3);
+      z-index: 200;
+      transition: opacity 0.16s ease, visibility 0.16s ease;
+    }
+
+    .timeboard-hover-card.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .timeboard-hover-card::before {
+      content: '';
+      position: absolute;
+      left: -6px;
+      top: 50%;
+      width: 12px;
+      height: 12px;
+      background: rgba(15, 23, 42, 0.97);
+      border-left: 1px solid rgba(148, 163, 184, 0.26);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.26);
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    .timeboard-hover-card[data-placement="left"]::before {
+      left: auto;
+      right: -6px;
+      border-left: none;
+      border-bottom: none;
+      border-right: 1px solid rgba(148, 163, 184, 0.26);
+      border-top: 1px solid rgba(148, 163, 184, 0.26);
+    }
+
+    .timeboard-hover-card[data-placement="bottom"]::before {
+      left: 20px;
+      top: -6px;
+      border-left: 1px solid rgba(148, 163, 184, 0.26);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.26);
+      transform: rotate(135deg);
+    }
+
+    .timeboard-hover-card-title {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #cbd5e1;
+    }
+
+    .timeboard-hover-card-grid {
+      display: grid;
+      grid-template-columns: minmax(88px, auto) minmax(0, 1fr);
+      gap: 6px 10px;
+      align-items: start;
+    }
+
+    .timeboard-hover-card-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .timeboard-hover-card-value {
+      font-size: 12px;
+      line-height: 1.45;
+      color: #f8fafc;
+      word-break: break-word;
     }
 
     .merged-doc-cell .merged-date {
@@ -707,6 +883,12 @@
       height: 1px;
     }
 
+    @media (max-width: 1024px) {
+      .timeboard-hover-card {
+        max-width: min(320px, calc(100vw - 24px));
+      }
+    }
+
     @media (max-width: 520px) {
       .branch-select-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -803,9 +985,8 @@
         <table class="calm-table">
           <thead>
             <tr>
-              <th class="col-narrow">No.</th>
-              <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>SQ</span><span class="timeboard-header-sla">0m</span></div></th>
-              <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>SV</span><span class="timeboard-header-sla">1hr</span></div></th>
+              <th class="col-equal col-head-doc col-merged-doc col-sticky-sq"><div class="timeboard-header-cell"><span>SQ</span><span class="timeboard-header-sla">0m</span></div></th>
+              <th class="col-equal col-head-doc col-merged-doc col-sticky-sv"><div class="timeboard-header-cell"><span>SV</span><span class="timeboard-header-sla">1hr</span></div></th>
               <th class="col-equal"><div class="timeboard-header-cell"><span>Inspection Complete</span><span class="timeboard-header-sla">36h (work period)</span></div></th>
               <th class="col-equal"><div class="timeboard-header-cell"><span>Price Request</span><span class="timeboard-header-sla">30m</span></div></th>
               <th class="col-equal"><div class="timeboard-header-cell"><span>Price Report</span><span class="timeboard-header-sla">4h</span></div></th>
@@ -827,7 +1008,7 @@
           </thead>
           <tbody id="timeboardBody">
             <tr>
-              <td colspan="19" class="text-center py-16 text-slate-400">No data available</td>
+              <td colspan="18" class="text-center py-16 text-slate-400">No data available</td>
             </tr>
           </tbody>
         </table>
@@ -850,6 +1031,8 @@
     </div>
   </div>
 
+  <div id="timeboardHoverCard" class="timeboard-hover-card" role="tooltip" aria-hidden="true"></div>
+
   <script type="module">
     import { ROLE } from './js/core/config.js';
 
@@ -863,6 +1046,7 @@
       filteredData: [],
       searchQuery: '',
       selectedBranch: '',
+      salesQuoteNos: [],
       purchaseDocumentNos: {
         pr: [],
         po: []
@@ -1034,7 +1218,7 @@
     }
 
     // Fetch timeboard data from local Time Board API backed by dbo.ServCostRevs
-    // Data structure: { sqNumber, sqCreated, svNumber, svCreated, systemCreatedAt, status, percent, shNumber, shCreated, stNumber, stCreated, postedStNumber, postedStCreated, expectedDate, workStatus }
+    // Data structure: { sqNumber, sqCreated, svNumber, svCreated, systemCreatedAt, userviceStatus, documentStatus, status, percent, shNumber, shCreated, stNumber, stCreated, postedStNumber, postedStCreated, expectedDate, workStatus }
     async function requestTimeboardData(requestedSize) {
       try {
         if (!state.selectedBranch) {
@@ -1112,6 +1296,19 @@
       return `<span class="${className}">${formattedDate}</span>`;
     }
 
+    function formatTooltipDate(dateStr) {
+      if (!dateStr || dateStr === '-' || dateStr === '' || dateStr === '0001-01-01') {
+        return '';
+      }
+
+      const date = new Date(dateStr);
+      if (Number.isNaN(date.getTime())) {
+        return String(dateStr).trim();
+      }
+
+      return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    }
+
     function renderText(value) {
       const normalizedValue = String(value || '').trim();
       if (!normalizedValue) {
@@ -1132,6 +1329,42 @@
       }
 
       return renderText(value);
+    }
+
+    function formatTooltipPercent(value) {
+      if (value === null || value === undefined || value === '') {
+        return '';
+      }
+
+      const numericValue = Number(value);
+      if (Number.isFinite(numericValue)) {
+        return String(numericValue);
+      }
+
+      return String(value || '').trim();
+    }
+
+    function encodeTooltipPayload(entries) {
+      try {
+        return encodeURIComponent(JSON.stringify(Array.isArray(entries) ? entries : []));
+      } catch (error) {
+        console.warn('Failed to encode tooltip payload:', error);
+        return '';
+      }
+    }
+
+    function decodeTooltipPayload(payload) {
+      if (!payload) {
+        return [];
+      }
+
+      try {
+        const parsed = JSON.parse(decodeURIComponent(payload));
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.warn('Failed to decode tooltip payload:', error);
+        return [];
+      }
     }
 
     function parseValidDate(value) {
@@ -1519,7 +1752,8 @@
       const {
         showArrow = false,
         arrowLabel = 'Same value as above',
-        className = ''
+        className = '',
+        docContentMarkup = ''
       } = options;
 
       if (showArrow) {
@@ -1530,11 +1764,12 @@
       const docMarkup = normalizedDocValue
         ? escapeHtml(normalizedDocValue)
         : '<span class="text-slate-300">—</span>';
+      const resolvedDocContentMarkup = docContentMarkup || `<span class="merged-doc">${docMarkup}</span>`;
 
       return `
         <div class="merged-doc-cell${className ? ` ${className}` : ''}">
           <div class="merged-doc-lines">
-            <span class="merged-doc">${docMarkup}</span>
+            ${resolvedDocContentMarkup}
             <span class="merged-date">${renderDate(dateValue)}</span>
           </div>
         </div>
@@ -1558,10 +1793,224 @@
 
     function renderSvCombinedCell(item, showSvSummary, options = {}) {
       if (showSvSummary) {
-        return renderMergedDocCell(item.svNumber, item.svCreated || item.systemCreatedAt, options);
+        return renderMergedDocCell(item.svNumber, item.svCreated || item.systemCreatedAt, {
+          ...options,
+          docContentMarkup: renderSvTooltipTrigger(item)
+        });
       }
 
       return '';
+    }
+
+    function buildSvTooltipEntries(item) {
+      return [
+        { label: 'Customer No', value: String(item?.customerNo || '').trim() },
+        { label: 'Customer Name', value: String(item?.customerName || '').trim() },
+        { label: 'Service Type', value: String(item?.serviceOrderType || '').trim() },
+        { label: 'Salesperson', value: String(item?.salespersonCode || '').trim() },
+        { label: 'Uservice Status', value: String(item?.userviceStatus || '').trim() },
+        { label: 'Status', value: String(item?.documentStatus || '').trim() },
+        { label: 'Work Status', value: String(item?.workStatus || '').trim() },
+        { label: 'Repair Status', value: String(item?.repairStatusCode || '').trim() },
+        { label: 'Last Month', value: String(item?.lastMonthStatus || '').trim() },
+        { label: '% Complete', value: formatTooltipPercent(item?.percent) },
+        { label: 'Date Order', value: formatTooltipDate(item?.dateOrder) }
+      ].filter((entry) => entry.value);
+    }
+
+    function renderSvTooltipTrigger(item) {
+      const normalizedSvNumber = String(item?.svNumber || '').trim();
+      if (!normalizedSvNumber) {
+        return '<span class="merged-doc text-slate-300">—</span>';
+      }
+
+      const tooltipEntries = buildSvTooltipEntries(item);
+      if (tooltipEntries.length === 0) {
+        return `<span class="merged-doc">${escapeHtml(normalizedSvNumber)}</span>`;
+      }
+      const payload = encodeTooltipPayload(tooltipEntries);
+
+      return `
+        <span
+          class="merged-doc timeboard-doc-tooltip-trigger"
+          tabindex="0"
+          aria-label="Additional details for ${escapeHtml(normalizedSvNumber)}"
+          data-tooltip-title="Additional SV Details"
+          data-tooltip-payload="${payload}"
+        >${escapeHtml(normalizedSvNumber)}</span>
+      `;
+    }
+
+    const hoverCardState = {
+      activeTrigger: null,
+      hideTimer: null
+    };
+
+    function getTimeboardHoverCard() {
+      return document.getElementById('timeboardHoverCard');
+    }
+
+    function buildTimeboardHoverCardMarkup(title, entries) {
+      const rowsMarkup = entries.map((entry) => `
+        <span class="timeboard-hover-card-label">${escapeHtml(entry.label)}</span>
+        <span class="timeboard-hover-card-value">${escapeHtml(entry.value)}</span>
+      `).join('');
+
+      return `
+        <span class="timeboard-hover-card-title">${escapeHtml(title)}</span>
+        <span class="timeboard-hover-card-grid">${rowsMarkup}</span>
+      `;
+    }
+
+    function positionTimeboardHoverCard(trigger) {
+      const hoverCard = getTimeboardHoverCard();
+      if (!hoverCard || !trigger) {
+        return;
+      }
+
+      const triggerRect = trigger.getBoundingClientRect();
+      const cardRect = hoverCard.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const gap = 12;
+
+      let placement = 'right';
+      let left = triggerRect.right + gap;
+      let top = triggerRect.top + (triggerRect.height / 2) - (cardRect.height / 2);
+
+      if (left + cardRect.width > viewportWidth - 12) {
+        placement = 'left';
+        left = triggerRect.left - cardRect.width - gap;
+      }
+
+      if (left < 12) {
+        placement = 'bottom';
+        left = Math.min(
+          Math.max(12, triggerRect.left),
+          Math.max(12, viewportWidth - cardRect.width - 12)
+        );
+        top = triggerRect.bottom + gap;
+      }
+
+      if (placement !== 'bottom') {
+        top = Math.min(
+          Math.max(12, top),
+          Math.max(12, viewportHeight - cardRect.height - 12)
+        );
+      } else if (top + cardRect.height > viewportHeight - 12) {
+        top = Math.max(12, triggerRect.top - cardRect.height - gap);
+      }
+
+      hoverCard.dataset.placement = placement;
+      hoverCard.style.left = `${Math.round(left)}px`;
+      hoverCard.style.top = `${Math.round(top)}px`;
+    }
+
+    function hideTimeboardHoverCard() {
+      const hoverCard = getTimeboardHoverCard();
+      if (!hoverCard) {
+        return;
+      }
+
+      hoverCardState.activeTrigger = null;
+      hoverCard.classList.remove('visible');
+      hoverCard.setAttribute('aria-hidden', 'true');
+      hoverCard.innerHTML = '';
+      delete hoverCard.dataset.placement;
+    }
+
+    function scheduleHideTimeboardHoverCard() {
+      window.clearTimeout(hoverCardState.hideTimer);
+      hoverCardState.hideTimer = window.setTimeout(() => {
+        hideTimeboardHoverCard();
+      }, 60);
+    }
+
+    function showTimeboardHoverCard(trigger) {
+      const hoverCard = getTimeboardHoverCard();
+      if (!hoverCard || !trigger) {
+        return;
+      }
+
+      const entries = decodeTooltipPayload(trigger.dataset.tooltipPayload);
+      if (!entries.length) {
+        hideTimeboardHoverCard();
+        return;
+      }
+
+      window.clearTimeout(hoverCardState.hideTimer);
+      hoverCardState.activeTrigger = trigger;
+      hoverCard.innerHTML = buildTimeboardHoverCardMarkup(
+        trigger.dataset.tooltipTitle || 'Additional details',
+        entries
+      );
+      hoverCard.setAttribute('aria-hidden', 'false');
+      hoverCard.classList.add('visible');
+      positionTimeboardHoverCard(trigger);
+    }
+
+    function setupTimeboardHoverCard() {
+      document.addEventListener('mouseover', (event) => {
+        const trigger = event.target.closest('.timeboard-doc-tooltip-trigger');
+        if (!trigger) {
+          return;
+        }
+
+        showTimeboardHoverCard(trigger);
+      });
+
+      document.addEventListener('mouseout', (event) => {
+        const trigger = event.target.closest('.timeboard-doc-tooltip-trigger');
+        if (!trigger) {
+          return;
+        }
+
+        if (trigger.contains(event.relatedTarget)) {
+          return;
+        }
+
+        scheduleHideTimeboardHoverCard();
+      });
+
+      document.addEventListener('focusin', (event) => {
+        const trigger = event.target.closest('.timeboard-doc-tooltip-trigger');
+        if (!trigger) {
+          return;
+        }
+
+        showTimeboardHoverCard(trigger);
+      });
+
+      document.addEventListener('focusout', (event) => {
+        const trigger = event.target.closest('.timeboard-doc-tooltip-trigger');
+        if (!trigger) {
+          return;
+        }
+
+        if (trigger.contains(event.relatedTarget)) {
+          return;
+        }
+
+        scheduleHideTimeboardHoverCard();
+      });
+
+      window.addEventListener('scroll', () => {
+        if (hoverCardState.activeTrigger) {
+          positionTimeboardHoverCard(hoverCardState.activeTrigger);
+        }
+      }, { passive: true });
+
+      window.addEventListener('resize', () => {
+        if (hoverCardState.activeTrigger) {
+          positionTimeboardHoverCard(hoverCardState.activeTrigger);
+        }
+      });
+
+      document.querySelector('.timeboard-table-wrap')?.addEventListener('scroll', () => {
+        if (hoverCardState.activeTrigger) {
+          positionTimeboardHoverCard(hoverCardState.activeTrigger);
+        }
+      }, { passive: true });
     }
 
     function shouldShowSvSummary(item, previousItem) {
@@ -1587,10 +2036,22 @@
       return String(value || '').trim();
     }
 
+    function normalizeSalesQuoteNumber(value) {
+      return String(value || '').trim();
+    }
+
     function getDistinctServiceOrderNumbers(rows) {
       return Array.from(new Set(
         (Array.isArray(rows) ? rows : [])
           .map((row) => normalizeServiceOrderNumber(row?.svNumber))
+          .filter(Boolean)
+      ));
+    }
+
+    function getDistinctSalesQuoteNumbers(rows) {
+      return Array.from(new Set(
+        (Array.isArray(rows) ? rows : [])
+          .map((row) => normalizeSalesQuoteNumber(row?.sqNumber))
           .filter(Boolean)
       ));
     }
@@ -1675,6 +2136,29 @@
 
       if (!response.ok) {
         throw new Error('Failed to fetch approval status data');
+      }
+
+      return response.json();
+    }
+
+    async function requestSalesQuoteData(salesQuoteNos) {
+      if (!Array.isArray(salesQuoteNos) || salesQuoteNos.length === 0) {
+        return {
+          success: true,
+          salesQuotes: []
+        };
+      }
+
+      const response = await fetch('/api/business-central/gateway/sales-quotes/from-array', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(salesQuoteNos)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch sales quote data');
       }
 
       return response.json();
@@ -1782,6 +2266,36 @@
       }
 
       mergedPayload.approvalStatuses.push(...(Array.isArray(chunkPayload?.approvalStatuses) ? chunkPayload.approvalStatuses : []));
+      onProgress(100, total, total);
+
+      return mergedPayload;
+    }
+
+    async function requestSalesQuoteDataForDocuments(salesQuoteNos, onProgress = () => {}) {
+      const normalizedSalesQuoteNos = Array.from(new Set(
+        (Array.isArray(salesQuoteNos) ? salesQuoteNos : [])
+          .map((salesQuoteNo) => normalizeSalesQuoteNumber(salesQuoteNo))
+          .filter(Boolean)
+      ));
+      const total = normalizedSalesQuoteNos.length;
+      const mergedPayload = {
+        success: true,
+        salesQuotes: []
+      };
+
+      if (total === 0) {
+        onProgress(100, 0, 0);
+        return mergedPayload;
+      }
+
+      onProgress(0, 0, total);
+      const chunkPayload = await requestSalesQuoteData(normalizedSalesQuoteNos);
+
+      if (chunkPayload?.success === false) {
+        throw new Error('Failed to fetch sales quote data');
+      }
+
+      mergedPayload.salesQuotes.push(...(Array.isArray(chunkPayload?.salesQuotes) ? chunkPayload.salesQuotes : []));
       onProgress(100, total, total);
 
       return mergedPayload;
@@ -1905,6 +2419,28 @@
       };
     }
 
+    function normalizeSalesQuoteEntry(salesQuote) {
+      return {
+        sq: normalizeSalesQuoteNumber(getFirstNonEmptyValue(
+          salesQuote?.sq,
+          salesQuote?.salesQuoteNo,
+          salesQuote?.salesQuoteNumber,
+          salesQuote?.documentNo
+        )),
+        sqCreated: getFirstNonEmptyValue(
+          salesQuote?.sqCreated,
+          salesQuote?.createdAt,
+          salesQuote?.systemCreatedAt
+        ),
+        expectedDate: getFirstNonEmptyValue(
+          salesQuote?.expectDeliveryDate,
+          salesQuote?.expectedDeliveryDate,
+          salesQuote?.deliveryDate,
+          salesQuote?.expectedDate
+        )
+      };
+    }
+
     function buildPurchaseLineLookup(payload) {
       const lookup = new Map();
       const purchaseLines = Array.isArray(payload?.purchaseLines) ? payload.purchaseLines : [];
@@ -1941,6 +2477,22 @@
       return lookup;
     }
 
+    function buildSalesQuoteLookup(payload) {
+      const lookup = new Map();
+      const salesQuotes = Array.isArray(payload?.salesQuotes) ? payload.salesQuotes : [];
+
+      salesQuotes.forEach((salesQuote) => {
+        const normalizedSalesQuote = normalizeSalesQuoteEntry(salesQuote);
+        if (!normalizedSalesQuote.sq) {
+          return;
+        }
+
+        lookup.set(normalizedSalesQuote.sq, normalizedSalesQuote);
+      });
+
+      return lookup;
+    }
+
     function buildApprovalStatusLookup(payload) {
       const lookup = new Map();
       const approvalStatuses = Array.isArray(payload?.approvalStatuses) ? payload.approvalStatuses : [];
@@ -1955,6 +2507,21 @@
       });
 
       return lookup;
+    }
+
+    function mergeSalesQuoteDataIntoRow(row, salesQuoteLookup) {
+      const sqNumber = normalizeSalesQuoteNumber(row?.sqNumber);
+      const salesQuote = sqNumber ? salesQuoteLookup.get(sqNumber) : null;
+
+      if (!salesQuote) {
+        return row;
+      }
+
+      return {
+        ...row,
+        sqCreated: getFirstNonEmptyValue(salesQuote.sqCreated, row?.sqCreated),
+        expectedDate: getFirstNonEmptyValue(salesQuote.expectedDate, row?.expectedDate)
+      };
     }
 
     function mergePurchaseOrderDataIntoPurchaseLines(purchaseLines, purchaseOrderLookup) {
@@ -2001,10 +2568,22 @@
         onProgress = () => {},
         onPurchaseOrderProgress = () => {},
         onPurchaseOrderApprovalProgress = () => {},
-        onPurchaseRequestApprovalProgress = () => {}
+        onPurchaseRequestApprovalProgress = () => {},
+        onSalesQuoteProgress = () => {}
       } = options;
+      const salesQuoteNos = getDistinctSalesQuoteNumbers(rows);
       const serviceOrderNos = getDistinctServiceOrderNumbers(rows);
+      state.salesQuoteNos = salesQuoteNos;
+      let salesQuoteLookup = new Map();
+
       if (serviceOrderNos.length === 0) {
+        try {
+          const salesQuotePayload = await requestSalesQuoteDataForDocuments(salesQuoteNos, onSalesQuoteProgress);
+          salesQuoteLookup = buildSalesQuoteLookup(salesQuotePayload);
+        } catch (error) {
+          console.warn('Failed to enrich timeboard rows with sales quote data:', error);
+        }
+
         state.purchaseDocumentNos = {
           pr: [],
           po: []
@@ -2014,7 +2593,7 @@
         onPurchaseOrderApprovalProgress(100, 0, 0);
         onPurchaseRequestApprovalProgress(100, 0, 0);
         return rows.map((row) => ({
-          ...row,
+          ...mergeSalesQuoteDataIntoRow(row, salesQuoteLookup),
           purchaseLines: []
         }));
       }
@@ -2044,10 +2623,17 @@
           normalizePurchaseRequestNumber,
           onPurchaseRequestApprovalProgress
         );
+        try {
+          const salesQuotePayload = await requestSalesQuoteDataForDocuments(salesQuoteNos, onSalesQuoteProgress);
+          salesQuoteLookup = buildSalesQuoteLookup(salesQuotePayload);
+        } catch (error) {
+          console.warn('Failed to enrich timeboard rows with sales quote data:', error);
+        }
         const purchaseOrderApprovalLookup = buildApprovalStatusLookup(purchaseOrderApprovalPayload);
         const purchaseRequestApprovalLookup = buildApprovalStatusLookup(purchaseRequestApprovalPayload);
 
         return rows.map((row) => {
+          const rowWithSalesQuoteData = mergeSalesQuoteDataIntoRow(row, salesQuoteLookup);
           const svNumber = normalizeServiceOrderNumber(row?.svNumber);
           const purchaseLines = purchaseLineLookup.get(svNumber) || [];
           const purchaseLinesWithPurchaseOrders = mergePurchaseOrderDataIntoPurchaseLines(purchaseLines, purchaseOrderLookup);
@@ -2062,7 +2648,7 @@
           );
 
           return {
-            ...row,
+            ...rowWithSalesQuoteData,
             purchaseLines: mergeApprovalStatusIntoPurchaseLines(
               purchaseLinesWithPoApprovals,
               purchaseRequestApprovalLookup,
@@ -2075,13 +2661,14 @@
           };
         });
       } catch (error) {
+        state.salesQuoteNos = salesQuoteNos;
         state.purchaseDocumentNos = {
           pr: [],
           po: []
         };
         console.warn('Failed to enrich timeboard rows with purchase line data:', error);
         return rows.map((row) => ({
-          ...row,
+          ...mergeSalesQuoteDataIntoRow(row, salesQuoteLookup),
           purchaseLines: []
         }));
       }
@@ -2219,10 +2806,13 @@
         const sourceHeadCells = Array.from(sourceHead.querySelectorAll('th'));
         const stickyHeadCells = Array.from(stickyTable.querySelectorAll('th'));
         const tableWidth = sourceTable.offsetWidth;
+        const stickySqWidth = sourceHead.querySelector('.col-sticky-sq')?.getBoundingClientRect().width || 0;
 
         stickyTable.style.width = `${tableWidth}px`;
         stickyScrollbarTrack.style.width = `${tableWidth}px`;
         topScrollbarTrack.style.width = `${tableWidth}px`;
+        tableWrap.style.setProperty('--timeboard-sticky-sq-width', `${stickySqWidth}px`);
+        stickyHost.style.setProperty('--timeboard-sticky-sq-width', `${stickySqWidth}px`);
 
         sourceHeadCells.forEach((cell, index) => {
           if (!stickyHeadCells[index]) {
@@ -2260,6 +2850,9 @@
         stickyHost.style.width = `${wrapRect.width}px`;
         stickyHost.style.height = `${headRect.height}px`;
         stickyTable.style.transform = `translateX(${-tableWrap.scrollLeft}px)`;
+        stickyTable.querySelectorAll('.col-sticky-sq, .col-sticky-sv').forEach((cell) => {
+          cell.style.transform = `translateX(${tableWrap.scrollLeft}px)`;
+        });
         stickyScrollbar.style.left = `${wrapRect.left}px`;
         stickyScrollbar.style.top = `${headRect.height}px`;
         stickyScrollbar.style.width = `${wrapRect.width}px`;
@@ -2346,6 +2939,12 @@
               ? `Loading PR approval status... ${percent}% (${processedCount}/${totalCount} PR)`
               : 'Loading PR approval status... 100%';
             updateLoadingDetail(detail);
+          },
+          onSalesQuoteProgress: (percent, processedCount, totalCount) => {
+            const detail = totalCount > 0
+              ? `Loading sales quote dates... ${percent}% (${processedCount}/${totalCount} SQ)`
+              : 'Loading sales quote dates... 100%';
+            updateLoadingDetail(detail);
           }
         });
         state.data = enrichedRows;
@@ -2420,6 +3019,16 @@
             } else {
               updateLoadingDetail(detail);
             }
+          },
+          onSalesQuoteProgress: (percent, processedCount, totalCount) => {
+            const detail = totalCount > 0
+              ? `Loading sales quote dates... ${percent}% (${processedCount}/${totalCount} SQ)`
+              : 'Loading sales quote dates... 100%';
+            if (silent) {
+              updateInlineLoaderDetail(detail);
+            } else {
+              updateLoadingDetail(detail);
+            }
           }
         });
         state.fetchSize = nextFetchSize;
@@ -2445,6 +3054,7 @@
     function render() {
       const tbody = document.getElementById('timeboardBody');
       const displayRows = buildDisplayRows(state.filteredData);
+      hideTimeboardHoverCard();
 
       if (displayRows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="20" class="text-center py-16 text-slate-400">No records found</td></tr>`;
@@ -2456,7 +3066,6 @@
       }
 
       tbody.innerHTML = displayRows.map((item, index) => {
-        const rowNumber = index + 1;
         const prevItem = index > 0 ? displayRows[index - 1] : null;
         const nextItem = index < displayRows.length - 1 ? displayRows[index + 1] : null;
         const showSq = !prevItem || prevItem.sqNumber !== item.sqNumber;
@@ -2533,9 +3142,8 @@
 
         return `
           <tr class="${rowClassName}">
-            <td class="col-row-number">${rowNumber}</td>
-            <td class="col-merged-doc">${renderSqCombinedCell(item, showSq, suppressSqCreatedMarker)}</td>
-            <td class="col-merged-doc">${renderSvCombinedCell(item, showSvSummary, { className: slaOverdueClasses.sv })}</td>
+            <td class="col-merged-doc col-sticky-sq">${renderSqCombinedCell(item, showSq, suppressSqCreatedMarker)}</td>
+            <td class="col-merged-doc col-sticky-sv">${renderSvCombinedCell(item, showSvSummary, { className: slaOverdueClasses.sv })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.inspectionComplete, { className: slaOverdueClasses.inspectionComplete })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.priceRequest, { className: slaOverdueClasses.priceRequest })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.priceReport, { className: slaOverdueClasses.priceReport })}</td>
@@ -2599,6 +3207,7 @@
     });
 
     // Initialize
+    setupTimeboardHoverCard();
     setupStickyTimeboardHeader();
     setupAutoLoadObserver();
     if (await checkAccess()) {

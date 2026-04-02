@@ -425,6 +425,19 @@ function updateMotorKwFieldValidity(field) {
   field.setCustomValidity('Motor kW must not exceed 315.00.');
 }
 
+function updateMotorKwFieldEmptyState(field, { required = false } = {}) {
+  if (!field) {
+    return;
+  }
+
+  const hasValue = Boolean(formatMotorKwValue(field.value || ''));
+  const isEmptyRequiredField = required && !hasValue;
+  const hasValidationError = Boolean(field.validationMessage);
+
+  field.classList.toggle('field-required-empty', isEmptyRequiredField);
+  field.setAttribute('aria-invalid', isEmptyRequiredField || hasValidationError ? 'true' : 'false');
+}
+
 function buildServiceItemDescriptionFromBuilder({ workType, motorKw, motorIsDc, details }) {
   const normalizedWorkType = typeof workType === 'string' ? workType.trim() : '';
   const normalizedDetails = typeof details === 'string' ? details.replace(/\s+/g, ' ').trim() : '';
@@ -508,6 +521,7 @@ function syncServiceItemDescriptionFromBuilder(prefix = 'line', { preserveExisti
       refs.motorKw.value = sanitizedKw;
     }
     updateMotorKwFieldValidity(refs.motorKw);
+    updateMotorKwFieldEmptyState(refs.motorKw, { required: isMotor });
   }
 
   if (refs.motorDriveLabel) {
