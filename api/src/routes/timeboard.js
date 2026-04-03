@@ -67,54 +67,54 @@ router.get('/', async (req, res, next) => {
       .input('fetchSize', sql.Int, fetchSize)
       .query(`
         SELECT TOP (@fetchSize)
-          LTRIM(RTRIM(ISNULL(Branch, ''))) AS branch,
-          LTRIM(RTRIM(ISNULL(JopProjectNo, ''))) AS sqNumber,
+          LTRIM(RTRIM(ISNULL(scr.Branch, ''))) AS branch,
+          LTRIM(RTRIM(ISNULL(scr.JopProjectNo, ''))) AS sqNumber,
           CASE
-            WHEN ServiceOrderDate IS NULL OR ServiceOrderDate <= '1900-01-01' THEN NULL
-            ELSE ServiceOrderDate
+            WHEN scr.ServiceOrderDate IS NULL OR scr.ServiceOrderDate <= '1900-01-01' THEN NULL
+            ELSE scr.ServiceOrderDate
           END AS sqCreated,
-          LTRIM(RTRIM(ISNULL(ServiceOrderNo, ''))) AS svNumber,
+          LTRIM(RTRIM(ISNULL(scr.ServiceOrderNo, ''))) AS svNumber,
           CASE
-            WHEN ServiceOrderDate IS NULL OR ServiceOrderDate <= '1900-01-01' THEN NULL
-            ELSE ServiceOrderDate
+            WHEN scr.ServiceOrderDate IS NULL OR scr.ServiceOrderDate <= '1900-01-01' THEN NULL
+            ELSE scr.ServiceOrderDate
           END AS svCreated,
           CASE
-            WHEN ServiceOrderDate IS NULL OR ServiceOrderDate <= '1900-01-01' THEN NULL
-            ELSE ServiceOrderDate
+            WHEN scr.ServiceOrderDate IS NULL OR scr.ServiceOrderDate <= '1900-01-01' THEN NULL
+            ELSE scr.ServiceOrderDate
           END AS systemCreatedAt,
-          LTRIM(RTRIM(ISNULL(UserviceStatus, ''))) AS userviceStatus,
-          LTRIM(RTRIM(ISNULL(Status, ''))) AS documentStatus,
-          LTRIM(RTRIM(COALESCE(UserviceStatus, Status, RepairStatusCode, ''))) AS status,
-          LTRIM(RTRIM(ISNULL(PercentOfCompletion, ''))) AS [percent],
-          LTRIM(RTRIM(ISNULL(DeliveryOrderNo, ''))) AS shNumber,
+          LTRIM(RTRIM(ISNULL(scr.UserviceStatus, ''))) AS userviceStatus,
+          LTRIM(RTRIM(ISNULL(scr.Status, ''))) AS documentStatus,
+          LTRIM(RTRIM(COALESCE(scr.UserviceStatus, scr.Status, scr.RepairStatusCode, ''))) AS status,
+          LTRIM(RTRIM(ISNULL(scr.PercentOfCompletion, ''))) AS [percent],
+          LTRIM(RTRIM(ISNULL(scr.DeliveryOrderNo, ''))) AS shNumber,
           CASE
-            WHEN DeliveryDate IS NULL OR DeliveryDate <= '1900-01-01' THEN NULL
-            ELSE DeliveryDate
+            WHEN scr.DeliveryDate IS NULL OR scr.DeliveryDate <= '1900-01-01' THEN NULL
+            ELSE scr.DeliveryDate
           END AS shCreated,
-          LTRIM(RTRIM(ISNULL(InvoiceNo, ''))) AS stNumber,
+          LTRIM(RTRIM(ISNULL(scr.InvoiceNo, ''))) AS stNumber,
           CASE
-            WHEN InvoicePostingDate IS NULL OR InvoicePostingDate <= '1900-01-01' THEN NULL
-            ELSE InvoicePostingDate
+            WHEN scr.InvoicePostingDate IS NULL OR scr.InvoicePostingDate <= '1900-01-01' THEN NULL
+            ELSE scr.InvoicePostingDate
           END AS stCreated,
-          LTRIM(RTRIM(ISNULL(InvoiceNo, ''))) AS postedStNumber,
+          LTRIM(RTRIM(ISNULL(scr.InvoiceNo, ''))) AS postedStNumber,
           CASE
-            WHEN InvoicePostingDate IS NULL OR InvoicePostingDate <= '1900-01-01' THEN NULL
-            ELSE InvoicePostingDate
+            WHEN scr.InvoicePostingDate IS NULL OR scr.InvoicePostingDate <= '1900-01-01' THEN NULL
+            ELSE scr.InvoicePostingDate
           END AS postedStCreated,
           CASE
-            WHEN DeliveryDate IS NULL OR DeliveryDate <= '1900-01-01' THEN NULL
-            ELSE DeliveryDate
+            WHEN scr.DeliveryDate IS NULL OR scr.DeliveryDate <= '1900-01-01' THEN NULL
+            ELSE scr.DeliveryDate
           END AS expectedDate,
-          LTRIM(RTRIM(ISNULL(UsvtWorkStatus, ''))) AS workStatus,
-          LTRIM(RTRIM(ISNULL(CustomerNo, ''))) AS customerNo,
-          LTRIM(RTRIM(ISNULL(CustomerName, ''))) AS customerName,
-          LTRIM(RTRIM(ISNULL(ServiceOrderType, ''))) AS serviceOrderType,
-          LTRIM(RTRIM(ISNULL(SalespersonCode, ''))) AS salespersonCode,
-          LTRIM(RTRIM(ISNULL(LastMonthUserviceStatus, ''))) AS lastMonthStatus,
-          LTRIM(RTRIM(ISNULL(RepairStatusCode, ''))) AS repairStatusCode,
+          LTRIM(RTRIM(ISNULL(scr.UsvtWorkStatus, ''))) AS workStatus,
+          LTRIM(RTRIM(ISNULL(scr.CustomerNo, ''))) AS customerNo,
+          LTRIM(RTRIM(ISNULL(scr.CustomerName, ''))) AS customerName,
+          LTRIM(RTRIM(ISNULL(scr.ServiceOrderType, ''))) AS serviceOrderType,
+          LTRIM(RTRIM(ISNULL(scr.SalespersonCode, ''))) AS salespersonCode,
+          LTRIM(RTRIM(ISNULL(scr.LastMonthUserviceStatus, ''))) AS lastMonthStatus,
+          LTRIM(RTRIM(ISNULL(scr.RepairStatusCode, ''))) AS repairStatusCode,
           CASE
-            WHEN DateOrder IS NULL OR DateOrder <= '1900-01-01' THEN NULL
-            ELSE DateOrder
+            WHEN scr.DateOrder IS NULL OR scr.DateOrder <= '1900-01-01' THEN NULL
+            ELSE scr.DateOrder
           END AS dateOrder,
           CASE
             WHEN a.SalesDirectorActionAt IS NULL OR a.SalesDirectorActionAt <= '1900-01-01' THEN NULL
@@ -131,15 +131,15 @@ router.get('/', async (req, res, next) => {
         WHERE LTRIM(RTRIM(ISNULL(scr.Branch, ''))) = @branch
         ORDER BY
           CASE
-            WHEN ServiceOrderDate IS NULL OR ServiceOrderDate <= '1900-01-01'
+            WHEN scr.ServiceOrderDate IS NULL OR scr.ServiceOrderDate <= '1900-01-01'
               THEN CASE
-                WHEN DateOrder IS NULL OR DateOrder <= '1900-01-01' THEN NULL
-                ELSE DateOrder
+                WHEN scr.DateOrder IS NULL OR scr.DateOrder <= '1900-01-01' THEN NULL
+                ELSE scr.DateOrder
               END
-            ELSE ServiceOrderDate
+            ELSE scr.ServiceOrderDate
           END ${sortDirection},
-          LTRIM(RTRIM(ISNULL(JopProjectNo, ''))) ${sortDirection},
-          LTRIM(RTRIM(ISNULL(ServiceOrderNo, ''))) ${sortDirection}
+          LTRIM(RTRIM(ISNULL(scr.JopProjectNo, ''))) ${sortDirection},
+          LTRIM(RTRIM(ISNULL(scr.ServiceOrderNo, ''))) ${sortDirection}
       `);
 
     res.status(200).json({
