@@ -98,7 +98,8 @@
     }
 
     .calm-table tbody tr:hover td.col-sticky-sq,
-    .calm-table tbody tr:hover td.col-sticky-sv {
+    .calm-table tbody tr:hover td.col-sticky-sv,
+    .calm-table tbody tr:hover td.col-sticky-expected {
       background: var(--calm-accent-light);
     }
 
@@ -108,7 +109,8 @@
     }
 
     .calm-table tbody tr.timeboard-delayed-row td.col-sticky-sq,
-    .calm-table tbody tr.timeboard-delayed-row td.col-sticky-sv {
+    .calm-table tbody tr.timeboard-delayed-row td.col-sticky-sv,
+    .calm-table tbody tr.timeboard-delayed-row td.col-sticky-expected {
       background: #fef2f2;
       border-bottom-color: #fecaca;
     }
@@ -118,7 +120,8 @@
     }
 
     .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-sq,
-    .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-sv {
+    .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-sv,
+    .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-expected {
       background: #fee2e2;
     }
 
@@ -154,13 +157,16 @@
     .timeboard-table-wrap .calm-table thead th.col-sticky-sq,
     .timeboard-table-wrap .calm-table tbody td.col-sticky-sq,
     .timeboard-table-wrap .calm-table thead th.col-sticky-sv,
-    .timeboard-table-wrap .calm-table tbody td.col-sticky-sv {
+    .timeboard-table-wrap .calm-table tbody td.col-sticky-sv,
+    .timeboard-table-wrap .calm-table thead th.col-sticky-expected,
+    .timeboard-table-wrap .calm-table tbody td.col-sticky-expected {
       position: sticky;
       background: var(--calm-surface);
     }
 
     .timeboard-table-wrap .calm-table thead th.col-sticky-sq,
-    .timeboard-table-wrap .calm-table thead th.col-sticky-sv {
+    .timeboard-table-wrap .calm-table thead th.col-sticky-sv,
+    .timeboard-table-wrap .calm-table thead th.col-sticky-expected {
       background: rgba(248, 250, 252, 0.98);
     }
 
@@ -176,12 +182,22 @@
       box-shadow: inset -1px 0 0 rgba(226, 232, 240, 0.95), 14px 0 18px -18px rgba(15, 23, 42, 0.28);
     }
 
+    .timeboard-table-wrap .calm-table thead th.col-sticky-expected,
+    .timeboard-table-wrap .calm-table tbody td.col-sticky-expected {
+      right: 0;
+      box-shadow: inset 1px 0 0 rgba(226, 232, 240, 0.95), -14px 0 18px -18px rgba(15, 23, 42, 0.28);
+    }
+
     .timeboard-table-wrap .calm-table thead th.col-sticky-sq {
       z-index: 13;
     }
 
     .timeboard-table-wrap .calm-table thead th.col-sticky-sv {
       z-index: 12;
+    }
+
+    .timeboard-table-wrap .calm-table thead th.col-sticky-expected {
+      z-index: 11;
     }
 
     .timeboard-table-wrap .calm-table tbody td.col-sticky-sq {
@@ -192,8 +208,13 @@
       z-index: 4;
     }
 
+    .timeboard-table-wrap .calm-table tbody td.col-sticky-expected {
+      z-index: 3;
+    }
+
     .timeboard-sticky-header .col-sticky-sq,
-    .timeboard-sticky-header .col-sticky-sv {
+    .timeboard-sticky-header .col-sticky-sv,
+    .timeboard-sticky-header .col-sticky-expected {
       position: relative;
       background: rgba(248, 250, 252, 0.98);
       will-change: transform;
@@ -207,6 +228,11 @@
     .timeboard-sticky-header .col-sticky-sv {
       z-index: 2;
       box-shadow: inset -1px 0 0 rgba(226, 232, 240, 0.95), 14px 0 18px -18px rgba(15, 23, 42, 0.28);
+    }
+
+    .timeboard-sticky-header .col-sticky-expected {
+      z-index: 1;
+      box-shadow: inset 1px 0 0 rgba(226, 232, 240, 0.95), -14px 0 18px -18px rgba(15, 23, 42, 0.28);
     }
 
     .calm-table tbody td.col-doc {
@@ -376,6 +402,48 @@
       color: var(--calm-date-color);
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
+    }
+
+    .timeboard-event-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-height: 38px;
+      width: 100%;
+    }
+
+    .timeboard-event-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 76px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      line-height: 1.1;
+      border: 1px solid transparent;
+    }
+
+    .timeboard-event-status-win {
+      background: #dcfce7;
+      color: #166534;
+      border-color: #86efac;
+    }
+
+    .timeboard-event-status-lose {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-color: #fca5a5;
+    }
+
+    .timeboard-event-status-cancelled {
+      background: #e2e8f0;
+      color: #475569;
+      border-color: #cbd5e1;
     }
 
     .merged-repeat-symbol {
@@ -996,7 +1064,7 @@
               <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>SH Record</span><span class="timeboard-header-sla">N/A</span></div></th>
               <th class="col-equal col-head-doc col-merged-doc"><div class="timeboard-header-cell"><span>ST</span><span class="timeboard-header-sla">N/A</span></div></th>
               <th class="col-equal"><div class="timeboard-header-cell"><span>ST Complete</span><span class="timeboard-header-sla">N/A</span></div></th>
-              <th class="col-equal col-head-date"><div class="timeboard-header-cell"><span>Expected Delivery Date</span><span class="timeboard-header-sla">N/A</span></div></th>
+              <th class="col-equal col-head-date col-sticky-expected"><div class="timeboard-header-cell"><span>Expected Delivery Date</span><span class="timeboard-header-sla">N/A</span></div></th>
             </tr>
           </thead>
           <tbody id="timeboardBody">
@@ -1306,7 +1374,7 @@
     }
 
     // Fetch timeboard data from local Time Board API backed by dbo.ServCostRevs
-    // Data structure: { sqNumber, sqCreated, svNumber, svCreated, systemCreatedAt, userviceStatus, documentStatus, status, percent, shNumber, shCreated, stNumber, stCreated, postedStNumber, postedStCreated, expectedDate, workStatus }
+    // Data structure also includes approvalTime, confirmationStatus, and confirmationTime from local Sales Quote tracking.
     async function requestTimeboardData(requestedSize) {
       try {
         if (!state.selectedBranch) {
@@ -1367,6 +1435,14 @@
     }
 
     // Render date cell
+    function hasExplicitTimeComponent(dateStr) {
+      if (typeof dateStr !== 'string') {
+        return false;
+      }
+
+      return /[T\s]\d{2}:\d{2}/.test(dateStr);
+    }
+
     function renderDate(dateStr, options = {}) {
       const { className = '' } = options;
       if (!dateStr || dateStr === '-' || dateStr === '') {
@@ -1376,7 +1452,16 @@
       if (isNaN(date.getTime())) {
         return `<span class="${className || 'text-slate-400'}">${dateStr}</span>`;
       }
-      const formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      const formattedDate = hasExplicitTimeComponent(dateStr)
+        ? date.toLocaleString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          })
+        : date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
       if (!className) {
         return formattedDate;
       }
@@ -1394,7 +1479,16 @@
         return String(dateStr).trim();
       }
 
-      return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      return hasExplicitTimeComponent(dateStr)
+        ? date.toLocaleString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          })
+        : date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
     }
 
     function renderText(value) {
@@ -1404,6 +1498,24 @@
       }
 
       return escapeHtml(normalizedValue);
+    }
+
+    function normalizeConfirmationStatus(value) {
+      const normalized = String(value || '').trim().toLowerCase();
+
+      if (normalized === 'win') {
+        return 'Win';
+      }
+
+      if (normalized === 'lose') {
+        return 'Lose';
+      }
+
+      if (normalized === 'cancelled') {
+        return 'Cancelled';
+      }
+
+      return '';
     }
 
     function renderPercent(value) {
@@ -1604,6 +1716,9 @@
       const shCreated = parseValidDate(item?.shCreated);
       const stCreated = parseValidDate(item?.postedStCreated || item?.stCreated);
       const expectedDate = parseValidDate(item?.expectedDate);
+      const approvalTime = parseValidDate(item?.approvalTime);
+      const confirmationTime = parseValidDate(item?.confirmationTime);
+      const confirmationStatus = normalizeConfirmationStatus(item?.confirmationStatus);
 
       const fallbackStart = maxDate(
         svCreated,
@@ -1625,12 +1740,12 @@
         priceRequest
       );
 
-      let sqComplete = maxDate(
+      let sqComplete = approvalTime || maxDate(
         sqCreated || addDays(priceReport, getSeededOffset(seed, 4, 0, 1)),
         addDays(priceReport, getSeededOffset(seed, 5, 0, 1))
       );
 
-      let confirmation = maxDate(
+      let confirmation = confirmationTime || maxDate(
         addDays(sqComplete, getSeededOffset(seed, 6, 0, 2)),
         sqComplete
       );
@@ -1750,8 +1865,9 @@
         inspectionComplete: toIsoDate(inspectionComplete),
         priceRequest: toIsoDate(priceRequest),
         priceReport: toIsoDate(priceReport),
-        sqComplete: toIsoDate(sqComplete),
-        confirmation: toIsoDate(confirmation),
+        sqComplete: item?.approvalTime || toIsoDate(sqComplete),
+        confirmation: item?.confirmationTime || toIsoDate(confirmation),
+        confirmationStatus,
         planningRequest: toIsoDate(planningRequest),
         prComplete: toIsoDate(prComplete),
         poComplete: toIsoDate(poComplete),
@@ -1764,6 +1880,7 @@
     }
 
     function buildActualTimeline(item, purchaseLine) {
+      const confirmationStatus = normalizeConfirmationStatus(item?.confirmationStatus);
       const stCreated = parseValidDate(item?.postedStCreated || item?.stCreated);
       const expectedDate = parseValidDate(item?.expectedDate);
       const planningRequest = parseValidDate(item?.planningRequest);
@@ -1775,8 +1892,9 @@
         inspectionComplete: '',
         priceRequest: '',
         priceReport: '',
-        sqComplete: '',
-        confirmation: '',
+        sqComplete: item?.approvalTime || '',
+        confirmation: item?.confirmationTime || '',
+        confirmationStatus,
         planningRequest: toIsoDate(planningRequest),
         prComplete: toIsoDate(prComplete),
         poComplete: '',
@@ -1851,6 +1969,25 @@
         return '<span class="text-slate-300">—</span>';
       }
       return renderDate(dateStr, options);
+    }
+
+    function renderConfirmationCell(statusValue, dateValue, options = {}) {
+      const { className = '' } = options;
+      const normalizedStatus = normalizeConfirmationStatus(statusValue);
+      const formattedDateMarkup = renderDate(dateValue, { className });
+
+      if (!normalizedStatus) {
+        return formattedDateMarkup;
+      }
+
+      const statusClassName = normalizedStatus.toLowerCase();
+
+      return `
+        <div class="timeboard-event-cell">
+          <span class="timeboard-event-status timeboard-event-status-${escapeHtml(statusClassName)}">${escapeHtml(normalizedStatus)}</span>
+          <span class="merged-date">${formattedDateMarkup}</span>
+        </div>
+      `;
     }
 
     function renderMergedDocCell(docValue, dateValue, options = {}) {
@@ -3109,6 +3246,10 @@
         stickyTable.querySelectorAll('.col-sticky-sq, .col-sticky-sv').forEach((cell) => {
           cell.style.transform = `translateX(${tableWrap.scrollLeft}px)`;
         });
+        const rightStickyOffset = wrapRect.width - sourceTable.offsetWidth;
+        stickyTable.querySelectorAll('.col-sticky-expected').forEach((cell) => {
+          cell.style.transform = `translateX(${tableWrap.scrollLeft + rightStickyOffset}px)`;
+        });
         stickyScrollbar.style.left = `${wrapRect.left}px`;
         stickyScrollbar.style.top = `${headRect.height}px`;
         stickyScrollbar.style.width = `${wrapRect.width}px`;
@@ -3341,6 +3482,17 @@
 
           return renderExpectedDate(value, options);
         };
+        const renderSvSummaryOnlyConfirmation = (statusValue, value, options = {}) => {
+          if (!hasSvNumber) {
+            return renderScaffoldCell(true);
+          }
+
+          if (!showSvSummary) {
+            return '';
+          }
+
+          return renderConfirmationCell(statusValue, value, options);
+        };
         const slaOverdueClasses = {
           sv: isSlaExceeded(item.sqCreated, item.svCreated || item.systemCreatedAt, 1) ? 'timeboard-sla-overdue' : '',
           inspectionComplete: isSlaExceeded(item.svCreated || item.systemCreatedAt, timeline.inspectionComplete, 36) ? 'timeboard-sla-overdue' : '',
@@ -3376,7 +3528,7 @@
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.priceRequest, { className: slaOverdueClasses.priceRequest })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.priceReport, { className: slaOverdueClasses.priceReport })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.sqComplete, { className: slaOverdueClasses.sqComplete })}</td>
-            <td class="col-date">${renderSvSummaryOnlyDate(timeline.confirmation, { className: slaOverdueClasses.confirmation })}</td>
+            <td class="col-date">${renderSvSummaryOnlyConfirmation(timeline.confirmationStatus, timeline.confirmation, { className: slaOverdueClasses.confirmation })}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.planningRequest, {
               className: slaOverdueClasses.planningRequest,
               showRepeatMarker: hasSvNumber,
@@ -3392,7 +3544,7 @@
             <td class="col-merged-doc">${showSvDependentDocs ? renderMergedDocCell(item.shNumber, item.shCreated) : ''}</td>
             <td class="col-merged-doc">${showSvDependentDocs ? renderMergedDocCell(item.stNumber, item.postedStCreated) : ''}</td>
             <td class="col-date">${renderSvSummaryOnlyDate(timeline.stComplete)}</td>
-            <td class="col-date">${renderSvSummaryOnlyExpectedDate(timeline.expectedDeliveryDate)}</td>
+            <td class="col-date col-sticky-expected">${renderSvSummaryOnlyExpectedDate(timeline.expectedDeliveryDate)}</td>
           </tr>
         `;
       }).join('');

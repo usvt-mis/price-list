@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { getPool } = require('../db');
 const sql = require('mssql');
+const { ensureSalesQuoteApprovalsTable } = require('../utils/salesQuoteApprovals');
 
 const ALLOWED_ROLES = new Set(['Executive', 'Manager', 'SalesDirector']);
 const DEFAULT_FETCH_SIZE = 50;
@@ -59,6 +60,7 @@ router.get('/', async (req, res, next) => {
     const fetchSize = normalizeFetchSize(req.query.offset);
     const sortDirection = normalizeSortDirection(req.query.orderBy);
     const pool = await getPool();
+    await ensureSalesQuoteApprovalsTable(pool);
 
     const result = await pool.request()
       .input('branch', sql.NVarChar(10), branch)
@@ -113,9 +115,20 @@ router.get('/', async (req, res, next) => {
           CASE
             WHEN DateOrder IS NULL OR DateOrder <= '1900-01-01' THEN NULL
             ELSE DateOrder
-          END AS dateOrder
-        FROM dbo.ServCostRevs
-        WHERE LTRIM(RTRIM(ISNULL(Branch, ''))) = @branch
+          END AS dateOrder,
+          CASE
+            WHEN a.SalesDirectorActionAt IS NULL OR a.SalesDirectorActionAt <= '1900-01-01' THEN NULL
+            ELSE a.SalesDirectorActionAt
+          END AS approvalTime,
+          LTRIM(RTRIM(ISNULL(a.ConfirmationStatus, ''))) AS confirmationStatus,
+          CASE
+            WHEN a.ConfirmationStatusAt IS NULL OR a.ConfirmationStatusAt <= '1900-01-01' THEN NULL
+            ELSE a.ConfirmationStatusAt
+          END AS confirmationTime
+        FROM dbo.ServCostRevs scr
+        LEFT JOIN dbo.SalesQuoteApprovals a
+          ON LTRIM(RTRIM(ISNULL(a.SalesQuoteNumber, ''))) = LTRIM(RTRIM(ISNULL(scr.JopProjectNo, '')))
+        WHERE LTRIM(RTRIM(ISNULL(scr.Branch, ''))) = @branch
         ORDER BY
           CASE
             WHEN ServiceOrderDate IS NULL OR ServiceOrderDate <= '1900-01-01'

@@ -26,12 +26,17 @@ BEGIN
     SubmittedForApprovalAt DATETIME2 NULL,
     SalesDirectorEmail NVARCHAR(255) NULL,
     SalesDirectorActionAt DATETIME2 NULL,
+    ConfirmationStatus NVARCHAR(20) NULL,
+    ConfirmationStatusAt DATETIME2 NULL,
     ActionComment NVARCHAR(MAX) NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     CONSTRAINT UQ_SalesQuoteApprovals_QuoteNumber UNIQUE (SalesQuoteNumber),
     CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
       ApprovalStatus IN ('Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled', 'BeingRevised')
+    ),
+    CONSTRAINT CK_SalesQuoteApprovals_ConfirmationStatus CHECK (
+      ConfirmationStatus IS NULL OR ConfirmationStatus IN ('Win', 'Lose', 'Cancelled')
     )
   );
 

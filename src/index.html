@@ -206,8 +206,14 @@
     const salesQuotesCard = document.getElementById('salesQuotesCard');
     const timeBoardCard = document.getElementById('timeBoardCard');
 
-    // Roles that can access Calculator and Sales Quotes
+    // Roles that are considered assigned app users on the landing page
     const ALLOWED_ROLES = ['Sales', 'SalesDirector', 'Executive', 'Manager'];
+
+    // Roles that can access the Calculator launcher on the landing page
+    const CALCULATOR_ROLES = ['Sales', 'SalesDirector', 'Executive'];
+
+    // Roles that can access Sales Quotes on the landing page
+    const SALES_QUOTES_ROLES = ['Sales', 'SalesDirector', 'Executive'];
 
     // Roles that can access Time Board (Manager + Executive + SalesDirector)
     const TIMEBOARD_ROLES = ['Manager', 'Executive', 'SalesDirector'];
@@ -347,8 +353,8 @@
      */
     function applyAccessControl(hasAccess, userRole = null) {
       const calculatorCard = document.getElementById('calculatorMenuTrigger');
-      const calculatorVisible = hasAccess && isMenuCardAllowedBySchedule('calculator');
-      const salesQuotesVisible = hasAccess && isMenuCardAllowedBySchedule('salesQuotes');
+      const calculatorVisible = Boolean(userRole && CALCULATOR_ROLES.includes(userRole) && isMenuCardAllowedBySchedule('calculator'));
+      const salesQuotesVisible = Boolean(userRole && SALES_QUOTES_ROLES.includes(userRole) && isMenuCardAllowedBySchedule('salesQuotes'));
       const timeBoardVisible = Boolean(userRole && TIMEBOARD_ROLES.includes(userRole) && isMenuCardAllowedBySchedule('timeBoard'));
 
       // Time Board: Only show to Manager, Executive, SalesDirector
@@ -362,6 +368,9 @@
 
       if (calculatorCard) {
         calculatorCard.classList.toggle('hidden', !calculatorVisible);
+        if (!calculatorVisible && calculatorMenuModal && !calculatorMenuModal.hidden) {
+          closeCalculatorMenu();
+        }
       }
 
       if (salesQuotesCard) {

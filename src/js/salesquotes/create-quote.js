@@ -3613,6 +3613,20 @@ async function createServiceItem(description, customerNo, groupNo, serviceType =
   }
 }
 
+async function syncApprovedQuoteConfirmationStatus(quoteNumber, workStatus) {
+  const normalizedQuoteNumber = String(quoteNumber || '').trim();
+  if (!normalizedQuoteNumber) {
+    return null;
+  }
+
+  return fetchWithAuth(`/api/salesquotes/approvals/${encodeURIComponent(normalizedQuoteNumber)}/confirmation`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status: typeof workStatus === 'string' ? workStatus : ''
+    })
+  });
+}
+
 async function updateServiceItemDescription(serviceItemNo, description, customerNo = '') {
   const API_URL = GATEWAY_API.UPDATE_SERVICE_ITEM;
   const normalizedServiceItemNo = String(serviceItemNo || '').trim();
@@ -4006,6 +4020,15 @@ export async function handleSendQuote(options = {}) {
       } catch (recordError) {
         recordSaveError = recordError;
         console.error('Failed to save Sales Quote submission record:', recordError);
+      }
+    }
+
+    if (isApprovedWorkStatusUpdate && quoteNumber) {
+      try {
+        await syncApprovedQuoteConfirmationStatus(quoteNumber, formData.workStatus);
+      } catch (confirmationTrackingError) {
+        console.error('Failed to sync confirmation tracking:', confirmationTrackingError);
+        showToast('Work Status updated in Business Central, but Time Board tracking could not be saved.', 'info');
       }
     }
 

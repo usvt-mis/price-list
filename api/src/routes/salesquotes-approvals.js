@@ -9,120 +9,18 @@ const { getPool } = require('../db');
 const { validateAuth, extractUserEmail } = require('../middleware/authExpress');
 const logger = require('../utils/logger');
 const { logSalesQuoteAuditEvent } = require('../utils/salesQuoteAuditLog');
+const {
+  ensureSalesQuoteApprovalsTable,
+  normalizeConfirmationStatus
+} = require('../utils/salesQuoteApprovals');
 
-const VALID_STATUSES = ['Draft', 'SubmittedToBC', 'PendingApproval', 'Approved', 'Rejected', 'Revise', 'Cancelled', 'BeingRevised'];
 const PENDING_REVISION_THRESHOLD_MS = 1000;
-let ensureApprovalTablePromise = null;
 
 /**
  * Ensure SalesQuoteApprovals table exists
  */
 async function ensureApprovalTable(pool) {
-  if (ensureApprovalTablePromise) {
-    return ensureApprovalTablePromise;
-  }
-
-  ensureApprovalTablePromise = (async () => {
-  const statusConstraintSql = VALID_STATUSES.map((status) => `'${status}'`).join(', ');
-
-    await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SalesQuoteApprovals]') AND type in (N'U'))
-      BEGIN
-        CREATE TABLE SalesQuoteApprovals (
-          Id INT IDENTITY(1,1) PRIMARY KEY,
-          SalesQuoteNumber NVARCHAR(50) NOT NULL,
-          SalespersonEmail NVARCHAR(255) NOT NULL,
-          ApprovalOwnerEmail NVARCHAR(255) NULL,
-          SalespersonCode NVARCHAR(50) NOT NULL,
-          SalespersonName NVARCHAR(255) NULL,
-          CustomerName NVARCHAR(255) NULL,
-          WorkDescription NVARCHAR(MAX) NULL,
-          TotalAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
-          ApprovalStatus NVARCHAR(50) NOT NULL DEFAULT 'Draft',
-          SubmittedForApprovalAt DATETIME2 NULL,
-          SalesDirectorEmail NVARCHAR(255) NULL,
-          SalesDirectorActionAt DATETIME2 NULL,
-          ActionComment NVARCHAR(MAX) NULL,
-          CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-          UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-          CONSTRAINT UQ_SalesQuoteApprovals_QuoteNumber UNIQUE (SalesQuoteNumber),
-          CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
-            ApprovalStatus IN (${statusConstraintSql})
-          )
-        );
-
-        CREATE INDEX IX_SalesQuoteApprovals_Status_Submitted
-          ON SalesQuoteApprovals (ApprovalStatus, SubmittedForApprovalAt);
-
-        CREATE INDEX IX_SalesQuoteApprovals_Salesperson
-          ON SalesQuoteApprovals (SalespersonEmail, ApprovalStatus);
-      END
-    `);
-
-    await pool.request().query(`
-      IF COL_LENGTH('dbo.SalesQuoteApprovals', 'ApprovalOwnerEmail') IS NULL
-      BEGIN
-        BEGIN TRY
-          ALTER TABLE dbo.SalesQuoteApprovals
-          ADD ApprovalOwnerEmail NVARCHAR(255) NULL;
-        END TRY
-        BEGIN CATCH
-          IF ERROR_NUMBER() <> 2705
-            THROW;
-        END CATCH
-      END;
-    `);
-
-    await pool.request().query(`
-      IF OBJECT_ID(N'dbo.SalesQuoteApprovals', N'U') IS NOT NULL
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM sys.check_constraints
-          WHERE parent_object_id = OBJECT_ID(N'dbo.SalesQuoteApprovals')
-            AND name = 'CK_SalesQuoteApprovals_Status'
-            AND definition LIKE '%BeingRevised%'
-        )
-        BEGIN
-          BEGIN TRY
-            ALTER TABLE dbo.SalesQuoteApprovals
-            DROP CONSTRAINT CK_SalesQuoteApprovals_Status;
-          END TRY
-          BEGIN CATCH
-            IF ERROR_NUMBER() NOT IN (3727, 3728)
-              THROW;
-          END CATCH;
-
-          IF NOT EXISTS (
-            SELECT 1
-            FROM sys.check_constraints
-            WHERE parent_object_id = OBJECT_ID(N'dbo.SalesQuoteApprovals')
-              AND name = 'CK_SalesQuoteApprovals_Status'
-          )
-          BEGIN
-            ALTER TABLE dbo.SalesQuoteApprovals
-            WITH CHECK ADD CONSTRAINT CK_SalesQuoteApprovals_Status CHECK (
-              ApprovalStatus IN (${statusConstraintSql})
-            );
-          END
-        END
-      END;
-    `);
-
-    await pool.request().query(`
-      UPDATE dbo.SalesQuoteApprovals
-      SET ApprovalOwnerEmail = SalespersonEmail
-      WHERE ApprovalOwnerEmail IS NULL
-        AND SalespersonEmail IS NOT NULL;
-    `);
-  })();
-
-  try {
-    await ensureApprovalTablePromise;
-  } catch (error) {
-    ensureApprovalTablePromise = null;
-    throw error;
-  }
+  return ensureSalesQuoteApprovalsTable(pool);
 }
 
 function getAuthenticatedEmail(req) {
@@ -541,6 +439,100 @@ router.get('/:quoteNumber', async (req, res, next) => {
 
     res.json({ approval: mapApprovalRecord(approval) });
 
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================================
+// POST /api/salesquotes/approvals/:quoteNumber/confirmation - Track confirmation status/time
+// ============================================================
+
+router.post('/:quoteNumber/confirmation', async (req, res, next) => {
+  const clientEmail = getAuthenticatedEmail(req);
+  if (!clientEmail) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const { quoteNumber } = req.params;
+  const normalizedQuoteNumber = String(quoteNumber || '').trim();
+  const normalizedStatus = normalizeConfirmationStatus(req.body?.status);
+
+  if (!normalizedQuoteNumber) {
+    return res.status(400).json({ error: 'Sales Quote number is required' });
+  }
+
+  try {
+    const pool = await getPool();
+    await ensureApprovalTable(pool);
+
+    const approval = await getApprovalByQuoteNumber(pool, normalizedQuoteNumber);
+    if (!approval) {
+      return res.status(404).json({ error: 'Approval record not found' });
+    }
+
+    if (approval.ApprovalStatus !== 'Approved') {
+      return res.status(400).json({
+        error: `Cannot track confirmation for quote with status: ${approval.ApprovalStatus}`,
+        currentStatus: approval.ApprovalStatus
+      });
+    }
+
+    const currentStatus = normalizeConfirmationStatus(approval.ConfirmationStatus);
+    const hasExistingTimestamp = Boolean(approval.ConfirmationStatusAt);
+    const shouldClear = !normalizedStatus;
+    const shouldUpdateTimestamp = !shouldClear && (currentStatus !== normalizedStatus || !hasExistingTimestamp);
+    const confirmationAt = shouldClear
+      ? null
+      : shouldUpdateTimestamp
+        ? new Date()
+        : approval.ConfirmationStatusAt;
+
+    if (shouldClear && !currentStatus && !hasExistingTimestamp) {
+      return res.json({
+        message: 'Confirmation status is already clear',
+        approval: mapApprovalRecord(approval)
+      });
+    }
+
+    if (!shouldClear && currentStatus === normalizedStatus && hasExistingTimestamp) {
+      return res.json({
+        message: 'Confirmation status already tracked',
+        approval: mapApprovalRecord(approval)
+      });
+    }
+
+    await pool.request()
+      .input('salesQuoteNumber', require('mssql').NVarChar(50), normalizedQuoteNumber)
+      .input('confirmationStatus', require('mssql').NVarChar(20), normalizedStatus)
+      .input('confirmationStatusAt', require('mssql').DateTime2, confirmationAt ? new Date(confirmationAt) : null)
+      .query(`
+        UPDATE SalesQuoteApprovals
+        SET ConfirmationStatus = @confirmationStatus,
+            ConfirmationStatusAt = @confirmationStatusAt,
+            UpdatedAt = GETUTCDATE()
+        WHERE SalesQuoteNumber = @salesQuoteNumber
+      `);
+
+    const updated = await getApprovalByQuoteNumber(pool, normalizedQuoteNumber);
+
+    await recordApprovalAuditEvent(pool, req, {
+      salesQuoteNumber: normalizedQuoteNumber,
+      actionType: shouldClear ? 'ConfirmationCleared' : 'ConfirmationTracked',
+      actorEmail: clientEmail,
+      approvalStatus: updated?.ApprovalStatus || approval.ApprovalStatus || 'Approved',
+      workDescription: updated?.WorkDescription || approval?.WorkDescription || null,
+      comment: shouldClear
+        ? 'Confirmation status cleared'
+        : `Confirmation status tracked as ${normalizedStatus}`
+    });
+
+    res.json({
+      message: shouldClear
+        ? 'Confirmation status cleared'
+        : `Confirmation status updated to ${normalizedStatus}`,
+      approval: mapApprovalRecord(updated)
+    });
   } catch (error) {
     next(error);
   }
@@ -1344,6 +1336,8 @@ function mapApprovalRecord(record) {
     submittedForApprovalAt: record.SubmittedForApprovalAt,
     salesDirectorEmail: record.SalesDirectorEmail,
     salesDirectorActionAt: record.SalesDirectorActionAt,
+    confirmationStatus: normalizeConfirmationStatus(record.ConfirmationStatus) || '',
+    confirmationStatusAt: record.ConfirmationStatusAt,
     actionComment: record.ActionComment,
     createdAt: record.CreatedAt,
     updatedAt: record.UpdatedAt
