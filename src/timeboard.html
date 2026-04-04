@@ -28,6 +28,12 @@
       --calm-warning-light: #fffbeb;
       --calm-error: #ef4444;
       --calm-error-light: #fef2f2;
+      --calm-sla-text: #334155;
+      --calm-sla-key: #475569;
+      --calm-sla-value: #64748b;
+      --calm-sla-border: #cbd5e1;
+      --calm-sla-bg-start: rgba(245, 249, 252, 0.98);
+      --calm-sla-bg-end: rgba(233, 241, 248, 0.98);
       --timeboard-sticky-sq-width: 0px;
       --timeboard-col-sq-width: 170px;
       --timeboard-col-sv-width: 170px;
@@ -47,12 +53,77 @@
       --timeboard-col-expected-width: 190px;
       --font-sans: "IBM Plex Sans", "Segoe UI", "Noto Sans Thai", system-ui, sans-serif;
       --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+      --ops-shell-bg: #edf3f2;
+      --ops-shell-bg-deep: #dde7e5;
+      --ops-shell-surface: rgba(255, 255, 255, 0.82);
+      --ops-shell-surface-strong: rgba(255, 255, 255, 0.94);
+      --ops-shell-border: rgba(124, 144, 154, 0.22);
+      --ops-shell-border-strong: rgba(90, 111, 123, 0.34);
+      --ops-shell-text: #18323a;
+      --ops-shell-text-soft: #55707a;
+      --ops-shell-text-muted: #708891;
+      --ops-shell-accent: #2b6777;
+      --ops-shell-accent-strong: #1f4e5b;
+      --ops-shell-highlight: #6e8f7d;
+      --ops-shell-shadow: 0 18px 44px rgba(37, 63, 72, 0.08);
+      --ops-shell-shadow-soft: 0 10px 28px rgba(37, 63, 72, 0.05);
     }
 
     body {
       font-family: var(--font-sans);
-      background: var(--calm-bg);
+      background:
+        radial-gradient(circle at top left, rgba(132, 168, 154, 0.16), transparent 34%),
+        radial-gradient(circle at top right, rgba(111, 153, 169, 0.16), transparent 38%),
+        linear-gradient(180deg, var(--ops-shell-bg) 0%, #f6f8f7 46%, #fbfcfb 100%);
+      color: var(--ops-shell-text);
       min-height: 100vh;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(24, 50, 58, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 50, 58, 0.03) 1px, transparent 1px);
+      background-size: 24px 24px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 88%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .timeboard-shell {
+      position: relative;
+      z-index: 1;
+    }
+
+    .timeboard-page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .timeboard-page-heading {
+      min-width: 0;
+    }
+
+    .timeboard-page-title {
+      font-size: clamp(1.9rem, 2.4vw, 2.5rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      color: var(--ops-shell-text);
+    }
+
+    .timeboard-page-subtitle {
+      margin-top: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--ops-shell-text-soft);
     }
 
     .calm-card {
@@ -94,12 +165,13 @@
       padding-top: 8px;
       padding-bottom: 12px;
       font-size: 11px;
-      font-weight: 500;
+      font-weight: 600;
       letter-spacing: 0.01em;
       text-transform: none;
-      color: var(--calm-text-muted);
-      border-bottom: 2px solid var(--calm-border);
-      box-shadow: none;
+      color: var(--calm-sla-text);
+      border-bottom: 2px solid var(--calm-sla-border);
+      background: linear-gradient(180deg, var(--calm-sla-bg-start) 0%, var(--calm-sla-bg-end) 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), inset 0 -1px 0 rgba(203, 213, 225, 0.42);
     }
 
     .timeboard-sla-rule {
@@ -121,12 +193,12 @@
       font-weight: 700;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: #475569;
+      color: var(--calm-sla-key);
     }
 
     .timeboard-sla-rule-value {
       font-size: 11px;
-      color: var(--calm-text-muted);
+      color: var(--calm-sla-value);
     }
 
     .calm-table tbody td {
@@ -213,6 +285,12 @@
     .timeboard-table-wrap .calm-table thead th.col-sticky-sv,
     .timeboard-table-wrap .calm-table thead th.col-sticky-expected {
       background: rgba(248, 250, 252, 0.98);
+    }
+
+    .timeboard-table-wrap .calm-table thead tr.timeboard-header-sla-row th.col-sticky-sq,
+    .timeboard-table-wrap .calm-table thead tr.timeboard-header-sla-row th.col-sticky-sv,
+    .timeboard-table-wrap .calm-table thead tr.timeboard-header-sla-row th.col-sticky-expected {
+      background: linear-gradient(180deg, var(--calm-sla-bg-start) 0%, var(--calm-sla-bg-end) 100%);
     }
 
     .timeboard-table-wrap .calm-table thead th.col-sticky-sq,
@@ -622,21 +700,24 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 10px 18px;
-      border-radius: 8px;
+      padding: 12px 18px;
+      border-radius: 999px;
       font-size: 14px;
-      font-weight: 500;
-      color: var(--calm-text-secondary);
-      background: var(--calm-surface);
-      border: 1px solid var(--calm-border);
+      font-weight: 600;
+      color: var(--ops-shell-accent-strong);
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(90, 111, 123, 0.2);
       text-decoration: none;
-      transition: all 0.2s ease;
+      box-shadow: var(--ops-shell-shadow-soft);
+      transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .nav-link:hover {
-      color: var(--calm-text-primary);
-      border-color: var(--calm-text-muted);
-      background: var(--calm-bg);
+      color: var(--ops-shell-text);
+      border-color: rgba(43, 103, 119, 0.28);
+      background: rgba(255, 255, 255, 0.94);
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(37, 63, 72, 0.08);
     }
 
     /* Stats */
@@ -668,8 +749,8 @@
     .loading-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(30, 41, 59, 0.3);
-      backdrop-filter: blur(8px);
+      background: rgba(24, 50, 58, 0.24);
+      backdrop-filter: blur(12px);
     }
 
     .loading-content {
@@ -679,9 +760,10 @@
       align-items: center;
       gap: 16px;
       padding: 32px 40px;
-      border-radius: 16px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.96) 100%);
-      box-shadow: 0 24px 54px rgba(0, 0, 0, 0.12);
+      border-radius: 22px;
+      border: 1px solid rgba(90, 111, 123, 0.18);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(241, 246, 245, 0.96) 100%);
+      box-shadow: 0 24px 54px rgba(24, 50, 58, 0.12);
     }
 
     .spinner {
@@ -695,13 +777,13 @@
 
     .loading-message {
       font-size: 14px;
-      font-weight: 500;
-      color: var(--calm-text-secondary);
+      font-weight: 600;
+      color: var(--ops-shell-text-soft);
     }
 
     .loading-detail {
       font-size: 12px;
-      color: var(--calm-text-muted);
+      color: var(--ops-shell-text-muted);
     }
 
     .loading-detail.hidden {
@@ -720,10 +802,10 @@
       max-width: min(420px, calc(100vw - 32px));
       padding: 16px 18px;
       border-radius: 18px;
-      border: 1px solid rgba(99, 102, 241, 0.18);
-      background: linear-gradient(135deg, rgba(49, 87, 165, 0.98) 0%, rgba(79, 70, 229, 0.96) 100%);
+      border: 1px solid rgba(90, 111, 123, 0.16);
+      background: linear-gradient(135deg, rgba(33, 72, 83, 0.96) 0%, rgba(43, 103, 119, 0.95) 56%, rgba(91, 128, 116, 0.94) 100%);
       color: white;
-      box-shadow: 0 22px 48px rgba(49, 87, 165, 0.28);
+      box-shadow: 0 22px 48px rgba(24, 50, 58, 0.22);
       pointer-events: none;
       opacity: 1;
       transform: translateY(0);
@@ -771,11 +853,6 @@
       display: none;
     }
 
-    .timeboard-autoload-sentinel {
-      width: 100%;
-      height: 1px;
-    }
-
     @media (max-width: 640px) {
       .timeboard-inline-loader {
         right: 16px;
@@ -794,12 +871,12 @@
     .timeboard-filter-bar {
       padding: 18px 20px;
       background:
-        linear-gradient(135deg, rgba(239, 246, 255, 0.96) 0%, rgba(236, 253, 245, 0.94) 52%, rgba(255, 251, 235, 0.92) 100%),
-        radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 42%),
-        radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 38%);
-      border-color: rgba(191, 219, 254, 0.85);
+        linear-gradient(160deg, rgba(255, 255, 255, 0.9) 0%, rgba(243, 247, 246, 0.96) 52%, rgba(235, 242, 240, 0.96) 100%),
+        radial-gradient(circle at top left, rgba(43, 103, 119, 0.08), transparent 42%),
+        radial-gradient(circle at top right, rgba(110, 143, 125, 0.08), transparent 38%);
+      border-color: rgba(124, 144, 154, 0.24);
       box-shadow:
-        0 16px 36px rgba(37, 99, 235, 0.08),
+        0 16px 36px rgba(24, 50, 58, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.82);
     }
 
@@ -824,13 +901,13 @@
       font-weight: 700;
       letter-spacing: 0.16em;
       text-transform: uppercase;
-      color: #2563eb;
+      color: var(--ops-shell-accent);
     }
 
     .timeboard-filter-title {
       font-size: 18px;
       font-weight: 600;
-      color: #0f172a;
+      color: var(--ops-shell-text);
       line-height: 1.2;
     }
 
@@ -845,15 +922,15 @@
       min-width: 120px;
       padding: 12px 14px;
       border-radius: 16px;
-      border: 1px solid rgba(147, 197, 253, 0.65);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(219, 234, 254, 0.88) 100%);
+      border: 1px solid rgba(124, 144, 154, 0.22);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(236, 242, 241, 0.9) 100%);
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.8),
-        0 8px 18px rgba(59, 130, 246, 0.08);
+        0 8px 18px rgba(37, 63, 72, 0.06);
     }
 
     .timeboard-filter-stat .stat-label {
-      color: #475569;
+      color: var(--ops-shell-text-muted);
       letter-spacing: 0.12em;
     }
 
@@ -861,12 +938,12 @@
       margin-top: 4px;
       font-size: 24px;
       line-height: 1;
-      color: #1d4ed8;
+      color: var(--ops-shell-accent-strong);
     }
 
     .timeboard-filter-grid {
       display: flex;
-      align-items: flex-start;
+      align-items: stretch;
       gap: 12px;
       flex-wrap: wrap;
       margin-top: 16px;
@@ -875,14 +952,16 @@
     .timeboard-filter-section {
       position: relative;
       flex: 0 0 auto;
+      display: flex;
+      align-self: stretch;
       min-height: 0;
       padding: 14px 14px 13px;
       border-radius: 18px;
-      border: 1px solid rgba(191, 219, 254, 0.7);
-      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(124, 144, 154, 0.2);
+      background: rgba(255, 255, 255, 0.76);
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.84),
-        0 10px 24px rgba(148, 163, 184, 0.08);
+        0 10px 24px rgba(37, 63, 72, 0.05);
     }
 
     .timeboard-filter-section::before {
@@ -893,33 +972,33 @@
       top: 0;
       height: 4px;
       border-radius: 999px;
-      background: linear-gradient(90deg, rgba(59, 130, 246, 0.9), rgba(14, 165, 233, 0.72));
+      background: linear-gradient(90deg, rgba(43, 103, 119, 0.92), rgba(110, 143, 125, 0.7));
     }
 
     .timeboard-filter-section-branch {
       width: min(100%, 298px);
-      border-color: rgba(96, 165, 250, 0.52);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.86) 0%, rgba(239, 246, 255, 0.88) 100%);
+      border-color: rgba(84, 118, 128, 0.24);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(239, 244, 243, 0.92) 100%);
     }
 
     .timeboard-filter-section-sort {
       width: min(100%, 178px);
-      border-color: rgba(45, 212, 191, 0.5);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.86) 0%, rgba(236, 253, 245, 0.9) 100%);
+      border-color: rgba(84, 118, 128, 0.22);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(238, 244, 243, 0.92) 100%);
     }
 
     .timeboard-filter-section-sort::before {
-      background: linear-gradient(90deg, rgba(13, 148, 136, 0.88), rgba(34, 197, 94, 0.74));
+      background: linear-gradient(90deg, rgba(58, 111, 95, 0.9), rgba(110, 143, 125, 0.74));
     }
 
     .timeboard-filter-section-department {
-      width: min(100%, 358px);
-      border-color: rgba(251, 191, 36, 0.46);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 251, 235, 0.92) 100%);
+      width: min(100%, 520px);
+      border-color: rgba(84, 118, 128, 0.22);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 246, 244, 0.92) 100%);
     }
 
     .timeboard-filter-section-department::before {
-      background: linear-gradient(90deg, rgba(245, 158, 11, 0.9), rgba(249, 115, 22, 0.76));
+      background: linear-gradient(90deg, rgba(43, 103, 119, 0.85), rgba(87, 124, 111, 0.72));
     }
 
     .branch-filter {
@@ -948,41 +1027,158 @@
       grid-template-columns: 1fr;
     }
 
+    .department-filter-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      width: 100%;
+    }
+
+    .department-filter-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      min-width: 0;
+      padding: 9px 12px;
+      border: 1px solid rgba(124, 144, 154, 0.22);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+      cursor: pointer;
+      transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .department-filter-checkbox {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      flex: 0 0 auto;
+      accent-color: var(--ops-shell-accent);
+      cursor: pointer;
+    }
+
+    .department-filter-chip {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--ops-shell-text);
+      transition: color 0.18s ease;
+    }
+
+    .department-filter-option:hover {
+      border-color: rgba(43, 103, 119, 0.28);
+      background: rgba(243, 247, 246, 0.98);
+      transform: translateY(-1px);
+    }
+
+    .department-filter-option:has(.department-filter-checkbox:checked) {
+      border-color: rgba(43, 103, 119, 0.34);
+      background: linear-gradient(180deg, rgba(241, 247, 246, 0.98) 0%, rgba(226, 237, 234, 0.9) 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.78),
+        0 0 0 1px rgba(43, 103, 119, 0.08),
+        0 6px 14px rgba(37, 63, 72, 0.08);
+    }
+
+    .department-filter-checkbox:checked + .department-filter-chip {
+      color: var(--ops-shell-accent-strong);
+    }
+
+    .department-filter-option:focus-within {
+      outline: 3px solid rgba(43, 103, 119, 0.18);
+      outline-offset: 2px;
+    }
+
+    .department-filter-actions {
+      display: flex;
+      justify-content: flex-end;
+      width: 100%;
+    }
+
+    .department-filter-action-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px;
+      border: 1px solid rgba(124, 144, 154, 0.2);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.74);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    }
+
+    .department-filter-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border: 1px solid rgba(124, 144, 154, 0.18);
+      border-radius: 999px;
+      background: rgba(243, 247, 246, 0.94);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: var(--ops-shell-accent-strong);
+      cursor: pointer;
+      transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .department-filter-action:hover {
+      border-color: rgba(43, 103, 119, 0.3);
+      background: rgba(234, 241, 239, 0.98);
+      color: var(--ops-shell-text);
+      transform: translateY(-1px);
+    }
+
+    .department-filter-action-grid {
+      width: 100%;
+      min-height: 42px;
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(124, 144, 154, 0.18);
+      background: rgba(243, 247, 246, 0.94);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    }
+
     .branch-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       min-height: 36px;
       padding: 8px 12px;
-      border: 1px solid rgba(186, 230, 253, 0.98);
+      border: 1px solid rgba(124, 144, 154, 0.18);
       border-radius: 999px;
       font-size: 12.5px;
       font-weight: 600;
       letter-spacing: 0.01em;
-      color: #334155;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(239, 246, 255, 0.94) 100%);
+      color: var(--ops-shell-text);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(241, 246, 245, 0.94) 100%);
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.88),
-        0 1px 2px rgba(59, 130, 246, 0.05);
+        0 1px 2px rgba(37, 63, 72, 0.05);
       cursor: pointer;
       transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
     }
 
     .branch-btn:hover {
-      background: rgba(219, 234, 254, 0.9);
-      border-color: rgba(96, 165, 250, 0.72);
-      color: #1e3a8a;
+      background: rgba(235, 242, 240, 0.96);
+      border-color: rgba(43, 103, 119, 0.28);
+      color: var(--ops-shell-accent-strong);
       transform: translateY(-1px);
     }
 
     .branch-btn.active {
-      background: linear-gradient(180deg, rgba(59, 130, 246, 0.22) 0%, rgba(37, 99, 235, 0.14) 100%);
-      color: #1d4ed8;
-      border-color: rgba(37, 99, 235, 0.42);
+      background: linear-gradient(180deg, rgba(43, 103, 119, 0.16) 0%, rgba(43, 103, 119, 0.08) 100%);
+      color: var(--ops-shell-accent-strong);
+      border-color: rgba(43, 103, 119, 0.34);
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.78),
-        0 0 0 1px rgba(96, 165, 250, 0.1),
-        0 8px 18px rgba(59, 130, 246, 0.12);
+        0 0 0 1px rgba(43, 103, 119, 0.08),
+        0 8px 18px rgba(37, 63, 72, 0.08);
     }
 
     .filter-group {
@@ -999,7 +1195,7 @@
       font-weight: 700;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: #475569;
+      color: var(--ops-shell-text-muted);
     }
 
     .timeboard-filter-meta {
@@ -1007,7 +1203,7 @@
       padding-top: 12px;
       border-top: 1px solid rgba(226, 232, 240, 0.9);
       font-size: 12.5px;
-      color: #64748b;
+      color: var(--ops-shell-text-soft);
     }
 
     .timeboard-column-hidden {
@@ -1027,18 +1223,41 @@
     .branch-select-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(15, 23, 42, 0.45);
-      backdrop-filter: blur(10px);
+      background: rgba(24, 50, 58, 0.28);
+      backdrop-filter: blur(14px);
     }
 
     .branch-select-panel {
       position: relative;
       width: min(560px, calc(100vw - 32px));
       padding: 28px;
-      border-radius: 20px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(241, 245, 249, 0.98) 100%);
-      border: 1px solid rgba(226, 232, 240, 0.9);
-      box-shadow: 0 30px 60px rgba(15, 23, 42, 0.2);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(239, 245, 244, 0.98) 100%);
+      border: 1px solid rgba(124, 144, 154, 0.22);
+      box-shadow: 0 30px 60px rgba(24, 50, 58, 0.18);
+    }
+
+    .branch-select-kicker {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ops-shell-accent);
+    }
+
+    .branch-select-title {
+      margin-top: 10px;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1.08;
+      color: var(--ops-shell-text);
+    }
+
+    .branch-select-copy {
+      margin-top: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--ops-shell-text-soft);
     }
 
     .branch-select-grid {
@@ -1050,19 +1269,19 @@
 
     .branch-select-option {
       padding: 14px 16px;
-      border-radius: 12px;
-      border: 1px solid var(--calm-border);
-      background: var(--calm-surface);
-      color: var(--calm-text-primary);
+      border-radius: 14px;
+      border: 1px solid rgba(124, 144, 154, 0.18);
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--ops-shell-text);
       font-size: 14px;
       font-weight: 600;
       transition: all 0.2s ease;
     }
 
     .branch-select-option:hover {
-      border-color: var(--calm-accent);
-      background: var(--calm-accent-light);
-      color: var(--calm-accent);
+      border-color: rgba(43, 103, 119, 0.3);
+      background: rgba(238, 244, 243, 0.96);
+      color: var(--ops-shell-accent-strong);
     }
 
     .timeboard-table-wrap {
@@ -1075,6 +1294,12 @@
     }
 
     .timeboard-table-card {
+      display: flex;
+      flex-direction: column;
+      width: fit-content;
+      max-width: 100%;
+      min-width: 0;
+      margin-right: auto;
       overflow: visible;
     }
 
@@ -1259,6 +1484,10 @@
     }
 
     @media (max-width: 520px) {
+      .timeboard-page-header {
+        gap: 14px;
+      }
+
       .branch-select-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -1284,16 +1513,24 @@
       .branch-filter-grid-4x2 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+
+      .department-filter-actions {
+        justify-content: stretch;
+      }
+
+      .department-filter-action {
+        width: 100%;
+      }
     }
   </style>
 </head>
-<body class="p-6">
+<body class="timeboard-shell p-6">
   <div class="max-w-[1600px] mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-semibold text-slate-800">Time Board</h1>
-        <p class="text-sm text-slate-500 mt-1">Work progress tracking</p>
+    <div class="timeboard-page-header">
+      <div class="timeboard-page-heading">
+        <h1 class="timeboard-page-title">Time Board</h1>
+        <p class="timeboard-page-subtitle">Work progress tracking with a calm operational tone.</p>
       </div>
       <a href="/" class="nav-link">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1318,8 +1555,9 @@
       <div class="branch-select-panel">
         <div class="space-y-3">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">Initial Load</p>
-            <h2 class="mt-2 text-2xl font-semibold text-slate-800">Select a branch to load</h2>
+            <p class="branch-select-kicker">Initial Load</p>
+            <h2 class="branch-select-title">Select a branch to load</h2>
+            <p class="branch-select-copy">Choose the operating branch first so the board can pull the right timeline without loading unnecessary noise.</p>
           </div>
         </div>
         <div class="branch-select-grid">
@@ -1337,7 +1575,7 @@
     <div class="calm-card timeboard-filter-bar mb-6">
       <div class="timeboard-filter-top">
         <div class="timeboard-filter-heading">
-          <span class="timeboard-filter-kicker">Operational Filters</span>
+          <span class="timeboard-filter-kicker">Calm Operational</span>
           <h2 class="timeboard-filter-title">Board control panel</h2>
         </div>
         <div id="stats" class="timeboard-filter-summary">
@@ -1368,14 +1606,33 @@
         </div>
         <div class="timeboard-filter-section timeboard-filter-section-department filter-group">
           <span class="filter-label">Department Focus</span>
-          <div class="branch-filter branch-filter-grid branch-filter-grid-4x2">
-            <button class="branch-btn department-filter-btn active" data-department="all">All</button>
-            <button class="branch-btn department-filter-btn" data-department="salesperson">Salesperson</button>
-            <button class="branch-btn department-filter-btn" data-department="cs">CS</button>
-            <button class="branch-btn department-filter-btn" data-department="workshop">Workshop</button>
-            <button class="branch-btn department-filter-btn" data-department="purchase">Purchase</button>
-            <button class="branch-btn department-filter-btn" data-department="planner">Planner</button>
-            <button class="branch-btn department-filter-btn" data-department="inventory">Inventory</button>
+          <div class="department-filter-grid" role="group" aria-label="Filter columns by department">
+            <label class="department-filter-option">
+              <input type="checkbox" class="department-filter-checkbox" value="salesperson" checked>
+              <span class="department-filter-chip">Salesperson</span>
+            </label>
+            <label class="department-filter-option">
+              <input type="checkbox" class="department-filter-checkbox" value="cs" checked>
+              <span class="department-filter-chip">CS</span>
+            </label>
+            <label class="department-filter-option">
+              <input type="checkbox" class="department-filter-checkbox" value="workshop" checked>
+              <span class="department-filter-chip">Workshop</span>
+            </label>
+            <label class="department-filter-option">
+              <input type="checkbox" class="department-filter-checkbox" value="purchase" checked>
+              <span class="department-filter-chip">Purchase</span>
+            </label>
+            <label class="department-filter-option">
+              <input type="checkbox" class="department-filter-checkbox" value="planner" checked>
+              <span class="department-filter-chip">Planner</span>
+            </label>
+            <label class="department-filter-option">
+              <input type="checkbox" class="department-filter-checkbox" value="inventory" checked>
+              <span class="department-filter-chip">Inventory</span>
+            </label>
+            <button type="button" id="departmentSelectAllBtn" class="department-filter-action department-filter-action-grid">Select all</button>
+            <button type="button" id="departmentClearAllBtn" class="department-filter-action department-filter-action-grid">Clear all</button>
           </div>
         </div>
       </div>
@@ -1465,14 +1722,13 @@
         <span id="paginationInfo" class="text-sm text-slate-500">Showing 0 matching rows from 0 loaded</span>
         <button id="loadMoreBtn" class="calm-btn" disabled>Load more</button>
       </div>
-      <div id="autoLoadSentinel" class="timeboard-autoload-sentinel" aria-hidden="true"></div>
     </div>
   </div>
 
   <div id="timeboardInlineLoader" class="timeboard-inline-loader hidden" aria-live="polite" aria-atomic="true" role="status">
     <div class="timeboard-inline-loader-spinner" aria-hidden="true"></div>
     <div class="timeboard-inline-loader-copy">
-      <p id="timeboardInlineLoaderMessage" class="timeboard-inline-loader-title">Auto-loading next 50 SV...</p>
+      <p id="timeboardInlineLoaderMessage" class="timeboard-inline-loader-title">Loading next 50 SV...</p>
       <p id="timeboardInlineLoaderDetail" class="timeboard-inline-loader-detail hidden"></p>
     </div>
   </div>
@@ -1513,6 +1769,14 @@
       'factoryProcedure',
       'shRecord',
       'expectedDeliveryDate'
+    ]);
+    const DEPARTMENT_FILTER_OPTIONS = Object.freeze([
+      'salesperson',
+      'cs',
+      'workshop',
+      'purchase',
+      'planner',
+      'inventory'
     ]);
     const TIMEBOARD_COLUMN_DEPARTMENTS = Object.freeze({
       sq: 'salesperson',
@@ -1560,7 +1824,7 @@
       filteredData: [],
       searchQuery: '',
       selectedBranch: '',
-      selectedDepartment: 'all',
+      selectedDepartments: new Set(DEPARTMENT_FILTER_OPTIONS),
       salesQuoteNos: [],
       purchaseDocumentNos: {
         pr: [],
@@ -1572,7 +1836,7 @@
       hasMoreData: true,
       isFetching: false,
       isLoadingMore: false,
-      autoLoadQueued: false,
+      autoLoadScrollQueued: false,
       renderVersion: 0,
       lastRenderMeta: null
     };
@@ -1612,7 +1876,7 @@
       detailEl.classList.toggle('hidden', !detail);
     }
 
-    function showInlineLoader(message = `Auto-loading next ${FETCH_BATCH_SIZE} SV...`, detail = '') {
+    function showInlineLoader(message = `Loading next ${FETCH_BATCH_SIZE} SV...`, detail = '') {
       const loader = document.getElementById('timeboardInlineLoader');
       const messageEl = document.getElementById('timeboardInlineLoaderMessage');
       const detailEl = document.getElementById('timeboardInlineLoaderDetail');
@@ -1860,20 +2124,43 @@
     }
 
     function normalizeDepartmentFilter(department) {
-      const normalizedDepartment = String(department || 'all').trim().toLowerCase();
-      return normalizedDepartment || 'all';
+      return String(department || '').trim().toLowerCase();
+    }
+
+    function createDepartmentSelection(departments, options = {}) {
+      const { fallbackToAll = false } = options;
+      const rawDepartments = Array.isArray(departments)
+        ? departments
+        : [departments];
+      const selectedDepartments = new Set();
+
+      rawDepartments.forEach((department) => {
+        const normalizedDepartment = normalizeDepartmentFilter(department);
+        if (normalizedDepartment === 'all') {
+          DEPARTMENT_FILTER_OPTIONS.forEach((value) => selectedDepartments.add(value));
+          return;
+        }
+
+        if (DEPARTMENT_FILTER_OPTIONS.includes(normalizedDepartment)) {
+          selectedDepartments.add(normalizedDepartment);
+        }
+      });
+
+      if (selectedDepartments.size === 0 && fallbackToAll) {
+        DEPARTMENT_FILTER_OPTIONS.forEach((value) => selectedDepartments.add(value));
+      }
+
+      return selectedDepartments;
     }
 
     function getVisibleTimeboardColumnKeys() {
-      const selectedDepartment = normalizeDepartmentFilter(state.selectedDepartment);
-
-      if (selectedDepartment === 'all') {
-        return [...TIMEBOARD_COLUMN_KEYS];
-      }
+      const selectedDepartments = state.selectedDepartments instanceof Set
+        ? state.selectedDepartments
+        : createDepartmentSelection(state.selectedDepartments, { fallbackToAll: true });
 
       return TIMEBOARD_COLUMN_KEYS.filter((columnKey) => (
         ALWAYS_VISIBLE_TIMEBOARD_COLUMNS.has(columnKey)
-        || TIMEBOARD_COLUMN_DEPARTMENTS[columnKey] === selectedDepartment
+        || selectedDepartments.has(TIMEBOARD_COLUMN_DEPARTMENTS[columnKey])
       ));
     }
 
@@ -1881,10 +2168,9 @@
       return Math.max(1, getVisibleTimeboardColumnKeys().length);
     }
 
-    function setActiveDepartmentButton(department) {
-      const normalizedDepartment = normalizeDepartmentFilter(department);
-      document.querySelectorAll('.department-filter-btn').forEach((button) => {
-        button.classList.toggle('active', button.dataset.department === normalizedDepartment);
+    function syncDepartmentCheckboxes() {
+      document.querySelectorAll('.department-filter-checkbox').forEach((checkbox) => {
+        checkbox.checked = state.selectedDepartments.has(normalizeDepartmentFilter(checkbox.value));
       });
     }
 
@@ -1900,11 +2186,28 @@
       });
     }
 
-    function selectDepartment(department) {
-      state.selectedDepartment = normalizeDepartmentFilter(department);
-      setActiveDepartmentButton(state.selectedDepartment);
+    function setSelectedDepartments(departments, options = {}) {
+      const { fallbackToAll = false } = options;
+      state.selectedDepartments = createDepartmentSelection(departments, { fallbackToAll });
+      syncDepartmentCheckboxes();
       applyDepartmentColumnFilter();
       syncStickyTimeboardHeader();
+    }
+
+    function toggleDepartmentSelection(department, isSelected) {
+      const normalizedDepartment = normalizeDepartmentFilter(department);
+      if (!DEPARTMENT_FILTER_OPTIONS.includes(normalizedDepartment)) {
+        return;
+      }
+
+      const nextSelection = new Set(state.selectedDepartments);
+      if (isSelected) {
+        nextSelection.add(normalizedDepartment);
+      } else {
+        nextSelection.delete(normalizedDepartment);
+      }
+
+      setSelectedDepartments([...nextSelection]);
     }
 
     async function selectBranch(branchCode, loadingMessage = 'Filtering by branch...') {
@@ -2050,6 +2353,22 @@
       return /[T\s]\d{2}:\d{2}/.test(dateStr);
     }
 
+    function hasNonZeroExplicitTimeComponent(dateStr) {
+      if (typeof dateStr !== 'string') {
+        return false;
+      }
+
+      const match = dateStr.match(/[T\s](\d{2}):(\d{2})(?::(\d{2}))?/);
+      if (!match) {
+        return false;
+      }
+
+      const hours = Number(match[1] || 0);
+      const minutes = Number(match[2] || 0);
+      const seconds = Number(match[3] || 0);
+      return hours !== 0 || minutes !== 0 || seconds !== 0;
+    }
+
     function hasMeaningfulTimeComponent(dateValue) {
       if (typeof dateValue === 'string') {
         return hasExplicitTimeComponent(dateValue);
@@ -2064,6 +2383,28 @@
         || date.getMinutes() !== 0
         || date.getSeconds() !== 0
         || date.getMilliseconds() !== 0;
+    }
+
+    function applyDefaultTimeToDateValue(dateValue, hours = 17, minutes = 0) {
+      if (!dateValue) {
+        return dateValue;
+      }
+
+      if (typeof dateValue === 'string' && hasNonZeroExplicitTimeComponent(dateValue)) {
+        return dateValue;
+      }
+
+      if (typeof dateValue !== 'string' && hasMeaningfulTimeComponent(dateValue)) {
+        return dateValue;
+      }
+
+      const date = parseDateTime(dateValue);
+      if (!date) {
+        return dateValue;
+      }
+
+      date.setHours(hours, minutes, 0, 0);
+      return toIsoDate(date, { preserveTime: true });
     }
 
     function renderDate(dateStr, options = {}) {
@@ -2759,10 +3100,24 @@
     }
 
     function buildSvTooltipEntries(item) {
+      const stNumber = String(getFirstNonEmptyValue(
+        item?.stNumber,
+        item?.stNo
+      ) || '').trim();
+      const postedStNumber = String(getFirstNonEmptyValue(
+        item?.postedStNumber,
+        item?.postedStNo,
+        item?.stPostedNumber
+      ) || '').trim();
+      const postedStDate = formatTooltipDate(item?.postedStCreated);
+      const postedStValue = [postedStNumber, postedStDate].filter(Boolean).join(' | ');
+
       return [
         { label: 'Customer No', value: String(item?.customerNo || '').trim() },
         { label: 'Customer Name', value: String(item?.customerName || '').trim() },
         { label: 'Service Type', value: String(item?.serviceOrderType || '').trim() },
+        { label: 'ST', value: stNumber },
+        { label: 'ST Posted', value: postedStValue },
         { label: 'Salesperson', value: String(item?.salespersonCode || '').trim() },
         { label: 'Uservice Status', value: String(item?.userviceStatus || '').trim() },
         { label: 'Status', value: String(item?.documentStatus || '').trim() },
@@ -3830,7 +4185,7 @@
       const loadMoreBtn = document.getElementById('loadMoreBtn');
 
       if (state.isLoadingMore) {
-        loadMoreBtn.textContent = 'Auto-loading...';
+        loadMoreBtn.textContent = 'Loading...';
         loadMoreBtn.disabled = true;
         return;
       }
@@ -3845,23 +4200,35 @@
       loadMoreBtn.disabled = state.isFetching;
     }
 
-    function queueAutoLoadCheck() {
-      if (state.autoLoadQueued) {
+    function triggerAutoLoadOnScroll() {
+      state.autoLoadScrollQueued = false;
+
+      if (state.isFetching || !state.hasMoreData || state.data.length === 0) {
         return;
       }
 
-      state.autoLoadQueued = true;
-      window.setTimeout(() => {
-        state.autoLoadQueued = false;
-        if (!state.isFetching && state.hasMoreData && state.data.length > 0) {
-          loadMoreData({ silent: true });
-        }
-      }, 0);
+      const documentHeight = Math.max(
+        document.body?.scrollHeight || 0,
+        document.documentElement?.scrollHeight || 0
+      );
+      const viewportBottom = window.scrollY + window.innerHeight;
+
+      if (viewportBottom >= documentHeight - AUTO_LOAD_TRIGGER_OFFSET) {
+        loadMoreData({ silent: true });
+      }
+    }
+
+    function scheduleAutoLoadCheck() {
+      if (state.autoLoadScrollQueued) {
+        return;
+      }
+
+      state.autoLoadScrollQueued = true;
+      window.requestAnimationFrame(triggerAutoLoadOnScroll);
     }
 
     function setupAutoLoadObserver() {
-      // Auto-load now runs continuously after each confirmed batch,
-      // so it no longer depends on scrolling into the sentinel.
+      window.addEventListener('scroll', scheduleAutoLoadCheck, { passive: true });
     }
 
     function setupStickyTimeboardHeader() {
@@ -4046,7 +4413,6 @@
         state.isFetching = false;
         hideLoading();
         updateLoadMoreUi();
-        queueAutoLoadCheck();
       }
     }
 
@@ -4061,7 +4427,7 @@
       state.isLoadingMore = true;
       updateLoadMoreUi();
       if (silent) {
-        showInlineLoader(`Auto-loading next ${FETCH_BATCH_SIZE} SV...`);
+        showInlineLoader(`Loading next ${FETCH_BATCH_SIZE} SV...`);
       } else {
         showLoading('Loading more timeboard data...');
       }
@@ -4105,7 +4471,7 @@
         try {
           await confirmTimeboardRenderComplete(renderMeta);
         } catch (renderError) {
-          console.error('Failed to confirm silent Time Board batch render:', renderError);
+          console.error(`Failed to confirm ${silent ? 'auto' : 'manual'} Time Board load-more render:`, renderError);
           state.hasMoreData = false;
         }
         state.isFetching = false;
@@ -4116,7 +4482,6 @@
           hideLoading();
         }
         updateLoadMoreUi();
-        queueAutoLoadCheck();
       }
     }
 
@@ -4278,7 +4643,7 @@
             ${renderTableCell('poComplete', 'col-date', renderDate(state.useMockTimeline ? (timeline.poComplete || purchaseLine?.poApproved) : purchaseLine?.poApproved, { className: slaOverdueClasses.poApproved }))}
             ${renderTableCell('goodsReceipt', 'col-date', renderSvSummaryOnlyDate(timeline.goodsReceipt, { className: slaOverdueClasses.goodsReceipt }))}
             ${renderTableCell('factoryProcedure', 'col-date', renderSvSummaryOnlyDate(timeline.factoryProcedure))}
-            ${renderTableCell('shRecord', 'col-merged-doc', showSvDependentDocs ? renderMergedDocCell(item.shNumber, item.shCreated) : '')}
+            ${renderTableCell('shRecord', 'col-merged-doc', showSvDependentDocs ? renderMergedDocCell(item.shNumber, applyDefaultTimeToDateValue(item.shCreated, 17, 0)) : '')}
             ${renderTableCell('expectedDeliveryDate', 'col-date col-sticky-expected', renderSvSummaryOnlyExpectedDate(timeline.expectedDeliveryDate))}
           </tr>
         `;
@@ -4322,10 +4687,16 @@
       });
     });
 
-    document.querySelectorAll('.department-filter-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        selectDepartment(e.currentTarget.dataset.department);
+    document.querySelectorAll('.department-filter-checkbox').forEach((checkbox) => {
+      checkbox.addEventListener('change', (event) => {
+        toggleDepartmentSelection(event.currentTarget.value, event.currentTarget.checked);
       });
+    });
+    document.getElementById('departmentSelectAllBtn')?.addEventListener('click', () => {
+      setSelectedDepartments(DEPARTMENT_FILTER_OPTIONS, { fallbackToAll: true });
+    });
+    document.getElementById('departmentClearAllBtn')?.addEventListener('click', () => {
+      setSelectedDepartments([]);
     });
 
     document.getElementById('loadMoreBtn').addEventListener('click', loadMoreData);
@@ -4341,9 +4712,9 @@
     // Initialize
     setupTimeboardHoverCard();
     setupStickyTimeboardHeader();
-    setActiveDepartmentButton(state.selectedDepartment);
-    applyDepartmentColumnFilter();
     setupAutoLoadObserver();
+    syncDepartmentCheckboxes();
+    applyDepartmentColumnFilter();
     if (await checkAccess()) {
       await loadTimeboardDisplaySettings();
       showBranchSelectModal();
