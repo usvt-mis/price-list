@@ -362,6 +362,7 @@ export function sanitizeQuoteData(quote) {
     requestedDeliveryDate: sanitizeText(quote.requestedDeliveryDate),
     workDescription: sanitizeText(quote.workDescription),
     remark: sanitizeText(quote.remark).replace(/[\r\n]+/g, ' '),
+    yourReference: sanitizeText(quote.yourReference),
     lines: quote.lines.map(line => ({
       ...line,
       description: sanitizeText(line.description),

@@ -611,18 +611,25 @@ function buildPrintableRenderRows(lines) {
 function buildTotals(formData, reportContext = {}) {
   const subtotal = (formData.lines || []).reduce((sum, line) => sum + calculateLineTotal(line), 0);
   const tradeDiscount = asNumber(formData.invoiceDiscount);
-  const afterDiscount = subtotal - tradeDiscount;
-  const vatRate = asNumber(formData.vatRate, 7);
-  const vatAmount = afterDiscount * (vatRate / 100);
   const reportTotals = reportContext.reportTotals || {};
+  const subtotalAmount = asNumber(reportTotals.totalAmt1, subtotal);
+  const tradeDiscountAmount = asNumber(reportTotals.totalAmt2, tradeDiscount);
+  const afterDiscount = asNumber(reportTotals.totalAmt3, subtotalAmount - tradeDiscountAmount);
+  const vatEnabled = formData.vatEnabled !== false && asNumber(formData.vatRate, 7) > 0;
+  const vatRate = vatEnabled ? asNumber(formData.vatRate, 7) : 0;
+  const vatAmount = vatEnabled
+    ? asNumber(reportTotals.totalAmt4, afterDiscount * (vatRate / 100))
+    : 0;
 
   return {
-    subtotal: asNumber(reportTotals.totalAmt1, subtotal),
-    tradeDiscount: asNumber(reportTotals.totalAmt2, tradeDiscount),
-    afterDiscount: asNumber(reportTotals.totalAmt3, afterDiscount),
+    subtotal: subtotalAmount,
+    tradeDiscount: tradeDiscountAmount,
+    afterDiscount,
     vatRate,
-    vatAmount: asNumber(reportTotals.totalAmt4, vatAmount),
-    grandTotal: asNumber(reportTotals.totalAmt5, afterDiscount + vatAmount)
+    vatAmount,
+    grandTotal: vatEnabled
+      ? asNumber(reportTotals.totalAmt5, afterDiscount + vatAmount)
+      : afterDiscount
   };
 }
 
@@ -771,7 +778,9 @@ async function buildModel() {
     bottomRemark: normalizeSingleLineText(formData.remark) || normalizeSingleLineText(detailNotes.join(' ')),
     jobNo: documentRef,
     totals,
-    vatLabel: reportContext.vatText || `VAT ${totals.vatRate.toFixed(0)}%`,
+    vatLabel: totals.vatRate > 0
+      ? (reportContext.vatText || `VAT ${totals.vatRate.toFixed(0)}%`)
+      : 'VAT 0%',
     salesperson: {
       name: requestSignature.name || reportContext.salesperson?.name || formData.salespersonName || '',
       phone: formData.salesPhoneNo || requestSignature.phone || reportContext.salesperson?.phone || '',

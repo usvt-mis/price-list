@@ -18,6 +18,8 @@ async function getApprovalStatus() {
   return APPROVAL_STATUS;
 }
 
+const DEFAULT_VAT_RATE = 7;
+
 // ============================================================
 // DOM Element Helpers
 // ============================================================
@@ -34,6 +36,49 @@ export function el(id) {
  */
 export function els(selector) {
   return document.querySelectorAll(selector);
+}
+
+function normalizeVatRateValue(vatRate) {
+  const parsedVatRate = parseFloat(vatRate);
+  return Number.isFinite(parsedVatRate) && parsedVatRate >= 0 ? parsedVatRate : DEFAULT_VAT_RATE;
+}
+
+function resolveVatFormState({ enabled, vatRate } = {}) {
+  const normalizedVatRate = normalizeVatRateValue(vatRate);
+  const vatEnabled = typeof enabled === 'boolean' ? enabled : normalizedVatRate > 0;
+
+  return {
+    enabled: vatEnabled,
+    vatRate: vatEnabled ? normalizedVatRate : 0
+  };
+}
+
+export function syncVatControls({ enabled, vatRate } = {}) {
+  const vatToggle = el('vatEnabledToggle');
+  const vatRateInput = el('vatRate');
+  const vatToggleStatus = el('vatToggleStatus');
+  const vatToggleHint = el('vatToggleHint');
+  const vatState = resolveVatFormState({ enabled, vatRate });
+
+  if (vatToggle) {
+    vatToggle.checked = vatState.enabled;
+  }
+
+  if (vatRateInput) {
+    vatRateInput.value = String(vatState.vatRate);
+  }
+
+  if (vatToggleStatus) {
+    vatToggleStatus.textContent = vatState.enabled ? 'On' : 'Off';
+  }
+
+  if (vatToggleHint) {
+    vatToggleHint.textContent = vatState.enabled
+      ? 'Apply VAT 7% to totals, approval amount, and print preview.'
+      : 'Exclude VAT from totals, approval amount, and print preview.';
+  }
+
+  return vatState;
 }
 
 /**
@@ -603,6 +648,7 @@ function updateQuoteEditorFormLockState(locked, title, { allowWorkStatusOnly = f
     'orderDate',
     'requestedDeliveryDate',
     'contact',
+    'yourReference',
     'salesPhoneNo',
     'salesEmail',
     'salespersonCodeSearch',
@@ -616,6 +662,9 @@ function updateQuoteEditorFormLockState(locked, title, { allowWorkStatusOnly = f
   ].forEach(fieldId => {
     setMainFormFieldLocked(el(fieldId), locked, title);
   });
+
+  setMainFormFieldLocked(el('vatEnabledToggle'), locked, title);
+  setMainFormFieldLocked(el('vatRate'), locked, title);
 
   setMainFormFieldLocked(el('workStatus'), allowWorkStatusOnly ? false : locked, allowWorkStatusOnly ? '' : title);
 
@@ -1198,7 +1247,8 @@ function calculateLineTotal(line) {
  */
 export function renderTotals() {
   const invoiceDiscount = parseFloat(el('invoiceDiscount')?.value || 0);
-  const vatRate = parseFloat(el('vatRate')?.value || 7) / 100;
+  const vatEnabled = el('vatEnabledToggle')?.checked ?? true;
+  const vatRate = vatEnabled ? (parseFloat(el('vatRate')?.value || DEFAULT_VAT_RATE) / 100) : 0;
 
   const subtotal = state.quote.lines.reduce((sum, line) => sum + calculateLineTotal(line), 0);
   const discountAmount = invoiceDiscount;
@@ -1571,6 +1621,11 @@ export function generateLocationCode(branchCode) {
  * Get quote form data
  */
 export function getQuoteFormData() {
+  const vatState = resolveVatFormState({
+    enabled: el('vatEnabledToggle')?.checked,
+    vatRate: el('vatRate')?.value
+  });
+
   return {
     quoteId: state.quote.id,
     quoteNumber: state.quote.number,
@@ -1589,6 +1644,7 @@ export function getQuoteFormData() {
     remark: el('quoteRemark')?.value || '',
     // New fields
     contact: el('contact')?.value || '',
+    yourReference: el('yourReference')?.value || '',
     salesPhoneNo: el('salesPhoneNo')?.value || '',
     salesEmail: el('salesEmail')?.value || '',
     salespersonCode: state.quote.salespersonCode || '',
@@ -1601,7 +1657,8 @@ export function getQuoteFormData() {
     responsibilityCenter: el('responsibilityCenter')?.value || '',
     invoiceDiscount: parseFloat(el('invoiceDiscount')?.value || 0) || 0,
     invoiceDiscountPercent: parseFloat(el('invoiceDiscountPercent')?.value || 0) || 0,
-    vatRate: parseFloat(el('vatRate')?.value || 7) || 7,
+    vatEnabled: vatState.enabled,
+    vatRate: vatState.vatRate,
     sellTo: {
       address: getFieldValue('sellToAddress') || state.quote.sellTo?.address || '',
       address2: getFieldValue('sellToAddress2') || state.quote.sellTo?.address2 || '',
@@ -1625,9 +1682,15 @@ export function populateQuoteForm(quote) {
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = quote.workDescription || '';
   if (el('quoteRemark')) el('quoteRemark').value = quote.remark || '';
   if (el('invoiceDiscount')) el('invoiceDiscount').value = quote.invoiceDiscount ?? quote.discountAmount ?? 0;
+  if (el('invoiceDiscountPercent')) el('invoiceDiscountPercent').value = Number(quote.invoiceDiscountPercent ?? 0).toFixed(1);
+  syncVatControls({
+    enabled: typeof quote.vatEnabled === 'boolean' ? quote.vatEnabled : undefined,
+    vatRate: quote.vatRate ?? DEFAULT_VAT_RATE
+  });
 
   // New fields
   if (el('contact')) el('contact').value = quote.contact || '';
+  if (el('yourReference')) el('yourReference').value = quote.yourReference || '';
   if (el('salesPhoneNo')) el('salesPhoneNo').value = quote.salesPhoneNo || '';
   if (el('salesEmail')) el('salesEmail').value = quote.salesEmail || '';
   if (el('salespersonCodeSearch')) el('salespersonCodeSearch').value = quote.salespersonCode || '';
@@ -1706,9 +1769,11 @@ export function clearQuoteForm() {
   if (el('quoteRemark')) el('quoteRemark').value = '';
   if (el('invoiceDiscount')) el('invoiceDiscount').value = '0';
   if (el('invoiceDiscountPercent')) el('invoiceDiscountPercent').value = '0.0';
+  syncVatControls({ enabled: true, vatRate: DEFAULT_VAT_RATE });
 
   // Clear new fields
   if (el('contact')) el('contact').value = '';
+  if (el('yourReference')) el('yourReference').value = '';
   if (el('salespersonCodeSearch')) el('salespersonCodeSearch').value = '';
   if (el('salespersonName')) el('salespersonName').value = '';
   if (el('assignedUserIdSearch')) el('assignedUserIdSearch').value = '';

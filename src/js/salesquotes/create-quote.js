@@ -8,7 +8,7 @@ import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteUpdatedSuccess, showQuoteSendFailure } from './ui.js';
-import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal, isApprovedWorkStatusOnlyMode } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal, isApprovedWorkStatusOnlyMode, syncVatControls } from './ui.js';
 import { fetchWithAuth } from '../core/utils.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
@@ -84,6 +84,7 @@ const BC_SYNC_TRACKED_FIELD_IDS = new Set([
   'deliveryDate',
   'quoteWorkDescription',
   'contact',
+  'yourReference',
   'salespersonCodeSearch',
   'assignedUserIdSearch',
   'serviceOrderType',
@@ -95,6 +96,37 @@ const BC_SYNC_TRACKED_FIELD_IDS = new Set([
   'invoiceDiscountPercent',
   'workStatus'
 ]);
+
+function inferVatState(reportContext = {}) {
+  const vatText = String(reportContext?.vatText || '');
+  const vatRateFromTextMatch = vatText.match(/(\d+(?:\.\d+)?)/);
+  if (vatRateFromTextMatch) {
+    const parsedRate = parseFloat(vatRateFromTextMatch[1]);
+    if (Number.isFinite(parsedRate)) {
+      return {
+        vatEnabled: parsedRate > 0,
+        vatRate: parsedRate
+      };
+    }
+  }
+
+  const totalAmt4 = parseFloat(reportContext?.reportTotals?.totalAmt4);
+  const totalAmt3 = parseFloat(reportContext?.reportTotals?.totalAmt3);
+  if (Number.isFinite(totalAmt4) && Number.isFinite(totalAmt3) && totalAmt3 > 0) {
+    const derivedRate = Number(((totalAmt4 / totalAmt3) * 100).toFixed(1));
+    if (Number.isFinite(derivedRate)) {
+      return {
+        vatEnabled: derivedRate > 0,
+        vatRate: derivedRate
+      };
+    }
+  }
+
+  return {
+    vatEnabled: true,
+    vatRate: 7
+  };
+}
 
 function resetQuoteSyncState() {
   state.ui.quoteSync.hasUnsyncedChanges = false;
@@ -142,6 +174,7 @@ function buildQuoteSyncSnapshot() {
     requestedDeliveryDate: formData.requestedDeliveryDate || '',
     workDescription: formData.workDescription || '',
     contactName: formData.contact || '',
+    yourReference: formData.yourReference || '',
     salespersonCode: state.quote.salespersonCode || formData.salespersonCode || '',
     assignedUserId: state.quote.assignedUserId || formData.assignedUserId || '',
     serviceOrderType: formData.serviceOrderType || '',
@@ -1768,6 +1801,7 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     address: customerRecord?.Address || reportContext.customerAddressLines?.[0] || '',
     email: customerRecord?.Email || ''
   };
+  const vatState = inferVatState(reportContext);
 
   return {
     id: pickSourceValueFromSources(headerSources, ['id'], null),
@@ -1796,6 +1830,11 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     workDescription: data.workDescription || '',
     remark: data.remark || '',
     contact: pickSourceValueFromSources(headerSources, ['contactName', 'shipToContact', 'billToContact', 'Bill_to_Contact'], ''),
+    yourReference: pickSourceValueFromSources(
+      headerSources,
+      ['yourReference', 'YourReference', 'Your_Reference'],
+      data.yourReference || data.YourReference || data.yourreference || ''
+    ),
     salesPhoneNo: data.salesPhoneNo || '',
     salesEmail: data.salesEmail || '',
     salespersonCode,
@@ -1808,7 +1847,8 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     responsibilityCenter,
     invoiceDiscountPercent: parseFloat(data.paymentDiscountPercent) || 0,
     invoiceDiscount: parseFloat(data.discountAmount) || 0,
-    vatRate: 7,
+    vatEnabled: vatState.vatEnabled,
+    vatRate: vatState.vatRate,
     discountAmount: parseFloat(data.discountAmount) || 0,
     reportContext,
     lines: printableLineSources.map((line, index) => mapBcLineToEditorLine(line, index))
@@ -3349,6 +3389,7 @@ async function sendQuoteToAzureFunction(quoteData) {
     salespersonCode: quoteData.salespersonCode || '',
     serviceOrderType: quoteData.serviceOrderType || '',
     contactName: quoteData.contact || '',
+    yourReference: quoteData.yourReference || '',
     division: quoteData.division || 'MS1029',
     branchCode: state.quote.branch || '',
     discountAmount: discountAmount,
@@ -3420,6 +3461,7 @@ async function updateQuoteInAzureFunction(quoteData) {
     status: state.quote.status || quoteData.quoteStatus || '',
     customerNo: state.quote.customerNo || '',
     contactName: quoteData.contact || '',
+    yourReference: quoteData.yourReference || '',
     salespersonCode: quoteData.salespersonCode || '',
     assignedUserId: quoteData.assignedUserId || '',
     serviceOrderType: quoteData.serviceOrderType || '',
@@ -4059,13 +4101,15 @@ export async function handleSendQuote(options = {}) {
         await showQuoteUpdatedSuccess(quoteNumber, serviceOrderNos);
       }
     } else {
+      const createdQuoteTotals = calculateTotals(
+        formData.invoiceDiscount,
+        formData.vatRate / 100
+      );
       resetQuoteEditorToCreateMode({ showFeedback: false });
 
       if (quoteNumber) {
         await showQuoteCreatedSuccess(quoteNumber, serviceOrderNos);
-
-        const userRole = authState.user?.effectiveRole;
-        const totalAmount = calculateTotals().total || '0';
+        const totalAmount = createdQuoteTotals?.total || '0';
 
         if (parseFloat(totalAmount.replace(/,/g, '')) > 0) {
           await createApprovalRecord({
@@ -4988,6 +5032,16 @@ export function setupEventListeners() {
   // Invoice discount sync in totals card (bi-directional)
   el('invoiceDiscountPercent')?.addEventListener('input', (e) => handleInvoiceDiscountSync('invoiceDiscountPercent', e.target.value));
   el('invoiceDiscount')?.addEventListener('input', (e) => handleInvoiceDiscountSync('invoiceDiscount', e.target.value));
+
+  el('vatEnabledToggle')?.addEventListener('change', (event) => {
+    syncVatControls({
+      enabled: event.target.checked,
+      vatRate: event.target.checked ? 7 : 0
+    });
+    renderTotals();
+    updateQuoteEditorModeUi();
+    saveState();
+  });
 
   // VAT rate changes (update totals)
   el('vatRate')?.addEventListener('input', renderTotals);
