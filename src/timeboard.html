@@ -41,7 +41,7 @@
       --timeboard-col-pr-complete-width: 150px;
       --timeboard-col-po-width: 160px;
       --timeboard-col-po-complete-width: 150px;
-      --timeboard-col-goods-receipt-width: 150px;
+      --timeboard-col-goods-receipt-width: 180px;
       --timeboard-col-factory-procedure-width: 170px;
       --timeboard-col-sh-record-width: 160px;
       --timeboard-col-expected-width: 190px;
@@ -100,6 +100,33 @@
       color: var(--calm-text-muted);
       border-bottom: 2px solid var(--calm-border);
       box-shadow: none;
+    }
+
+    .timeboard-sla-rule {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      line-height: 1.3;
+      text-align: left;
+    }
+
+    .timeboard-sla-rule-line {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .timeboard-sla-rule-key {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #475569;
+    }
+
+    .timeboard-sla-rule-value {
+      font-size: 11px;
+      color: var(--calm-text-muted);
     }
 
     .calm-table tbody td {
@@ -1406,15 +1433,15 @@
             <tr class="timeboard-header-sla-row">
               <th data-column-key="sq" data-department="salesperson" class="col-equal col-head-doc col-merged-doc col-sticky-sq">0m</th>
               <th data-column-key="sv" data-department="cs" class="col-equal col-head-doc col-merged-doc col-sticky-sv">1hr</th>
-              <th data-column-key="inspectionComplete" data-department="workshop" class="col-equal">36h (work period)</th>
+              <th data-column-key="inspectionComplete" data-department="workshop" class="col-equal">36h (WP)</th>
               <th data-column-key="priceRequest" data-department="cs" class="col-equal">30m</th>
               <th data-column-key="priceReport" data-department="purchase" class="col-equal">4h</th>
               <th data-column-key="sqComplete" data-department="cs" class="col-equal">4h</th>
               <th data-column-key="confirmation" data-department="salesperson" class="col-equal">4h</th>
-              <th data-column-key="planningRequest" data-department="planner" class="col-equal">12h (work period)</th>
-              <th data-column-key="pr" data-department="inventory" class="col-equal col-head-doc col-merged-doc">12h (work period)</th>
+              <th data-column-key="planningRequest" data-department="planner" class="col-equal">12h (WP)</th>
+              <th data-column-key="pr" data-department="inventory" class="col-equal col-head-doc col-merged-doc">12h (WP)</th>
               <th data-column-key="prComplete" data-department="inventory" class="col-equal">2h</th>
-              <th data-column-key="po" data-department="purchase" class="col-equal col-head-doc col-merged-doc">12h (work period)</th>
+              <th data-column-key="po" data-department="purchase" class="col-equal col-head-doc col-merged-doc">12h (WP)</th>
               <th data-column-key="poComplete" data-department="purchase" class="col-equal">2h</th>
               <th data-column-key="goodsReceipt" data-department="inventory" class="col-equal">1h</th>
               <th data-column-key="factoryProcedure" data-department="workshop" class="col-equal">N/A</th>
@@ -1428,6 +1455,9 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="px-4 pt-3 text-xs text-slate-500">
+        *WP = Work Period (8.00-17.00)
       </div>
 
       <!-- Load More -->
@@ -1500,6 +1530,24 @@
       goodsReceipt: 'inventory',
       factoryProcedure: 'workshop',
       shRecord: 'planner'
+    });
+    const TIMEBOARD_SPLIT_SLA_RULES = Object.freeze({
+      inspectionComplete: Object.freeze({
+        beforeNoon: Object.freeze({ days: 1, hours: 12, minutes: 0 }),
+        afterNoon: Object.freeze({ days: 1, hours: 17, minutes: 0 })
+      }),
+      planningRequest: Object.freeze({
+        beforeNoon: Object.freeze({ days: 0, hours: 17, minutes: 0 }),
+        afterNoon: Object.freeze({ days: 1, hours: 12, minutes: 0 })
+      }),
+      pr: Object.freeze({
+        beforeNoon: Object.freeze({ days: 0, hours: 17, minutes: 0 }),
+        afterNoon: Object.freeze({ days: 1, hours: 12, minutes: 0 })
+      }),
+      poCreated: Object.freeze({
+        beforeNoon: Object.freeze({ days: 0, hours: 17, minutes: 0 }),
+        afterNoon: Object.freeze({ days: 1, hours: 12, minutes: 0 })
+      })
     });
     const ALWAYS_VISIBLE_TIMEBOARD_COLUMNS = new Set([
       'sq',
@@ -2002,6 +2050,22 @@
       return /[T\s]\d{2}:\d{2}/.test(dateStr);
     }
 
+    function hasMeaningfulTimeComponent(dateValue) {
+      if (typeof dateValue === 'string') {
+        return hasExplicitTimeComponent(dateValue);
+      }
+
+      const date = parseDateTime(dateValue);
+      if (!date) {
+        return false;
+      }
+
+      return date.getHours() !== 0
+        || date.getMinutes() !== 0
+        || date.getSeconds() !== 0
+        || date.getMilliseconds() !== 0;
+    }
+
     function renderDate(dateStr, options = {}) {
       const { className = '' } = options;
       if (!dateStr || dateStr === '-' || dateStr === '') {
@@ -2077,6 +2141,30 @@
       return '';
     }
 
+    function getPreferredDateTimeValue(...values) {
+      let fallbackValue = '';
+
+      for (const value of values) {
+        if (value === null || value === undefined) {
+          continue;
+        }
+
+        if (typeof value === 'string' && value.trim() === '') {
+          continue;
+        }
+
+        if (!fallbackValue) {
+          fallbackValue = value;
+        }
+
+        if (hasMeaningfulTimeComponent(value)) {
+          return value;
+        }
+      }
+
+      return fallbackValue;
+    }
+
     function renderPercent(value) {
       if (value === null || value === undefined || value === '') {
         return '<span class="text-slate-300">—</span>';
@@ -2126,7 +2214,7 @@
       }
     }
 
-    function parseValidDate(value) {
+    function parseDateTime(value) {
       if (!value || value === '0001-01-01' || value === '-' || value === '') {
         return null;
       }
@@ -2136,7 +2224,61 @@
         return null;
       }
 
+      return date;
+    }
+
+    function parseValidDate(value) {
+      const date = parseDateTime(value);
+      if (!date) {
+        return null;
+      }
+
       return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function isBeforeNoon(dateValue) {
+      const date = parseDateTime(dateValue);
+      if (!date) {
+        return false;
+      }
+
+      return date.getHours() < 12;
+    }
+
+    function applyDeadlineTime(startDate, rule = {}) {
+      const date = parseDateTime(startDate);
+      if (!date) {
+        return null;
+      }
+
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + (Number(rule.days) || 0));
+      nextDate.setHours(Number(rule.hours) || 0, Number(rule.minutes) || 0, 0, 0);
+      return nextDate;
+    }
+
+    function resolveSplitSlaDeadline(startDate, rules) {
+      const start = parseDateTime(startDate);
+      if (!start || !rules) {
+        return null;
+      }
+
+      const appliedRule = isBeforeNoon(start)
+        ? rules.beforeNoon
+        : rules.afterNoon;
+
+      return applyDeadlineTime(start, appliedRule);
+    }
+
+    function isSplitSlaExceeded(startDate, endDate, rules) {
+      const end = parseDateTime(endDate);
+      const deadline = resolveSplitSlaDeadline(startDate, rules);
+
+      if (!end || !deadline) {
+        return false;
+      }
+
+      return end.getTime() > deadline.getTime();
     }
 
     function addDays(dateValue, days) {
@@ -2150,8 +2292,9 @@
       return nextDate;
     }
 
-    function toIsoDate(dateValue) {
-      const date = parseValidDate(dateValue);
+    function toIsoDate(dateValue, options = {}) {
+      const { preserveTime = false } = options;
+      const date = preserveTime ? parseDateTime(dateValue) : parseValidDate(dateValue);
       if (!date) {
         return '';
       }
@@ -2159,6 +2302,14 @@
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
+
+      if (preserveTime) {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      }
+
       return `${year}-${month}-${day}`;
     }
 
@@ -2329,7 +2480,9 @@
         expectedDate ? addDays(expectedDate, -getSeededOffset(seed, 13, 7, 12)) : null
       );
 
-      let goodsReceipt = parseValidDate(purchaseLine?.goodsReceipt) || vendorDelivered;
+      const goodsReceiptSource = purchaseLine?.goodsReceipt;
+      const preserveGoodsReceiptTime = hasMeaningfulTimeComponent(goodsReceiptSource);
+      let goodsReceipt = parseDateTime(goodsReceiptSource) || vendorDelivered;
 
       let factoryProcedure = maxDate(
         addDays(goodsReceipt, getSeededOffset(seed, 14, 1, 3)),
@@ -2431,7 +2584,7 @@
         prComplete: toIsoDate(prComplete),
         poComplete: toIsoDate(poComplete),
         vendorDelivered: toIsoDate(vendorDelivered),
-        goodsReceipt: toIsoDate(goodsReceipt),
+        goodsReceipt: toIsoDate(goodsReceipt, { preserveTime: preserveGoodsReceiptTime }),
         factoryProcedure: toIsoDate(factoryProcedure),
         stComplete: toIsoDate(stComplete),
         expectedDeliveryDate: toIsoDate(expectedDeliveryDate)
@@ -2444,7 +2597,9 @@
       const expectedDate = parseValidDate(item?.expectedDate);
       const planningRequest = parseValidDate(item?.planningRequest);
       const prComplete = parseValidDate(purchaseLine?.prComplete);
-      const goodsReceipt = parseValidDate(purchaseLine?.goodsReceipt);
+      const goodsReceiptSource = purchaseLine?.goodsReceipt;
+      const preserveGoodsReceiptTime = hasMeaningfulTimeComponent(goodsReceiptSource);
+      const goodsReceipt = parseDateTime(goodsReceiptSource);
       const factoryProcedure = parseValidDate(item?.factoryProcedure);
 
       return {
@@ -2458,7 +2613,7 @@
         prComplete: toIsoDate(prComplete),
         poComplete: '',
         vendorDelivered: '',
-        goodsReceipt: toIsoDate(goodsReceipt),
+        goodsReceipt: toIsoDate(goodsReceipt, { preserveTime: preserveGoodsReceiptTime }),
         factoryProcedure: toIsoDate(factoryProcedure),
         stComplete: toIsoDate(stCreated),
         expectedDeliveryDate: toIsoDate(expectedDate)
@@ -3165,7 +3320,10 @@
 
     function normalizePurchaseLine(line) {
       return {
-        prCreated: line?.systemCreatedAt || '',
+        prCreated: getPreferredDateTimeValue(
+          line?.systemCreatedAt,
+          line?.createdAt
+        ),
         prComplete: getFirstNonEmptyValue(
           line?.prComplete,
           line?.prApproved,
@@ -3188,7 +3346,7 @@
           line?.prUpdatedAt
         ),
         pr: String(line?.documentNo || '').trim(),
-        poCreated: getFirstNonEmptyValue(
+        poCreated: getPreferredDateTimeValue(
           line?.poCreated,
           line?.refPrToPoCreated,
           line?.refPRToPOCreated,
@@ -3205,7 +3363,7 @@
           line?.refPrToPo,
           line?.refPRToPO
         ) || '').trim(),
-        poApproved: getFirstNonEmptyValue(
+        poApproved: getPreferredDateTimeValue(
           line?.poApproved,
           line?.refPrToPoApproved,
           line?.refPRToPOApproved,
@@ -3230,7 +3388,7 @@
           line?.poUpdatedAt,
           line?.poModifiedAt
         ),
-        goodsReceipt: getFirstNonEmptyValue(
+        goodsReceipt: getPreferredDateTimeValue(
           line?.goodsReceipt,
           line?.goodsReceiptDate,
           line?.grCreatedAt,
@@ -3247,12 +3405,12 @@
     function normalizePurchaseOrder(order) {
       return {
         po: normalizePurchaseOrderNumber(order?.po),
-        poCreated: getFirstNonEmptyValue(
+        poCreated: getPreferredDateTimeValue(
           order?.poCreated,
           order?.createdAt,
           order?.purchaseOrderCreatedAt
         ),
-        goodsReceipt: getFirstNonEmptyValue(
+        goodsReceipt: getPreferredDateTimeValue(
           order?.goodsReceipt,
           order?.goodsReceiptDate,
           order?.postedGoodsReceiptAt
@@ -3270,7 +3428,7 @@
           status?.po,
           status?.poNo
         ) || '').trim(),
-        approvalDate: getFirstNonEmptyValue(
+        approvalDate: getPreferredDateTimeValue(
           status?.approvalDate,
           status?.approvedAt,
           status?.prApproved,
@@ -3289,7 +3447,7 @@
           salesQuote?.salesQuoteNumber,
           salesQuote?.documentNo
         )),
-        sqCreated: getFirstNonEmptyValue(
+        sqCreated: getPreferredDateTimeValue(
           salesQuote?.sqCreated,
           salesQuote?.createdAt,
           salesQuote?.systemCreatedAt
@@ -3310,7 +3468,7 @@
           serviceOrder?.serviceOrderNo,
           serviceOrder?.documentNo
         )),
-        svCreated: getFirstNonEmptyValue(
+        svCreated: getPreferredDateTimeValue(
           serviceOrder?.svCreated,
           serviceOrder?.serviceOrderCreatedAt,
           serviceOrder?.createdAt,
@@ -3421,7 +3579,7 @@
 
       return {
         ...row,
-        sqCreated: getFirstNonEmptyValue(salesQuote.sqCreated, row?.sqCreated),
+        sqCreated: getPreferredDateTimeValue(salesQuote.sqCreated, row?.sqCreated),
         expectedDate: getFirstNonEmptyValue(salesQuote.expectedDate, row?.expectedDate)
       };
     }
@@ -3436,7 +3594,7 @@
 
       return {
         ...row,
-        svCreated: getFirstNonEmptyValue(serviceOrder.svCreated, row?.svCreated, row?.systemCreatedAt),
+        svCreated: getPreferredDateTimeValue(serviceOrder.svCreated, row?.svCreated, row?.systemCreatedAt),
         factoryProcedure: getFirstNonEmptyValue(serviceOrder.factoryProcedure, row?.factoryProcedure),
         planningRequest: getFirstNonEmptyValue(serviceOrder.planningRequest, row?.planningRequest)
       };
@@ -4059,15 +4217,31 @@
         };
         const slaOverdueClasses = {
           sv: isSlaExceeded(item.sqCreated, item.svCreated || item.systemCreatedAt, 1) ? 'timeboard-sla-overdue' : '',
-          inspectionComplete: isSlaExceeded(item.svCreated || item.systemCreatedAt, timeline.inspectionComplete, 36) ? 'timeboard-sla-overdue' : '',
+          inspectionComplete: isSplitSlaExceeded(
+            item.svCreated || item.systemCreatedAt,
+            timeline.inspectionComplete,
+            TIMEBOARD_SPLIT_SLA_RULES.inspectionComplete
+          ) ? 'timeboard-sla-overdue' : '',
           priceRequest: isSlaExceeded(timeline.inspectionComplete, timeline.priceRequest, 0.5) ? 'timeboard-sla-overdue' : '',
           priceReport: isSlaExceeded(timeline.priceRequest, timeline.priceReport, 4) ? 'timeboard-sla-overdue' : '',
           sqComplete: isSlaExceeded(timeline.priceReport, timeline.sqComplete, 4) ? 'timeboard-sla-overdue' : '',
           confirmation: isSlaExceeded(timeline.sqComplete, timeline.confirmation, 4) ? 'timeboard-sla-overdue' : '',
-          planningRequest: isSlaExceeded(timeline.confirmation, timeline.planningRequest, 12) ? 'timeboard-sla-overdue' : '',
-          pr: isSlaExceeded(timeline.planningRequest, purchaseLine?.prCreated, 12) ? 'timeboard-sla-overdue' : '',
+          planningRequest: isSplitSlaExceeded(
+            timeline.confirmation,
+            timeline.planningRequest,
+            TIMEBOARD_SPLIT_SLA_RULES.planningRequest
+          ) ? 'timeboard-sla-overdue' : '',
+          pr: isSplitSlaExceeded(
+            timeline.planningRequest,
+            purchaseLine?.prCreated,
+            TIMEBOARD_SPLIT_SLA_RULES.pr
+          ) ? 'timeboard-sla-overdue' : '',
           prComplete: isSlaExceeded(purchaseLine?.prCreated, timeline.prComplete, 2) ? 'timeboard-sla-overdue' : '',
-          poCreated: isSlaExceeded(timeline.prComplete, purchaseLine?.poCreated, 12) ? 'timeboard-sla-overdue' : '',
+          poCreated: isSplitSlaExceeded(
+            timeline.prComplete,
+            purchaseLine?.poCreated,
+            TIMEBOARD_SPLIT_SLA_RULES.poCreated
+          ) ? 'timeboard-sla-overdue' : '',
           poApproved: isSlaExceeded(
             purchaseLine?.poCreated,
             state.useMockTimeline ? (timeline.poComplete || purchaseLine?.poApproved) : purchaseLine?.poApproved,
