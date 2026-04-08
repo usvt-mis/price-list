@@ -1814,7 +1814,7 @@
 
       <!-- Load More -->
       <div class="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200">
-        <span id="paginationInfo" class="text-sm text-slate-500">Showing 0 matching rows from 0 loaded</span>
+        <span id="paginationInfo" class="text-sm text-slate-500">Showing 0 In Progress rows from 0 loaded</span>
         <button id="loadMoreBtn" class="calm-btn" disabled>Load more</button>
       </div>
     </div>
@@ -2094,6 +2094,11 @@
       });
     }
 
+    function getTimeboardPaginationText(filteredCount, loadedCount) {
+      const activeBucketConfig = getActiveTimeboardBucketConfig();
+      return `Showing ${filteredCount} ${activeBucketConfig.label} rows from ${loadedCount} loaded`;
+    }
+
     function isTimeboardRenderComplete(expectedMeta) {
       if (!expectedMeta) {
         return false;
@@ -2109,7 +2114,7 @@
       const renderedRowCount = tbody.querySelectorAll(':scope > tr').length;
       const paginationText = String(paginationInfo.textContent || '').trim();
       const statTotalText = String(statTotal.textContent || '').trim();
-      const expectedPaginationText = `Showing ${expectedMeta.filteredCount} matching rows from ${expectedMeta.loadedCount} loaded`;
+      const expectedPaginationText = getTimeboardPaginationText(expectedMeta.filteredCount, expectedMeta.loadedCount);
 
       return (
         state.renderVersion === expectedMeta.version
@@ -2257,11 +2262,27 @@
       });
     }
 
-    function setDisplayMode(mode) {
+    async function setDisplayMode(mode) {
       const normalizedMode = normalizeDisplayMode(mode);
+      const hasDisplayModeChanged = state.displayMode !== normalizedMode;
+
       state.displayMode = normalizedMode;
       syncDisplayModeButtons();
-      applyFilters();
+
+      if (!hasDisplayModeChanged) {
+        applyFilters();
+        return;
+      }
+
+      if (!state.selectedBranch) {
+        applyFilters();
+        return;
+      }
+
+      const modeLabel = normalizedMode === 'expectedDeliveryDate'
+        ? 'expected delivery'
+        : 'normal';
+      await refreshData(`Loading ${modeLabel} timeboard data...`);
     }
 
     function createDepartmentSelection(departments, options = {}) {
@@ -4731,7 +4752,7 @@
         tbody.innerHTML = `<tr><td colspan="${getVisibleTimeboardColumnCount()}" class="text-center py-16 text-slate-400">${escapeHtml(activeBucketConfig.emptyMessage)}</td></tr>`;
         document.getElementById('statTotal').textContent = '0';
         document.getElementById('paginationInfo').textContent =
-          `Showing 0 ${activeBucketConfig.label} rows from ${state.data.length} loaded`;
+          getTimeboardPaginationText(0, state.data.length);
         updateLoadMoreUi();
         applyDepartmentColumnFilter();
         syncStickyTimeboardHeader();
@@ -4887,7 +4908,7 @@
       document.getElementById('statTotal').textContent = displayRows.length;
 
       document.getElementById('paginationInfo').textContent =
-        `Showing ${displayRows.length} ${activeBucketConfig.label} rows from ${state.data.length} loaded`;
+        getTimeboardPaginationText(displayRows.length, state.data.length);
       updateLoadMoreUi();
       applyDepartmentColumnFilter();
       syncStickyTimeboardHeader();
@@ -4912,8 +4933,8 @@
     });
 
     document.querySelectorAll('.display-mode-btn[data-display-mode]').forEach((button) => {
-      button.addEventListener('click', (event) => {
-        setDisplayMode(event.currentTarget.dataset.displayMode);
+      button.addEventListener('click', async (event) => {
+        await setDisplayMode(event.currentTarget.dataset.displayMode);
       });
     });
 
