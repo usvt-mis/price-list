@@ -50,6 +50,8 @@
       --timeboard-col-goods-receipt-width: 180px;
       --timeboard-col-factory-procedure-width: 170px;
       --timeboard-col-sh-record-width: 160px;
+      --timeboard-col-st-width: 160px;
+      --timeboard-col-posted-st-width: 170px;
       --timeboard-col-expected-width: 190px;
       --font-sans: "IBM Plex Sans", "Segoe UI", "Noto Sans Thai", system-ui, sans-serif;
       --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -202,9 +204,9 @@
     }
 
     .calm-table tbody td {
-      padding: 14px 16px;
+      padding: 10px 14px;
       font-size: 13px;
-      line-height: 1.35;
+      line-height: 1.3;
       color: var(--calm-text-primary);
       border-bottom: 1px solid var(--calm-border);
       text-align: center;
@@ -396,8 +398,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      min-height: 38px;
+      gap: 8px;
+      min-height: 30px;
       width: 100%;
     }
 
@@ -405,7 +407,7 @@
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: 4px;
+      gap: 2px;
       min-width: 0;
     }
 
@@ -531,8 +533,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 6px;
-      min-height: 38px;
+      gap: 4px;
+      min-height: 30px;
       width: 100%;
     }
 
@@ -541,7 +543,7 @@
       align-items: center;
       justify-content: center;
       min-width: 76px;
-      padding: 3px 10px;
+      padding: 2px 8px;
       border-radius: 999px;
       font-size: 10px;
       font-weight: 700;
@@ -589,8 +591,8 @@
     .status-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 5px 11px;
+      gap: 5px;
+      padding: 4px 10px;
       border-radius: 20px;
       font-size: 11px;
       font-weight: 700;
@@ -991,6 +993,16 @@
       background: linear-gradient(90deg, rgba(58, 111, 95, 0.9), rgba(110, 143, 125, 0.74));
     }
 
+    .timeboard-filter-section-bucket {
+      width: min(100%, 420px);
+      border-color: rgba(68, 102, 116, 0.24);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(236, 243, 241, 0.96) 100%);
+    }
+
+    .timeboard-filter-section-bucket::before {
+      background: linear-gradient(90deg, rgba(37, 99, 235, 0.78), rgba(43, 103, 119, 0.8), rgba(110, 143, 125, 0.68));
+    }
+
     .timeboard-filter-section-department {
       width: min(100%, 520px);
       border-color: rgba(84, 118, 128, 0.22);
@@ -1025,6 +1037,61 @@
 
     .branch-filter-grid-1x2 {
       grid-template-columns: 1fr;
+    }
+
+    .timeboard-bucket-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+      width: 100%;
+    }
+
+    .timeboard-bucket-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 56px;
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid rgba(124, 144, 154, 0.2);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(243, 247, 246, 0.92) 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.88),
+        0 6px 14px rgba(37, 63, 72, 0.05);
+      color: var(--ops-shell-text);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .timeboard-bucket-btn:hover {
+      border-color: rgba(43, 103, 119, 0.3);
+      background: linear-gradient(180deg, rgba(245, 249, 248, 0.98) 0%, rgba(234, 241, 239, 0.96) 100%);
+      transform: translateY(-1px);
+    }
+
+    .timeboard-bucket-btn.active {
+      border-color: rgba(43, 103, 119, 0.36);
+      background:
+        radial-gradient(circle at top right, rgba(110, 143, 125, 0.14), transparent 48%),
+        linear-gradient(180deg, rgba(232, 241, 246, 0.98) 0%, rgba(222, 235, 233, 0.98) 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.88),
+        0 0 0 1px rgba(43, 103, 119, 0.08),
+        0 12px 22px rgba(37, 63, 72, 0.08);
+    }
+
+    .timeboard-bucket-btn:focus-visible {
+      outline: 3px solid rgba(43, 103, 119, 0.18);
+      outline-offset: 2px;
+    }
+
+    .timeboard-bucket-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--ops-shell-accent-strong);
     }
 
     .department-filter-grid {
@@ -1402,6 +1469,14 @@
       width: var(--timeboard-col-sh-record-width);
     }
 
+    .timeboard-table-wrap .calm-table col[data-column-key="st"] {
+      width: var(--timeboard-col-st-width);
+    }
+
+    .timeboard-table-wrap .calm-table col[data-column-key="postedSt"] {
+      width: var(--timeboard-col-posted-st-width);
+    }
+
     .timeboard-table-wrap .calm-table col[data-column-key="expectedDeliveryDate"] {
       width: var(--timeboard-col-expected-width);
     }
@@ -1598,10 +1673,24 @@
           </div>
         </div>
         <div class="timeboard-filter-section timeboard-filter-section-sort filter-group">
-          <span class="filter-label">Sort Order</span>
+          <span class="filter-label">Display Mode</span>
           <div class="branch-filter branch-filter-grid branch-filter-grid-1x2">
-            <button class="branch-btn sort-toggle-btn active" data-sort="DESC">Newest first</button>
-            <button class="branch-btn sort-toggle-btn" data-sort="ASC">Oldest first</button>
+            <button class="branch-btn display-mode-btn active" data-display-mode="normal">Normal order</button>
+            <button class="branch-btn display-mode-btn" data-display-mode="expectedDeliveryDate">Expected date</button>
+          </div>
+        </div>
+        <div class="timeboard-filter-section timeboard-filter-section-bucket filter-group">
+          <span class="filter-label">Board Buckets</span>
+          <div class="timeboard-bucket-grid" role="group" aria-label="Switch timeboard bucket">
+            <button type="button" class="timeboard-bucket-btn active" data-bucket="inProgress">
+              <span class="timeboard-bucket-title">In Progress</span>
+            </button>
+            <button type="button" class="timeboard-bucket-btn" data-bucket="temp">
+              <span class="timeboard-bucket-title">TEMP</span>
+            </button>
+            <button type="button" class="timeboard-bucket-btn" data-bucket="invoiced">
+              <span class="timeboard-bucket-title">Invoice<br>(This Month)</span>
+            </button>
           </div>
         </div>
         <div class="timeboard-filter-section timeboard-filter-section-department filter-group">
@@ -1666,6 +1755,8 @@
             <col data-column-key="goodsReceipt">
             <col data-column-key="factoryProcedure">
             <col data-column-key="shRecord">
+            <col data-column-key="st">
+            <col data-column-key="postedSt">
             <col data-column-key="expectedDeliveryDate">
           </colgroup>
           <thead>
@@ -1685,6 +1776,8 @@
               <th data-column-key="goodsReceipt" data-department="inventory" class="col-equal">Goods Receipt</th>
               <th data-column-key="factoryProcedure" data-department="workshop" class="col-equal">Factory Procedure</th>
               <th data-column-key="shRecord" data-department="planner" class="col-equal col-head-doc col-merged-doc">SH Record</th>
+              <th data-column-key="st" class="col-equal col-head-doc col-merged-doc">ST</th>
+              <th data-column-key="postedSt" class="col-equal col-head-doc col-merged-doc">Posted ST</th>
               <th data-column-key="expectedDeliveryDate" class="col-equal col-head-date col-sticky-expected">Expected Delivery Date</th>
             </tr>
             <tr class="timeboard-header-sla-row">
@@ -1703,12 +1796,14 @@
               <th data-column-key="goodsReceipt" data-department="inventory" class="col-equal">1h</th>
               <th data-column-key="factoryProcedure" data-department="workshop" class="col-equal">N/A</th>
               <th data-column-key="shRecord" data-department="planner" class="col-equal col-head-doc col-merged-doc">N/A</th>
+              <th data-column-key="st" class="col-equal col-head-doc col-merged-doc">N/A</th>
+              <th data-column-key="postedSt" class="col-equal col-head-doc col-merged-doc">N/A</th>
               <th data-column-key="expectedDeliveryDate" class="col-equal col-head-date col-sticky-expected">N/A</th>
             </tr>
           </thead>
           <tbody id="timeboardBody">
             <tr>
-              <td colspan="16" class="text-center py-16 text-slate-400">No data available</td>
+              <td colspan="18" class="text-center py-16 text-slate-400">No data available</td>
             </tr>
           </tbody>
         </table>
@@ -1768,6 +1863,8 @@
       'goodsReceipt',
       'factoryProcedure',
       'shRecord',
+      'st',
+      'postedSt',
       'expectedDeliveryDate'
     ]);
     const DEPARTMENT_FILTER_OPTIONS = Object.freeze([
@@ -1816,14 +1913,37 @@
     const ALWAYS_VISIBLE_TIMEBOARD_COLUMNS = new Set([
       'sq',
       'sv',
+      'st',
+      'postedSt',
       'expectedDeliveryDate'
     ]);
+    const TIMEBOARD_BUCKET_CONFIG = Object.freeze({
+      inProgress: Object.freeze({
+        label: 'In Progress',
+        emptyMessage: 'No in-progress records found'
+      }),
+      temp: Object.freeze({
+        label: 'TEMP',
+        emptyMessage: 'No TEMP records found'
+      }),
+      invoiced: Object.freeze({
+        label: 'Invoice (This Month)',
+        emptyMessage: 'No invoiced records found'
+      })
+    });
+    const TIMEBOARD_BUCKET_HIDDEN_COLUMNS = Object.freeze({
+      inProgress: Object.freeze(['shRecord', 'st', 'postedSt']),
+      temp: Object.freeze(['st', 'postedSt']),
+      invoiced: Object.freeze([])
+    });
     let syncStickyTimeboardHeader = () => {};
     const state = {
       data: [],
       filteredData: [],
       searchQuery: '',
       selectedBranch: '',
+      activeBucket: 'inProgress',
+      displayMode: 'normal',
       selectedDepartments: new Set(DEPARTMENT_FILTER_OPTIONS),
       salesQuoteNos: [],
       purchaseDocumentNos: {
@@ -2127,6 +2247,23 @@
       return String(department || '').trim().toLowerCase();
     }
 
+    function normalizeDisplayMode(mode) {
+      return String(mode || '').trim() === 'expectedDeliveryDate' ? 'expectedDeliveryDate' : 'normal';
+    }
+
+    function syncDisplayModeButtons() {
+      document.querySelectorAll('.display-mode-btn[data-display-mode]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.displayMode === state.displayMode);
+      });
+    }
+
+    function setDisplayMode(mode) {
+      const normalizedMode = normalizeDisplayMode(mode);
+      state.displayMode = normalizedMode;
+      syncDisplayModeButtons();
+      applyFilters();
+    }
+
     function createDepartmentSelection(departments, options = {}) {
       const { fallbackToAll = false } = options;
       const rawDepartments = Array.isArray(departments)
@@ -2153,14 +2290,38 @@
       return selectedDepartments;
     }
 
+    function getActiveTimeboardBucketConfig() {
+      return TIMEBOARD_BUCKET_CONFIG[state.activeBucket] || TIMEBOARD_BUCKET_CONFIG.inProgress;
+    }
+
+    function syncTimeboardBucketButtons() {
+      document.querySelectorAll('.timeboard-bucket-btn[data-bucket]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.bucket === state.activeBucket);
+      });
+    }
+
+    async function setActiveTimeboardBucket(bucketKey) {
+      if (!TIMEBOARD_BUCKET_CONFIG[bucketKey]) {
+        return;
+      }
+
+      state.activeBucket = bucketKey;
+      syncTimeboardBucketButtons();
+      await refreshData(`Loading ${getActiveTimeboardBucketConfig().label} timeboard data...`);
+    }
+
     function getVisibleTimeboardColumnKeys() {
       const selectedDepartments = state.selectedDepartments instanceof Set
         ? state.selectedDepartments
         : createDepartmentSelection(state.selectedDepartments, { fallbackToAll: true });
+      const hiddenColumns = new Set(TIMEBOARD_BUCKET_HIDDEN_COLUMNS[state.activeBucket] || []);
 
       return TIMEBOARD_COLUMN_KEYS.filter((columnKey) => (
-        ALWAYS_VISIBLE_TIMEBOARD_COLUMNS.has(columnKey)
-        || selectedDepartments.has(TIMEBOARD_COLUMN_DEPARTMENTS[columnKey])
+        !hiddenColumns.has(columnKey)
+        && (
+          ALWAYS_VISIBLE_TIMEBOARD_COLUMNS.has(columnKey)
+          || selectedDepartments.has(TIMEBOARD_COLUMN_DEPARTMENTS[columnKey])
+        )
       ));
     }
 
@@ -2295,6 +2456,7 @@
         params.append('offset', requestedSize);
         params.append('orderBy', state.sortDirection);
         params.append('branch', state.selectedBranch);
+        params.append('bucket', state.activeBucket);
 
         const response = await fetch(`/api/timeboard?${params.toString()}`);
         if (!response.ok) {
@@ -2345,6 +2507,28 @@
     }
 
     // Render date cell
+    function isPlaceholderDateValue(value) {
+      if (value === null || value === undefined || value === '' || value === '-') {
+        return true;
+      }
+
+      if (typeof value === 'string') {
+        const normalized = value.trim();
+        if (!normalized) {
+          return true;
+        }
+
+        return /^0001-01-01(?:[T\s]00:00(?::00(?:\.\d+)?)?(?:Z)?)?$/i.test(normalized);
+      }
+
+      const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return false;
+      }
+
+      return date.getFullYear() <= 1;
+    }
+
     function hasExplicitTimeComponent(dateStr) {
       if (typeof dateStr !== 'string') {
         return false;
@@ -2409,7 +2593,7 @@
 
     function renderDate(dateStr, options = {}) {
       const { className = '' } = options;
-      if (!dateStr || dateStr === '-' || dateStr === '') {
+      if (isPlaceholderDateValue(dateStr)) {
         return '<span class="text-slate-300">—</span>';
       }
       const date = new Date(dateStr);
@@ -2434,7 +2618,7 @@
     }
 
     function formatTooltipDate(dateStr) {
-      if (!dateStr || dateStr === '-' || dateStr === '' || dateStr === '0001-01-01') {
+      if (isPlaceholderDateValue(dateStr)) {
         return '';
       }
 
@@ -2486,11 +2670,7 @@
       let fallbackValue = '';
 
       for (const value of values) {
-        if (value === null || value === undefined) {
-          continue;
-        }
-
-        if (typeof value === 'string' && value.trim() === '') {
+        if (isPlaceholderDateValue(value)) {
           continue;
         }
 
@@ -2556,7 +2736,7 @@
     }
 
     function parseDateTime(value) {
-      if (!value || value === '0001-01-01' || value === '-' || value === '') {
+      if (isPlaceholderDateValue(value)) {
         return null;
       }
 
@@ -2806,7 +2986,9 @@
         confirmation
       );
 
-      let prComplete = maxDate(
+      const prCompleteSource = purchaseLine?.prComplete;
+      const preservePrCompleteTime = hasMeaningfulTimeComponent(prCompleteSource);
+      let prComplete = parseDateTime(prCompleteSource) || maxDate(
         prCreated ? addDays(prCreated, getSeededOffset(seed, 8, 0, 1)) : null,
         addDays(planningRequest, getSeededOffset(seed, 9, 1, 2))
       );
@@ -2922,7 +3104,7 @@
         confirmation: item?.confirmationTime || toIsoDate(confirmation),
         confirmationStatus,
         planningRequest: toIsoDate(planningRequest),
-        prComplete: toIsoDate(prComplete),
+        prComplete: toIsoDate(prComplete, { preserveTime: preservePrCompleteTime }),
         poComplete: toIsoDate(poComplete),
         vendorDelivered: toIsoDate(vendorDelivered),
         goodsReceipt: toIsoDate(goodsReceipt, { preserveTime: preserveGoodsReceiptTime }),
@@ -2936,8 +3118,16 @@
       const confirmationStatus = normalizeConfirmationStatus(item?.confirmationStatus);
       const stCreated = parseValidDate(item?.postedStCreated || item?.stCreated);
       const expectedDate = parseValidDate(item?.expectedDate);
-      const planningRequest = parseValidDate(item?.planningRequest);
-      const prComplete = parseValidDate(purchaseLine?.prComplete);
+      const planningRequestSource = item?.planningRequest;
+      const preservePlanningRequestTime = hasMeaningfulTimeComponent(planningRequestSource);
+      const planningRequest = preservePlanningRequestTime
+        ? parseDateTime(planningRequestSource)
+        : parseValidDate(planningRequestSource);
+      const prCompleteSource = purchaseLine?.prComplete;
+      const preservePrCompleteTime = hasMeaningfulTimeComponent(prCompleteSource);
+      const prComplete = preservePrCompleteTime
+        ? parseDateTime(prCompleteSource)
+        : parseValidDate(prCompleteSource);
       const goodsReceiptSource = purchaseLine?.goodsReceipt;
       const preserveGoodsReceiptTime = hasMeaningfulTimeComponent(goodsReceiptSource);
       const goodsReceipt = parseDateTime(goodsReceiptSource);
@@ -2950,8 +3140,8 @@
         sqComplete: item?.approvalTime || '',
         confirmation: item?.confirmationTime || '',
         confirmationStatus,
-        planningRequest: toIsoDate(planningRequest),
-        prComplete: toIsoDate(prComplete),
+        planningRequest: toIsoDate(planningRequest, { preserveTime: preservePlanningRequestTime }),
+        prComplete: toIsoDate(prComplete, { preserveTime: preservePrCompleteTime }),
         poComplete: '',
         vendorDelivered: '',
         goodsReceipt: toIsoDate(goodsReceipt, { preserveTime: preserveGoodsReceiptTime }),
@@ -3020,7 +3210,7 @@
 
     // Render expected date
     function renderExpectedDate(dateStr, options = {}) {
-      if (!dateStr || dateStr === '' || dateStr === '0001-01-01') {
+      if (isPlaceholderDateValue(dateStr)) {
         return '<span class="text-slate-300">—</span>';
       }
       return renderDate(dateStr, options);
@@ -3833,7 +4023,7 @@
           serviceOrder?.factoryProcedure,
           serviceOrder?.factoryProcedureDate
         ),
-        planningRequest: getFirstNonEmptyValue(
+        planningRequest: getPreferredDateTimeValue(
           serviceOrder?.planningRequest,
           serviceOrder?.planningRequestDate
         )
@@ -3951,7 +4141,7 @@
         ...row,
         svCreated: getPreferredDateTimeValue(serviceOrder.svCreated, row?.svCreated, row?.systemCreatedAt),
         factoryProcedure: getFirstNonEmptyValue(serviceOrder.factoryProcedure, row?.factoryProcedure),
-        planningRequest: getFirstNonEmptyValue(serviceOrder.planningRequest, row?.planningRequest)
+        planningRequest: getPreferredDateTimeValue(serviceOrder.planningRequest, row?.planningRequest)
       };
     }
 
@@ -4149,6 +4339,30 @@
           ...row,
           purchaseLine
         }));
+      });
+    }
+
+    function sortDisplayRowsForMode(entries) {
+      if (state.displayMode !== 'expectedDeliveryDate') {
+        return entries;
+      }
+
+      return [...entries].sort((firstEntry, secondEntry) => {
+        const firstExpectedDate = parseDateTime(firstEntry.timeline?.expectedDeliveryDate);
+        const secondExpectedDate = parseDateTime(secondEntry.timeline?.expectedDeliveryDate);
+
+        if (firstExpectedDate && secondExpectedDate) {
+          const dateDifference = firstExpectedDate.getTime() - secondExpectedDate.getTime();
+          if (dateDifference !== 0) {
+            return dateDifference;
+          }
+        } else if (firstExpectedDate) {
+          return -1;
+        } else if (secondExpectedDate) {
+          return 1;
+        }
+
+        return firstEntry.originalIndex - secondEntry.originalIndex;
       });
     }
 
@@ -4413,6 +4627,7 @@
         state.isFetching = false;
         hideLoading();
         updateLoadMoreUi();
+        scheduleAutoLoadCheck();
       }
     }
 
@@ -4482,13 +4697,27 @@
           hideLoading();
         }
         updateLoadMoreUi();
+        scheduleAutoLoadCheck();
       }
     }
 
     // Render table
     function render() {
       const tbody = document.getElementById('timeboardBody');
-      const displayRows = buildDisplayRows(state.filteredData);
+      const displayRows = sortDisplayRowsForMode(
+        buildDisplayRows(state.filteredData).map((item, originalIndex) => {
+          const purchaseLine = item.purchaseLine || null;
+          const timeline = buildTimeline(item, purchaseLine);
+
+          return {
+            item,
+            purchaseLine,
+            timeline,
+            originalIndex
+          };
+        })
+      );
+      const activeBucketConfig = getActiveTimeboardBucketConfig();
       const renderVersion = state.renderVersion + 1;
       state.renderVersion = renderVersion;
       hideTimeboardHoverCard();
@@ -4499,10 +4728,10 @@
       };
 
       if (displayRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${getVisibleTimeboardColumnCount()}" class="text-center py-16 text-slate-400">No records found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${getVisibleTimeboardColumnCount()}" class="text-center py-16 text-slate-400">${escapeHtml(activeBucketConfig.emptyMessage)}</td></tr>`;
         document.getElementById('statTotal').textContent = '0';
         document.getElementById('paginationInfo').textContent =
-          `Showing 0 matching rows from ${state.data.length} loaded`;
+          `Showing 0 ${activeBucketConfig.label} rows from ${state.data.length} loaded`;
         updateLoadMoreUi();
         applyDepartmentColumnFilter();
         syncStickyTimeboardHeader();
@@ -4519,16 +4748,20 @@
       }
 
       tbody.innerHTML = displayRows.map((item, index) => {
-        const prevItem = index > 0 ? displayRows[index - 1] : null;
-        const nextItem = index < displayRows.length - 1 ? displayRows[index + 1] : null;
-        const showSq = !prevItem || prevItem.sqNumber !== item.sqNumber;
-        const showSvSummary = shouldShowSvSummary(item, prevItem);
-        const hasSvNumber = Boolean(normalizeServiceOrderNumber(item.svNumber));
+        const entry = item;
+        const rowItem = entry.item;
+        const prevItem = index > 0 ? displayRows[index - 1]?.item : null;
+        const nextItem = index < displayRows.length - 1 ? displayRows[index + 1]?.item : null;
+        const showSq = !prevItem || prevItem.sqNumber !== rowItem.sqNumber;
+        const showSvSummary = shouldShowSvSummary(rowItem, prevItem);
+        const hasSvNumber = Boolean(normalizeServiceOrderNumber(rowItem.svNumber));
         const showSvDependentDocs = showSvSummary && hasSvNumber;
         const suppressSqCreatedMarker = !showSvSummary;
-        const isSameGroupAsNext = !!nextItem && nextItem.sqNumber === item.sqNumber;
-        const purchaseLine = item.purchaseLine || null;
-        const timeline = buildTimeline(item, purchaseLine);
+        const isSameGroupAsNext = !!nextItem && nextItem.sqNumber === rowItem.sqNumber;
+        const purchaseLine = entry.purchaseLine;
+        const stNumber = getFirstNonEmptyValue(rowItem?.stNumber, rowItem?.stNo);
+        const postedStNumber = getFirstNonEmptyValue(rowItem?.postedStNumber, rowItem?.postedStNo, rowItem?.stPostedNumber);
+        const timeline = entry.timeline;
         const renderSvTimelineDate = (value, options = {}) => (
           hasSvNumber
             ? renderDate(value, options)
@@ -4581,9 +4814,9 @@
           return renderConfirmationCell(statusValue, value, options);
         };
         const slaOverdueClasses = {
-          sv: isSlaExceeded(item.sqCreated, item.svCreated || item.systemCreatedAt, 1) ? 'timeboard-sla-overdue' : '',
+          sv: isSlaExceeded(rowItem.sqCreated, rowItem.svCreated || rowItem.systemCreatedAt, 1) ? 'timeboard-sla-overdue' : '',
           inspectionComplete: isSplitSlaExceeded(
-            item.svCreated || item.systemCreatedAt,
+            rowItem.svCreated || rowItem.systemCreatedAt,
             timeline.inspectionComplete,
             TIMEBOARD_SPLIT_SLA_RULES.inspectionComplete
           ) ? 'timeboard-sla-overdue' : '',
@@ -4614,19 +4847,18 @@
           ) ? 'timeboard-sla-overdue' : '',
           goodsReceipt: isSlaExceeded(timeline.vendorDelivered, timeline.goodsReceipt, 1) ? 'timeboard-sla-overdue' : ''
         };
-        const isDelayedAgainstExpected = (
-          isDateAfter(item.shCreated, timeline.expectedDeliveryDate)
-          || isExpectedDeliveryOverdueWithoutSh(timeline.expectedDeliveryDate, item.shNumber, item.shCreated)
-        );
         const rowClassName = [
           isSameGroupAsNext ? 'sq-group-continued' : '',
-          isDelayedAgainstExpected ? 'timeboard-delayed-row' : ''
+          (
+            isDateAfter(rowItem.shCreated, timeline.expectedDeliveryDate)
+            || isExpectedDeliveryOverdueWithoutSh(timeline.expectedDeliveryDate, rowItem.shNumber, rowItem.shCreated)
+          ) ? 'timeboard-delayed-row' : ''
         ].filter(Boolean).join(' ');
 
         return `
           <tr class="${rowClassName}">
-            ${renderTableCell('sq', 'col-merged-doc col-sticky-sq', renderSqCombinedCell(item, showSq, suppressSqCreatedMarker))}
-            ${renderTableCell('sv', 'col-merged-doc col-sticky-sv', renderSvCombinedCell(item, showSvSummary, { className: slaOverdueClasses.sv }))}
+            ${renderTableCell('sq', 'col-merged-doc col-sticky-sq', renderSqCombinedCell(rowItem, showSq, suppressSqCreatedMarker))}
+            ${renderTableCell('sv', 'col-merged-doc col-sticky-sv', renderSvCombinedCell(rowItem, showSvSummary, { className: slaOverdueClasses.sv }))}
             ${renderTableCell('inspectionComplete', 'col-date', renderSvSummaryOnlyDate(timeline.inspectionComplete, { className: slaOverdueClasses.inspectionComplete }))}
             ${renderTableCell('priceRequest', 'col-date', renderSvSummaryOnlyDate(timeline.priceRequest, { className: slaOverdueClasses.priceRequest }))}
             ${renderTableCell('priceReport', 'col-date', renderSvSummaryOnlyDate(timeline.priceReport, { className: slaOverdueClasses.priceReport }))}
@@ -4643,7 +4875,9 @@
             ${renderTableCell('poComplete', 'col-date', renderDate(state.useMockTimeline ? (timeline.poComplete || purchaseLine?.poApproved) : purchaseLine?.poApproved, { className: slaOverdueClasses.poApproved }))}
             ${renderTableCell('goodsReceipt', 'col-date', renderSvSummaryOnlyDate(timeline.goodsReceipt, { className: slaOverdueClasses.goodsReceipt }))}
             ${renderTableCell('factoryProcedure', 'col-date', renderSvSummaryOnlyDate(timeline.factoryProcedure))}
-            ${renderTableCell('shRecord', 'col-merged-doc', showSvDependentDocs ? renderMergedDocCell(item.shNumber, applyDefaultTimeToDateValue(item.shCreated, 17, 0)) : '')}
+            ${renderTableCell('shRecord', 'col-merged-doc', showSvDependentDocs ? renderMergedDocCell(rowItem.shNumber, applyDefaultTimeToDateValue(rowItem.shCreated, 17, 0)) : '')}
+            ${renderTableCell('st', 'col-merged-doc', showSvDependentDocs ? renderMergedDocCell(stNumber, rowItem.stCreated) : '')}
+            ${renderTableCell('postedSt', 'col-merged-doc', showSvDependentDocs ? renderMergedDocCell(postedStNumber, rowItem.postedStCreated) : '')}
             ${renderTableCell('expectedDeliveryDate', 'col-date col-sticky-expected', renderSvSummaryOnlyExpectedDate(timeline.expectedDeliveryDate))}
           </tr>
         `;
@@ -4653,7 +4887,7 @@
       document.getElementById('statTotal').textContent = displayRows.length;
 
       document.getElementById('paginationInfo').textContent =
-        `Showing ${displayRows.length} matching rows from ${state.data.length} loaded`;
+        `Showing ${displayRows.length} ${activeBucketConfig.label} rows from ${state.data.length} loaded`;
       updateLoadMoreUi();
       applyDepartmentColumnFilter();
       syncStickyTimeboardHeader();
@@ -4677,13 +4911,15 @@
       });
     });
 
-    // Sort toggle buttons
-    document.querySelectorAll('.sort-toggle-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        document.querySelectorAll('.sort-toggle-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        state.sortDirection = e.target.dataset.sort;
-        await refreshData('Sorting timeboard data...');
+    document.querySelectorAll('.display-mode-btn[data-display-mode]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        setDisplayMode(event.currentTarget.dataset.displayMode);
+      });
+    });
+
+    document.querySelectorAll('.timeboard-bucket-btn[data-bucket]').forEach((button) => {
+      button.addEventListener('click', async (event) => {
+        await setActiveTimeboardBucket(event.currentTarget.dataset.bucket);
       });
     });
 
@@ -4713,6 +4949,8 @@
     setupTimeboardHoverCard();
     setupStickyTimeboardHeader();
     setupAutoLoadObserver();
+    syncTimeboardBucketButtons();
+    syncDisplayModeButtons();
     syncDepartmentCheckboxes();
     applyDepartmentColumnFilter();
     if (await checkAccess()) {

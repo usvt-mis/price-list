@@ -12,6 +12,7 @@ const { ensureSalesQuoteApprovalsTable } = require('../utils/salesQuoteApprovals
 const ALLOWED_ROLES = new Set(['Executive', 'Manager', 'SalesDirector']);
 const DEFAULT_FETCH_SIZE = 50;
 const MAX_FETCH_SIZE = 500;
+const TIMEBOARD_BUCKETS = new Set(['inProgress', 'temp', 'invoiced']);
 
 function getAuthenticatedRole(req) {
   return req.user?.effectiveRole || req.effectiveRole || req.session?.user?.effectiveRole || 'NoRole';
@@ -42,6 +43,11 @@ function normalizeBranch(value) {
   return String(value || '').trim().toUpperCase();
 }
 
+function normalizeBucket(value) {
+  const normalized = String(value || '').trim();
+  return TIMEBOARD_BUCKETS.has(normalized) ? normalized : 'inProgress';
+}
+
 /**
  * GET /api/timeboard
  * Get Time Board rows from dbo.ServCostRevs filtered by branch.
@@ -59,12 +65,14 @@ router.get('/', async (req, res, next) => {
 
     const fetchSize = normalizeFetchSize(req.query.offset);
     const sortDirection = normalizeSortDirection(req.query.orderBy);
+    const bucket = normalizeBucket(req.query.bucket);
     const pool = await getPool();
     await ensureSalesQuoteApprovalsTable(pool);
 
     const result = await pool.request()
       .input('branch', sql.NVarChar(10), branch)
       .input('fetchSize', sql.Int, fetchSize)
+      .input('bucket', sql.NVarChar(20), bucket)
       .query(`
         SELECT TOP (@fetchSize)
           LTRIM(RTRIM(ISNULL(scr.Branch, ''))) AS branch,
@@ -129,6 +137,31 @@ router.get('/', async (req, res, next) => {
         LEFT JOIN dbo.SalesQuoteApprovals a
           ON LTRIM(RTRIM(ISNULL(a.SalesQuoteNumber, ''))) = LTRIM(RTRIM(ISNULL(scr.JopProjectNo, '')))
         WHERE LTRIM(RTRIM(ISNULL(scr.Branch, ''))) = @branch
+          AND (
+            (
+              @bucket = 'inProgress'
+              AND LTRIM(RTRIM(ISNULL(scr.DeliveryOrderNo, ''))) = ''
+              AND (scr.DeliveryDate IS NULL OR scr.DeliveryDate <= '1900-01-01')
+              AND LTRIM(RTRIM(ISNULL(scr.InvoiceNo, ''))) = ''
+              AND (scr.InvoicePostingDate IS NULL OR scr.InvoicePostingDate <= '1900-01-01')
+            )
+            OR (
+              @bucket = 'temp'
+              AND (
+                LTRIM(RTRIM(ISNULL(scr.DeliveryOrderNo, ''))) <> ''
+                OR (scr.DeliveryDate IS NOT NULL AND scr.DeliveryDate > '1900-01-01')
+              )
+              AND LTRIM(RTRIM(ISNULL(scr.InvoiceNo, ''))) = ''
+              AND (scr.InvoicePostingDate IS NULL OR scr.InvoicePostingDate <= '1900-01-01')
+            )
+            OR (
+              @bucket = 'invoiced'
+              AND (
+                LTRIM(RTRIM(ISNULL(scr.InvoiceNo, ''))) <> ''
+                OR (scr.InvoicePostingDate IS NOT NULL AND scr.InvoicePostingDate > '1900-01-01')
+              )
+            )
+          )
         ORDER BY
           CASE
             WHEN scr.ServiceOrderDate IS NULL OR scr.ServiceOrderDate <= '1900-01-01'
