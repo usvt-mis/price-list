@@ -1675,8 +1675,8 @@
         <div class="timeboard-filter-section timeboard-filter-section-sort filter-group">
           <span class="filter-label">Display Mode</span>
           <div class="branch-filter branch-filter-grid branch-filter-grid-1x2">
-            <button class="branch-btn display-mode-btn active" data-display-mode="normal">Normal order</button>
-            <button class="branch-btn display-mode-btn" data-display-mode="expectedDeliveryDate">Expected date</button>
+            <button class="branch-btn display-mode-btn" data-display-mode="normal">Normal order</button>
+            <button class="branch-btn display-mode-btn active" data-display-mode="expectedDeliveryDate">Expected date</button>
           </div>
         </div>
         <div class="timeboard-filter-section timeboard-filter-section-bucket filter-group">
@@ -1875,6 +1875,10 @@
       'planner',
       'inventory'
     ]);
+    const TIMEBOARD_BRANCH_OPTIONS = Object.freeze(['URY', 'UCB', 'USB', 'UPB', 'UKK', 'USR']);
+    const TIMEBOARD_DEFAULT_BUCKET = 'inProgress';
+    const TIMEBOARD_DEFAULT_DISPLAY_MODE = 'expectedDeliveryDate';
+    const TIMEBOARD_USER_PREFERENCES_STORAGE_PREFIX = 'timeboard:user-preferences:v1';
     const TIMEBOARD_COLUMN_DEPARTMENTS = Object.freeze({
       sq: 'salesperson',
       sv: 'cs',
@@ -1942,8 +1946,8 @@
       filteredData: [],
       searchQuery: '',
       selectedBranch: '',
-      activeBucket: 'inProgress',
-      displayMode: 'normal',
+      activeBucket: TIMEBOARD_DEFAULT_BUCKET,
+      displayMode: TIMEBOARD_DEFAULT_DISPLAY_MODE,
       selectedDepartments: new Set(DEPARTMENT_FILTER_OPTIONS),
       salesQuoteNos: [],
       purchaseDocumentNos: {
@@ -1958,7 +1962,8 @@
       isLoadingMore: false,
       autoLoadScrollQueued: false,
       renderVersion: 0,
-      lastRenderMeta: null
+      lastRenderMeta: null,
+      currentUserPreferenceKey: ''
     };
 
     // Show loading modal
@@ -2252,8 +2257,33 @@
       return String(department || '').trim().toLowerCase();
     }
 
+    function normalizeBranchCode(branchCode) {
+      const normalizedBranchCode = String(branchCode || '').trim().toUpperCase();
+      return TIMEBOARD_BRANCH_OPTIONS.includes(normalizedBranchCode) ? normalizedBranchCode : '';
+    }
+
     function normalizeDisplayMode(mode) {
       return String(mode || '').trim() === 'expectedDeliveryDate' ? 'expectedDeliveryDate' : 'normal';
+    }
+
+    function normalizeTimeboardBucket(bucketKey) {
+      const normalizedBucketKey = String(bucketKey || '').trim();
+      return TIMEBOARD_BUCKET_CONFIG[normalizedBucketKey]
+        ? normalizedBucketKey
+        : TIMEBOARD_DEFAULT_BUCKET;
+    }
+
+    function buildTimeboardUserPreferenceKey(userIdentity) {
+      const normalizedUserIdentity = String(userIdentity || '').trim().toLowerCase();
+      if (!normalizedUserIdentity) {
+        return '';
+      }
+
+      return `${TIMEBOARD_USER_PREFERENCES_STORAGE_PREFIX}:${normalizedUserIdentity}`;
+    }
+
+    function setTimeboardCurrentUser(userIdentity) {
+      state.currentUserPreferenceKey = buildTimeboardUserPreferenceKey(userIdentity);
     }
 
     function syncDisplayModeButtons() {
@@ -2268,6 +2298,7 @@
 
       state.displayMode = normalizedMode;
       syncDisplayModeButtons();
+      persistTimeboardUserPreferences();
 
       if (!hasDisplayModeChanged) {
         applyFilters();
@@ -2322,12 +2353,14 @@
     }
 
     async function setActiveTimeboardBucket(bucketKey) {
-      if (!TIMEBOARD_BUCKET_CONFIG[bucketKey]) {
+      const normalizedBucketKey = normalizeTimeboardBucket(bucketKey);
+      if (!TIMEBOARD_BUCKET_CONFIG[normalizedBucketKey]) {
         return;
       }
 
-      state.activeBucket = bucketKey;
+      state.activeBucket = normalizedBucketKey;
       syncTimeboardBucketButtons();
+      persistTimeboardUserPreferences();
       await refreshData(`Loading ${getActiveTimeboardBucketConfig().label} timeboard data...`);
     }
 
@@ -2374,6 +2407,7 @@
       syncDepartmentCheckboxes();
       applyDepartmentColumnFilter();
       syncStickyTimeboardHeader();
+      persistTimeboardUserPreferences();
     }
 
     function toggleDepartmentSelection(department, isSelected) {
@@ -2392,16 +2426,95 @@
       setSelectedDepartments([...nextSelection]);
     }
 
-    async function selectBranch(branchCode, loadingMessage = 'Filtering by branch...') {
-      if (!branchCode || state.selectedBranch === branchCode) {
-        if (branchCode) {
-          setActiveBranchButton(branchCode);
-        }
+    function normalizeTimeboardUserPreferences(preferences = {}) {
+      const hasSelectedDepartments = Object.prototype.hasOwnProperty.call(preferences, 'selectedDepartments');
+      const normalizedSelectedDepartments = hasSelectedDepartments
+        ? [...createDepartmentSelection(preferences.selectedDepartments)]
+        : [...DEPARTMENT_FILTER_OPTIONS];
+
+      return {
+        selectedBranch: normalizeBranchCode(preferences?.selectedBranch),
+        activeBucket: normalizeTimeboardBucket(preferences?.activeBucket),
+        displayMode: normalizeDisplayMode(preferences?.displayMode || TIMEBOARD_DEFAULT_DISPLAY_MODE),
+        selectedDepartments: normalizedSelectedDepartments
+      };
+    }
+
+    function getTimeboardUserPreferencesSnapshot() {
+      return {
+        selectedBranch: normalizeBranchCode(state.selectedBranch),
+        activeBucket: normalizeTimeboardBucket(state.activeBucket),
+        displayMode: normalizeDisplayMode(state.displayMode),
+        selectedDepartments: [...createDepartmentSelection(state.selectedDepartments)]
+      };
+    }
+
+    function persistTimeboardUserPreferences() {
+      if (!state.currentUserPreferenceKey || !window.localStorage) {
         return;
       }
 
-      state.selectedBranch = branchCode;
-      setActiveBranchButton(branchCode);
+      try {
+        window.localStorage.setItem(
+          state.currentUserPreferenceKey,
+          JSON.stringify(getTimeboardUserPreferencesSnapshot())
+        );
+      } catch (error) {
+        console.warn('Failed to persist Time Board user preferences:', error);
+      }
+    }
+
+    function loadTimeboardUserPreferences() {
+      if (!state.currentUserPreferenceKey || !window.localStorage) {
+        return normalizeTimeboardUserPreferences();
+      }
+
+      try {
+        const rawPreferences = window.localStorage.getItem(state.currentUserPreferenceKey);
+        if (!rawPreferences) {
+          return normalizeTimeboardUserPreferences();
+        }
+
+        return normalizeTimeboardUserPreferences(JSON.parse(rawPreferences));
+      } catch (error) {
+        console.warn('Failed to load Time Board user preferences, using defaults:', error);
+        return normalizeTimeboardUserPreferences();
+      }
+    }
+
+    function restoreTimeboardUserPreferences() {
+      const preferences = loadTimeboardUserPreferences();
+
+      state.selectedBranch = preferences.selectedBranch;
+      state.activeBucket = preferences.activeBucket;
+      state.displayMode = preferences.displayMode;
+      state.selectedDepartments = createDepartmentSelection(preferences.selectedDepartments);
+
+      setActiveBranchButton(state.selectedBranch);
+      syncTimeboardBucketButtons();
+      syncDisplayModeButtons();
+      syncDepartmentCheckboxes();
+      applyDepartmentColumnFilter();
+      syncStickyTimeboardHeader();
+    }
+
+    async function selectBranch(branchCode, loadingMessage = 'Filtering by branch...', options = {}) {
+      const { forceRefresh = false } = options;
+      const normalizedBranchCode = normalizeBranchCode(branchCode);
+
+      if (!normalizedBranchCode) {
+        return;
+      }
+
+      if (!forceRefresh && state.selectedBranch === normalizedBranchCode) {
+        setActiveBranchButton(normalizedBranchCode);
+        persistTimeboardUserPreferences();
+        return;
+      }
+
+      state.selectedBranch = normalizedBranchCode;
+      setActiveBranchButton(normalizedBranchCode);
+      persistTimeboardUserPreferences();
       await refreshData(loadingMessage);
     }
 
@@ -2443,6 +2556,7 @@
     async function checkAccess() {
       try {
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          setTimeboardCurrentUser('local-dev');
           return true;
         }
         const response = await fetch('/api/auth/me');
@@ -2452,6 +2566,8 @@
         }
         const userData = await response.json();
         const userRole = userData.effectiveRole;
+        const userIdentity = userData?.clientPrincipal?.userDetails || userData?.clientPrincipal?.userId || '';
+        setTimeboardCurrentUser(userIdentity);
         if (userRole !== ROLE.MANAGER && userRole !== ROLE.EXECUTIVE && userRole !== ROLE.SALES_DIRECTOR) {
           alert('Access denied. Time Board is only available to Managers, Executives, and Sales Directors.');
           window.location.href = '/';
@@ -4975,8 +5091,15 @@
     syncDepartmentCheckboxes();
     applyDepartmentColumnFilter();
     if (await checkAccess()) {
+      restoreTimeboardUserPreferences();
       await loadTimeboardDisplaySettings();
-      showBranchSelectModal();
+      if (state.selectedBranch) {
+        await selectBranch(state.selectedBranch, `Loading ${state.selectedBranch} timeboard data...`, {
+          forceRefresh: true
+        });
+      } else {
+        showBranchSelectModal();
+      }
     }
 </script>
 </body>
