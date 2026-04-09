@@ -2318,9 +2318,11 @@
 
     function createDepartmentSelection(departments, options = {}) {
       const { fallbackToAll = false } = options;
-      const rawDepartments = Array.isArray(departments)
-        ? departments
-        : [departments];
+      const rawDepartments = departments instanceof Set
+        ? [...departments]
+        : Array.isArray(departments)
+          ? departments
+          : [departments];
       const selectedDepartments = new Set();
 
       rawDepartments.forEach((department) => {
@@ -2441,11 +2443,15 @@
     }
 
     function getTimeboardUserPreferencesSnapshot() {
+      const selectedDepartments = state.selectedDepartments instanceof Set
+        ? [...state.selectedDepartments]
+        : [...createDepartmentSelection(state.selectedDepartments)];
+
       return {
         selectedBranch: normalizeBranchCode(state.selectedBranch),
         activeBucket: normalizeTimeboardBucket(state.activeBucket),
         displayMode: normalizeDisplayMode(state.displayMode),
-        selectedDepartments: [...createDepartmentSelection(state.selectedDepartments)]
+        selectedDepartments
       };
     }
 

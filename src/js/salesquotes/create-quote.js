@@ -1892,7 +1892,7 @@ async function applySearchedSalesQuote(payload) {
   setSearchSalesQuoteFeedback(
     'success',
     `Loaded ${editableQuote.number || payload.salesQuoteNumber || 'Sales Quote'}`,
-    `${processedAtText} You can now review and edit the quote in the form. Update submission is still disabled for now.`
+    `${processedAtText} You can now review and edit the quote in the form. Click Update Sales Quote when you're ready to sync changes back to Business Central.`
   );
 
   switchTab('create');

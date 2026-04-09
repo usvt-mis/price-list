@@ -2622,6 +2622,7 @@ export async function checkApprovalStatus(quoteNumber) {
     state.quote.approvalStatus = approval.approvalStatus;
     state.approval.currentStatus = approval.approvalStatus;
     state.approval.canEdit = approval.approvalStatus === APPROVAL_STATUS.DRAFT ||
+                             approval.approvalStatus === APPROVAL_STATUS.SUBMITTED_TO_BC ||
                              approval.approvalStatus === APPROVAL_STATUS.REVISE ||
                              approval.approvalStatus === APPROVAL_STATUS.REJECTED ||
                              approval.approvalStatus === APPROVAL_STATUS.BEING_REVISED ||
