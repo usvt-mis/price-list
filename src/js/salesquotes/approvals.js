@@ -3,11 +3,11 @@
  * Handles multi-stage approval workflow for Sales Quotes
  */
 
-import { state } from './state.js';
+import { state, calculateTotals } from './state.js';
 import { authState } from '../state.js';
 import { ROLE, MODE } from '../core/config.js';
 import { GATEWAY_API } from './config.js';
-import { el, show, hide, showToast, showLoading, hideLoading, updateQuoteEditorModeUi } from './ui.js';
+import { el, show, hide, showToast, showLoading, hideLoading, updateQuoteEditorModeUi, getQuoteFormData } from './ui.js';
 import { fetchSalesDirectorSignature } from './print-quote.js';
 import { canApproveQuotes } from '../auth/mode-detection.js';
 import { loadModal } from './components/modal-loader.js';
@@ -1533,6 +1533,7 @@ export async function rejectRevisionRequest(quoteNumber) {
 // ============================================================
 
 let currentPreviewQuoteNumber = null;
+let currentPreviewConfig = null;
 
 function formatPreviewMoney(value) {
   return (Number.isFinite(value) ? value : 0).toLocaleString('en-US', {
@@ -1634,18 +1635,124 @@ function normalizePreviewLine(line, index) {
     serviceStatus: String(line?.usvtUServiceStatus ?? line?.uServiceStatus ?? '').trim() || '-',
     refServiceOrderNo: String(line?.usvtRefServiceOrderNo ?? line?.refServiceOrderNo ?? '').trim() || '-',
     showInDocument: Boolean(line?.usvtShowInDocument ?? line?.showInDocument ?? line?.USVT_Show_in_Document ?? true),
-    isHeader: Boolean(line?.usvtHeader ?? line?.header ?? line?.USVT_Header ?? false),
-    isFooter: Boolean(line?.usvtFooter ?? line?.footer ?? line?.USVT_Footer ?? false)
+    isHeader: Boolean(line?.usvtHeader ?? line?.printHeader ?? line?.header ?? line?.USVT_Header ?? false),
+    isFooter: Boolean(line?.usvtFooter ?? line?.printFooter ?? line?.footer ?? line?.USVT_Footer ?? false)
+  };
+}
+
+function getPreviewShellCopy() {
+  return {
+    eyebrow: currentPreviewConfig?.eyebrow || 'Approval Preview',
+    title: typeof currentPreviewConfig?.title === 'string' ? currentPreviewConfig.title : '',
+    subtitle: Object.prototype.hasOwnProperty.call(currentPreviewConfig || {}, 'subtitle')
+      ? currentPreviewConfig.subtitle
+      : 'Review layout aligned closer to the print version'
+  };
+}
+
+function getPreviewStatusPresentation(approval) {
+  const overrideLabel = String(currentPreviewConfig?.statusLabel || '').trim();
+  if (overrideLabel) {
+    return {
+      label: overrideLabel,
+      badgeClass: currentPreviewConfig?.statusBadgeClass || 'bg-slate-100 text-slate-600'
+    };
+  }
+
+  return getApprovalStatusPresentation(approval);
+}
+
+function buildCurrentQuotePreviewPayload(quoteNumber) {
+  const formData = getQuoteFormData();
+  const normalizedQuoteNumber = String(quoteNumber || formData.quoteNumber || state.quote.number || '').trim();
+  const totals = calculateTotals(
+    formData.invoiceDiscount,
+    (parseFloat(formData.vatRate) || 0) / 100
+  );
+  const totalAmount = parseFloat(totals.total) || 0;
+  const amountExcludingTax = parseFloat(totals.afterDiscount) || 0;
+  const vatAmount = parseFloat(totals.vatAmount) || 0;
+  const invoiceDiscount = parseFloat(totals.discountAmount) || 0;
+  const currentStatus = state.quote.approvalStatus || state.approval.currentStatus || APPROVAL_STATUS.SUBMITTED_TO_BC;
+
+  return {
+    quoteData: {
+      number: normalizedQuoteNumber,
+      quoteNumber: normalizedQuoteNumber,
+      salesQuoteNumber: normalizedQuoteNumber,
+      customerName: formData.customerName || state.quote.customerName || '',
+      sellToCustomerName: formData.customerName || state.quote.customerName || '',
+      customerNumber: formData.customerNo || state.quote.customerNo || '',
+      sellToCustomerNo: formData.customerNo || state.quote.customerNo || '',
+      branch: formData.branch || state.quote.branch || '',
+      branchCode: formData.branch || state.quote.branch || '',
+      division: formData.division || state.quote.division || '',
+      locationCode: formData.locationCode || state.quote.locationCode || '',
+      responsibilityCenter: formData.responsibilityCenter || state.quote.responsibilityCenter || '',
+      assignedUserId: formData.assignedUserId || state.quote.assignedUserId || '',
+      contactName: formData.contact || state.quote.contact || '',
+      salespersonCode: formData.salespersonCode || state.quote.salespersonCode || '',
+      serviceOrderType: formData.serviceOrderType || state.quote.serviceOrderType || '',
+      workStatus: formData.workStatus || state.quote.workStatus || '',
+      orderDate: formData.orderDate || '',
+      requestedDeliveryDate: formData.requestedDeliveryDate || '',
+      externalDocumentNo: formData.yourReference || state.quote.yourReference || '',
+      sellToPhoneNo: formData.salesPhoneNo || state.quote.salesPhoneNo || '',
+      sellToAddress: formData.sellTo?.address || state.quote.sellTo?.address || '',
+      sellToAddress2: formData.sellTo?.address2 || state.quote.sellTo?.address2 || '',
+      sellToCity: formData.sellTo?.city || state.quote.sellTo?.city || '',
+      sellToPostCode: formData.sellTo?.postCode || state.quote.sellTo?.postCode || '',
+      discountAmount: invoiceDiscount,
+      invoiceDiscount,
+      amountExcludingTax,
+      totalTaxAmount: vatAmount,
+      vatAmount,
+      totalAmount,
+      amountIncludingTax: totalAmount,
+      totalAmountIncludingTax: totalAmount,
+      salesQuoteLines: Array.isArray(formData.lines) ? formData.lines : []
+    },
+    approval: {
+      salesQuoteNumber: normalizedQuoteNumber,
+      approvalStatus: currentStatus,
+      customerName: formData.customerName || state.quote.customerName || '',
+      salespersonName: state.quote.salespersonName || formData.salespersonName || '',
+      salespersonEmail: state.approval.salespersonEmail || authState.user?.email || '',
+      salesDirectorName: state.quote.reportContext?.approveUserName || '',
+      workDescription: formData.workDescription || state.quote.workDescription || '',
+      totalAmount,
+      actionComment: state.approval.actionComment || '',
+      submittedForApprovalAt: state.approval.submittedAt,
+      salesDirectorActionAt: state.approval.directorActionAt,
+      updatedAt: state.approval.updatedAt,
+      hasPendingRevisionRequest: state.approval.hasPendingRevisionRequest === true
+    }
   };
 }
 
 /**
  * Open approval preview modal
  */
-export async function openApprovalPreviewModal(quoteNumber) {
+export async function openApprovalPreviewModal(quoteNumber, options = {}) {
   currentPreviewQuoteNumber = quoteNumber;
+  currentPreviewConfig = {
+    source: options.source || 'remote',
+    quoteData: options.quoteData || null,
+    approval: options.approval || null,
+    eyebrow: options.eyebrow || '',
+    title: options.title || '',
+    subtitle: Object.prototype.hasOwnProperty.call(options, 'subtitle') ? options.subtitle : undefined,
+    statusLabel: options.statusLabel || '',
+    statusBadgeClass: options.statusBadgeClass || '',
+    primaryAction: options.primaryAction || null
+  };
 
-  showLoading('Loading quote data and approval details...', 'Opening Approval Preview');
+  const previewCopy = getPreviewShellCopy();
+  const loadingMessage = currentPreviewConfig.source === 'current'
+    ? 'Preparing the latest quote preview...'
+    : 'Loading quote data and approval details...';
+
+  showLoading(loadingMessage, previewCopy.title || 'Opening Approval Preview');
 
   try {
     const loaded = await loadModal('approvalPreviewModal');
@@ -1686,6 +1793,7 @@ export async function openApprovalPreviewModal(quoteNumber) {
     console.error('Failed to load approval preview modal:', error);
     showToast('Failed to open preview', 'error');
     currentPreviewQuoteNumber = null;
+    currentPreviewConfig = null;
   } finally {
     hideLoading();
   }
@@ -1706,6 +1814,7 @@ export function closeApprovalPreviewModal() {
     }
     modal.remove();
     currentPreviewQuoteNumber = null;
+    currentPreviewConfig = null;
   }, 300);
 }
 
@@ -1715,12 +1824,14 @@ export function closeApprovalPreviewModal() {
 async function loadQuoteForPreview(quoteNumber) {
   const previewContainer = el('approvalPreviewContent');
   const actionsContainer = el('approvalPreviewActions');
+  const previewCopy = getPreviewShellCopy();
 
   if (!previewContainer) return;
 
   renderApprovalPreviewHeader({
-    title: 'Sales Quote Approval',
-    subtitle: 'Review layout aligned closer to the print version',
+    eyebrow: previewCopy.eyebrow,
+    title: previewCopy.title || 'Sales Quote Approval',
+    subtitle: previewCopy.subtitle,
     statusLabel: 'Loading...'
   });
 
@@ -1732,17 +1843,32 @@ async function loadQuoteForPreview(quoteNumber) {
   `;
 
   try {
-    // Fetch approval status
-    const approvalResponse = await fetchWithAuth(`/api/salesquotes/approvals/${quoteNumber}`);
-    const approval = approvalResponse.approval;
+    let approval = currentPreviewConfig?.approval || null;
+    let quoteData = currentPreviewConfig?.quoteData || null;
 
-    // Fetch quote details from BC using the correct gateway endpoint
-    const bcResponse = await fetch(`${GATEWAY_API.GET_SALES_QUOTES_FROM_NUMBER}?salesQuoteNumber=${encodeURIComponent(quoteNumber)}`);
-    if (!bcResponse.ok) throw new Error('Failed to fetch quote details');
-    const bcResponseData = await bcResponse.json();
-    
-    // Extract quote data from gateway response format (result.data wrapper)
-    const quoteData = bcResponseData.data || bcResponseData.result?.data || bcResponseData.result;
+    if (currentPreviewConfig?.source === 'current') {
+      const localPayload = (!approval || !quoteData)
+        ? buildCurrentQuotePreviewPayload(quoteNumber)
+        : null;
+      approval = approval || localPayload?.approval;
+      quoteData = quoteData || localPayload?.quoteData;
+    } else {
+      // Fetch approval status
+      const approvalResponse = await fetchWithAuth(`/api/salesquotes/approvals/${quoteNumber}`);
+      approval = approvalResponse.approval;
+
+      // Fetch quote details from BC using the correct gateway endpoint
+      const bcResponse = await fetch(`${GATEWAY_API.GET_SALES_QUOTES_FROM_NUMBER}?salesQuoteNumber=${encodeURIComponent(quoteNumber)}`);
+      if (!bcResponse.ok) throw new Error('Failed to fetch quote details');
+      const bcResponseData = await bcResponse.json();
+
+      // Extract quote data from gateway response format (result.data wrapper)
+      quoteData = bcResponseData.data || bcResponseData.result?.data || bcResponseData.result;
+    }
+
+    if (!approval || !quoteData) {
+      throw new Error('Preview data is unavailable');
+    }
 
     const previewLines = (quoteData.salesQuoteLines || quoteData.lines || []).map(normalizePreviewLine);
     const serviceItemLaborMap = await loadServiceItemLaborPreviewMap(previewLines);
@@ -1764,8 +1890,9 @@ async function loadQuoteForPreview(quoteNumber) {
   } catch (error) {
     console.error('Failed to load quote for preview:', error);
     renderApprovalPreviewHeader({
-      title: 'Sales Quote Approval',
-      subtitle: 'Review layout aligned closer to the print version',
+      eyebrow: previewCopy.eyebrow,
+      title: previewCopy.title || 'Sales Quote Approval',
+      subtitle: previewCopy.subtitle,
       statusLabel: 'Unavailable',
       statusBadgeClass: 'bg-red-50 text-red-600'
     });
@@ -1785,7 +1912,8 @@ function renderQuotePreview(container, quoteData, approval, directorSignature, s
   const lines = Array.isArray(normalizedLines)
     ? normalizedLines
     : (quoteData.salesQuoteLines || quoteData.lines || []).map(normalizePreviewLine);
-  const statusPresentation = getApprovalStatusPresentation(approval);
+  const previewCopy = getPreviewShellCopy();
+  const statusPresentation = getPreviewStatusPresentation(approval);
   const pendingRevisionRequest = hasPendingRevisionRequest(approval);
   const quoteNumber = pickPreviewValue(quoteData, ['number', 'quoteNumber', 'salesQuoteNumber', 'No_', 'DocNo_SaleHeader'], approval.salesQuoteNumber || currentPreviewQuoteNumber || 'N/A');
   const actionCommentLabel = pendingRevisionRequest ? 'Revision Request Reason:' : 'Director Comments:';
@@ -1831,8 +1959,9 @@ function renderQuotePreview(container, quoteData, approval, directorSignature, s
   const approverName = approval.salesDirectorName || pickPreviewValue(quoteData, ['approveUserName', 'ApproveUser_Name'], '-');
 
   renderApprovalPreviewHeader({
-    title: approval.workDescription || 'Sales Quote Approval',
-    subtitle: '',
+    eyebrow: previewCopy.eyebrow,
+    title: previewCopy.title || approval.workDescription || 'Sales Quote Approval',
+    subtitle: previewCopy.subtitle,
     statusLabel: statusPresentation.label,
     statusBadgeClass: statusPresentation.badgeClass
   });
@@ -2007,14 +2136,20 @@ function renderApprovalMetaItem(label, value) {
 }
 
 function renderApprovalPreviewHeader({
+  eyebrow = 'Approval Preview',
   title = 'Sales Quote Approval',
   subtitle = '',
   statusLabel = '-',
   statusBadgeClass = 'bg-slate-100 text-slate-600'
 } = {}) {
+  const eyebrowEl = el('approvalPreviewEyebrow');
   const titleEl = el('approvalPreviewTitle');
   const subtitleEl = el('approvalPreviewSubtitle');
   const metaEl = el('approvalPreviewHeaderMeta');
+
+  if (eyebrowEl) {
+    eyebrowEl.textContent = eyebrow;
+  }
 
   if (titleEl) {
     titleEl.textContent = title;
@@ -2468,13 +2603,35 @@ function bindApprovalPreviewJobListTriggers(container, serviceItemLaborMap = {})
 function renderActionButtons(container, approval) {
   if (!container) return;
 
+  const previewPrimaryAction = currentPreviewConfig?.primaryAction &&
+    typeof currentPreviewConfig.primaryAction.onClick === 'function'
+    ? currentPreviewConfig.primaryAction
+    : null;
   const canApprove = authState.user?.effectiveRole === ROLE.SALES_DIRECTOR ||
                       authState.user?.effectiveRole === ROLE.EXECUTIVE;
   const pendingRevisionRequest = hasPendingRevisionRequest(approval);
 
   let buttons = '';
 
-  if (canApprove && approval.approvalStatus === APPROVAL_STATUS.PENDING_APPROVAL) {
+  if (previewPrimaryAction) {
+    const actionVariant = previewPrimaryAction.variant === 'danger'
+      ? 'sq-btn-danger'
+      : previewPrimaryAction.variant === 'warning'
+        ? 'sq-btn-warning'
+        : 'sq-btn-primary';
+    buttons = `
+      <button
+        id="btnPreviewPrimaryAction"
+        type="button"
+        class="sq-btn ${actionVariant}"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M13 5l7 7-7 7"></path>
+        </svg>
+        ${escapeHtml(previewPrimaryAction.label || 'Continue')}
+      </button>
+    `;
+  } else if (canApprove && approval.approvalStatus === APPROVAL_STATUS.PENDING_APPROVAL) {
     buttons = `
       <button
         id="btnApproveQuote"
@@ -2539,11 +2696,48 @@ function renderActionButtons(container, approval) {
   `;
 
   // Attach event listeners
+  const btnPrimaryAction = el('btnPreviewPrimaryAction');
   const btnApprove = el('btnApproveQuote');
   const btnApproveRevision = el('btnApproveRevisionRequest');
   const btnRejectRevision = el('btnRejectRevisionRequest');
   const btnReject = el('btnRejectQuote');
   const btnClose = el('btnClosePreview');
+
+  if (btnPrimaryAction && previewPrimaryAction) {
+    btnPrimaryAction.addEventListener('click', async () => {
+      if (btnPrimaryAction.disabled) {
+        return;
+      }
+
+      const originalContent = btnPrimaryAction.innerHTML;
+      btnPrimaryAction.disabled = true;
+      btnPrimaryAction.classList.add('opacity-60', 'cursor-not-allowed');
+      btnPrimaryAction.innerHTML = `
+        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        Processing...
+      `;
+
+      try {
+        const shouldClose = await previewPrimaryAction.onClick();
+        if (shouldClose !== false) {
+          closeApprovalPreviewModal();
+        }
+      } catch (error) {
+        console.error('Failed to complete preview action:', error);
+        showToast(error?.message || 'Failed to complete the action.', 'error');
+      } finally {
+        const button = el('btnPreviewPrimaryAction');
+        if (button) {
+          button.disabled = false;
+          button.classList.remove('opacity-60', 'cursor-not-allowed');
+          button.innerHTML = originalContent;
+        }
+      }
+    });
+  }
 
   if (btnApprove) {
     btnApprove.addEventListener('click', () => {

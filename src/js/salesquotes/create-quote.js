@@ -13,7 +13,7 @@ import { fetchWithAuth } from '../core/utils.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
 import { recordQuoteSubmission, recordQuoteAuditEvent } from './records.js';
-import { submitForApproval, createApprovalRecord, sendApprovalRequest as sendApprovalRequestModule, checkApprovalStatus, APPROVAL_STATUS, resubmitForApproval, requestRevisionForApprovedQuote, showApprovalActionModal, cancelApprovalRequest } from './approvals.js';
+import { submitForApproval, createApprovalRecord, sendApprovalRequest as sendApprovalRequestModule, checkApprovalStatus, APPROVAL_STATUS, resubmitForApproval, requestRevisionForApprovedQuote, showApprovalActionModal, cancelApprovalRequest, openApprovalPreviewModal } from './approvals.js';
 import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
 import { initConfirmNewSerLaborUi, syncConfirmNewSerLaborProfile, resetConfirmNewSerLaborProfile, getConfirmNewSerLaborValidation, saveConfirmNewSerLaborProfile, hydrateConfirmNewSerLaborProfile, getConfirmNewSerLaborJobsSnapshot, getCurrentOnsiteSelections } from './service-item-labor.js';
@@ -4159,31 +4159,11 @@ export async function handleSendQuote(options = {}) {
  * Called when user clicks "Send Approval Request" button
  * Transitions quote from "Submitted to BC" to "Pending Approval" status
  */
-export async function sendApprovalRequest() {
-  const quoteNumber = state.quote.number;
-  const currentStatus = state.quote.approvalStatus || state.approval.currentStatus;
-  const hasUnsyncedChanges = state.ui.quoteSync.hasUnsyncedChanges === true;
-
-  if (!quoteNumber) {
-    showToast('No Sales Quote loaded', 'error');
-    return;
-  }
-
-  if (currentStatus === APPROVAL_STATUS.PENDING_APPROVAL) {
-    showToast('Quote already submitted for approval', 'info');
-    return;
-  }
-
-  if (currentStatus === APPROVAL_STATUS.APPROVED) {
-    if (hasPendingRevisionRequestForApprovedQuote()) {
-      showToast('Revision request already submitted. Awaiting Sales Director approval.', 'info');
-      return;
-    }
-
-    showToast('Quote is already approved. Use Revise if you need to request edits.', 'info');
-    return;
-  }
-
+async function executeSendApprovalRequest({
+  quoteNumber,
+  currentStatus,
+  hasUnsyncedChanges
+}) {
   if (hasUnsyncedChanges) {
     const modalResult = await showApprovalActionModal({
       status: 'Unsynced Changes',
@@ -4197,7 +4177,7 @@ export async function sendApprovalRequest() {
     });
 
     if (!modalResult.confirmed) {
-      return;
+      return false;
     }
 
     const syncResult = await handleSendQuote({
@@ -4206,7 +4186,7 @@ export async function sendApprovalRequest() {
     });
 
     if (!syncResult?.success) {
-      return;
+      return false;
     }
   }
 
@@ -4238,17 +4218,86 @@ export async function sendApprovalRequest() {
           totalAmount: approvalPayload.totalAmount
         });
 
-    if (success) {
-      state.quote.approvalStatus = APPROVAL_STATUS.PENDING_APPROVAL;
-      state.approval.currentStatus = APPROVAL_STATUS.PENDING_APPROVAL;
-      state.approval.actionComment = null;
-
-      await updateQuoteEditorModeUi();
+    if (!success) {
+      return false;
     }
+
+    state.quote.approvalStatus = APPROVAL_STATUS.PENDING_APPROVAL;
+    state.approval.currentStatus = APPROVAL_STATUS.PENDING_APPROVAL;
+    state.approval.actionComment = null;
+
+    await updateQuoteEditorModeUi();
+    return true;
   } catch (error) {
     console.error('Failed to send approval request:', error);
     showToast(`Failed to send approval request: ${error.message}`, 'error');
+    return false;
   }
+}
+
+export async function sendApprovalRequest() {
+  const quoteNumber = state.quote.number;
+  const currentStatus = state.quote.approvalStatus || state.approval.currentStatus;
+  const hasUnsyncedChanges = state.ui.quoteSync.hasUnsyncedChanges === true;
+  const requiresResubmission = currentStatus === APPROVAL_STATUS.REVISE ||
+    currentStatus === APPROVAL_STATUS.REJECTED ||
+    currentStatus === APPROVAL_STATUS.BEING_REVISED ||
+    currentStatus === APPROVAL_STATUS.CANCELLED;
+
+  if (!quoteNumber) {
+    showToast('No Sales Quote loaded', 'error');
+    return;
+  }
+
+  if (currentStatus === APPROVAL_STATUS.PENDING_APPROVAL) {
+    showToast('Quote already submitted for approval', 'info');
+    return;
+  }
+
+  if (currentStatus === APPROVAL_STATUS.APPROVED) {
+    if (hasPendingRevisionRequestForApprovedQuote()) {
+      showToast('Revision request already submitted. Awaiting Sales Director approval.', 'info');
+      return;
+    }
+
+    showToast('Quote is already approved. Use Revise if you need to request edits.', 'info');
+    return;
+  }
+
+  const previewStatusLabel = hasUnsyncedChanges
+    ? 'Unsynced Changes'
+    : requiresResubmission
+      ? 'Ready to Resubmit'
+      : 'Ready to Send';
+  const previewStatusBadgeClass = hasUnsyncedChanges
+    ? 'bg-amber-50 text-amber-700'
+    : 'bg-sky-50 text-sky-700';
+  const previewSubtitle = hasUnsyncedChanges
+    ? 'Review the latest in-editor quote details below. We will sync these changes to Business Central before sending the approval request.'
+    : requiresResubmission
+      ? 'Review the latest quote details below before resubmitting this approval request to the Sales Director.'
+      : 'Review the latest quote details below before sending this approval request to the Sales Director.';
+  const primaryActionLabel = hasUnsyncedChanges
+    ? (requiresResubmission ? 'Sync to BC & Resubmit' : 'Sync to BC & Send Approval')
+    : (requiresResubmission ? 'Resubmit for Approval' : 'Send Approval Request');
+
+  await openApprovalPreviewModal(quoteNumber, {
+    source: 'current',
+    eyebrow: 'Send Approval Preview',
+    title: 'Send Approval Preview',
+    subtitle: previewSubtitle,
+    statusLabel: previewStatusLabel,
+    statusBadgeClass: previewStatusBadgeClass,
+    primaryAction: {
+      label: primaryActionLabel,
+      variant: 'primary',
+      onClick: async () => executeSendApprovalRequest({
+        quoteNumber,
+        currentStatus,
+        hasUnsyncedChanges
+      })
+    }
+  });
 }
 
 export async function requestApprovedQuoteRevision() {
