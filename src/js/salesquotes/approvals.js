@@ -5,12 +5,13 @@
 
 import { state, calculateTotals } from './state.js';
 import { authState } from '../state.js';
-import { ROLE, MODE } from '../core/config.js';
+import { ROLE, MODE, COMMISSION_TIERS } from '../core/config.js';
 import { GATEWAY_API } from './config.js';
 import { el, show, hide, showToast, showLoading, hideLoading, updateQuoteEditorModeUi, getQuoteFormData } from './ui.js';
 import { fetchSalesDirectorSignature } from './print-quote.js';
 import { canApproveQuotes } from '../auth/mode-detection.js';
 import { loadModal } from './components/modal-loader.js';
+import { calculateTieredMaterialPrice } from '../core/tieredMaterials.js';
 
 // ============================================================
 // Constants
@@ -70,6 +71,7 @@ let approvalActionModalHideTimer = null;
 let pendingApprovalsLoadSequence = 0;
 let myApprovalsLoadSequence = 0;
 const serviceItemLaborPreviewCache = new Map();
+const materialPreviewCache = new Map();
 let branchPreviewCache = null;
 let branchPreviewCachePromise = null;
 const PREVIEW_ONSITE_SCOPE_LABELS = {
@@ -1549,6 +1551,15 @@ function formatPreviewNumber(value, fractionDigits = 2) {
   });
 }
 
+function formatPreviewPercent(value) {
+  if (!Number.isFinite(value)) {
+    return '0%';
+  }
+
+  const fractionDigits = Number.isInteger(value) ? 0 : 2;
+  return `${formatPreviewNumber(value, fractionDigits)}%`;
+}
+
 function toPreviewNumber(value, fallback = 0) {
   if (value === null || value === undefined || value === '') {
     return fallback;
@@ -1559,6 +1570,37 @@ function toPreviewNumber(value, fallback = 0) {
     : value;
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizePreviewBoolean(value, fallback = false) {
+  if (value === null || value === undefined || value === '') {
+    return fallback;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) {
+      return fallback;
+    }
+
+    if (['true', '1', 'yes', 'y'].includes(normalized)) {
+      return true;
+    }
+
+    if (['false', '0', 'no', 'n'].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return Boolean(value);
 }
 
 function formatPreviewDateTime(value) {
@@ -1583,6 +1625,20 @@ function formatPreviewDate(value) {
   return String(value);
 }
 
+function getCommissionPercentForPreview(subGrandTotal, suggestedSellingPrice) {
+  const ratio = Number.isFinite(subGrandTotal) && Number.isFinite(suggestedSellingPrice) && suggestedSellingPrice > 0
+    ? subGrandTotal / suggestedSellingPrice
+    : 0;
+
+  for (const tier of COMMISSION_TIERS) {
+    if (ratio >= tier.minRatio && ratio < tier.maxRatio) {
+      return tier.percent;
+    }
+  }
+
+  return 0;
+}
+
 function getPreviewSources(quoteData) {
   const reportRoot = quoteData?.NavWordReportXmlPart && typeof quoteData.NavWordReportXmlPart === 'object'
     ? quoteData.NavWordReportXmlPart
@@ -1592,6 +1648,161 @@ function getPreviewSources(quoteData) {
     : null;
 
   return [quoteData, reportRoot, salesHeader].filter(Boolean);
+}
+
+function inferPreviewVatState(quoteData = {}) {
+  const vatText = String(pickPreviewValue(quoteData, ['vatText', 'VATText'], '') || '');
+  const vatRateFromTextMatch = vatText.match(/(\d+(?:\.\d+)?)/);
+  if (vatRateFromTextMatch) {
+    const parsedRate = parseFloat(vatRateFromTextMatch[1]);
+    if (Number.isFinite(parsedRate)) {
+      return {
+        vatEnabled: parsedRate > 0,
+        vatRate: parsedRate
+      };
+    }
+  }
+
+  const totalAmt4 = toPreviewNumber(pickPreviewValue(quoteData, ['totalTaxAmount', 'vatAmount', 'totalAmt4', 'TotalAmt4'], NaN), NaN);
+  const totalAmt3 = toPreviewNumber(pickPreviewValue(quoteData, ['totalAmt3', 'TotalAmt3'], NaN), NaN);
+  if (Number.isFinite(totalAmt4) && Number.isFinite(totalAmt3) && totalAmt3 > 0) {
+    const derivedRate = Number(((totalAmt4 / totalAmt3) * 100).toFixed(1));
+    if (Number.isFinite(derivedRate)) {
+      return {
+        vatEnabled: derivedRate > 0,
+        vatRate: derivedRate
+      };
+    }
+  }
+
+  const explicitVatRate = toPreviewNumber(pickPreviewValue(quoteData, ['vatRate', 'VATRate'], NaN), NaN);
+  if (Number.isFinite(explicitVatRate)) {
+    return {
+      vatEnabled: explicitVatRate > 0,
+      vatRate: explicitVatRate
+    };
+  }
+
+  return {
+    vatEnabled: true,
+    vatRate: 7
+  };
+}
+
+function derivePreviewTotals(quoteData, lines = []) {
+  const lineNetTotal = lines.reduce((sum, line) => sum + toPreviewNumber(line?.lineTotal, 0), 0);
+  const vatState = inferPreviewVatState(quoteData);
+  const vatRate = Number.isFinite(vatState.vatRate) ? vatState.vatRate : 0;
+
+  const rawAmountExVat = toPreviewNumber(
+    pickPreviewValue(quoteData, ['amountExcludingTax', 'amountExcludingVAT', 'totalAmt1', 'TotalAmt1'], NaN),
+    NaN
+  );
+  const rawVatAmount = toPreviewNumber(
+    pickPreviewValue(quoteData, ['totalTaxAmount', 'vatAmount', 'totalAmt4', 'TotalAmt4'], NaN),
+    NaN
+  );
+  const rawTotal = toPreviewNumber(
+    pickPreviewValue(quoteData, ['totalAmount', 'amountIncludingTax', 'totalAmountIncludingTax', 'totalAmt5', 'TotalAmt5', 'Total'], NaN),
+    NaN
+  );
+
+  const amountExVat = Number.isFinite(rawAmountExVat)
+    ? rawAmountExVat
+    : (Number.isFinite(lineNetTotal) ? lineNetTotal : 0);
+
+  const vatAmount = Number.isFinite(rawVatAmount)
+    ? rawVatAmount
+    : (
+      Number.isFinite(rawTotal) && Number.isFinite(amountExVat)
+        ? Math.max(rawTotal - amountExVat, 0)
+        : (vatState.vatEnabled && vatRate > 0 ? amountExVat * (vatRate / 100) : 0)
+    );
+
+  const total = Number.isFinite(rawTotal)
+    ? rawTotal
+    : amountExVat + vatAmount;
+
+  return {
+    amountExVat,
+    vatAmount,
+    total,
+    vatRate,
+    vatEnabled: vatState.vatEnabled
+  };
+}
+
+function normalizePreviewCollection(value) {
+  if (Array.isArray(value)) {
+    return value.filter(item => item && typeof item === 'object');
+  }
+
+  if (value && typeof value === 'object') {
+    return [value];
+  }
+
+  return [];
+}
+
+function uniquePreviewObjectReferences(items = []) {
+  const seen = new Set();
+
+  return items.filter((item) => {
+    if (!item || typeof item !== 'object' || seen.has(item)) {
+      return false;
+    }
+
+    seen.add(item);
+    return true;
+  });
+}
+
+function isPreviewLineSource(line) {
+  return [
+    'description',
+    'Description_SaleLine',
+    'itemNo',
+    'ItemNo_SaleLine',
+    'no',
+    'No_',
+    'Quantity',
+    'qty',
+    'Qty_SaleLine',
+    'Unit_Price',
+    'lineType',
+    'Type',
+    'USVT_Group_No_',
+    'groupNo',
+    'usvtGroupNo',
+    'serviceItemNo',
+    'usvtServiceItemNo',
+    'USVT_Service_Item_No_',
+    'ServiceItemNo'
+  ].some((key) => line?.[key] !== null && line?.[key] !== undefined && line?.[key] !== '');
+}
+
+function getPreviewLineSources(quoteData) {
+  const reportRoot = quoteData?.NavWordReportXmlPart && typeof quoteData.NavWordReportXmlPart === 'object'
+    ? quoteData.NavWordReportXmlPart
+    : null;
+  const salesHeader = reportRoot?.Sales_Header && typeof reportRoot.Sales_Header === 'object'
+    ? reportRoot.Sales_Header
+    : null;
+
+  return uniquePreviewObjectReferences([
+    ...normalizePreviewCollection(quoteData?.salesQuoteLines),
+    ...normalizePreviewCollection(quoteData?.lines),
+    ...normalizePreviewCollection(reportRoot?.salesQuoteLines),
+    ...normalizePreviewCollection(reportRoot?.lines),
+    ...normalizePreviewCollection(reportRoot?.Integer),
+    ...normalizePreviewCollection(reportRoot?.integer),
+    ...normalizePreviewCollection(salesHeader?.Integer),
+    ...normalizePreviewCollection(salesHeader?.integer)
+  ]).filter(isPreviewLineSource);
+}
+
+function getPreviewLines(quoteData) {
+  return getPreviewLineSources(quoteData).map(normalizePreviewLine);
 }
 
 function pickPreviewValue(quoteData, keys, fallback = '') {
@@ -1612,9 +1823,18 @@ function pickPreviewValue(quoteData, keys, fallback = '') {
 function normalizePreviewLine(line, index) {
   const quantity = toPreviewNumber(line?.quantity ?? line?.Quantity ?? line?.qty ?? line?.Qty_SaleLine);
   const unitPrice = toPreviewNumber(line?.unitPrice ?? line?.Unit_Price);
-  const discountAmount = toPreviewNumber(line?.discountAmount ?? line?.lineDiscountAmount ?? line?.Line_Discount_Amount ?? line?.Discount);
-  const discountPercent = toPreviewNumber(line?.discountPercent ?? line?.lineDiscountPercent);
-  const amountExcludingTax = toPreviewNumber(line?.amountExcludingTax ?? line?.lineAmount ?? line?.Line_Amount, NaN);
+  const discountAmount = toPreviewNumber(
+    line?.discountAmount ?? line?.lineDiscountAmount ?? line?.Line_Discount_Amount ?? line?.Discount,
+    0
+  );
+  const discountPercent = toPreviewNumber(
+    line?.discountPercent ?? line?.lineDiscountPercent ?? line?.Line_Discount___,
+    0
+  );
+  const amountExcludingTax = toPreviewNumber(
+    line?.amountExcludingTax ?? line?.lineAmount ?? line?.Line_Amount ?? line?.Total ?? line?.total,
+    NaN
+  );
   const lineTotal = Number.isFinite(amountExcludingTax)
     ? amountExcludingTax
     : (quantity * unitPrice) - discountAmount;
@@ -1622,21 +1842,39 @@ function normalizePreviewLine(line, index) {
   return {
     sequence: index + 1,
     type: normalizePreviewLineType(line?.lineType ?? line?.type ?? line?.Type) || '-',
-    groupNo: String(line?.usvtGroupNo ?? line?.groupNo ?? line?.USVT_Group_No_ ?? '').trim() || '-',
+    groupNo: String(line?.usvtGroupNo ?? line?.groupNo ?? line?.USVT_Group_No_ ?? line?.GroupNo ?? '').trim() || '-',
     no: String(line?.lineObjectNumber ?? line?.itemNo ?? line?.ItemNo_SaleLine ?? line?.no ?? line?.No_ ?? line?.number ?? '').trim() || '-',
-    description: String(line?.description ?? line?.Description_SaleLine ?? '').trim() || '-',
+    description: String(line?.description ?? line?.Description_SaleLine ?? line?.lineDescription ?? '').trim() || '-',
     quantity,
-    unitOfMeasureCode: String(line?.unitOfMeasureCode ?? line?.Unit_of_Measure ?? '').trim() || '-',
+    unitOfMeasureCode: String(line?.unitOfMeasureCode ?? line?.unitOfMeasure ?? line?.Unit_of_Measure ?? '').trim() || '-',
     unitPrice,
     discountPercent,
     discountAmount,
     lineTotal,
-    serviceItemNo: String(line?.usvtServiceItemNo ?? line?.serviceItemNo ?? '').trim() || '-',
-    serviceStatus: String(line?.usvtUServiceStatus ?? line?.uServiceStatus ?? '').trim() || '-',
-    refServiceOrderNo: String(line?.usvtRefServiceOrderNo ?? line?.refServiceOrderNo ?? '').trim() || '-',
-    showInDocument: Boolean(line?.usvtShowInDocument ?? line?.showInDocument ?? line?.USVT_Show_in_Document ?? true),
-    isHeader: Boolean(line?.usvtHeader ?? line?.printHeader ?? line?.header ?? line?.USVT_Header ?? false),
-    isFooter: Boolean(line?.usvtFooter ?? line?.printFooter ?? line?.footer ?? line?.USVT_Footer ?? false)
+    serviceItemNo: String(
+      line?.usvtServiceItemNo
+      ?? line?.serviceItemNo
+      ?? line?.USVT_Service_Item_No_
+      ?? line?.ServiceItemNo
+      ?? ''
+    ).trim() || '-',
+    serviceStatus: String(
+      line?.usvtUServiceStatus
+      ?? line?.uServiceStatus
+      ?? line?.USVT_U_Service_Status
+      ?? line?.UServiceStatus
+      ?? ''
+    ).trim() || '-',
+    refServiceOrderNo: String(
+      line?.usvtRefServiceOrderNo
+      ?? line?.refServiceOrderNo
+      ?? line?.USVT_Ref_Service_Order_No
+      ?? line?.RefServiceOrderNo
+      ?? ''
+    ).trim() || '-',
+    showInDocument: normalizePreviewBoolean(line?.usvtShowInDocument ?? line?.showInDocument ?? line?.USVT_Show_in_Document, true),
+    isHeader: normalizePreviewBoolean(line?.usvtHeader ?? line?.printHeader ?? line?.header ?? line?.USVT_Header, false),
+    isFooter: normalizePreviewBoolean(line?.usvtFooter ?? line?.printFooter ?? line?.footer ?? line?.USVT_Footer, false)
   };
 }
 
@@ -1870,8 +2108,19 @@ async function loadQuoteForPreview(quoteNumber) {
       throw new Error('Preview data is unavailable');
     }
 
-    const previewLines = (quoteData.salesQuoteLines || quoteData.lines || []).map(normalizePreviewLine);
-    const serviceItemLaborMap = await loadServiceItemLaborPreviewMap(previewLines);
+    const previewLines = getPreviewLines(quoteData);
+    const [
+      serviceItemLaborMap,
+      materialPreviewMap,
+      branchPreviewMap
+    ] = await Promise.all([
+      loadServiceItemLaborPreviewMap(previewLines),
+      loadMaterialPreviewMap(previewLines),
+      loadBranchPreviewMap().catch((error) => {
+        console.warn('Failed to load branch pricing for approval preview:', error);
+        return {};
+      })
+    ]);
 
     // Fetch Sales Director signature if approved
     let directorSignature = null;
@@ -1881,7 +2130,7 @@ async function loadQuoteForPreview(quoteNumber) {
     }
 
     // Render preview
-    renderQuotePreview(previewContainer, quoteData, approval, directorSignature, serviceItemLaborMap, previewLines);
+    renderQuotePreview(previewContainer, quoteData, approval, directorSignature, serviceItemLaborMap, previewLines, materialPreviewMap, branchPreviewMap);
     bindApprovalPreviewJobListTriggers(previewContainer, serviceItemLaborMap);
 
     // Render action buttons based on status
@@ -1908,10 +2157,19 @@ async function loadQuoteForPreview(quoteNumber) {
 /**
  * Render quote preview content
  */
-function renderQuotePreview(container, quoteData, approval, directorSignature, serviceItemLaborMap = {}, normalizedLines = null) {
+function renderQuotePreview(
+  container,
+  quoteData,
+  approval,
+  directorSignature,
+  serviceItemLaborMap = {},
+  normalizedLines = null,
+  materialPreviewMap = {},
+  branchPreviewMap = {}
+) {
   const lines = Array.isArray(normalizedLines)
     ? normalizedLines
-    : (quoteData.salesQuoteLines || quoteData.lines || []).map(normalizePreviewLine);
+    : getPreviewLines(quoteData);
   const previewCopy = getPreviewShellCopy();
   const statusPresentation = getPreviewStatusPresentation(approval);
   const pendingRevisionRequest = hasPendingRevisionRequest(approval);
@@ -1942,21 +2200,16 @@ function renderQuotePreview(container, quoteData, approval, directorSignature, s
     pickPreviewValue(quoteData, ['sellToCity', 'city'], ''),
     pickPreviewValue(quoteData, ['sellToPostCode', 'postCode'], '')
   ].filter(Boolean);
-  const subtotal = lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
   const lineDiscountTotal = lines.reduce((sum, line) => sum + line.discountAmount, 0);
   const invoiceDiscount = toPreviewNumber(pickPreviewValue(quoteData, ['discountAmount', 'invoiceDiscount', 'paymentDiscountAmount'], 0));
-  const total = toPreviewNumber(
-    pickPreviewValue(quoteData, ['totalAmount', 'amountIncludingTax', 'totalAmountIncludingTax', 'TotalAmt5', 'Total'], lines.reduce((sum, line) => sum + line.lineTotal, 0))
-  );
-  const amountExVat = toPreviewNumber(
-    pickPreviewValue(quoteData, ['amountExcludingTax', 'amountExcludingVAT', 'TotalAmt1'], total - ((total * 7) / 107))
-  );
-  const vatAmount = toPreviewNumber(
-    pickPreviewValue(quoteData, ['totalTaxAmount', 'vatAmount', 'TotalAmt4'], Math.max(total - amountExVat, 0))
-  );
+  const totals = derivePreviewTotals(quoteData, lines);
+  const total = totals.total;
+  const amountExVat = totals.amountExVat;
+  const vatAmount = totals.vatAmount;
   const visibleLineCount = lines.filter(line => line.showInDocument).length;
   const serviceItemCount = lines.filter(line => line.serviceItemNo !== '-').length;
   const approverName = approval.salesDirectorName || pickPreviewValue(quoteData, ['approveUserName', 'ApproveUser_Name'], '-');
+  const pricingSummary = calculatePreviewPricingSummary(lines, amountExVat, serviceItemLaborMap, materialPreviewMap, branchPreviewMap);
 
   renderApprovalPreviewHeader({
     eyebrow: previewCopy.eyebrow,
@@ -1991,8 +2244,16 @@ function renderQuotePreview(container, quoteData, approval, directorSignature, s
               <p class="text-lg font-semibold text-slate-900">${formatPreviewMoney(total)}</p>
             </div>
             <div class="approval-preview-summary-item">
-              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Subtotal</p>
-              <p class="text-base font-semibold text-slate-900">${formatPreviewMoney(subtotal)}</p>
+              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Net Amount</p>
+              <p class="text-base font-semibold text-slate-900">${formatPreviewMoney(pricingSummary.actualSellingPrice)}</p>
+            </div>
+            <div class="approval-preview-summary-item">
+              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Standard Price</p>
+              <p class="text-base font-semibold text-slate-900">${formatPreviewMoney(pricingSummary.standardPrice)}</p>
+            </div>
+            <div class="approval-preview-summary-item">
+              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Commission</p>
+              <p class="text-base font-semibold text-slate-900">${formatPreviewMoney(pricingSummary.commissionAmount)}</p>
             </div>
             <div class="approval-preview-summary-item">
               <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Lines</p>
@@ -2032,6 +2293,8 @@ function renderQuotePreview(container, quoteData, approval, directorSignature, s
             </div>
           </div>
         </details>
+
+        ${renderApprovalPricingSummary(pricingSummary)}
 
         ${renderApprovalActionComment(approval, pendingRevisionRequest, actionCommentLabel)}
 
@@ -2262,6 +2525,187 @@ function normalizeServiceItemLaborPreviewResponse(profile) {
   };
 }
 
+async function loadMaterialPreviewMap(lines = []) {
+  const materialCodes = Array.from(new Set(
+    lines
+      .filter((line) => String(line?.type || '').trim().toLowerCase() === 'item')
+      .map((line) => String(line?.no || '').trim())
+      .filter((code) => code && code !== '-')
+  ));
+
+  if (materialCodes.length === 0) {
+    return {};
+  }
+
+  const uncachedCodes = materialCodes.filter((code) => !materialPreviewCache.has(code));
+  if (uncachedCodes.length > 0) {
+    try {
+      const params = new URLSearchParams({
+        codes: uncachedCodes.join(',')
+      });
+      const response = await fetchWithAuth(`/api/materials/lookup?${params.toString()}`);
+      const fetchedMaterials = Array.isArray(response) ? response : [];
+      const fetchedByCode = new Map(
+        fetchedMaterials.map((material) => [
+          String(material?.MaterialCode || '').trim(),
+          {
+            materialId: material?.MaterialId ?? null,
+            materialCode: String(material?.MaterialCode || '').trim(),
+            materialName: String(material?.MaterialName || '').trim(),
+            unitCost: toPreviewNumber(material?.UnitCost, NaN)
+          }
+        ])
+      );
+
+      uncachedCodes.forEach((code) => {
+        materialPreviewCache.set(code, fetchedByCode.get(code) || null);
+      });
+    } catch (error) {
+      console.warn('Failed to load material preview pricing:', error);
+      uncachedCodes.forEach((code) => {
+        materialPreviewCache.set(code, null);
+      });
+    }
+  }
+
+  return Object.fromEntries(materialCodes.map((code) => [code, materialPreviewCache.get(code) || null]));
+}
+
+function calculatePreviewPricingSummary(lines, amountExVat, serviceItemLaborMap = {}, materialPreviewMap = {}, branchPreviewMap = {}) {
+  const actualSellingPrice = Number.isFinite(amountExVat)
+    ? amountExVat
+    : lines.reduce((sum, line) => sum + toPreviewNumber(line?.lineTotal), 0);
+
+  const uniqueServiceItemNos = Array.from(new Set(
+    lines
+      .map((line) => String(line?.serviceItemNo || '').trim())
+      .filter((serviceItemNo) => serviceItemNo && serviceItemNo !== '-')
+  ));
+
+  let standardLaborPrice = 0;
+  let pricedServiceItems = 0;
+
+  uniqueServiceItemNos.forEach((serviceItemNo) => {
+    const preview = serviceItemLaborMap?.[serviceItemNo];
+    if (!preview || preview.status !== 'loaded' || !Array.isArray(preview.jobs) || preview.jobs.length === 0) {
+      return;
+    }
+
+    const branch = preview.branchId ? branchPreviewMap?.[String(preview.branchId)] : null;
+    const pricing = getPreviewBranchPricing(branch, preview);
+    if (!pricing) {
+      return;
+    }
+
+    const total = preview.jobs.reduce((sum, job) => {
+      const jobPricing = getPreviewJobPricing(job, pricing);
+      return sum + (Number.isFinite(jobPricing.calculatedPrice) ? jobPricing.calculatedPrice : 0);
+    }, 0);
+
+    if (Number.isFinite(total) && total > 0) {
+      standardLaborPrice += total;
+      pricedServiceItems += 1;
+    }
+  });
+
+  let standardMaterialPrice = 0;
+  let pricedMaterialLines = 0;
+  let unresolvedMaterialLines = 0;
+
+  lines.forEach((line) => {
+    if (String(line?.type || '').trim().toLowerCase() !== 'item') {
+      return;
+    }
+
+    const materialCode = String(line?.no || '').trim();
+    if (!materialCode || materialCode === '-') {
+      return;
+    }
+
+    const quantity = toPreviewNumber(line?.quantity, 0);
+    const material = materialPreviewMap?.[materialCode];
+    if (!material || !Number.isFinite(material.unitCost) || !Number.isFinite(quantity) || quantity <= 0) {
+      unresolvedMaterialLines += 1;
+      return;
+    }
+
+    const tieredPricePerUnit = calculateTieredMaterialPrice(material.unitCost);
+    if (!Number.isFinite(tieredPricePerUnit)) {
+      unresolvedMaterialLines += 1;
+      return;
+    }
+
+    standardMaterialPrice += tieredPricePerUnit * quantity;
+    pricedMaterialLines += 1;
+  });
+
+  const standardPrice = standardLaborPrice + standardMaterialPrice;
+  const commissionPercent = getCommissionPercentForPreview(actualSellingPrice, standardPrice);
+  const commissionBase = standardPrice;
+  const commissionAmount = Number.isFinite(commissionBase) && commissionBase > 0
+    ? commissionBase * (commissionPercent / 100)
+    : 0;
+  const ratio = Number.isFinite(actualSellingPrice) && Number.isFinite(standardPrice) && standardPrice > 0
+    ? actualSellingPrice / standardPrice
+    : 0;
+
+  return {
+    actualSellingPrice,
+    standardPrice,
+    standardLaborPrice,
+    standardMaterialPrice,
+    commissionBase,
+    commissionPercent,
+    commissionAmount,
+    ratio,
+    pricedServiceItems,
+    totalServiceItems: uniqueServiceItemNos.length,
+    pricedMaterialLines,
+    unresolvedMaterialLines
+  };
+}
+
+function renderApprovalPricingSummary(summary) {
+  const noteParts = [];
+
+  if (summary.totalServiceItems > 0) {
+    noteParts.push(`Priced service items: ${formatPreviewNumber(summary.pricedServiceItems, 0)}/${formatPreviewNumber(summary.totalServiceItems, 0)}`);
+  }
+
+  if (summary.pricedMaterialLines > 0) {
+    noteParts.push(`Matched material lines: ${formatPreviewNumber(summary.pricedMaterialLines, 0)}`);
+  }
+
+  if (summary.unresolvedMaterialLines > 0) {
+    noteParts.push(`Item lines without matched material cost: ${formatPreviewNumber(summary.unresolvedMaterialLines, 0)}`);
+  }
+
+  if (!Number.isFinite(summary.standardPrice) || summary.standardPrice <= 0) {
+    noteParts.push('Standard price could not be derived from the current labor/material references.');
+  }
+
+  return `
+    <details class="approval-preview-collapsible" open>
+      <summary>Pricing Summary</summary>
+      <div class="approval-preview-collapsible-body">
+        <div class="approval-preview-meta-grid approval-preview-pricing-grid">
+          ${renderApprovalMetaItem('Actual Selling Price', formatPreviewMoney(summary.actualSellingPrice))}
+          ${renderApprovalMetaItem('Standard Price', formatPreviewMoney(summary.standardPrice))}
+          ${renderApprovalMetaItem('Standard Labor', formatPreviewMoney(summary.standardLaborPrice))}
+          ${renderApprovalMetaItem('Standard Materials', formatPreviewMoney(summary.standardMaterialPrice))}
+          ${renderApprovalMetaItem('SGT / Standard Ratio', formatPreviewNumber(summary.ratio, 4))}
+          ${renderApprovalMetaItem('Commission %', formatPreviewPercent(summary.commissionPercent))}
+          ${renderApprovalMetaItem('Commission Amount', formatPreviewMoney(summary.commissionAmount))}
+          ${renderApprovalMetaItem('Coverage', `${formatPreviewNumber(summary.pricedServiceItems, 0)} service item(s) • ${formatPreviewNumber(summary.pricedMaterialLines, 0)} material line(s)`)}
+        </div>
+        ${noteParts.length > 0 ? `
+          <p class="approval-preview-pricing-note">${escapeHtml(noteParts.join(' | '))}</p>
+        ` : ''}
+      </div>
+    </details>
+  `;
+}
+
 function renderPreviewJoblist(line, serviceItemLaborMap = {}) {
   const serviceItemNo = String(line?.serviceItemNo || '').trim();
   if (!serviceItemNo || serviceItemNo === '-') {
@@ -2374,12 +2818,14 @@ function renderApprovalJobListOnsiteContext(preview) {
   `;
 }
 
-function getPreviewBranchPricing(branch) {
+function getPreviewBranchPricing(branch, preview = null) {
   if (!branch) {
     return null;
   }
 
-  const costPerHour = toPreviewNumber(branch.CostPerHour, NaN);
+  const costPerHour = isPreviewOnsiteRepairMode(preview)
+    ? toPreviewNumber(branch.OnsiteCostPerHour ?? branch.CostPerHour, NaN)
+    : toPreviewNumber(branch.CostPerHour, NaN);
   const overheadPercent = toPreviewNumber(branch.OverheadPercent, 0);
   const policyProfitPercent = toPreviewNumber(branch.PolicyProfit, 0);
 
@@ -2525,7 +2971,7 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
     return {};
   });
   const branch = preview?.branchId ? branchMap?.[String(preview.branchId)] : null;
-  const pricing = getPreviewBranchPricing(branch);
+  const pricing = getPreviewBranchPricing(branch, preview);
   const table = renderApprovalJobListTable(preview, pricing);
 
   status.textContent = 'Job List';
@@ -2549,7 +2995,8 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
   tableBody.innerHTML = table.html;
 
   if (pricing) {
-    priceNote.textContent = `Calculated price uses branch defaults only: Cost/Hour + Overhead + Policy Profit from ${branch?.BranchName || 'the saved branch'}.`;
+    const rateLabel = isPreviewOnsiteRepairMode(preview) ? 'Onsite Cost/Hour' : 'Cost/Hour';
+    priceNote.textContent = `Calculated price uses branch defaults only: ${rateLabel} + Overhead + Policy Profit from ${branch?.BranchName || 'the saved branch'}.`;
   } else {
     priceNote.textContent = 'Calculated price is unavailable because the saved branch rate could not be resolved. The job list remains viewable as read-only.';
   }
