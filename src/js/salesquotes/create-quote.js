@@ -4105,6 +4105,7 @@ export async function handleSendQuote(options = {}) {
         formData.invoiceDiscount,
         formData.vatRate / 100
       );
+      const createdQuoteCustomerName = state.quote.customerName || formData.customerName || '';
       resetQuoteEditorToCreateMode({ showFeedback: false });
 
       if (quoteNumber) {
@@ -4116,7 +4117,7 @@ export async function handleSendQuote(options = {}) {
             salesQuoteNumber: quoteNumber,
             salespersonCode: sanitizedData.salespersonCode || '',
             salespersonName: formData.salespersonName || '',
-            customerName: state.quote.customerName || '',
+            customerName: createdQuoteCustomerName,
             workDescription: sanitizedData.workDescription || '',
             totalAmount: parseFloat(totalAmount.replace(/,/g, ''))
           });
@@ -4275,7 +4276,7 @@ export async function sendApprovalRequest() {
   const previewSubtitle = hasUnsyncedChanges
     ? 'Review the latest in-editor quote details below. We will sync these changes to Business Central before sending the approval request.'
     : requiresResubmission
-      ? 'Review the latest quote details below before resubmitting this approval request to the Sales Director.'
+      ? ''
       : 'Review the latest quote details below before sending this approval request to the Sales Director.';
   const primaryActionLabel = hasUnsyncedChanges
     ? (requiresResubmission ? 'Sync to BC & Resubmit' : 'Sync to BC & Send Approval')

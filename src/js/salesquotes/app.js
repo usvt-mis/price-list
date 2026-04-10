@@ -18,7 +18,32 @@ import './print-quote.js';
 // ============================================================
 
 // Roles that can access Sales Quotes
-const ALLOWED_ROLES = ['Sales', 'SalesDirector', 'Executive'];
+const ALLOWED_ROLES = new Set(['Sales', 'SalesDirector', 'Executive']);
+
+function normalizeSalesQuotesRole(role) {
+  if (role === null || role === undefined) {
+    return 'NoRole';
+  }
+
+  const value = String(role).trim();
+  if (!value) {
+    return 'NoRole';
+  }
+
+  const key = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const roleMap = {
+    pricelistsales: 'Sales',
+    sales: 'Sales',
+    pricelistsalesdirector: 'SalesDirector',
+    salesdirector: 'SalesDirector',
+    pricelistexecutive: 'Executive',
+    executive: 'Executive',
+    norole: 'NoRole',
+    unassigned: 'NoRole'
+  };
+
+  return roleMap[key] || value;
+}
 
 /**
  * Check if current user can access Sales Quotes
@@ -38,10 +63,10 @@ async function checkSalesQuotesAccess() {
     }
 
     const userData = await response.json();
-    const userRole = userData.effectiveRole;
+    const userRole = normalizeSalesQuotesRole(userData.effectiveRole);
 
     // Check if user has one of the allowed roles
-    return ALLOWED_ROLES.includes(userRole);
+    return ALLOWED_ROLES.has(userRole);
 
   } catch (error) {
     console.error('Error checking Sales Quotes access:', error);

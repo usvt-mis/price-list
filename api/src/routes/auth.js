@@ -6,7 +6,12 @@
 
 const express = require('express');
 const router = express.Router();
-const { validateAuth, getUserEffectiveRole, extractUserEmail } = require('../middleware/authExpress');
+const {
+  validateAuth,
+  getUserEffectiveRole,
+  extractUserEmail,
+  getEffectiveRoleFromRoleClaims
+} = require('../middleware/authExpress');
 const logger = require('../utils/logger');
 
 /**
@@ -43,12 +48,7 @@ router.get('/me', async (req, res) => {
       userEmail: user.userDetails
     });
     // Fallback to Azure AD roles
-    const userRoles = user.userRoles || [];
-    if (userRoles.includes('PriceListExecutive')) {
-      effectiveRole = 'Executive';
-    } else if (userRoles.includes('PriceListSales')) {
-      effectiveRole = 'Sales';
-    }
+    effectiveRole = getEffectiveRoleFromRoleClaims(user.userRoles || []) || 'NoRole';
     logger.debug('AUTH', 'EffectiveRoleFallback', `Using Azure AD fallback role: ${effectiveRole}`);
   }
 

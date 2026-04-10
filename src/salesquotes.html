@@ -107,12 +107,12 @@
         id="quoteEditorModeBanner"
         class="sq-editor-banner hidden mb-6 px-5 py-4"
       >
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p id="quoteEditorModeTitle" class="text-sm font-semibold text-slate-900">Create a new Sales Quote</p>
-            <p id="quoteEditorModeMeta" class="mt-1 text-sm text-slate-600"></p>
+        <div class="sq-editor-banner-main">
+          <div class="sq-editor-banner-copy">
+            <p id="quoteEditorModeTitle" class="sq-editor-banner-title">Create a new Sales Quote</p>
+            <div id="quoteEditorModeMeta" class="sq-editor-banner-meta" aria-live="polite"></div>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="sq-editor-banner-actions">
             <button
               id="printQuoteBtn"
               type="button"

@@ -1,6 +1,37 @@
 import { test, expect } from '@playwright/test';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:8080';
+const COMMISSION_ESTIMATE_NOTE = '* ตัวเลขนี้เป็นเพียงการประเมินคร่าวๆ  ยังไม่ใช่ตัวเลขที่แท้จริง';
+
+async function expectCommissionNoteLayout(page) {
+  await expect(page.locator('#approvalPreviewContent')).toContainText(COMMISSION_ESTIMATE_NOTE);
+  await expect(page.locator('.approval-preview-summary-strip .approval-preview-commission-estimate-note')).toHaveCount(0);
+
+  const pricingSummary = page.locator('.approval-preview-collapsible', {
+    has: page.locator('summary', { hasText: 'Pricing Summary' })
+  });
+  await pricingSummary.evaluate((details) => {
+    if (details instanceof HTMLDetailsElement) {
+      details.open = true;
+    }
+  });
+
+  await expect(page.locator('.approval-preview-actual-selling-price-group .approval-preview-commission-estimate-note')).toBeVisible();
+
+  const summaryLayout = await page.locator('.approval-preview-summary-strip').evaluate((strip) => {
+    const itemRects = Array.from(strip.querySelectorAll('.approval-preview-summary-item'))
+      .map((item) => item.getBoundingClientRect());
+
+    return {
+      itemCount: itemRects.length,
+      firstTop: itemRects[0]?.top ?? 0,
+      lastTop: itemRects[itemRects.length - 1]?.top ?? 0
+    };
+  });
+
+  expect(summaryLayout.itemCount).toBe(6);
+  expect(Math.abs(summaryLayout.firstTop - summaryLayout.lastTop)).toBeLessThan(2);
+}
 
 test('send approval preview calculates commission from standard labor and materials pricing', async ({ page }) => {
   await page.route('**/api/auth/me', async (route) => {
@@ -143,4 +174,5 @@ test('send approval preview calculates commission from standard labor and materi
   await expect(page.locator('#approvalPreviewContent')).toContainText('2.50%');
   await expect(page.locator('#approvalPreviewContent')).toContainText('Commission Amount');
   await expect(page.locator('#approvalPreviewContent')).toContainText('29.90');
+  await expectCommissionNoteLayout(page);
 });

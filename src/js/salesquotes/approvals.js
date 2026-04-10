@@ -1639,6 +1639,8 @@ function getCommissionPercentForPreview(subGrandTotal, suggestedSellingPrice) {
   return 0;
 }
 
+const APPROVAL_PREVIEW_COMMISSION_ESTIMATE_NOTE = '* ตัวเลขนี้เป็นเพียงการประเมินคร่าวๆ  ยังไม่ใช่ตัวเลขที่แท้จริง';
+
 function getPreviewSources(quoteData) {
   const reportRoot = quoteData?.NavWordReportXmlPart && typeof quoteData.NavWordReportXmlPart === 'object'
     ? quoteData.NavWordReportXmlPart
@@ -2225,43 +2227,43 @@ function renderQuotePreview(
         <div class="approval-preview-hero">
           <div>
             <div class="flex flex-wrap items-center gap-3">
-              <h3 class="text-xl font-semibold text-slate-900">${escapeHtml(customerName)}</h3>
-              <span class="text-sm text-slate-500">Customer No: ${escapeHtml(customerNo)}</span>
+              <h3 class="approval-preview-customer-name text-xl font-semibold">${escapeHtml(customerName)}</h3>
+              <span class="approval-preview-customer-no text-sm">Customer No: ${escapeHtml(customerNo)}</span>
             </div>
-            <div class="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-600">
-              <span>Quote No: <strong class="font-semibold text-slate-900">${escapeHtml(quoteNumber)}</strong></span>
-              <span>Branch: <strong class="font-semibold text-slate-900">${escapeHtml(branch)}</strong></span>
-              <span>Date: <strong class="font-semibold text-slate-900">${escapeHtml(formatPreviewDate(orderDate))}</strong></span>
-              <span>Submitted: <strong class="font-semibold text-slate-900">${escapeHtml(submittedAt)}</strong></span>
+            <div class="approval-preview-quote-meta mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+              <span>Quote No: <strong>${escapeHtml(quoteNumber)}</strong></span>
+              <span>Branch: <strong>${escapeHtml(branch)}</strong></span>
+              <span>Date: <strong>${escapeHtml(formatPreviewDate(orderDate))}</strong></span>
+              <span>Submitted: <strong>${escapeHtml(submittedAt)}</strong></span>
             </div>
             ${addressParts.length ? `
-              <p class="mt-3 text-sm leading-6 text-slate-600">${escapeHtml(addressParts.join(', '))}</p>
+              <p class="approval-preview-address mt-3 text-sm leading-6">${escapeHtml(addressParts.join(', '))}</p>
             ` : ''}
           </div>
           <div class="approval-preview-summary-strip text-sm">
-            <div class="approval-preview-summary-item">
-              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Total</p>
-              <p class="text-lg font-semibold text-slate-900">${formatPreviewMoney(total)}</p>
+            <div class="approval-preview-summary-item approval-preview-summary-total">
+              <p class="approval-preview-summary-label text-[11px] uppercase tracking-[0.08em]">Total</p>
+              <p class="approval-preview-summary-value text-lg font-semibold">${formatPreviewMoney(total)}</p>
             </div>
-            <div class="approval-preview-summary-item">
-              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Net Amount</p>
-              <p class="text-base font-semibold text-slate-900">${formatPreviewMoney(pricingSummary.actualSellingPrice)}</p>
+            <div class="approval-preview-summary-item approval-preview-summary-net">
+              <p class="approval-preview-summary-label text-[11px] uppercase tracking-[0.08em]">Net Amount</p>
+              <p class="approval-preview-summary-value text-base font-semibold">${formatPreviewMoney(pricingSummary.actualSellingPrice)}</p>
             </div>
-            <div class="approval-preview-summary-item">
-              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Standard Price</p>
-              <p class="text-base font-semibold text-slate-900">${formatPreviewMoney(pricingSummary.standardPrice)}</p>
+            <div class="approval-preview-summary-item approval-preview-summary-standard">
+              <p class="approval-preview-summary-label text-[11px] uppercase tracking-[0.08em]">Standard Price</p>
+              <p class="approval-preview-summary-value text-base font-semibold">${formatPreviewMoney(pricingSummary.standardPrice)}</p>
             </div>
-            <div class="approval-preview-summary-item">
-              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Commission</p>
-              <p class="text-base font-semibold text-slate-900">${formatPreviewMoney(pricingSummary.commissionAmount)}</p>
+            <div class="approval-preview-summary-item approval-preview-summary-commission">
+              <p class="approval-preview-summary-label text-[11px] uppercase tracking-[0.08em]">Commission</p>
+              <p class="approval-preview-summary-value text-base font-semibold">${formatPreviewMoney(pricingSummary.commissionAmount)}</p>
             </div>
-            <div class="approval-preview-summary-item">
-              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Lines</p>
-              <p class="text-base font-semibold text-slate-900">${formatPreviewNumber(lines.length, 0)}</p>
+            <div class="approval-preview-summary-item approval-preview-summary-count">
+              <p class="approval-preview-summary-label text-[11px] uppercase tracking-[0.08em]">Lines</p>
+              <p class="approval-preview-summary-value text-base font-semibold">${formatPreviewNumber(lines.length, 0)}</p>
             </div>
-            <div class="approval-preview-summary-item">
-              <p class="text-[11px] uppercase tracking-[0.08em] text-slate-500">Service Items</p>
-              <p class="text-base font-semibold text-slate-900">${formatPreviewNumber(serviceItemCount, 0)}</p>
+            <div class="approval-preview-summary-item approval-preview-summary-count">
+              <p class="approval-preview-summary-label text-[11px] uppercase tracking-[0.08em]">Service Items</p>
+              <p class="approval-preview-summary-value text-base font-semibold">${formatPreviewNumber(serviceItemCount, 0)}</p>
             </div>
           </div>
         </div>
@@ -2299,50 +2301,57 @@ function renderQuotePreview(
         ${renderApprovalActionComment(approval, pendingRevisionRequest, actionCommentLabel)}
 
         <div class="approval-preview-table-wrap">
-          <table class="approval-preview-table w-full text-sm">
-            <thead class="bg-slate-50 text-slate-600">
-              <tr>
-                <th class="px-3 py-3 text-left font-medium">#</th>
-                <th class="px-3 py-3 text-left font-medium">Group</th>
-                <th class="px-3 py-3 text-left font-medium">Type</th>
-                <th class="px-3 py-3 text-left font-medium">No.</th>
-                <th class="px-3 py-3 text-left font-medium">Description</th>
-                <th class="px-3 py-3 text-right font-medium">Qty</th>
-                <th class="px-3 py-3 text-left font-medium">UOM</th>
-                <th class="px-3 py-3 text-right font-medium">Unit Price</th>
-                <th class="px-3 py-3 text-right font-medium">Disc %</th>
-                <th class="px-3 py-3 text-right font-medium">Disc Amt</th>
-                <th class="px-3 py-3 text-right font-medium">Line Total</th>
-                <th class="px-3 py-3 text-left font-medium">Service Item</th>
-                <th class="px-3 py-3 text-left font-medium">Joblist</th>
-                <th class="px-3 py-3 text-left font-medium">Service Status</th>
-                <th class="px-3 py-3 text-left font-medium">Ref. SV No.</th>
-                <th class="px-3 py-3 text-left font-medium">Print Flags</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              ${lines.map(line => `
-                <tr class="align-top">
-                  <td class="px-3 py-3 text-slate-500">${line.sequence}</td>
-                  <td class="px-3 py-3">${escapeHtml(line.groupNo)}</td>
-                  <td class="px-3 py-3">${escapeHtml(line.type)}</td>
-                  <td class="px-3 py-3 font-medium text-slate-800">${escapeHtml(line.no)}</td>
-                  <td class="approval-preview-description px-3 py-3 text-slate-700">${escapeHtml(line.description)}</td>
-                  <td class="px-3 py-3 text-right">${formatPreviewNumber(line.quantity, Number.isInteger(line.quantity) ? 0 : 2)}</td>
-                  <td class="px-3 py-3">${escapeHtml(line.unitOfMeasureCode)}</td>
-                  <td class="px-3 py-3 text-right">${formatPreviewMoney(line.unitPrice)}</td>
-                  <td class="px-3 py-3 text-right">${formatPreviewNumber(line.discountPercent, 1)}</td>
-                  <td class="px-3 py-3 text-right">${formatPreviewMoney(line.discountAmount)}</td>
-                  <td class="px-3 py-3 text-right font-medium">${formatPreviewMoney(line.lineTotal)}</td>
-                  <td class="px-3 py-3">${escapeHtml(line.serviceItemNo)}</td>
-                  <td class="px-3 py-3 approval-preview-joblist-cell">${renderPreviewJoblist(line, serviceItemLaborMap)}</td>
-                  <td class="px-3 py-3">${escapeHtml(line.serviceStatus)}</td>
-                  <td class="px-3 py-3">${escapeHtml(line.refServiceOrderNo)}</td>
-                  <td class="px-3 py-3">${renderPreviewFlags(line)}</td>
+          <div class="approval-preview-table-toolbar">
+            <div>
+              <p class="approval-preview-table-title">Sales Quote Lines</p>
+              <p class="approval-preview-table-subtitle">${formatPreviewNumber(lines.length, 0)} line${lines.length === 1 ? '' : 's'}</p>
+            </div>
+            <p class="approval-preview-table-hint">Service Item, Joblist, and Ref. SV No. are on the right.</p>
+          </div>
+          <div class="approval-preview-table-scroll">
+            <table class="approval-preview-table w-full text-sm">
+              <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="px-3 py-3 text-left font-medium">#</th>
+                  <th class="px-3 py-3 text-left font-medium">Group</th>
+                  <th class="px-3 py-3 text-left font-medium">Type</th>
+                  <th class="px-3 py-3 text-left font-medium">No.</th>
+                  <th class="px-3 py-3 text-left font-medium">Description</th>
+                  <th class="px-3 py-3 text-right font-medium">Qty</th>
+                  <th class="px-3 py-3 text-left font-medium">UOM</th>
+                  <th class="px-3 py-3 text-right font-medium">Unit Price</th>
+                  <th class="px-3 py-3 text-right font-medium">Disc %</th>
+                  <th class="px-3 py-3 text-right font-medium">Disc Amt</th>
+                  <th class="px-3 py-3 text-right font-medium">Line Total</th>
+                  <th class="px-3 py-3 text-left font-medium">Service Item</th>
+                  <th class="px-3 py-3 text-left font-medium">Joblist</th>
+                  <th class="px-3 py-3 text-left font-medium">Service Status</th>
+                  <th class="px-3 py-3 text-left font-medium">Ref. SV No.</th>
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${lines.map(line => `
+                  <tr class="align-top">
+                    <td class="px-3 py-3 text-slate-500">${line.sequence}</td>
+                    <td class="px-3 py-3">${escapeHtml(line.groupNo)}</td>
+                    <td class="px-3 py-3">${escapeHtml(line.type)}</td>
+                    <td class="px-3 py-3 font-medium text-slate-800">${escapeHtml(line.no)}</td>
+                    <td class="approval-preview-description px-3 py-3 text-slate-700">${escapeHtml(line.description)}</td>
+                    <td class="px-3 py-3 text-right">${formatPreviewNumber(line.quantity, Number.isInteger(line.quantity) ? 0 : 2)}</td>
+                    <td class="px-3 py-3">${escapeHtml(line.unitOfMeasureCode)}</td>
+                    <td class="px-3 py-3 text-right">${formatPreviewMoney(line.unitPrice)}</td>
+                    <td class="px-3 py-3 text-right">${formatPreviewNumber(line.discountPercent, 1)}</td>
+                    <td class="px-3 py-3 text-right">${formatPreviewMoney(line.discountAmount)}</td>
+                    <td class="px-3 py-3 text-right font-medium">${formatPreviewMoney(line.lineTotal)}</td>
+                    <td class="px-3 py-3">${escapeHtml(line.serviceItemNo)}</td>
+                    <td class="px-3 py-3 approval-preview-joblist-cell">${renderPreviewJoblist(line, serviceItemLaborMap)}</td>
+                    <td class="px-3 py-3">${escapeHtml(line.serviceStatus)}</td>
+                    <td class="px-3 py-3">${escapeHtml(line.refServiceOrderNo)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         ${directorSignature ? `
@@ -2389,9 +2398,9 @@ function renderApprovalActionComment(approval, pendingRevisionRequest, actionCom
   `;
 }
 
-function renderApprovalMetaItem(label, value) {
+function renderApprovalMetaItem(label, value, className = '') {
   return `
-    <div class="approval-preview-meta-item">
+    <div class="approval-preview-meta-item${className ? ` ${className}` : ''}">
       <span class="approval-preview-meta-label">${label}</span>
       <span class="approval-preview-meta-value">${value || '-'}</span>
     </div>
@@ -2433,24 +2442,6 @@ function renderApprovalPreviewHeader({
       </div>
     `;
   }
-}
-
-function renderPreviewFlags(line) {
-  const flags = [];
-
-  if (line.showInDocument) {
-    flags.push('<span class="sq-chip sq-chip-neutral">Show</span>');
-  }
-  if (line.isHeader) {
-    flags.push('<span class="sq-chip sq-chip-warning">Header</span>');
-  }
-  if (line.isFooter) {
-    flags.push('<span class="sq-chip sq-chip-neutral">Footer</span>');
-  }
-
-  return flags.length
-    ? `<div class="flex flex-wrap gap-1">${flags.join('')}</div>`
-    : '<span class="text-slate-400">-</span>';
 }
 
 async function loadServiceItemLaborPreviewMap(lines = []) {
@@ -2685,18 +2676,27 @@ function renderApprovalPricingSummary(summary) {
   }
 
   return `
-    <details class="approval-preview-collapsible" open>
+    <details class="approval-preview-collapsible">
       <summary>Pricing Summary</summary>
       <div class="approval-preview-collapsible-body">
-        <div class="approval-preview-meta-grid approval-preview-pricing-grid">
-          ${renderApprovalMetaItem('Actual Selling Price', formatPreviewMoney(summary.actualSellingPrice))}
-          ${renderApprovalMetaItem('Standard Price', formatPreviewMoney(summary.standardPrice))}
-          ${renderApprovalMetaItem('Standard Labor', formatPreviewMoney(summary.standardLaborPrice))}
-          ${renderApprovalMetaItem('Standard Materials', formatPreviewMoney(summary.standardMaterialPrice))}
-          ${renderApprovalMetaItem('SGT / Standard Ratio', formatPreviewNumber(summary.ratio, 4))}
-          ${renderApprovalMetaItem('Commission %', formatPreviewPercent(summary.commissionPercent))}
-          ${renderApprovalMetaItem('Commission Amount', formatPreviewMoney(summary.commissionAmount))}
-          ${renderApprovalMetaItem('Coverage', `${formatPreviewNumber(summary.pricedServiceItems, 0)} service item(s) • ${formatPreviewNumber(summary.pricedMaterialLines, 0)} material line(s)`)}
+        <div class="approval-preview-pricing-grid">
+          <div class="approval-preview-actual-selling-price-group">
+            ${renderApprovalMetaItem('Actual Selling Price', formatPreviewMoney(summary.actualSellingPrice), 'approval-preview-pricing-actual')}
+            <div class="approval-preview-actual-selling-price-breakdown">
+              ${renderApprovalMetaItem('Commission %', formatPreviewPercent(summary.commissionPercent), 'approval-preview-pricing-commission-rate')}
+              ${renderApprovalMetaItem('Commission Amount', formatPreviewMoney(summary.commissionAmount), 'approval-preview-pricing-commission-amount')}
+            </div>
+            <p class="approval-preview-commission-estimate-note">${escapeHtml(APPROVAL_PREVIEW_COMMISSION_ESTIMATE_NOTE)}</p>
+          </div>
+          <div class="approval-preview-standard-price-group">
+            ${renderApprovalMetaItem('Standard Price', formatPreviewMoney(summary.standardPrice), 'approval-preview-pricing-standard-total')}
+            <div class="approval-preview-standard-price-breakdown">
+              ${renderApprovalMetaItem('Standard Labor', formatPreviewMoney(summary.standardLaborPrice), 'approval-preview-pricing-standard-labor')}
+              ${renderApprovalMetaItem('Standard Materials', formatPreviewMoney(summary.standardMaterialPrice), 'approval-preview-pricing-standard-materials')}
+            </div>
+          </div>
+          ${renderApprovalMetaItem('SGT / Standard Ratio', formatPreviewNumber(summary.ratio, 4), 'approval-preview-pricing-ratio')}
+          ${renderApprovalMetaItem('Coverage', `${formatPreviewNumber(summary.pricedServiceItems, 0)} service item(s) • ${formatPreviewNumber(summary.pricedMaterialLines, 0)} material line(s)`, 'approval-preview-pricing-coverage')}
         </div>
         ${noteParts.length > 0 ? `
           <p class="approval-preview-pricing-note">${escapeHtml(noteParts.join(' | '))}</p>
@@ -2902,7 +2902,6 @@ function renderApprovalJobListTable(preview, pricing) {
           </div>
         </td>
         <td class="text-right">${formatPreviewNumber(totals.effectiveManHours, Number.isInteger(totals.effectiveManHours) ? 0 : 2)}</td>
-        <td class="text-right">${formatPreviewMoneyOrDash(pricing?.costPerHour)}</td>
         <td class="text-right">${formatPreviewMoneyOrDash(totals.rawCost)}</td>
         <td class="text-right">${formatPreviewMoneyOrDash(totals.calculatedPrice)}</td>
       </tr>
@@ -2929,7 +2928,6 @@ function renderApprovalJobListTable(preview, pricing) {
       <tr class="approval-job-list-total-row">
         <td>Total</td>
         <td class="text-right">${formatPreviewNumber(totals.hours, Number.isInteger(totals.hours) ? 0 : 2)}</td>
-        <td class="text-right">${formatPreviewMoneyOrDash(pricing?.costPerHour)}</td>
         <td class="text-right">${formatPreviewMoneyOrDash(pricing ? totals.rawCost : NaN)}</td>
         <td class="text-right">${formatPreviewMoneyOrDash(pricing ? totals.calculatedPrice : NaN)}</td>
       </tr>
@@ -2995,7 +2993,7 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
   tableBody.innerHTML = table.html;
 
   if (pricing) {
-    const rateLabel = isPreviewOnsiteRepairMode(preview) ? 'Onsite Cost/Hour' : 'Cost/Hour';
+    const rateLabel = isPreviewOnsiteRepairMode(preview) ? 'onsite branch labor rate' : 'branch labor rate';
     priceNote.textContent = `Calculated price uses branch defaults only: ${rateLabel} + Overhead + Policy Profit from ${branch?.BranchName || 'the saved branch'}.`;
   } else {
     priceNote.textContent = 'Calculated price is unavailable because the saved branch rate could not be resolved. The job list remains viewable as read-only.';

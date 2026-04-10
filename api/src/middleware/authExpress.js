@@ -379,9 +379,71 @@ function requireRole(...allowedRoles) {
 }
 
 /**
+ * Normalize role names from database, Azure AD, and local mock config to canonical app roles.
+ * @param {string|null|undefined} role - Role value from auth sources
+ * @returns {string} - Canonical effective role, or the original trimmed value for unknown roles
+ */
+function normalizeEffectiveRole(role) {
+  if (role === null || role === undefined) {
+    return 'NoRole';
+  }
+
+  const value = String(role).trim();
+  if (!value) {
+    return 'NoRole';
+  }
+
+  const key = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  const roleMap = {
+    pricelistexecutive: 'Executive',
+    executive: 'Executive',
+    pricelistsalesdirector: 'SalesDirector',
+    salesdirector: 'SalesDirector',
+    pricelistsales: 'Sales',
+    sales: 'Sales',
+    pricelistmanager: 'Manager',
+    manager: 'Manager',
+    customer: 'Customer',
+    pricelistcustomer: 'Customer',
+    norole: 'NoRole',
+    unassigned: 'NoRole'
+  };
+
+  return roleMap[key] || value;
+}
+
+/**
+ * Get the highest-priority recognized role from Azure AD role claims.
+ * @param {string[]} userRoles - Azure AD role names
+ * @returns {string|null} - Canonical effective role, or null if no recognized role exists
+ */
+function getEffectiveRoleFromRoleClaims(userRoles) {
+  const normalizedRoles = (userRoles || []).map(normalizeEffectiveRole);
+
+  if (normalizedRoles.includes('Executive')) {
+    return 'Executive';
+  }
+  if (normalizedRoles.includes('SalesDirector')) {
+    return 'SalesDirector';
+  }
+  if (normalizedRoles.includes('Manager')) {
+    return 'Manager';
+  }
+  if (normalizedRoles.includes('Sales')) {
+    return 'Sales';
+  }
+  if (normalizedRoles.includes('Customer')) {
+    return 'Customer';
+  }
+
+  return null;
+}
+
+/**
  * Get user's effective role from UserRoles database table
- * Returns 'Executive', 'Sales', or 'NoRole' based on database assignment
- * Falls back to checking Azure AD roles if no database entry
+ * Returns a canonical role based on database assignment
+ * Falls back to checking Azure AD roles if database lookup is unavailable
  * Auto-creates UserRoles entry with Role = NULL (NoRole) on first login
  * Also tracks login timestamps (FirstLoginAt, LastLoginAt)
  */
@@ -409,13 +471,15 @@ async function getUserEffectiveRole(user) {
         // Store BranchId in user object for later use
         user.branchId = branchId;
 
-        if (role === null) {
+        const normalizedRole = normalizeEffectiveRole(role);
+
+        if (normalizedRole === 'NoRole') {
           logger.debug('AUTH', 'LocalDevDbLookup', 'User has NoRole in database');
           return 'NoRole';
         }
 
-        logger.info('AUTH', 'LocalDevDbLookup', `Role found in database: ${role}`);
-        return role;
+        logger.info('AUTH', 'LocalDevDbLookup', `Role found in database: ${role}; normalized=${normalizedRole}`);
+        return normalizedRole;
       }
 
       // Email not found - fall back to MOCK_USER_ROLE
@@ -488,11 +552,13 @@ async function getUserEffectiveRole(user) {
           `);
       }
 
+      const normalizedRole = normalizeEffectiveRole(role);
+
       // NULL in database means NoRole
-      if (role === null) {
+      if (normalizedRole === 'NoRole') {
         return 'NoRole';
       }
-      return role; // 'Executive' or 'Sales'
+      return normalizedRole;
     }
 
     // No entry found - auto-create with NoRole (NULL) for new users with login timestamps
@@ -534,12 +600,9 @@ async function getUserEffectiveRole(user) {
   }
 
   // Fallback: Check Azure AD roles (for backward compatibility)
-  const userRoles = user.userRoles || [];
-  if (userRoles.includes('PriceListExecutive')) {
-    return 'Executive';
-  }
-  if (userRoles.includes('PriceListSales')) {
-    return 'Sales';
+  const fallbackRole = getEffectiveRoleFromRoleClaims(user.userRoles || []);
+  if (fallbackRole) {
+    return fallbackRole;
   }
 
   // Default to NoRole for all new authenticated users
@@ -596,6 +659,7 @@ async function isSales(user) {
 function getRoleLabel(role) {
   const roleLabels = {
     'PriceListExecutive': 'Executive',
+    'PriceListSalesDirector': 'Sales Director',
     'PriceListSales': 'Sales',
     'Executive': 'Executive',
     'SalesDirector': 'Sales Director',
@@ -611,15 +675,8 @@ function getRoleLabel(role) {
  * @returns {string} - Effective role ('Executive', 'SalesDirector', 'Sales', or 'NoRole')
  */
 function mapMockRoleToEffective(mockRole) {
-  const roleMap = {
-    'PriceListExecutive': 'Executive',
-    'PriceListSales': 'Sales',
-    'Executive': 'Executive',
-    'SalesDirector': 'SalesDirector',
-    'Sales': 'Sales',
-    'NoRole': 'NoRole'
-  };
-  return roleMap[mockRole] || 'Sales';
+  const role = normalizeEffectiveRole(mockRole);
+  return ['Executive', 'SalesDirector', 'Manager', 'Sales', 'Customer', 'NoRole'].includes(role) ? role : 'Sales';
 }
 
 module.exports = {
@@ -631,5 +688,7 @@ module.exports = {
   isSales,
   getRoleLabel,
   extractUserEmail,
+  normalizeEffectiveRole,
+  getEffectiveRoleFromRoleClaims,
   mapMockRoleToEffective
 };

@@ -13,6 +13,7 @@ const {
   ensureSalesQuoteApprovalsTable,
   normalizeConfirmationStatus
 } = require('../utils/salesQuoteApprovals');
+const { ensureSalesQuoteSubmissionRecordsTable } = require('../utils/salesQuoteSubmissionRecords');
 
 const PENDING_REVISION_THRESHOLD_MS = 1000;
 
@@ -168,10 +169,32 @@ router.post('/initialize', async (req, res, next) => {
     // Check if quote already exists
     const existing = await getApprovalByQuoteNumber(pool, salesQuoteNumber);
     if (existing) {
+      await pool.request()
+        .input('salesQuoteNumber', require('mssql').NVarChar(50), salesQuoteNumber)
+        .input('salespersonCode', require('mssql').NVarChar(50), salespersonCode || '')
+        .input('salespersonName', require('mssql').NVarChar(255), salespersonName || '')
+        .input('customerName', require('mssql').NVarChar(255), customerName || '')
+        .input('workDescription', require('mssql').NVarChar('max'), workDescription || '')
+        .input('totalAmount', require('mssql').Decimal(18, 2), amount)
+        .query(`
+          UPDATE SalesQuoteApprovals
+          SET SalespersonCode = COALESCE(NULLIF(@salespersonCode, ''), SalespersonCode),
+              SalespersonName = COALESCE(NULLIF(@salespersonName, ''), SalespersonName),
+              CustomerName = COALESCE(NULLIF(@customerName, ''), CustomerName),
+              WorkDescription = COALESCE(NULLIF(@workDescription, ''), WorkDescription),
+              TotalAmount = @totalAmount,
+              UpdatedAt = CASE
+                WHEN ApprovalStatus IN ('SubmittedToBC', 'PendingApproval', 'Cancelled') THEN GETUTCDATE()
+                ELSE UpdatedAt
+              END
+          WHERE SalesQuoteNumber = @salesQuoteNumber
+        `);
+
+      const updatedExisting = await getApprovalByQuoteNumber(pool, salesQuoteNumber);
       // Return existing record without error
       return res.status(200).json({
         message: 'Approval record already exists',
-        approval: mapApprovalRecord(existing)
+        approval: mapApprovalRecord(updatedExisting || existing)
       });
     }
 
@@ -298,12 +321,22 @@ router.post('/', async (req, res, next) => {
         await pool.request()
           .input('salesQuoteNumber', require('mssql').NVarChar(50), salesQuoteNumber)
           .input('approvalOwnerEmail', require('mssql').NVarChar(255), clientEmail)
+          .input('salespersonCode', require('mssql').NVarChar(50), salespersonCode || '')
+          .input('salespersonName', require('mssql').NVarChar(255), salespersonName || '')
+          .input('customerName', require('mssql').NVarChar(255), customerName || '')
+          .input('workDescription', require('mssql').NVarChar('max'), workDescription || '')
+          .input('totalAmount', require('mssql').Decimal(18, 2), amount)
           .input('approvalStatus', require('mssql').NVarChar(50), finalStatus)
           .input('submittedForApprovalAt', submittedAt ? new Date(submittedAt) : null)
           .query(`
             UPDATE SalesQuoteApprovals
             SET ApprovalStatus = @approvalStatus,
                 ApprovalOwnerEmail = @approvalOwnerEmail,
+                SalespersonCode = COALESCE(NULLIF(@salespersonCode, ''), SalespersonCode),
+                SalespersonName = COALESCE(NULLIF(@salespersonName, ''), SalespersonName),
+                CustomerName = COALESCE(NULLIF(@customerName, ''), CustomerName),
+                WorkDescription = COALESCE(NULLIF(@workDescription, ''), WorkDescription),
+                TotalAmount = @totalAmount,
                 SubmittedForApprovalAt = @submittedForApprovalAt,
                 UpdatedAt = GETUTCDATE()
             WHERE SalesQuoteNumber = @salesQuoteNumber
@@ -558,39 +591,47 @@ router.get('/list/pending', async (req, res, next) => {
   try {
     const pool = await getPool();
     await ensureApprovalTable(pool);
+    await ensureSalesQuoteSubmissionRecordsTable(pool);
 
     const result = await pool.request().query(`
       SELECT
-        Id,
-        SalesQuoteNumber,
-        SalespersonEmail,
-        SalespersonCode,
-        SalespersonName,
-        CustomerName,
-        WorkDescription,
-        TotalAmount,
-        ApprovalStatus,
-        SubmittedForApprovalAt,
-        SalesDirectorActionAt,
-        ActionComment,
-        CreatedAt,
-        UpdatedAt
-      FROM SalesQuoteApprovals
-      WHERE ApprovalStatus = 'PendingApproval'
+        a.Id,
+        a.SalesQuoteNumber,
+        a.SalespersonEmail,
+        a.SalespersonCode,
+        a.SalespersonName,
+        COALESCE(NULLIF(a.CustomerName, ''), sr.CustomerName, '') AS CustomerName,
+        a.WorkDescription,
+        a.TotalAmount,
+        a.ApprovalStatus,
+        a.SubmittedForApprovalAt,
+        a.SalesDirectorActionAt,
+        a.ActionComment,
+        a.CreatedAt,
+        a.UpdatedAt
+      FROM SalesQuoteApprovals a
+      OUTER APPLY (
+        SELECT TOP 1 NULLIF(r.CustomerName, '') AS CustomerName
+        FROM SalesQuoteSubmissionRecords r
+        WHERE r.SalesQuoteNumber = a.SalesQuoteNumber
+          AND NULLIF(r.CustomerName, '') IS NOT NULL
+        ORDER BY r.SubmittedAt DESC, r.Id DESC
+      ) sr
+      WHERE a.ApprovalStatus = 'PendingApproval'
         OR (
-          ApprovalStatus = 'Approved'
-          AND ActionComment IS NOT NULL
-          AND LTRIM(RTRIM(ActionComment)) <> ''
+          a.ApprovalStatus = 'Approved'
+          AND a.ActionComment IS NOT NULL
+          AND LTRIM(RTRIM(a.ActionComment)) <> ''
         )
       ORDER BY
         CASE
-          WHEN ApprovalStatus = 'Approved'
-            AND ActionComment IS NOT NULL
-            AND LTRIM(RTRIM(ActionComment)) <> ''
+          WHEN a.ApprovalStatus = 'Approved'
+            AND a.ActionComment IS NOT NULL
+            AND LTRIM(RTRIM(a.ActionComment)) <> ''
           THEN 0
           ELSE 1
         END,
-        COALESCE(UpdatedAt, SubmittedForApprovalAt, CreatedAt) DESC
+        COALESCE(a.UpdatedAt, a.SubmittedForApprovalAt, a.CreatedAt) DESC
     `);
 
     const approvals = result.recordset
@@ -620,25 +661,34 @@ router.get('/list/my-requests', async (req, res, next) => {
   try {
     const pool = await getPool();
     await ensureApprovalTable(pool);
+    await ensureSalesQuoteSubmissionRecordsTable(pool);
 
     const result = await pool.request()
       .input('approvalOwnerEmail', require('mssql').NVarChar(255), clientEmail)
       .query(`
         SELECT
-          Id,
-          SalesQuoteNumber,
-          CustomerName,
-          WorkDescription,
-          TotalAmount,
-          ApprovalStatus,
-          SubmittedForApprovalAt,
-          SalesDirectorActionAt,
-          ActionComment,
-          CreatedAt,
-          UpdatedAt
-        FROM SalesQuoteApprovals
-        WHERE COALESCE(ApprovalOwnerEmail, SalespersonEmail) = @approvalOwnerEmail
-        ORDER BY CreatedAt DESC
+          a.Id,
+          a.SalesQuoteNumber,
+          COALESCE(NULLIF(a.CustomerName, ''), sr.CustomerName, '') AS CustomerName,
+          a.WorkDescription,
+          a.TotalAmount,
+          a.ApprovalStatus,
+          a.SubmittedForApprovalAt,
+          a.SalesDirectorActionAt,
+          a.ActionComment,
+          a.CreatedAt,
+          a.UpdatedAt
+        FROM SalesQuoteApprovals a
+        OUTER APPLY (
+          SELECT TOP 1 NULLIF(r.CustomerName, '') AS CustomerName
+          FROM SalesQuoteSubmissionRecords r
+          WHERE r.SalesQuoteNumber = a.SalesQuoteNumber
+            AND r.SenderEmail = COALESCE(a.ApprovalOwnerEmail, a.SalespersonEmail)
+            AND NULLIF(r.CustomerName, '') IS NOT NULL
+          ORDER BY r.SubmittedAt DESC, r.Id DESC
+        ) sr
+        WHERE COALESCE(a.ApprovalOwnerEmail, a.SalespersonEmail) = @approvalOwnerEmail
+        ORDER BY a.CreatedAt DESC
       `);
 
     const approvals = result.recordset.map(mapApprovalRecord);

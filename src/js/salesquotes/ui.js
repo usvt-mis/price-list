@@ -1881,9 +1881,10 @@ export async function updateQuoteEditorModeUi() {
   }
 
   if (meta) {
-    const metaParts = [];
+    const primaryMetaParts = [];
+    const secondaryMetaParts = [];
     if (state.quote.status) {
-      metaParts.push(`Status: ${state.quote.status}`);
+      secondaryMetaParts.push({ label: 'Status', value: state.quote.status, type: 'status' });
     }
     if (approvalStatus) {
       const statusLabel = pendingRevisionRequest ? 'Approved (Revision Requested)' :
@@ -1895,13 +1896,13 @@ export async function updateQuoteEditorModeUi() {
         APPROVAL.BEING_REVISED === approvalStatus ? 'Being Revised' :
         APPROVAL.CANCELLED === approvalStatus ? 'Cancelled' :
         approvalStatus;
-      metaParts.push(`Approval: ${statusLabel}`);
+      secondaryMetaParts.push({ label: 'Approval status', value: statusLabel, type: 'approval' });
     }
     if (state.quote.customerName) {
-      metaParts.push(`Customer: ${state.quote.customerName}`);
+      primaryMetaParts.push({ label: 'Customer', value: state.quote.customerName, type: 'customer' });
     }
     if (state.quote.branch) {
-      metaParts.push(`Branch: ${state.quote.branch}`);
+      secondaryMetaParts.push({ label: 'Branch', value: state.quote.branch, type: 'branch' });
     }
     if (isSearchSalesQuoteMode) {
       const syncStatusLabel = hasUnsyncedChanges
@@ -1911,9 +1912,45 @@ export async function updateQuoteEditorModeUi() {
           : quoteSync.lastSyncedSnapshot
             ? 'Synced'
             : 'Not tracked';
-      metaParts.push(`BC Sync: ${syncStatusLabel}`);
+      secondaryMetaParts.push({
+        label: 'BC Sync',
+        value: syncStatusLabel,
+        type: hasUnsyncedChanges || quoteSync.lastSyncStatus === 'failed' ? 'sync-warning' : 'sync'
+      });
     }
-    meta.textContent = metaParts.join(' | ');
+    const getMetaTone = ({ value, type }) => {
+      const normalizedValue = String(value || '').trim().toLowerCase();
+      if (type === 'sync') {
+        return 'success';
+      }
+      if (type === 'sync-warning') {
+        return 'warning';
+      }
+      if (['open', 'approved', 'synced'].includes(normalizedValue)) {
+        return 'success';
+      }
+      if (['pending approval', 'revision requested', 'being revised', 'submitted to bc', 'unsynced changes', 'not tracked'].includes(normalizedValue)) {
+        return 'warning';
+      }
+      if (['cancelled', 'rejected', 'sync failed'].includes(normalizedValue)) {
+        return 'danger';
+      }
+      return 'neutral';
+    };
+    const renderMetaChip = (metaItem) => `
+      <span class="sq-editor-meta-chip sq-editor-meta-chip-${metaItem.type}">
+        <span class="sq-editor-meta-label">${escapeHtml(metaItem.label)}</span>
+        <span class="sq-editor-meta-value sq-editor-meta-value-${getMetaTone(metaItem)}">${escapeHtml(metaItem.value)}</span>
+      </span>
+    `;
+    meta.innerHTML = `
+      <div class="sq-editor-meta-row sq-editor-meta-row-primary">
+        ${primaryMetaParts.map(renderMetaChip).join('')}
+      </div>
+      <div class="sq-editor-meta-row sq-editor-meta-row-secondary">
+        ${secondaryMetaParts.map(renderMetaChip).join('')}
+      </div>
+    `;
     
     const commentConfig = approvalStatus === APPROVAL.REVISE
       ? {
