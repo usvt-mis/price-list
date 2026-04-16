@@ -1678,6 +1678,143 @@ export function updateLineTotalPreview() {
 // Date Picker (Flatpickr)
 // ============================================================
 
+function isFlatpickrDateValue(value) {
+  if (!value) {
+    return true;
+  }
+
+  if (value instanceof Date) {
+    return !Number.isNaN(value.getTime());
+  }
+
+  if (Array.isArray(value)) {
+    return value.every(isFlatpickrDateValue);
+  }
+
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const normalized = value.trim();
+  if (normalized === 'today') {
+    return true;
+  }
+
+  return Boolean(parseStrictIsoDateValue(normalized));
+}
+
+function parseStrictIsoDateValue(value) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
+  if (!match) {
+    return null;
+  }
+
+  const [, year, month, day] = match;
+  const parsed = new Date(`${normalized}T00:00:00`);
+  const isValidDate = !Number.isNaN(parsed.getTime())
+    && parsed.getFullYear() === Number(year)
+    && parsed.getMonth() + 1 === Number(month)
+    && parsed.getDate() === Number(day);
+
+  return isValidDate ? parsed : null;
+}
+
+function getTodayAtMidnight() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function parseHybridFlatpickrDate(input, value) {
+  if (!value) {
+    return undefined;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value;
+  }
+
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (normalized === 'today') {
+    return getTodayAtMidnight();
+  }
+
+  const parsedDate = parseStrictIsoDateValue(normalized);
+  if (parsedDate) {
+    return parsedDate;
+  }
+
+  input._hybridFreeTextPendingRestore = normalized;
+  return input._flatpickr?.selectedDates?.[0] || getTodayAtMidnight();
+}
+
+function toFlatpickrHookList(hooks) {
+  if (!hooks) {
+    return [];
+  }
+
+  return Array.isArray(hooks) ? hooks : [hooks];
+}
+
+function setupHybridDateInput(input, inputId) {
+  let lastTypedValue = input.value || '';
+  let isRestoringValue = false;
+
+  const rememberTypedValue = value => {
+    if (!isRestoringValue) {
+      lastTypedValue = value ?? input.value ?? '';
+    }
+  };
+
+  input._syncHybridDateValue = rememberTypedValue;
+
+  input.addEventListener('input', () => {
+    rememberTypedValue(input.value);
+  });
+
+  input.addEventListener('blur', () => {
+    const valueBeforeFlatpickrBlur = input._hybridFreeTextPendingRestore || lastTypedValue;
+
+    setTimeout(() => {
+      const shouldRestoreFreeText = valueBeforeFlatpickrBlur
+        && !isFlatpickrDateValue(valueBeforeFlatpickrBlur)
+        && input.value !== valueBeforeFlatpickrBlur;
+
+      if (shouldRestoreFreeText) {
+        isRestoringValue = true;
+        input.value = valueBeforeFlatpickrBlur;
+        isRestoringValue = false;
+        updateRequiredAsterisk(inputId);
+      }
+
+      if (input._hybridFreeTextPendingRestore === valueBeforeFlatpickrBlur) {
+        input._hybridFreeTextPendingRestore = '';
+      }
+
+      if (
+        valueBeforeFlatpickrBlur
+        && !isFlatpickrDateValue(valueBeforeFlatpickrBlur)
+        && document.activeElement !== input
+      ) {
+        input._flatpickr?.close();
+      }
+    }, 0);
+  }, true);
+}
+
 /**
  * Initialize Flatpickr for date input fields
  * @param {string} inputId - The ID of the input field
@@ -1687,22 +1824,82 @@ export function initFlatpickr(inputId, options = {}) {
   const input = el(inputId);
   if (!input) return;
 
+  const {
+    preserveFreeText = false,
+    ...flatpickrOptions
+  } = options;
+
+  const initialFreeTextValue = preserveFreeText && typeof flatpickrOptions.defaultDate === 'string'
+    ? flatpickrOptions.defaultDate.trim()
+    : '';
+
+  if (preserveFreeText && flatpickrOptions.defaultDate && !isFlatpickrDateValue(flatpickrOptions.defaultDate)) {
+    delete flatpickrOptions.defaultDate;
+    input.value = initialFreeTextValue;
+  }
+
+  if (input._flatpickr) {
+    input._flatpickr.destroy();
+  }
+
+  if (preserveFreeText && input.dataset.hybridDateInputBound !== 'true') {
+    setupHybridDateInput(input, inputId);
+    input.dataset.hybridDateInputBound = 'true';
+  }
+
   // Default options
   const defaultOptions = {
     dateFormat: 'Y-m-d', // Format: YYYY-MM-DD (compatible with HTML5 date)
-    disableMobile: false, // Allow native picker on mobile if preferred
+    disableMobile: preserveFreeText ? true : false, // Hybrid fields need text input on mobile too
     animate: true,
     ariaDateFormat: 'F j, Y', // Screen reader format
-    ...options
+    ...flatpickrOptions,
+    allowInput: preserveFreeText ? true : Boolean(flatpickrOptions.allowInput),
+    allowInvalidPreload: preserveFreeText ? true : Boolean(flatpickrOptions.allowInvalidPreload),
+    parseDate: preserveFreeText
+      ? (value) => parseHybridFlatpickrDate(input, value)
+      : flatpickrOptions.parseDate
   };
+
+  if (preserveFreeText && initialFreeTextValue && !isFlatpickrDateValue(initialFreeTextValue)) {
+    defaultOptions.onReady = [
+      ...toFlatpickrHookList(defaultOptions.onReady),
+      () => {
+        input.value = initialFreeTextValue;
+      }
+    ];
+  }
+
+  if (preserveFreeText) {
+    defaultOptions.onChange = [
+      ...toFlatpickrHookList(defaultOptions.onChange),
+      () => {
+        if (input._hybridFreeTextPendingRestore) {
+          const valueToRestore = input._hybridFreeTextPendingRestore;
+          setTimeout(() => {
+            if (input.value !== valueToRestore) {
+              input.value = valueToRestore;
+              updateRequiredAsterisk(inputId);
+            }
+          }, 0);
+          return;
+        }
+
+        input._syncHybridDateValue?.(input.value);
+      }
+    ];
+  }
 
   // Initialize Flatpickr
   flatpickr(input, defaultOptions);
 
   // Trigger asterisk update on value change
-  input.addEventListener('change', () => {
-    updateRequiredAsterisk(inputId);
-  });
+  if (input.dataset.requiredAsteriskListenerBound !== 'true') {
+    input.addEventListener('change', () => {
+      updateRequiredAsterisk(inputId);
+    });
+    input.dataset.requiredAsteriskListenerBound = 'true';
+  }
 }
 
 // ============================================================
@@ -1857,6 +2054,7 @@ export function populateQuoteForm(quote) {
   initFlatpickr('deliveryDate', {
     defaultDate: quote.deliveryDate || '',
     minDate: 'today',
+    preserveFreeText: true,
   });
 
   initFlatpickr('requestedDeliveryDate', {
@@ -2250,6 +2448,7 @@ export function initDateFields() {
 
   initFlatpickr('deliveryDate', {
     minDate: 'today',
+    preserveFreeText: true,
   });
 
   // Initialize Requested Delivery Date without default (only minDate restriction)
