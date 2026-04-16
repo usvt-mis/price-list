@@ -62,6 +62,21 @@ async function mockCommonRoutes(page) {
     });
   });
 
+  await page.route('**/api/business-central/payment-terms', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          Code: '30D',
+          DisplayName: '30 Days',
+          DueDateCalculation: '30D',
+          DiscountPercent: 0
+        }
+      ])
+    });
+  });
+
   await page.route('**/api/business-central/customers/C0001', async (route) => {
     await route.fulfill({
       status: 200,

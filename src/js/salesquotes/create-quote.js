@@ -104,6 +104,7 @@ const BC_SYNC_TRACKED_FIELD_IDS = new Set([
   'responsibilityCenter',
   'invoiceDiscount',
   'invoiceDiscountPercent',
+  'paymentTermsCode',
   'workStatus'
 ]);
 
@@ -193,6 +194,7 @@ function buildQuoteSyncSnapshot() {
     locationCode: formData.locationCode || '',
     responsibilityCenter: formData.responsibilityCenter || '',
     discountAmount: Number(formData.invoiceDiscount || 0),
+    paymentTermsCode: formData.paymentTermsCode || '',
     lines: state.quote.lines.map(normalizeQuoteSyncLine)
   };
 
@@ -1042,6 +1044,106 @@ const PAYMENT_TERMS_DESCRIPTION_KEYS = [
   'Description_PaymentTerms_SalesHeader'
 ];
 
+let paymentTermsCache = [];
+let paymentTermsLoaded = false;
+let paymentTermsLoadPromise = null;
+
+function normalizePaymentTermsCode(value) {
+  return String(value ?? '').trim();
+}
+
+function getPaymentTermCode(paymentTerm = {}) {
+  return normalizePaymentTermsCode(paymentTerm.Code || paymentTerm.code || paymentTerm.PaymentTermsCode);
+}
+
+function ensurePaymentTermsCodeOption(code) {
+  const select = el('paymentTermsCode');
+  const normalizedCode = normalizePaymentTermsCode(code);
+
+  if (!select || !normalizedCode) {
+    return;
+  }
+
+  const hasOption = Array.from(select.options).some(option => option.value === normalizedCode);
+  if (hasOption) {
+    return;
+  }
+
+  const option = document.createElement('option');
+  option.value = normalizedCode;
+  option.textContent = normalizedCode;
+  option.dataset.fallback = 'true';
+  select.appendChild(option);
+}
+
+function setPaymentTermsCodeFieldValue(value) {
+  const normalizedCode = normalizePaymentTermsCode(value);
+  const select = el('paymentTermsCode');
+
+  if (select) {
+    ensurePaymentTermsCodeOption(normalizedCode);
+    select.value = normalizedCode;
+  }
+
+  state.quote.paymentTermsCode = normalizedCode;
+}
+
+function renderPaymentTermsOptions(selectedCode = el('paymentTermsCode')?.value || state.quote.paymentTermsCode || '') {
+  const select = el('paymentTermsCode');
+  if (!select) {
+    return;
+  }
+
+  const normalizedSelectedCode = normalizePaymentTermsCode(selectedCode);
+  const seenCodes = new Set();
+  const optionsHtml = [
+    '<option value=""></option>'
+  ];
+
+  paymentTermsCache.forEach(paymentTerm => {
+    const code = getPaymentTermCode(paymentTerm);
+    if (!code || seenCodes.has(code)) {
+      return;
+    }
+
+    seenCodes.add(code);
+    const selectedAttr = code === normalizedSelectedCode ? ' selected' : '';
+    optionsHtml.push(`<option value="${escapeHtml(code)}"${selectedAttr}>${escapeHtml(code)}</option>`);
+  });
+
+  select.innerHTML = optionsHtml.join('');
+  ensurePaymentTermsCodeOption(normalizedSelectedCode);
+  select.value = normalizedSelectedCode;
+}
+
+async function loadPaymentTermsOptions() {
+  if (paymentTermsLoadPromise) {
+    return paymentTermsLoadPromise;
+  }
+
+  paymentTermsLoadPromise = (async () => {
+    try {
+      const response = await fetch('/api/business-central/payment-terms');
+      if (!response.ok) {
+        throw new Error(`Payment terms lookup failed with HTTP ${response.status}`);
+      }
+
+      const paymentTerms = await response.json();
+      paymentTermsCache = Array.isArray(paymentTerms) ? paymentTerms : [];
+      paymentTermsLoaded = true;
+      renderPaymentTermsOptions();
+    } catch (error) {
+      paymentTermsLoaded = false;
+      console.warn('Unable to load payment terms from local database:', error);
+      ensurePaymentTermsCodeOption(el('paymentTermsCode')?.value || state.quote.paymentTermsCode || '');
+    } finally {
+      paymentTermsLoadPromise = null;
+    }
+  })();
+
+  return paymentTermsLoadPromise;
+}
+
 function normalizeRecordCollection(value) {
   if (Array.isArray(value)) {
     return value.filter(item => item && typeof item === 'object');
@@ -1148,7 +1250,7 @@ function buildSearchQuoteReportContext(data, resolvedSalespersonName, sourceCont
     shipmentDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['shipmentDate', 'ShipmentDate_SalesHeader'], '')),
     quoteValidUntilDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['quoteValidUntilDate', 'quoteValidDate', 'QuoteValidDate_SalesHeader', 'Quote_Valid_Until_Date'], '')),
     requestedDeliveryDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['requestedDeliveryDate', 'RequestedDeliveryDate_SalesHeader'], '')),
-    paymentTermsCode: pickSourceValueFromSources(headerSources, ['paymentTermsCode'], ''),
+    paymentTermsCode: pickSourceValueFromSources(headerSources, PAYMENT_TERMS_CODE_KEYS, ''),
     paymentTermsDescription: pickSourceValueFromSources(headerSources, PAYMENT_TERMS_DESCRIPTION_KEYS, ''),
     paymentMethodDescription: pickSourceValueFromSources(headerSources, ['paymentMethodDescription', 'descriptionPaymentMethod', 'Description_PaymentMethod'], ''),
     shipMethodDescription: pickSourceValueFromSources(headerSources, ['shipMethodDescription', 'descriptionShipMethod', 'Description_ShipMethod'], ''),
@@ -1912,6 +2014,7 @@ async function applySearchedSalesQuote(payload) {
   resetDropdownValidationState();
   state.quote = editableQuote;
   enforceGroupPrintFlagUniqueness();
+  ensurePaymentTermsCodeOption(editableQuote.paymentTermsCode || editableQuote.reportContext?.paymentTermsCode || '');
   populateQuoteForm(editableQuote);
   renderQuoteLines();
   renderTotals();
@@ -1968,6 +2071,9 @@ export async function loadInitialData() {
 
     // Initialize branch fields
     await initializeBranchFields();
+
+    // Load editable Payment Terms Code dropdown. Failure is non-blocking.
+    await loadPaymentTermsOptions();
 
   } catch (error) {
     console.error('Failed to initialize:', error);
@@ -2088,10 +2194,7 @@ export function selectCustomerFromLocal(customer) {
   if (el('customerName')) {
     el('customerName').value = customer.CustomerName;
   }
-  if (el('paymentTermsCode')) {
-    el('paymentTermsCode').value = getCustomerPaymentTermsCode(customer);
-  }
-  state.quote.paymentTermsCode = getCustomerPaymentTermsCode(customer);
+  setPaymentTermsCodeFieldValue(getCustomerPaymentTermsCode(customer));
   setFieldValue('sellToAddress', customer.Address || '');
   setFieldValue('sellToAddress2', customer.Address2 || '');
   setFieldValue('sellToCity', customer.City || '');
@@ -3434,6 +3537,7 @@ async function sendQuoteToAzureFunction(quoteData) {
   // Get invoice discount from DOM
   const invoiceDiscountElement = document.getElementById('invoiceDiscount');
   const discountAmount = parseFloat(invoiceDiscountElement?.value) || 0;
+  const paymentTermsCode = normalizePaymentTermsCode(quoteData.paymentTermsCode);
 
   // Transform line items to API format
   const lineItems = state.quote.lines.map(buildGatewayQuoteLineItem);
@@ -3454,6 +3558,8 @@ async function sendQuoteToAzureFunction(quoteData) {
     orderDate: quoteData.orderDate || '',
     usvtDeliveryDate: quoteData.deliveryDate || '',
     requestedDeliveryDate: quoteData.requestedDeliveryDate || '',
+    paymentTermsCode,
+    paymentTermCode: paymentTermsCode,
     lineItems: lineItems
   };
 
@@ -3502,6 +3608,7 @@ async function updateQuoteInAzureFunction(quoteData) {
   const salesQuoteId = state.quote.id || quoteData.quoteId || '';
   const salesQuoteNumber = state.quote.number || quoteData.quoteNumber || '';
   const quoteEtag = state.quote.etag || quoteData.quoteEtag || '';
+  const paymentTermsCode = normalizePaymentTermsCode(quoteData.paymentTermsCode);
 
   if (!salesQuoteId && !salesQuoteNumber) {
     throw new Error('Sales Quote identifier is missing. Please search for the quote again before updating.');
@@ -3532,6 +3639,8 @@ async function updateQuoteInAzureFunction(quoteData) {
     usvtDeliveryDate: quoteData.deliveryDate || '',
     orderDate: quoteData.orderDate || '',
     requestedDeliveryDate: quoteData.requestedDeliveryDate || '',
+    paymentTermsCode,
+    paymentTermCode: paymentTermsCode,
     workDescription: quoteData.workDescription || '',
     discountAmount,
     workStatus: quoteData.workStatus || '',
@@ -5014,7 +5123,7 @@ export function setupEventListeners() {
         customerNoSearch.value = '';
         // Clear related fields
         if (el('customerName')) el('customerName').value = '';
-        if (el('paymentTermsCode')) el('paymentTermsCode').value = '';
+        setPaymentTermsCodeFieldValue('');
         setFieldValue('sellToAddress', '');
         setFieldValue('sellToAddress2', '');
         setFieldValue('sellToCity', '');
@@ -5026,7 +5135,6 @@ export function setupEventListeners() {
         state.quote.customerId = null;
         state.quote.customerNo = null;
         state.quote.customerName = null;
-        state.quote.paymentTermsCode = '';
         state.quote.sellTo = {
           address: null,
           address2: null,
@@ -5155,6 +5263,18 @@ export function setupEventListeners() {
 
   // VAT rate changes (update totals)
   el('vatRate')?.addEventListener('input', renderTotals);
+
+  const paymentTermsCode = el('paymentTermsCode');
+  paymentTermsCode?.addEventListener('focus', () => {
+    if (!paymentTermsLoaded && !paymentTermsLoadPromise) {
+      void loadPaymentTermsOptions();
+    }
+  });
+  paymentTermsCode?.addEventListener('change', () => {
+    state.quote.paymentTermsCode = normalizePaymentTermsCode(paymentTermsCode.value);
+    saveState();
+    refreshQuoteSyncState();
+  });
 
   const handleTrackedBcSyncFieldChange = (event) => {
     if (!BC_SYNC_TRACKED_FIELD_IDS.has(event.target?.id)) {

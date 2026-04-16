@@ -357,6 +357,7 @@ export function sanitizeQuoteData(quote) {
   return {
     ...quote,
     workStatus: sanitizeText(quote.workStatus),
+    paymentTermsCode: sanitizeText(quote.paymentTermsCode),
     deliveryDate: sanitizeText(quote.deliveryDate),
     orderDate: sanitizeText(quote.orderDate),
     requestedDeliveryDate: sanitizeText(quote.requestedDeliveryDate),

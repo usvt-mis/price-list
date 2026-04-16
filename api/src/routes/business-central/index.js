@@ -38,4 +38,7 @@ router.use('/salespeople', require('./salespeople'));
 // Assigned user search endpoints (local database)
 router.use('/assigned-users', require('./assigned-users'));
 
+// Payment terms endpoints (local database)
+router.use('/payment-terms', require('./payment-terms'));
+
 module.exports = router;

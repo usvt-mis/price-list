@@ -232,6 +232,26 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+function setSelectValuePreservingUnknown(select, value) {
+  if (!select) {
+    return;
+  }
+
+  const nextValue = String(value ?? '').trim();
+  if (select.tagName === 'SELECT' && nextValue) {
+    const hasOption = Array.from(select.options).some(option => option.value === nextValue);
+    if (!hasOption) {
+      const option = document.createElement('option');
+      option.value = nextValue;
+      option.textContent = nextValue;
+      option.dataset.fallback = 'true';
+      select.appendChild(option);
+    }
+  }
+
+  select.value = nextValue;
+}
+
 // ============================================================
 // Format Helpers
 // ============================================================
@@ -538,7 +558,7 @@ export function clearCustomerSelection() {
   if (searchInput) searchInput.value = '';
   if (customerNoSearch) customerNoSearch.value = '';
   if (customerName) customerName.value = '';
-  if (paymentTermsCode) paymentTermsCode.value = '';
+  setSelectValuePreservingUnknown(paymentTermsCode, '');
   if (display) display.classList.add('hidden');
   if (sellToSection) sellToSection.classList.add('hidden');
 
@@ -762,6 +782,7 @@ function updateQuoteEditorFormLockState(locked, title, { allowWorkStatusOnly = f
     'deliveryDate',
     'orderDate',
     'requestedDeliveryDate',
+    'paymentTermsCode',
     'contact',
     'yourReference',
     'salesPhoneNo',
@@ -1995,7 +2016,7 @@ export function getQuoteFormData() {
 export function populateQuoteForm(quote) {
   if (el('customerNoSearch')) el('customerNoSearch').value = quote.customerNo || '';
   if (el('customerName')) el('customerName').value = quote.customerName || '';
-  if (el('paymentTermsCode')) el('paymentTermsCode').value = quote.paymentTermsCode || quote.reportContext?.paymentTermsCode || '';
+  setSelectValuePreservingUnknown(el('paymentTermsCode'), quote.paymentTermsCode || quote.reportContext?.paymentTermsCode || '');
   if (el('workStatus')) el('workStatus').value = quote.workStatus || '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = quote.workDescription || '';
   if (el('quoteRemark')) el('quoteRemark').value = quote.remark || '';
@@ -2083,7 +2104,7 @@ export function clearQuoteForm() {
   if (el('customerSearch')) el('customerSearch').value = '';
   if (el('customerNoSearch')) el('customerNoSearch').value = '';
   if (el('customerName')) el('customerName').value = '';
-  if (el('paymentTermsCode')) el('paymentTermsCode').value = '';
+  setSelectValuePreservingUnknown(el('paymentTermsCode'), '');
   if (el('workStatus')) el('workStatus').value = '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = '';
   if (el('quoteRemark')) el('quoteRemark').value = '';
