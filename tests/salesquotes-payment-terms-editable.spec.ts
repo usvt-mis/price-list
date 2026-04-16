@@ -25,7 +25,22 @@ const PAYMENT_TERMS = [
   }
 ];
 
-async function mockCommonRoutes(page) {
+const DEFAULT_CUSTOMER = {
+  CustomerNo: 'C0001',
+  CustomerName: 'ACME Industries',
+  PaymentTermsCode: '30D',
+  Address: '99 Test Road',
+  Address2: '',
+  City: 'Rayong',
+  PostCode: '21000',
+  VATRegistrationNo: '1234567890123',
+  TaxBranchNo: '00000'
+};
+
+async function mockCommonRoutes(page, {
+  paymentTerms = PAYMENT_TERMS,
+  customer = DEFAULT_CUSTOMER
+} = {}) {
   await page.route('**/api/auth/me', async (route) => {
     await route.fulfill({
       status: 200,
@@ -80,7 +95,7 @@ async function mockCommonRoutes(page) {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(PAYMENT_TERMS)
+      body: JSON.stringify(paymentTerms)
     });
   });
 
@@ -96,19 +111,7 @@ async function mockCommonRoutes(page) {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify([
-        {
-          CustomerNo: 'C0001',
-          CustomerName: 'ACME Industries',
-          PaymentTermsCode: '30D',
-          Address: '99 Test Road',
-          Address2: '',
-          City: 'Rayong',
-          PostCode: '21000',
-          VATRegistrationNo: '1234567890123',
-          TaxBranchNo: '00000'
-        }
-      ])
+      body: JSON.stringify([customer])
     });
   });
 
@@ -116,17 +119,7 @@ async function mockCommonRoutes(page) {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({
-        CustomerNo: 'C0001',
-        CustomerName: 'ACME Industries',
-        PaymentTermsCode: '30D',
-        Address: '99 Test Road',
-        Address2: '',
-        City: 'Rayong',
-        PostCode: '21000',
-        VATRegistrationNo: '1234567890123',
-        TaxBranchNo: '00000'
-      })
+      body: JSON.stringify(customer)
     });
   });
 
@@ -204,6 +197,7 @@ test('payment terms dropdown auto-fills from customer and create payload uses ed
   await page.fill('#customerNoSearch', 'C0');
   await page.locator('#customerNoDropdown .customer-dropdown-item').first().click();
   await expect(page.locator('#paymentTermsCode')).toHaveValue('30D');
+  await expect(page.locator('#paymentTermsCode')).toBeEnabled();
 
   await page.selectOption('#paymentTermsCode', '45D');
   await expect(page.locator('#paymentTermsCode')).toHaveValue('45D');
@@ -212,6 +206,46 @@ test('payment terms dropdown auto-fills from customer and create payload uses ed
 
   await expect.poll(() => createPayload?.paymentTermsCode).toBe('45D');
   expect(createPayload?.paymentTermCode).toBe('45D');
+});
+
+test('payment terms dropdown auto-fills from supported customer payment term aliases', async ({ page }) => {
+  await mockCommonRoutes(page, {
+    customer: {
+      ...DEFAULT_CUSTOMER,
+      PaymentTermsCode: undefined,
+      PaymentTermCode: '45D'
+    }
+  });
+
+  await openSalesQuotes(page);
+
+  await page.fill('#customerNoSearch', 'C0');
+  await page.locator('#customerNoDropdown .customer-dropdown-item').first().click();
+
+  await expect(page.locator('#paymentTermsCode')).toHaveValue('45D');
+  await expect(page.locator('#paymentTermsCode')).toBeEnabled();
+});
+
+test('payment terms dropdown inserts fallback option when customer term is not in lookup list', async ({ page }) => {
+  await mockCommonRoutes(page, {
+    customer: {
+      ...DEFAULT_CUSTOMER,
+      PaymentTermsCode: undefined,
+      Payment_Terms_Code: 'COD'
+    }
+  });
+
+  await openSalesQuotes(page);
+
+  await expect(page.locator('#paymentTermsCode option[value="COD"]')).toHaveCount(0);
+
+  await page.fill('#customerNoSearch', 'C0');
+  await page.locator('#customerNoDropdown .customer-dropdown-item').first().click();
+
+  await expect(page.locator('#paymentTermsCode option[value="COD"]')).toHaveText('COD');
+  await expect(page.locator('#paymentTermsCode')).toHaveValue('COD');
+  await page.selectOption('#paymentTermsCode', '45D');
+  await expect(page.locator('#paymentTermsCode')).toHaveValue('45D');
 });
 
 test('searched quote update payload uses edited payment terms value', async ({ page }) => {

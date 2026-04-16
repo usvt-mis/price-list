@@ -174,6 +174,35 @@ export const STORAGE_KEYS = {
   BC_CONFIG: 'bc_config'
 };
 
+const CUSTOMER_PAYMENT_TERMS_CODE_KEYS = [
+  'PaymentTermsCode',
+  'PaymentTermCode',
+  'Payment_Terms_Code',
+  'Payment_Term_Code',
+  'paymentTermsCode',
+  'paymentTermCode',
+  'payment_Terms_Code',
+  'payment_Term_Code',
+  'payment_terms_code',
+  'payment_term_code'
+];
+
+function normalizePaymentTermsCode(value) {
+  return String(value ?? '').trim();
+}
+
+export function getCustomerPaymentTermsCode(customer = {}) {
+  for (const key of CUSTOMER_PAYMENT_TERMS_CODE_KEYS) {
+    const value = customer?.[key];
+    const normalizedValue = normalizePaymentTermsCode(value);
+    if (normalizedValue) {
+      return normalizedValue;
+    }
+  }
+
+  return '';
+}
+
 // ============================================================
 // State Persistence
 // ============================================================
@@ -292,7 +321,7 @@ export function setQuoteCustomer(customer) {
   };
   state.quote.customerNo = customer.CustomerNo;
   state.quote.customerName = customer.CustomerName;
-  state.quote.paymentTermsCode = customer.PaymentTermsCode || customer.Payment_Terms_Code || '';
+  state.quote.paymentTermsCode = getCustomerPaymentTermsCode(customer);
   state.quote.sellTo = {
     address: customer.Address || null,
     address2: customer.Address2 || null,

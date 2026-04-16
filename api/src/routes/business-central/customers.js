@@ -14,7 +14,7 @@ const logger = require('../../utils/logger');
 let cachedPaymentTermsColumn = undefined;
 
 async function getPaymentTermsColumn(pool) {
-  if (cachedPaymentTermsColumn !== undefined) {
+  if (cachedPaymentTermsColumn) {
     return cachedPaymentTermsColumn;
   }
 
@@ -32,8 +32,10 @@ async function getPaymentTermsColumn(pool) {
     END
   `);
 
-  cachedPaymentTermsColumn = result.recordset[0]?.name || null;
-  return cachedPaymentTermsColumn;
+  // Cache only a detected column. If the migration runs while the server is up,
+  // a previous "not found" result should not hide PaymentTermsCode until restart.
+  cachedPaymentTermsColumn = result.recordset[0]?.name || undefined;
+  return cachedPaymentTermsColumn || null;
 }
 
 function getPaymentTermsSelect(columnName) {

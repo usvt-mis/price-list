@@ -35,8 +35,8 @@
       --calm-sla-bg-start: rgba(245, 249, 252, 0.98);
       --calm-sla-bg-end: rgba(233, 241, 248, 0.98);
       --timeboard-sticky-sq-width: 0px;
-      --timeboard-col-sq-width: 170px;
-      --timeboard-col-sv-width: 170px;
+      --timeboard-col-sq-width: 140px;
+      --timeboard-col-sv-width: 140px;
       --timeboard-col-inspection-width: 160px;
       --timeboard-col-price-request-width: 150px;
       --timeboard-col-price-report-width: 150px;
@@ -52,7 +52,7 @@
       --timeboard-col-sh-record-width: 160px;
       --timeboard-col-st-width: 160px;
       --timeboard-col-posted-st-width: 170px;
-      --timeboard-col-expected-width: 190px;
+      --timeboard-col-expected-width: 150px;
       --font-sans: "IBM Plex Sans", "Segoe UI", "Noto Sans Thai", system-ui, sans-serif;
       --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
       --ops-shell-bg: #edf3f2;
@@ -161,6 +161,11 @@
       padding-top: 12px;
       padding-bottom: 10px;
       border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .timeboard-expected-title-line {
+      display: block;
+      white-space: nowrap;
     }
 
     .calm-table thead tr.timeboard-header-sla-row th {
@@ -1778,7 +1783,10 @@
               <th data-column-key="shRecord" data-department="planner" class="col-equal col-head-doc col-merged-doc">SH Record</th>
               <th data-column-key="st" class="col-equal col-head-doc col-merged-doc">ST</th>
               <th data-column-key="postedSt" class="col-equal col-head-doc col-merged-doc">Posted ST</th>
-              <th data-column-key="expectedDeliveryDate" class="col-equal col-head-date col-sticky-expected">Expected Delivery Date</th>
+              <th data-column-key="expectedDeliveryDate" class="col-equal col-head-date col-sticky-expected">
+                <span class="timeboard-expected-title-line">Expected</span>
+                <span class="timeboard-expected-title-line">Delivery Date</span>
+              </th>
             </tr>
             <tr class="timeboard-header-sla-row">
               <th data-column-key="sq" data-department="salesperson" class="col-equal col-head-doc col-merged-doc col-sticky-sq">0m</th>

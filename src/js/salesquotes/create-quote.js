@@ -3,7 +3,7 @@
  * Handles quote creation, line management, and BC API integration
  */
 
-import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState, calculateTotals, initNewQuote, resetDropdownValidationState } from './state.js';
+import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines, setQuoteCustomer, saveState, calculateTotals, initNewQuote, resetDropdownValidationState, getCustomerPaymentTermsCode } from './state.js';
 import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
@@ -1743,10 +1743,6 @@ function buildCustomerDisplayModel(customerRecord, fallbackCustomerNo, fallbackC
   };
 }
 
-function getCustomerPaymentTermsCode(customerRecord = {}) {
-  return pickSourceValue(customerRecord, PAYMENT_TERMS_CODE_KEYS, '');
-}
-
 function mapBcLineToEditorLine(line, index) {
   const existingLineId = line?.id || line?.bcId || null;
   const normalizedQuantity = parseFloat(line?.quantity ?? line?.Quantity ?? line?.qty ?? line?.Qty_SaleLine);
@@ -2195,6 +2191,7 @@ export function selectCustomerFromLocal(customer) {
     el('customerName').value = customer.CustomerName;
   }
   setPaymentTermsCodeFieldValue(getCustomerPaymentTermsCode(customer));
+  saveState();
   setFieldValue('sellToAddress', customer.Address || '');
   setFieldValue('sellToAddress2', customer.Address2 || '');
   setFieldValue('sellToCity', customer.City || '');
