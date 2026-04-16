@@ -172,6 +172,7 @@ test('sales director approval preview calculates commission from remote BC previ
           serviceType: 'Overhaul',
           motorKw: 7.5,
           motorDriveType: 'AC',
+          quoteBeforeInspection: true,
           jobs: [
             { jobCode: 'J001', jobName: 'Strip & inspect', effectiveManHours: 2, isChecked: true },
             { jobCode: 'J002', jobName: 'Assemble', effectiveManHours: 1, isChecked: true }
@@ -218,6 +219,16 @@ test('sales director approval preview calculates commission from remote BC previ
   await expect(page.locator('#approvalPreviewContent')).toContainText('2.50%');
   await expect(page.locator('#approvalPreviewContent')).toContainText('Commission Amount');
   await expect(page.locator('#approvalPreviewContent')).toContainText('29.90');
+  await expect(page.locator('.approval-preview-inspection-alert')).toBeVisible();
+  await expect(page.locator('.approval-preview-inspection-alert')).toContainText('เสนอราคาก่อน Inspection');
+  await expect(page.locator('.approval-preview-inspection-alert')).toContainText('SER0001');
+  await expect(page.locator('.approval-preview-inspection-badge')).toBeVisible();
+  await expect(page.locator('#approvalPreviewContent input')).toHaveCount(0);
+
+  await page.locator('[data-action="open-approval-joblist"][data-service-item-no="SER0001"]').click();
+  await expect(page.locator('#approvalJobListModalInspectionAlert')).toBeVisible();
+  await expect(page.locator('#approvalJobListModalInspectionAlert')).toContainText('เสนอราคาก่อน Inspection');
+  await expect(page.locator('#approvalJobListModalInspectionAlert input')).toHaveCount(0);
   await expectCommissionNoteLayout(page);
 });
 

@@ -22,6 +22,7 @@ const ONSITE_OPTION_LABELS = {
   onsiteFourPeopleEnabled: 'ใช้ 4 ผู้',
   onsiteSafetyEnabled: 'ใช้ Safety'
 };
+const OVERSIZE_MOTOR_KW_THRESHOLD = 315;
 const OVERHAUL_JOB_PATTERNS = [
   'overhaul',
   'overhaul (dc)', 'overhaul(dc)',
@@ -85,7 +86,8 @@ const modalState = {
     siteAccess: 'easy',
     onsiteCraneEnabled: false,
     onsiteFourPeopleEnabled: false,
-    onsiteSafetyEnabled: false
+    onsiteSafetyEnabled: false,
+    quoteBeforeInspection: false
   }
 };
 
@@ -156,6 +158,19 @@ function normalizeOnsiteSelections(snapshot = {}, fallback = null) {
 
 function getRepairModeConfig(repairMode = modalState.snapshot.repairMode) {
   return REPAIR_MODE_CONFIGS[normalizeRepairMode(repairMode)] || REPAIR_MODE_CONFIGS.Workshop;
+}
+
+function isOversizeMotorSnapshot(snapshot = modalState.snapshot) {
+  const motorKw = Number.parseFloat(snapshot?.motorKw);
+  return String(snapshot?.workType || '').trim() === 'Motor'
+    && Number.isFinite(motorKw)
+    && motorKw > OVERSIZE_MOTOR_KW_THRESHOLD;
+}
+
+function isOversizeWorkshopSnapshot(snapshot = modalState.snapshot) {
+  return isOversizeMotorSnapshot(snapshot)
+    && normalizeRepairMode(snapshot?.repairMode) === 'Workshop'
+    && !normalizeOnsiteBoolean(snapshot?.quoteBeforeInspection, false);
 }
 
 function formatManHoursValue(value) {
@@ -319,6 +334,50 @@ function resolveMotorTypeId(motorKw, motorDriveType) {
   return exactMatches[0].motorType;
 }
 
+function resolveLargestMotorType(motorDriveType) {
+  const normalizedDriveType = normalizeDriveType(motorDriveType);
+  const candidates = modalState.motorTypes
+    .map((motorType) => {
+      const range = parseMotorTypeRange(motorType.MotorTypeName);
+      const driveMatches = getMotorTypeDriveMatches(motorType.MotorTypeName);
+      const maxKw = range && Number.isFinite(range.max) ? range.max : null;
+
+      return {
+        motorType,
+        maxKw,
+        driveMatches,
+        exactDrive: driveMatches.includes(normalizedDriveType),
+        neutralDrive: driveMatches.length === 0
+      };
+    })
+    .filter((candidate) => Number.isFinite(candidate.maxKw));
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const driveCompatibleCandidates = candidates.filter((candidate) => candidate.exactDrive || candidate.neutralDrive);
+  const sortableCandidates = driveCompatibleCandidates.length > 0 ? driveCompatibleCandidates : candidates;
+
+  sortableCandidates.sort((left, right) => {
+    if (left.maxKw !== right.maxKw) {
+      return right.maxKw - left.maxKw;
+    }
+
+    if (left.exactDrive !== right.exactDrive) {
+      return left.exactDrive ? -1 : 1;
+    }
+
+    if (left.neutralDrive !== right.neutralDrive) {
+      return left.neutralDrive ? -1 : 1;
+    }
+
+    return String(left.motorType.MotorTypeName).localeCompare(String(right.motorType.MotorTypeName));
+  });
+
+  return sortableCandidates[0].motorType;
+}
+
 function applyJobsByServiceType(serviceType) {
   if (!Array.isArray(modalState.jobs) || modalState.jobs.length === 0) {
     return;
@@ -377,12 +436,13 @@ function setLaborStatus(message, tone = 'muted') {
       : 'text-sm text-slate-500';
 }
 
-function requiresPositiveManhours(repairMode = modalState.snapshot.repairMode) {
-  return getRepairModeConfig(repairMode).requiresPositiveManhours;
+function requiresPositiveManhours(repairMode = modalState.snapshot.repairMode, snapshot = modalState.snapshot) {
+  return getRepairModeConfig(repairMode).requiresPositiveManhours
+    || isOversizeWorkshopSnapshot({ ...snapshot, repairMode });
 }
 
-function hasMissingRequiredManhours(job, repairMode = modalState.snapshot.repairMode) {
-  if (!requiresPositiveManhours(repairMode) || job?.checked === false) {
+function hasMissingRequiredManhours(job, repairMode = modalState.snapshot.repairMode, snapshot = modalState.snapshot) {
+  if (!requiresPositiveManhours(repairMode, snapshot) || job?.checked === false) {
     return false;
   }
 
@@ -605,6 +665,7 @@ async function loadJobsForResolvedMotorType() {
   const { resolvedMotorTypeId, snapshot } = modalState;
   const repairMode = normalizeRepairMode(snapshot.repairMode);
   const config = getRepairModeConfig(repairMode);
+  const oversizeWorkshop = isOversizeWorkshopSnapshot(snapshot);
 
   if (!resolvedMotorTypeId) {
     modalState.jobs = [];
@@ -613,7 +674,7 @@ async function loadJobsForResolvedMotorType() {
     return;
   }
 
-  const loadKey = `${repairMode}:${resolvedMotorTypeId}:${snapshot.motorDriveType}`;
+  const loadKey = `${repairMode}:${resolvedMotorTypeId}:${snapshot.motorDriveType}:${oversizeWorkshop ? 'oversize' : 'standard'}`;
   if (modalState.lastLoadedKey === loadKey) {
     return;
   }
@@ -646,10 +707,11 @@ async function loadJobsForResolvedMotorType() {
     modalState.jobs = Array.isArray(jobs)
       ? jobs.map((job) => {
         const defaultChecked = shouldMotorJobBeCheckedByDefault(job.JobName, motorJobDefaults);
-        const defaultManHours = Number(job.ManHours || 0);
+        const defaultManHours = oversizeWorkshop ? 0 : Number(job.ManHours || 0);
 
         return {
           ...job,
+          ManHours: defaultManHours,
           checked: defaultChecked,
           effectiveManHours: defaultManHours
         };
@@ -744,7 +806,8 @@ export function resetConfirmNewSerLaborProfile() {
     siteAccess: 'easy',
     onsiteCraneEnabled: false,
     onsiteFourPeopleEnabled: false,
-    onsiteSafetyEnabled: false
+    onsiteSafetyEnabled: false,
+    quoteBeforeInspection: false
   };
   syncLockedBranch();
   setLaborStatus(REPAIR_MODE_CONFIGS.Workshop.statusPrompt);
@@ -757,15 +820,27 @@ export async function syncConfirmNewSerLaborProfile(snapshot, { forceReload = fa
   const currentOnsiteSelections = getCurrentOnsiteSelections();
 
   modalState.snapshot = {
-    repairMode: normalizeRepairMode(snapshot?.repairMode),
+    repairMode: normalizeOnsiteBoolean(snapshot?.quoteBeforeInspection, false)
+      ? 'Workshop'
+      : normalizeRepairMode(snapshot?.repairMode),
     workType: String(snapshot?.workType || '').trim() || 'Motor',
     serviceType: String(snapshot?.serviceType || '').trim() || 'Overhaul',
     motorKw: String(snapshot?.motorKw || '').trim(),
     motorDriveType: snapshot?.motorIsDc ? 'DC' : 'AC',
-    ...normalizeOnsiteSelections(snapshot, currentOnsiteSelections)
+    ...normalizeOnsiteSelections(snapshot, currentOnsiteSelections),
+    quoteBeforeInspection: normalizeOnsiteBoolean(snapshot?.quoteBeforeInspection, false)
   };
 
   const config = getRepairModeConfig();
+
+  if (modalState.snapshot.quoteBeforeInspection) {
+    setResolvedMotorType(null);
+    modalState.jobs = [];
+    modalState.lastLoadedKey = '';
+    setLaborStatus('Job list is not required before Inspection.');
+    renderJobsTable();
+    return;
+  }
 
   if (modalState.snapshot.workType !== 'Motor') {
     setResolvedMotorType(null);
@@ -786,12 +861,20 @@ export async function syncConfirmNewSerLaborProfile(snapshot, { forceReload = fa
     return;
   }
 
-  const resolvedMotorType = resolveMotorTypeId(motorKw, modalState.snapshot.motorDriveType);
+  const oversizeWorkshop = isOversizeWorkshopSnapshot();
+  const resolvedMotorType = oversizeWorkshop
+    ? resolveLargestMotorType(modalState.snapshot.motorDriveType)
+    : resolveMotorTypeId(motorKw, modalState.snapshot.motorDriveType);
   if (!resolvedMotorType) {
     setResolvedMotorType(null);
     modalState.jobs = [];
     modalState.lastLoadedKey = '';
-    setLaborStatus(`No ${modalState.snapshot.motorDriveType} motor type matched ${modalState.snapshot.motorKw} kW.`, 'error');
+    setLaborStatus(
+      oversizeWorkshop
+        ? `No ${modalState.snapshot.motorDriveType} largest motor type template was available.`
+        : `No ${modalState.snapshot.motorDriveType} motor type matched ${modalState.snapshot.motorKw} kW.`,
+      'error'
+    );
     renderJobsTable();
     return;
   }
@@ -807,11 +890,17 @@ export async function syncConfirmNewSerLaborProfile(snapshot, { forceReload = fa
     applyJobsByServiceType(modalState.snapshot.serviceType);
   }
   sortJobsByCheckedState();
-  setLaborStatus(config.statusReady);
+  setLaborStatus(oversizeWorkshop
+    ? 'Workshop job list loaded from the largest motor size. Enter manhours for every checked job.'
+    : config.statusReady);
   renderJobsTable();
 }
 
 export function getConfirmNewSerLaborValidation(snapshot) {
+  if (normalizeOnsiteBoolean(snapshot?.quoteBeforeInspection, false)) {
+    return null;
+  }
+
   const repairMode = normalizeRepairMode(snapshot?.repairMode);
   const config = getRepairModeConfig(repairMode);
 
@@ -825,9 +914,18 @@ export function getConfirmNewSerLaborValidation(snapshot) {
     };
   }
 
+  const validationSnapshot = {
+    ...modalState.snapshot,
+    ...snapshot,
+    repairMode
+  };
+  const oversizeWorkshop = isOversizeWorkshopSnapshot(validationSnapshot);
+
   if (!modalState.resolvedMotorTypeId) {
     return {
-      message: 'No motor type matched this motor kW. Please adjust the kW value.',
+      message: oversizeWorkshop
+        ? 'No largest motor type template was available for this oversize motor.'
+        : 'No motor type matched this motor kW. Please adjust the kW value.',
       focusElement: el('confirmNewSerMotorKw')
     };
   }
@@ -839,19 +937,23 @@ export function getConfirmNewSerLaborValidation(snapshot) {
     };
   }
 
-  if (requiresPositiveManhours(repairMode)) {
+  if (requiresPositiveManhours(repairMode, validationSnapshot)) {
     const checkedJobs = modalState.jobs.filter((job) => job.checked !== false);
     if (checkedJobs.length === 0) {
       return {
-        message: 'Please select at least one onsite job before creating the Service Item.',
+        message: oversizeWorkshop
+          ? 'Please select at least one workshop job before creating the Service Item.'
+          : 'Please select at least one onsite job before creating the Service Item.',
         focusElement: el('confirmNewSerSelectAllJobs')
       };
     }
 
-    const missingIndex = modalState.jobs.findIndex((job) => hasMissingRequiredManhours(job, repairMode));
+    const missingIndex = modalState.jobs.findIndex((job) => hasMissingRequiredManhours(job, repairMode, validationSnapshot));
     if (missingIndex !== -1) {
       return {
-        message: 'Onsite requires manhours greater than 0 for every checked job.',
+        message: oversizeWorkshop
+          ? 'Oversize workshop jobs require manhours greater than 0 for every checked job.'
+          : 'Onsite requires manhours greater than 0 for every checked job.',
         focusElement: document.querySelector(`[data-confirm-ser-job-mh="${missingIndex}"]`)
       };
     }
@@ -862,6 +964,10 @@ export function getConfirmNewSerLaborValidation(snapshot) {
 
 function applyLaborProfileToModalState(profile, snapshot) {
   const currentOnsiteSelections = getCurrentOnsiteSelections();
+  const quoteBeforeInspection = normalizeOnsiteBoolean(
+    profile?.quoteBeforeInspection,
+    normalizeOnsiteBoolean(snapshot?.quoteBeforeInspection, false)
+  );
   const normalizedJobs = Array.isArray(profile?.jobs)
     ? profile.jobs.map((job, index) => ({
       JobId: Number(job.jobId || 0),
@@ -875,18 +981,21 @@ function applyLaborProfileToModalState(profile, snapshot) {
     : [];
 
   modalState.snapshot = {
-    repairMode: normalizeRepairMode(profile?.repairMode || snapshot?.repairMode),
+    repairMode: quoteBeforeInspection
+      ? 'Workshop'
+      : normalizeRepairMode(profile?.repairMode || snapshot?.repairMode),
     workType: String(profile?.workType || snapshot?.workType || '').trim() || 'Motor',
     serviceType: String(profile?.serviceType || snapshot?.serviceType || '').trim() || 'Overhaul',
     motorKw: profile?.motorKw === null || profile?.motorKw === undefined
       ? String(snapshot?.motorKw || '').trim()
       : String(profile.motorKw),
     motorDriveType: normalizeDriveType(profile?.motorDriveType || (snapshot?.motorIsDc ? 'DC' : 'AC')),
-    ...normalizeOnsiteSelections(profile, normalizeOnsiteSelections(snapshot, currentOnsiteSelections))
+    ...normalizeOnsiteSelections(profile, normalizeOnsiteSelections(snapshot, currentOnsiteSelections)),
+    quoteBeforeInspection
   };
 
-  modalState.jobs = normalizedJobs;
-  modalState.resolvedMotorTypeId = Number.isFinite(Number(profile?.motorTypeId)) ? Number(profile.motorTypeId) : null;
+  modalState.jobs = quoteBeforeInspection ? [] : normalizedJobs;
+  modalState.resolvedMotorTypeId = !quoteBeforeInspection && Number.isFinite(Number(profile?.motorTypeId)) ? Number(profile.motorTypeId) : null;
   modalState.resolvedMotorTypeName = '';
   modalState.lastLoadedKey = `saved:${modalState.snapshot.repairMode}:${String(profile?.serviceItemNo || '').trim()}`;
 
@@ -905,7 +1014,9 @@ function applyLaborProfileToModalState(profile, snapshot) {
 
   const config = getRepairModeConfig(modalState.snapshot.repairMode);
   sortJobsByCheckedState();
-  setLaborStatus(normalizedJobs.length > 0 ? config.statusSaved : config.statusNoSavedJobs);
+  setLaborStatus(quoteBeforeInspection
+    ? 'Job list is not required before Inspection.'
+    : (normalizedJobs.length > 0 ? config.statusSaved : config.statusNoSavedJobs));
   renderJobsTable();
 }
 
@@ -945,8 +1056,11 @@ export async function hydrateConfirmNewSerLaborProfile(serviceItemNo, snapshot =
 }
 
 function buildLaborPayload(snapshot, extra = {}) {
-  const repairMode = normalizeRepairMode(snapshot?.repairMode);
-  const payloadJobs = Array.isArray(extra.jobs) ? extra.jobs : modalState.jobs;
+  const quoteBeforeInspection = normalizeOnsiteBoolean(snapshot?.quoteBeforeInspection, false);
+  const repairMode = quoteBeforeInspection ? 'Workshop' : normalizeRepairMode(snapshot?.repairMode);
+  const payloadJobs = quoteBeforeInspection
+    ? []
+    : (Array.isArray(extra.jobs) ? extra.jobs : modalState.jobs);
   const onsiteSelections = normalizeOnsiteSelections(snapshot, getCurrentOnsiteSelections());
 
   return {
@@ -968,6 +1082,7 @@ function buildLaborPayload(snapshot, extra = {}) {
     onsiteCraneEnabled: repairMode === 'Onsite' ? onsiteSelections.onsiteCraneEnabled : null,
     onsiteFourPeopleEnabled: repairMode === 'Onsite' ? onsiteSelections.onsiteFourPeopleEnabled : null,
     onsiteSafetyEnabled: repairMode === 'Onsite' ? onsiteSelections.onsiteSafetyEnabled : null,
+    quoteBeforeInspection,
     jobs: payloadJobs.map((job, index) => ({
       jobId: Number(job.JobId),
       jobCode: String(job.JobCode || '').trim() || null,

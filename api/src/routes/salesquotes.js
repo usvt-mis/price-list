@@ -200,6 +200,7 @@ function mapServiceItemLaborProfile(record, jobs = []) {
     onsiteSafetyEnabled: record.OnsiteSafetyEnabled === null || record.OnsiteSafetyEnabled === undefined
       ? null
       : Boolean(record.OnsiteSafetyEnabled),
+    quoteBeforeInspection: Boolean(record.QuoteBeforeInspection),
     createdByEmail: record.CreatedByEmail || '',
     updatedByEmail: record.UpdatedByEmail || '',
     createdAt: record.CreatedAt,
@@ -806,6 +807,7 @@ router.get('/service-item-labor/:serviceItemNo', async (req, res, next) => {
           OnsiteCraneEnabled,
           OnsiteFourPeopleEnabled,
           OnsiteSafetyEnabled,
+          QuoteBeforeInspection,
           CreatedByEmail,
           UpdatedByEmail,
           CreatedAt,
@@ -894,6 +896,7 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
         .input('onsiteCraneEnabled', sql.Bit, isOnsiteRepairMode ? normalizeNullableBoolean(req.body?.onsiteCraneEnabled) : null)
         .input('onsiteFourPeopleEnabled', sql.Bit, isOnsiteRepairMode ? normalizeNullableBoolean(req.body?.onsiteFourPeopleEnabled) : null)
         .input('onsiteSafetyEnabled', sql.Bit, isOnsiteRepairMode ? normalizeNullableBoolean(req.body?.onsiteSafetyEnabled) : null)
+        .input('quoteBeforeInspection', sql.Bit, normalizeBoolean(req.body?.quoteBeforeInspection, false))
         .input('userEmail', sql.NVarChar(255), userEmail)
         .query(`
           UPDATE SalesQuoteServiceItemProfiles
@@ -913,6 +916,7 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
               OnsiteCraneEnabled = @onsiteCraneEnabled,
               OnsiteFourPeopleEnabled = @onsiteFourPeopleEnabled,
               OnsiteSafetyEnabled = @onsiteSafetyEnabled,
+              QuoteBeforeInspection = @quoteBeforeInspection,
               UpdatedByEmail = @userEmail,
               UpdatedAt = GETUTCDATE()
           WHERE ServiceItemNo = @serviceItemNo;
@@ -937,6 +941,7 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
               OnsiteCraneEnabled,
               OnsiteFourPeopleEnabled,
               OnsiteSafetyEnabled,
+              QuoteBeforeInspection,
               CreatedByEmail,
               UpdatedByEmail
             )
@@ -958,6 +963,7 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
               @onsiteCraneEnabled,
               @onsiteFourPeopleEnabled,
               @onsiteSafetyEnabled,
+              @quoteBeforeInspection,
               @userEmail,
               @userEmail
             );
@@ -1026,6 +1032,7 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
             OnsiteCraneEnabled,
             OnsiteFourPeopleEnabled,
             OnsiteSafetyEnabled,
+            QuoteBeforeInspection,
             CreatedByEmail,
             UpdatedByEmail,
             CreatedAt,
@@ -1064,6 +1071,52 @@ router.put('/service-item-labor/:serviceItemNo', async (req, res, next) => {
       await transaction.rollback();
       throw error;
     }
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch('/service-item-labor/:serviceItemNo/quote-before-inspection', async (req, res, next) => {
+  const userEmail = getAuthenticatedEmail(req);
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Unable to determine current user email' });
+  }
+
+  const serviceItemNo = normalizeNullableString(req.params.serviceItemNo, 50);
+  if (!serviceItemNo) {
+    return res.status(400).json({ error: 'Service Item No is required' });
+  }
+
+  const quoteBeforeInspection = normalizeBoolean(req.body?.quoteBeforeInspection, false);
+
+  try {
+    const pool = await getPool();
+    await ensureSalesQuoteServiceItemLaborTables(pool);
+
+    const result = await pool.request()
+      .input('serviceItemNo', sql.NVarChar(50), serviceItemNo)
+      .input('quoteBeforeInspection', sql.Bit, quoteBeforeInspection)
+      .input('userEmail', sql.NVarChar(255), userEmail)
+      .query(`
+        UPDATE SalesQuoteServiceItemProfiles
+        SET QuoteBeforeInspection = @quoteBeforeInspection,
+            UpdatedByEmail = @userEmail,
+            UpdatedAt = GETUTCDATE()
+        WHERE ServiceItemNo = @serviceItemNo;
+
+        SELECT @@ROWCOUNT AS affectedRows;
+      `);
+
+    const affectedRows = Number(result.recordset?.[0]?.affectedRows || 0);
+    if (affectedRows === 0) {
+      return res.status(404).json({ error: 'Service Item labor profile not found' });
+    }
+
+    res.status(200).json({
+      message: 'Quote before inspection flag updated successfully',
+      serviceItemNo,
+      quoteBeforeInspection
+    });
   } catch (error) {
     next(error);
   }

@@ -411,6 +411,7 @@ function getApprovalJobListModalElements() {
     title: el('approvalJobListModalTitle'),
     contextValue: el('approvalJobListModalContextValue'),
     contextMeta: el('approvalJobListModalContextMeta'),
+    inspectionAlert: el('approvalJobListModalInspectionAlert'),
     summary: el('approvalJobListModalSummary'),
     onsiteContext: el('approvalJobListModalOnsiteContext'),
     priceNote: el('approvalJobListModalPriceNote'),
@@ -2333,6 +2334,8 @@ function renderQuotePreview(
 
         ${renderApprovalActionComment(approval, pendingRevisionRequest, actionCommentLabel)}
 
+        ${renderQuoteBeforeInspectionBanner(lines, serviceItemLaborMap)}
+
         <div class="approval-preview-table-wrap">
           <div class="approval-preview-table-toolbar">
             <div>
@@ -2395,6 +2398,66 @@ function renderQuotePreview(
         ` : ''}
       </section>
     </div>
+  `;
+}
+
+function getQuoteBeforeInspectionItems(lines = [], serviceItemLaborMap = {}) {
+  const seen = new Map();
+
+  lines.forEach((line) => {
+    const serviceItemNo = String(line?.serviceItemNo || '').trim();
+    if (!serviceItemNo || serviceItemNo === '-') {
+      return;
+    }
+
+    const preview = serviceItemLaborMap?.[serviceItemNo];
+    if (!preview || preview.status !== 'loaded' || !preview.quoteBeforeInspection) {
+      return;
+    }
+
+    if (!seen.has(serviceItemNo)) {
+      seen.set(serviceItemNo, {
+        serviceItemNo,
+        description: preview.serviceItemDescription || line.description || '',
+        groups: new Set()
+      });
+    }
+
+    const groupNo = String(line?.groupNo || '').trim();
+    if (groupNo && groupNo !== '-') {
+      seen.get(serviceItemNo).groups.add(groupNo);
+    }
+  });
+
+  return Array.from(seen.values()).map((item) => ({
+    ...item,
+    groups: Array.from(item.groups)
+  }));
+}
+
+function renderQuoteBeforeInspectionBanner(lines = [], serviceItemLaborMap = {}) {
+  const items = getQuoteBeforeInspectionItems(lines, serviceItemLaborMap);
+  if (items.length === 0) {
+    return '';
+  }
+
+  const itemLabels = items.map((item) => {
+    const groupLabel = item.groups.length > 0 ? `Group ${item.groups.join(', ')}` : 'Group -';
+    const descriptionLabel = item.description ? ` - ${item.description}` : '';
+    return `${item.serviceItemNo} (${groupLabel})${descriptionLabel}`;
+  });
+
+  return `
+    <section class="approval-preview-inspection-alert" role="note" aria-label="Quote before inspection notice">
+      <div class="approval-preview-inspection-alert-main">
+        <span class="approval-preview-inspection-alert-badge">เสนอราคาก่อน Inspection</span>
+        <p class="approval-preview-inspection-alert-title">มี Service Item ที่เสนอราคาก่อน Inspection</p>
+        <p class="approval-preview-inspection-alert-copy">โปรดใช้ข้อมูลนี้ประกอบการพิจารณา joblist และความเสี่ยงของงานก่อนอนุมัติ</p>
+      </div>
+      <div class="approval-preview-inspection-alert-list">
+        ${itemLabels.map((label) => `<span>${escapeHtml(label)}</span>`).join('')}
+      </div>
+    </section>
   `;
 }
 
@@ -2545,6 +2608,7 @@ function normalizeServiceItemLaborPreviewResponse(profile) {
     onsiteCraneEnabled: Boolean(profile?.onsiteCraneEnabled),
     onsiteFourPeopleEnabled: Boolean(profile?.onsiteFourPeopleEnabled),
     onsiteSafetyEnabled: Boolean(profile?.onsiteSafetyEnabled),
+    quoteBeforeInspection: Boolean(profile?.quoteBeforeInspection),
     jobs
   };
 }
@@ -2758,13 +2822,21 @@ function renderPreviewJoblist(line, serviceItemLaborMap = {}) {
     return '<span class="text-amber-700">Unable to load</span>';
   }
 
+  const inspectionBadge = preview.quoteBeforeInspection
+    ? '<span class="approval-preview-inspection-badge">เสนอราคาก่อน Inspection</span>'
+    : '';
+
   if (!Array.isArray(preview.jobs) || preview.jobs.length === 0) {
-    return '<span class="text-slate-400">No selected jobs</span>';
+    return `
+      ${inspectionBadge}
+      <span class="text-slate-400">No selected jobs</span>
+    `;
   }
 
   const summary = getPreviewJoblistSummary(preview);
 
   return `
+    ${inspectionBadge}
     <button
       type="button"
       class="approval-preview-joblist-trigger"
@@ -2986,13 +3058,14 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
     title,
     contextValue,
     contextMeta,
+    inspectionAlert,
     summary,
     onsiteContext,
     priceNote,
     tableBody
   } = getApprovalJobListModalElements();
 
-  if (!modal || !modalContent || !status || !title || !contextValue || !contextMeta || !summary || !onsiteContext || !priceNote || !tableBody) {
+  if (!modal || !modalContent || !status || !title || !contextValue || !contextMeta || !inspectionAlert || !summary || !onsiteContext || !priceNote || !tableBody) {
     showToast('Job list dialog is unavailable. Please refresh the page.', 'error');
     return;
   }
@@ -3020,6 +3093,19 @@ async function showApprovalJobListModal(serviceItemNo, preview) {
 
   contextMeta.textContent = metaParts.join(' • ');
   contextMeta.classList.toggle('hidden', metaParts.length === 0);
+  if (preview.quoteBeforeInspection) {
+    inspectionAlert.innerHTML = `
+      <span class="approval-job-list-inspection-badge">เสนอราคาก่อน Inspection</span>
+      <div>
+        <p class="approval-job-list-inspection-title">Service Item นี้ถูกทำเครื่องหมายว่าเสนอราคาก่อน Inspection</p>
+        <p class="approval-job-list-inspection-copy">สถานะนี้เป็นข้อมูลประกอบการพิจารณาเท่านั้น และไม่สามารถแก้ไขได้จากหน้าของ Sales Director</p>
+      </div>
+    `;
+    inspectionAlert.classList.remove('hidden');
+  } else {
+    inspectionAlert.innerHTML = '';
+    inspectionAlert.classList.add('hidden');
+  }
   summary.innerHTML = renderApprovalJobListSummary(preview, pricing, table.totals);
   onsiteContext.innerHTML = renderApprovalJobListOnsiteContext(preview);
   onsiteContext.classList.toggle('hidden', !isPreviewOnsiteRepairMode(preview));

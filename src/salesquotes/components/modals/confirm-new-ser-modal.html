@@ -80,6 +80,7 @@
               <p class="sales-alert-label">Generated Description</p>
               <p id="confirmNewSerDescription" class="sales-alert-value">Generate Automatically</p>
             </div>
+
           </div>
 
           <div class="sales-alert-section sales-alert-section-info confirm-new-ser-jobs-column">
@@ -91,129 +92,143 @@
               <p id="confirmNewSerLaborStatus" class="text-sm text-slate-500">Enter Motor kW to load the labor section.</p>
             </div>
 
-            <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-stretch">
-              <div class="min-w-0 xl:max-w-[18rem] xl:flex-[0_0_18rem]">
-                <p class="mb-2 block text-sm font-medium text-slate-700">Job Source</p>
-                <div class="seg-control seg-control-drive-type" aria-label="Job Source">
-                  <input type="radio" id="confirmNewSerRepairModeWorkshop" name="confirmNewSerRepairMode" value="Workshop" checked>
-                  <label for="confirmNewSerRepairModeWorkshop" class="seg-control-item">
-                    <span class="seg-control-label">Workshop</span>
-                  </label>
-                  <input type="radio" id="confirmNewSerRepairModeOnsite" name="confirmNewSerRepairMode" value="Onsite">
-                  <label for="confirmNewSerRepairModeOnsite" class="seg-control-item">
-                    <span class="seg-control-label">Onsite</span>
-                  </label>
-                </div>
-              </div>
-
-              <div class="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 px-4 py-4 shadow-sm xl:flex-1">
-                <div class="flex items-center justify-between gap-4">
-                  <p id="confirmNewSerLaborPatternLabel" class="text-sm font-semibold text-slate-700">
-                    Workshop Pattern
-                  </p>
-                  <p id="confirmNewSerLaborSelectionSummary" class="text-sm font-semibold text-slate-800">0 / 0</p>
-                </div>
-              </div>
+            <div class="quote-before-inspection-control mt-4">
+              <label class="quote-before-inspection-toggle-label" for="confirmNewSerQuoteBeforeInspection">
+                <span class="quote-before-inspection-copy">
+                  <span class="quote-before-inspection-title">เสนอราคาก่อน Inspection</span>
+                  <span class="quote-before-inspection-hint">เปิดเมื่องานนี้ยังไม่ได้ตรวจ Inspection ก่อนเสนอราคา</span>
+                </span>
+                <span class="toggle-switch toggle-switch-danger">
+                  <input type="checkbox" id="confirmNewSerQuoteBeforeInspection">
+                  <span class="toggle-slider"></span>
+                </span>
+              </label>
             </div>
 
-            <div id="confirmNewSerLaborPanel">
-              <div id="confirmNewSerOnsiteContext" class="mt-4 hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 px-4 py-4 shadow-sm">
-                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-slate-800">Onsite Context</p>
-                    <p class="text-xs text-slate-500">Selections pulled from the Onsite labor and onsite options sections.</p>
-                  </div>
-                  <p class="text-xs font-medium uppercase tracking-[0.16em] text-sky-700">Onsite only</p>
-                </div>
-
-                <div class="mt-4 grid gap-3 md:grid-cols-3">
-                  <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
-                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Scope</p>
-                    <div class="mt-2 flex flex-wrap gap-2">
-                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                        <input type="radio" name="confirmNewSerOnsiteScope" id="confirmNewSerOnsiteScopeLowVolt" value="low-volt">
-                        <span>Low Volt</span>
-                      </label>
-                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                        <input type="radio" name="confirmNewSerOnsiteScope" id="confirmNewSerOnsiteScopeMediumVolt" value="medium-volt" checked>
-                        <span>Medium Volt</span>
-                      </label>
-                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                        <input type="radio" name="confirmNewSerOnsiteScope" id="confirmNewSerOnsiteScopeLarge" value="large">
-                        <span>Large</span>
-                      </label>
-                    </div>
-                  </div>
-                  <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
-                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Priority Level</p>
-                    <div class="mt-2 flex flex-wrap gap-2">
-                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                        <input type="radio" name="confirmNewSerPriorityLevel" id="confirmNewSerPriorityLevelLow" value="low" checked>
-                        <span>Low</span>
-                      </label>
-                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                        <input type="radio" name="confirmNewSerPriorityLevel" id="confirmNewSerPriorityLevelHigh" value="high">
-                        <span>High</span>
-                      </label>
-                    </div>
-                  </div>
-                  <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
-                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Site Access</p>
-                    <div class="mt-2 flex flex-wrap gap-2">
-                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                        <input type="radio" name="confirmNewSerSiteAccess" id="confirmNewSerSiteAccessEasy" value="easy" checked>
-                        <span>Easy</span>
-                      </label>
-                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                        <input type="radio" name="confirmNewSerSiteAccess" id="confirmNewSerSiteAccessDifficult" value="difficult">
-                        <span>Difficult</span>
-                      </label>
-                    </div>
+            <div id="confirmNewSerJobListPanel">
+              <div class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-stretch">
+                <div class="min-w-0 xl:max-w-[18rem] xl:flex-[0_0_18rem]">
+                  <p class="mb-2 block text-sm font-medium text-slate-700">Job Source</p>
+                  <div class="seg-control seg-control-drive-type" aria-label="Job Source">
+                    <input type="radio" id="confirmNewSerRepairModeWorkshop" name="confirmNewSerRepairMode" value="Workshop" checked>
+                    <label for="confirmNewSerRepairModeWorkshop" class="seg-control-item">
+                      <span class="seg-control-label">Workshop</span>
+                    </label>
+                    <input type="radio" id="confirmNewSerRepairModeOnsite" name="confirmNewSerRepairMode" value="Onsite">
+                    <label for="confirmNewSerRepairModeOnsite" class="seg-control-item">
+                      <span class="seg-control-label">Onsite</span>
+                    </label>
                   </div>
                 </div>
 
-                <div class="mt-4 border-t border-sky-100 pt-4">
-                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Onsite Options</p>
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                      <input type="checkbox" id="confirmNewSerOnsiteCraneEnabled" class="rounded border-slate-300 text-sky-600 focus:ring-sky-400">
-                      <span>ใช้ Crane</span>
-                    </label>
-                    <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                      <input type="checkbox" id="confirmNewSerOnsiteFourPeopleEnabled" class="rounded border-slate-300 text-sky-600 focus:ring-sky-400">
-                      <span>ใช้ 4 ผู้</span>
-                    </label>
-                    <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                      <input type="checkbox" id="confirmNewSerOnsiteSafetyEnabled" class="rounded border-slate-300 text-sky-600 focus:ring-sky-400">
-                      <span>ใช้ Safety</span>
-                    </label>
-                  </div>
-                  <div id="confirmNewSerOnsiteOptionsList" class="mt-2 flex flex-wrap gap-2">
-                    <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">No onsite options selected</span>
+                <div class="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 px-4 py-4 shadow-sm xl:flex-1">
+                  <div class="flex items-center justify-between gap-4">
+                    <p id="confirmNewSerLaborPatternLabel" class="text-sm font-semibold text-slate-700">
+                      Workshop Pattern
+                    </p>
+                    <p id="confirmNewSerLaborSelectionSummary" class="text-sm font-semibold text-slate-800">0 / 0</p>
                   </div>
                 </div>
               </div>
 
-              
-              <div id="confirmNewSerLaborTableWrap" class="confirm-new-ser-jobs-table confirm-new-ser-jobs-table-shell mt-4 hidden overflow-hidden">
-                <div class="confirm-new-ser-jobs-scroll overflow-auto">
-                  <table class="confirm-new-ser-jobs-grid min-w-full text-sm">
-                    <thead class="confirm-new-ser-jobs-head">
-                      <tr>
-                        <th class="w-14 px-3 py-3 text-center">
-                          <input type="checkbox" id="confirmNewSerSelectAllJobs" class="rounded border-slate-300 text-slate-900 focus:ring-slate-400">
-                        </th>
-                        <th class="px-4 py-3 text-left font-semibold uppercase tracking-[0.16em]" id="confirmNewSerLaborHeadJob">Job</th>
-                        <th class="px-4 py-3 text-right font-semibold uppercase tracking-[0.16em]" id="confirmNewSerLaborHeadManhours">Manhours</th>
-                      </tr>
-                    </thead>
-                    <tbody id="confirmNewSerLaborRows" class="confirm-new-ser-jobs-body"></tbody>
-                  </table>
-                </div>
-              </div>
+              <div id="confirmNewSerLaborPanel">
+                <div id="confirmNewSerOnsiteContext" class="mt-4 hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 px-4 py-4 shadow-sm">
+                  <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p class="text-sm font-semibold text-slate-800">Onsite Context</p>
+                      <p class="text-xs text-slate-500">Selections pulled from the Onsite labor and onsite options sections.</p>
+                    </div>
+                    <p class="text-xs font-medium uppercase tracking-[0.16em] text-sky-700">Onsite only</p>
+                  </div>
 
-              <div id="confirmNewSerLaborEmpty" class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                Enter Motor kW to load the labor section.
+                  <div class="mt-4 grid gap-3 md:grid-cols-3">
+                    <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
+                      <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Scope</p>
+                      <div class="mt-2 flex flex-wrap gap-2">
+                        <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                          <input type="radio" name="confirmNewSerOnsiteScope" id="confirmNewSerOnsiteScopeLowVolt" value="low-volt">
+                          <span>Low Volt</span>
+                        </label>
+                        <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                          <input type="radio" name="confirmNewSerOnsiteScope" id="confirmNewSerOnsiteScopeMediumVolt" value="medium-volt" checked>
+                          <span>Medium Volt</span>
+                        </label>
+                        <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                          <input type="radio" name="confirmNewSerOnsiteScope" id="confirmNewSerOnsiteScopeLarge" value="large">
+                          <span>Large</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
+                      <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Priority Level</p>
+                      <div class="mt-2 flex flex-wrap gap-2">
+                        <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                          <input type="radio" name="confirmNewSerPriorityLevel" id="confirmNewSerPriorityLevelLow" value="low" checked>
+                          <span>Low</span>
+                        </label>
+                        <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                          <input type="radio" name="confirmNewSerPriorityLevel" id="confirmNewSerPriorityLevelHigh" value="high">
+                          <span>High</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="rounded-xl border border-white/80 bg-white/80 px-3 py-3 shadow-sm">
+                      <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Site Access</p>
+                      <div class="mt-2 flex flex-wrap gap-2">
+                        <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                          <input type="radio" name="confirmNewSerSiteAccess" id="confirmNewSerSiteAccessEasy" value="easy" checked>
+                          <span>Easy</span>
+                        </label>
+                        <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                          <input type="radio" name="confirmNewSerSiteAccess" id="confirmNewSerSiteAccessDifficult" value="difficult">
+                          <span>Difficult</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mt-4 border-t border-sky-100 pt-4">
+                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Onsite Options</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                        <input type="checkbox" id="confirmNewSerOnsiteCraneEnabled" class="rounded border-slate-300 text-sky-600 focus:ring-sky-400">
+                        <span>ใช้ Crane</span>
+                      </label>
+                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                        <input type="checkbox" id="confirmNewSerOnsiteFourPeopleEnabled" class="rounded border-slate-300 text-sky-600 focus:ring-sky-400">
+                        <span>ใช้ 4 ผู้</span>
+                      </label>
+                      <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
+                        <input type="checkbox" id="confirmNewSerOnsiteSafetyEnabled" class="rounded border-slate-300 text-sky-600 focus:ring-sky-400">
+                        <span>ใช้ Safety</span>
+                      </label>
+                    </div>
+                    <div id="confirmNewSerOnsiteOptionsList" class="mt-2 flex flex-wrap gap-2">
+                      <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">No onsite options selected</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="confirmNewSerLaborTableWrap" class="confirm-new-ser-jobs-table confirm-new-ser-jobs-table-shell mt-4 hidden overflow-hidden">
+                  <div class="confirm-new-ser-jobs-scroll overflow-auto">
+                    <table class="confirm-new-ser-jobs-grid min-w-full text-sm">
+                      <thead class="confirm-new-ser-jobs-head">
+                        <tr>
+                          <th class="w-14 px-3 py-3 text-center">
+                            <input type="checkbox" id="confirmNewSerSelectAllJobs" class="rounded border-slate-300 text-slate-900 focus:ring-slate-400">
+                          </th>
+                          <th class="px-4 py-3 text-left font-semibold uppercase tracking-[0.16em]" id="confirmNewSerLaborHeadJob">Job</th>
+                          <th class="px-4 py-3 text-right font-semibold uppercase tracking-[0.16em]" id="confirmNewSerLaborHeadManhours">Manhours</th>
+                        </tr>
+                      </thead>
+                      <tbody id="confirmNewSerLaborRows" class="confirm-new-ser-jobs-body"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div id="confirmNewSerLaborEmpty" class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                  Enter Motor kW to load the labor section.
+                </div>
               </div>
             </div>
           </div>

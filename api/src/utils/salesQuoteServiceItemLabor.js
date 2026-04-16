@@ -34,6 +34,7 @@ async function ensureSalesQuoteServiceItemLaborTables(pool) {
           OnsiteCraneEnabled BIT NULL,
           OnsiteFourPeopleEnabled BIT NULL,
           OnsiteSafetyEnabled BIT NULL,
+          QuoteBeforeInspection BIT NOT NULL DEFAULT 0,
           CreatedByEmail NVARCHAR(255) NOT NULL,
           UpdatedByEmail NVARCHAR(255) NOT NULL,
           CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
@@ -99,6 +100,15 @@ async function ensureSalesQuoteServiceItemLaborTables(pool) {
       BEGIN
         ALTER TABLE ${PROFILE_TABLE_NAME}
         ADD OnsiteSafetyEnabled BIT NULL;
+      END
+    `);
+
+    await pool.request().query(`
+      IF COL_LENGTH('${PROFILE_TABLE_NAME}', 'QuoteBeforeInspection') IS NULL
+      BEGIN
+        ALTER TABLE ${PROFILE_TABLE_NAME}
+        ADD QuoteBeforeInspection BIT NOT NULL
+          CONSTRAINT DF_${PROFILE_TABLE_NAME}_QuoteBeforeInspection DEFAULT 0 WITH VALUES;
       END
     `);
 

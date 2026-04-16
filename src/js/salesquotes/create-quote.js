@@ -16,7 +16,7 @@ import { recordQuoteSubmission, recordQuoteAuditEvent } from './records.js';
 import { submitForApproval, createApprovalRecord, sendApprovalRequest as sendApprovalRequestModule, checkApprovalStatus, APPROVAL_STATUS, resubmitForApproval, requestRevisionForApprovedQuote, showApprovalActionModal, cancelApprovalRequest, openApprovalPreviewModal } from './approvals.js';
 import { authState } from '../state.js';
 import { ROLE } from '../core/config.js';
-import { initConfirmNewSerLaborUi, syncConfirmNewSerLaborProfile, resetConfirmNewSerLaborProfile, getConfirmNewSerLaborValidation, saveConfirmNewSerLaborProfile, hydrateConfirmNewSerLaborProfile, getConfirmNewSerLaborJobsSnapshot, getCurrentOnsiteSelections } from './service-item-labor.js';
+import { initConfirmNewSerLaborUi, syncConfirmNewSerLaborProfile, resetConfirmNewSerLaborProfile, getConfirmNewSerLaborValidation, saveConfirmNewSerLaborProfile, hydrateConfirmNewSerLaborProfile, loadConfirmNewSerLaborProfile, getConfirmNewSerLaborJobsSnapshot, getCurrentOnsiteSelections } from './service-item-labor.js';
 
 function normalizeGroupNo(value) {
   if (value === null || value === undefined) {
@@ -395,13 +395,15 @@ function getServiceItemBuilderRefs(prefix = 'line') {
       driveTypeDc: document.getElementById('confirmNewSerDriveTypeDc'),
       workTypeOptions: document.querySelectorAll('input[name="confirmNewSerWorkType"]'),
       laborPanel: document.getElementById('confirmNewSerLaborPanel'),
+      jobListPanel: document.getElementById('confirmNewSerJobListPanel'),
       onsiteScope: selectedOnsiteScope,
       onsiteScopeOptions: document.querySelectorAll('input[name="confirmNewSerOnsiteScope"]'),
       onsitePriorityOptions: document.querySelectorAll('input[name="confirmNewSerPriorityLevel"]'),
       onsiteSiteAccessOptions: document.querySelectorAll('input[name="confirmNewSerSiteAccess"]'),
       onsiteCraneEnabled: document.getElementById('confirmNewSerOnsiteCraneEnabled'),
       onsiteFourPeopleEnabled: document.getElementById('confirmNewSerOnsiteFourPeopleEnabled'),
-      onsiteSafetyEnabled: document.getElementById('confirmNewSerOnsiteSafetyEnabled')
+      onsiteSafetyEnabled: document.getElementById('confirmNewSerOnsiteSafetyEnabled'),
+      quoteBeforeInspection: document.getElementById('confirmNewSerQuoteBeforeInspection')
     };
   }
 
@@ -449,29 +451,12 @@ function formatMotorKwValue(value) {
   return String(parsed);
 }
 
-function isMotorKwWithinLimit(value) {
-  const normalized = formatMotorKwValue(value);
-  if (!normalized) {
-    return false;
-  }
-
-  return Number.parseFloat(normalized) <= 315;
-}
-
 function updateMotorKwFieldValidity(field) {
   if (!field) {
     return;
   }
 
-  const rawValue = field.value || '';
-  const normalized = formatMotorKwValue(rawValue);
-
-  if (!rawValue || !normalized || isMotorKwWithinLimit(rawValue)) {
-    field.setCustomValidity('');
-    return;
-  }
-
-  field.setCustomValidity('Motor kW must not exceed 315.00.');
+  field.setCustomValidity('');
 }
 
 function updateMotorKwFieldEmptyState(field, { required = false } = {}) {
@@ -611,6 +596,7 @@ function resetServiceItemBuilder(prefix = 'line', { preserveDescription = false 
   if (refs.motorKw) refs.motorKw.value = '';
   if (refs.driveTypeAc) refs.driveTypeAc.checked = true;
   if (refs.motorIsDc) refs.motorIsDc.checked = false;
+  if (refs.quoteBeforeInspection) refs.quoteBeforeInspection.checked = false;
   if (refs.details) refs.details.value = '';
 
   if (refs.workTypeOptions?.length) {
@@ -718,13 +704,6 @@ function getServiceItemBuilderValidation(prefix = 'line') {
     };
   }
 
-  if (workType === 'Motor' && !isMotorKwWithinLimit(refs.motorKw?.value || '')) {
-    return {
-      message: 'Motor kW must not exceed 315.00.',
-      focusField: refs.motorKw
-    };
-  }
-
   return null;
 }
 
@@ -826,6 +805,10 @@ function populateConfirmNewSerBuilderFromProfile(profile, fallbackDescription = 
     refs.onsiteSafetyEnabled.checked = Boolean(profile?.onsiteSafetyEnabled);
   }
 
+  if (refs.quoteBeforeInspection) {
+    refs.quoteBeforeInspection.checked = Boolean(profile?.quoteBeforeInspection);
+  }
+
   syncServiceItemDescriptionFromBuilder('confirm', { preserveExistingDescription: false });
   updateConfirmNewSerLaborPanelVisibility();
 
@@ -853,7 +836,10 @@ function applyConfirmNewSerDescriptionToSource(sourcePrefix = getPendingSerSourc
 function getConfirmNewSerSnapshot() {
   const refs = getServiceItemBuilderRefs('confirm');
   const workType = refs.workType?.value?.trim() || '';
-  const repairMode = refs.repairMode?.value?.trim() || 'Workshop';
+  const quoteBeforeInspection = refs.quoteBeforeInspection?.checked || false;
+  const repairMode = quoteBeforeInspection
+    ? 'Workshop'
+    : (refs.repairMode?.value?.trim() || 'Workshop');
 
   // Service Type only applies to Motor work type
   const isMotor = workType === 'Motor';
@@ -871,7 +857,8 @@ function getConfirmNewSerSnapshot() {
     siteAccess: Array.from(refs.onsiteSiteAccessOptions || []).find((option) => option.checked)?.value || 'easy',
     onsiteCraneEnabled: refs.onsiteCraneEnabled?.checked || false,
     onsiteFourPeopleEnabled: refs.onsiteFourPeopleEnabled?.checked || false,
-    onsiteSafetyEnabled: refs.onsiteSafetyEnabled?.checked || false
+    onsiteSafetyEnabled: refs.onsiteSafetyEnabled?.checked || false,
+    quoteBeforeInspection
   };
 }
 
@@ -905,15 +892,24 @@ function seedConfirmNewSerOnsiteFields(snapshot = getCurrentOnsiteSelections()) 
   if (refs.onsiteSafetyEnabled) {
     refs.onsiteSafetyEnabled.checked = Boolean(snapshot?.onsiteSafetyEnabled);
   }
+
+  if (refs.quoteBeforeInspection) {
+    refs.quoteBeforeInspection.checked = Boolean(snapshot?.quoteBeforeInspection);
+  }
 }
 
 function updateConfirmNewSerLaborPanelVisibility() {
   const refs = getServiceItemBuilderRefs('confirm');
-  if (!refs.laborPanel) {
-    return;
+
+  const quoteBeforeInspection = refs.quoteBeforeInspection?.checked || false;
+  if (refs.jobListPanel) {
+    refs.jobListPanel.classList.toggle('hidden', quoteBeforeInspection);
+    refs.jobListPanel.setAttribute('aria-hidden', quoteBeforeInspection ? 'true' : 'false');
   }
 
-  refs.laborPanel.classList.remove('hidden');
+  if (refs.laborPanel) {
+    refs.laborPanel.classList.remove('hidden');
+  }
 }
 
 function applyConfirmNewSerSnapshotToSource(snapshot, sourcePrefix = getPendingSerSourcePrefix()) {
@@ -2942,6 +2938,11 @@ function setupConfirmNewSerModalHandlers() {
     });
   });
 
+  refs.quoteBeforeInspection?.addEventListener('change', async () => {
+    updateConfirmNewSerLaborPanelVisibility();
+    await syncLaborProfile({ forceReload: true });
+  });
+
   // Initialize visibility on first load
   updateVisibility();
   updateConfirmNewSerLaborPanelVisibility();
@@ -2968,9 +2969,7 @@ async function confirmNewSerCreation() {
     ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
     : (confirmSnapshot.workType === 'Motor' && !formatMotorKwValue(confirmSnapshot.motorKw || '')
       ? { message: 'Please enter the motor kW before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
-      : (confirmSnapshot.workType === 'Motor' && !isMotorKwWithinLimit(confirmSnapshot.motorKw || '')
-        ? { message: 'Motor kW must not exceed 315.00.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
-        : null));
+      : null);
   const laborValidation = getConfirmNewSerLaborValidation(confirmSnapshot);
   const validationError = builderValidation || laborValidation;
   if (validationError) {
@@ -3049,7 +3048,6 @@ async function saveExistingServiceItemLaborProfile(confirmSnapshot = null, labor
     if (confirmModal) {
       confirmModal.dataset.originalServiceItemDescription = serviceItemDesc;
     }
-
     showSuccess(`Service Item ${serviceItemNo} saved successfully`);
   } catch (error) {
     console.error('Failed to save existing Service Item labor profile:', error);
@@ -3086,9 +3084,7 @@ async function createServiceItemAndLockFields(confirmSnapshot = null, laborJobsS
     ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
     : (snapshot.workType === 'Motor' && !formatMotorKwValue(snapshot.motorKw || '')
       ? { message: 'Please enter the motor kW before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
-      : (snapshot.workType === 'Motor' && !isMotorKwWithinLimit(snapshot.motorKw || '')
-        ? { message: 'Motor kW must not exceed 315.00.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
-        : null));
+      : null);
   const laborValidation = getConfirmNewSerLaborValidation(snapshot);
   const validationError = builderValidation || laborValidation;
   if (validationError) {
@@ -5647,20 +5643,16 @@ async function openEditLineModal(lineId) {
   state.ui.dropdownFields.editMaterialNo.touched = false;
 
   const hasExistingSer = !!(line.usvtServiceItemNo && line.usvtServiceItemNo.trim() !== '');
+  let serviceItemProfile = null;
   let serviceItemDescription = String(line.usvtServiceItemDescription || '').trim();
-  if (hasExistingSer && !serviceItemDescription) {
+  if (hasExistingSer) {
     try {
-      const response = await fetchWithAuth(`/api/salesquotes/service-item-labor/${encodeURIComponent(line.usvtServiceItemNo.trim())}`);
-
-      if (response.ok) {
-        const result = await response.json();
-        serviceItemDescription = String(result?.profile?.serviceItemDescription || '').trim();
-      } else if (response.status !== 404) {
-        const errorText = await response.text();
-        console.error(`Failed to load existing Service Item Description for ${line.usvtServiceItemNo}:`, errorText);
+      serviceItemProfile = await loadConfirmNewSerLaborProfile(line.usvtServiceItemNo.trim());
+      if (!serviceItemDescription && serviceItemProfile?.serviceItemDescription) {
+        serviceItemDescription = String(serviceItemProfile.serviceItemDescription || '').trim();
       }
     } catch (error) {
-      console.error('Failed to resolve existing Service Item Description for edit modal:', error);
+      console.error('Failed to resolve existing Service Item profile for edit modal:', error);
     }
   }
 
@@ -5682,7 +5674,6 @@ async function openEditLineModal(lineId) {
   document.getElementById('editLineDiscountAmount').value = line.discountAmount || 0;
   document.getElementById('editLineUsvtAddition').checked = line.usvtAddition || false;
   document.getElementById('editLineUsvtRefSalesQuoteno').value = line.usvtRefSalesQuoteno || '';
-
   // Check if line has existing Service Item No - lock Type, Serv Item No, Serv Item Desc
   state.ui.editLineLocked = hasExistingSer;
 
@@ -6211,9 +6202,7 @@ async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null, lab
     ? { message: 'Please select the repair type before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').workType }
     : (snapshot.workType === 'Motor' && !formatMotorKwValue(snapshot.motorKw || '')
       ? { message: 'Please enter the motor kW before creating a Service Item.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
-      : (snapshot.workType === 'Motor' && !isMotorKwWithinLimit(snapshot.motorKw || '')
-        ? { message: 'Motor kW must not exceed 315.00.', focusField: getServiceItemBuilderRefs('confirm').motorKw }
-        : null));
+      : null);
   const laborValidation = getConfirmNewSerLaborValidation(snapshot);
   const validationError = builderValidation || laborValidation;
   if (validationError) {
@@ -6267,7 +6256,6 @@ async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null, lab
     if (serviceItemNoField) {
       serviceItemNoField.value = serviceItemNo;
     }
-
     // Lock fields (Service Item No, Desc)
     updateEditServiceItemFieldState();
 
