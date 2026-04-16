@@ -1807,6 +1807,34 @@ function getPreviewLines(quoteData) {
   return getPreviewLineSources(quoteData).map(normalizePreviewLine);
 }
 
+const PREVIEW_PAYMENT_TERMS_CODE_KEYS = [
+  'paymentTermsCode',
+  'paymentTermCode',
+  'PaymentTermsCode',
+  'PaymentTermCode',
+  'Payment_Terms_Code',
+  'Payment_Term_Code',
+  'paymentTermsCodeSalesHeader',
+  'paymentTermCodeSalesHeader',
+  'PaymentTermsCode_SalesHeader',
+  'PaymentTermCode_SalesHeader',
+  'Payment_Terms_Code_SalesHeader',
+  'Payment_Term_Code_SalesHeader'
+];
+
+const PREVIEW_PAYMENT_TERMS_DESCRIPTION_KEYS = [
+  'paymentTermsDescription',
+  'PaymentTermsDescription',
+  'descriptionPaymentTerms',
+  'DescriptionPaymentTerms',
+  'Description_PaymentTerms',
+  'paymentTermsDescriptionSalesHeader',
+  'PaymentTermsDescription_SalesHeader',
+  'descriptionPaymentTermsSalesHeader',
+  'DescriptionPaymentTerms_SalesHeader',
+  'Description_PaymentTerms_SalesHeader'
+];
+
 function pickPreviewValue(quoteData, keys, fallback = '') {
   const sources = getPreviewSources(quoteData);
 
@@ -1924,6 +1952,7 @@ function buildCurrentQuotePreviewPayload(quoteNumber) {
       sellToCustomerName: formData.customerName || state.quote.customerName || '',
       customerNumber: formData.customerNo || state.quote.customerNo || '',
       sellToCustomerNo: formData.customerNo || state.quote.customerNo || '',
+      paymentTermsCode: formData.paymentTermsCode || state.quote.paymentTermsCode || state.quote.reportContext?.paymentTermsCode || '',
       branch: formData.branch || state.quote.branch || '',
       branchCode: formData.branch || state.quote.branch || '',
       division: formData.division || state.quote.division || '',
@@ -2191,7 +2220,11 @@ function renderQuotePreview(
   const orderDate = pickPreviewValue(quoteData, ['orderDate', 'OrderDate_SaleHeader', 'Order_Date', 'documentDate', 'DocumentDate_SalesHeader'], '');
   const requestedDeliveryDate = pickPreviewValue(quoteData, ['requestedDeliveryDate', 'RequestedDeliveryDate_SalesHeader'], '');
   const externalDocumentNo = pickPreviewValue(quoteData, ['externalDocumentNo', 'exDocNo', 'ExDocNo_SalesHeader'], '-');
-  const paymentTerms = pickPreviewValue(quoteData, ['paymentTermsDescription', 'descriptionPaymentTerms', 'Description_PaymentTerms', 'paymentTermsCode', 'Payment_Terms_Code'], '-');
+  const paymentTerms = pickPreviewValue(
+    quoteData,
+    [...PREVIEW_PAYMENT_TERMS_DESCRIPTION_KEYS, ...PREVIEW_PAYMENT_TERMS_CODE_KEYS],
+    '-'
+  );
   const paymentMethod = pickPreviewValue(quoteData, ['paymentMethodDescription', 'descriptionPaymentMethod', 'Description_PaymentMethod'], '-');
   const shipMethod = pickPreviewValue(quoteData, ['shipMethodDescription', 'descriptionShipMethod', 'Description_ShipMethod'], '-');
   const sellToPhoneNo = pickPreviewValue(quoteData, ['sellToPhoneNo', 'Sell_to_Phone_No_'], '-');

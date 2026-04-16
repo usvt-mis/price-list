@@ -20,6 +20,7 @@ function createInitialQuoteState(overrides = {}) {
     customer: null,
     customerNo: null,
     customerName: null,
+    paymentTermsCode: '',
     deliveryDate: '',
     approvalStatus: null,
     remark: '',
@@ -291,6 +292,7 @@ export function setQuoteCustomer(customer) {
   };
   state.quote.customerNo = customer.CustomerNo;
   state.quote.customerName = customer.CustomerName;
+  state.quote.paymentTermsCode = customer.PaymentTermsCode || customer.Payment_Terms_Code || '';
   state.quote.sellTo = {
     address: customer.Address || null,
     address2: customer.Address2 || null,

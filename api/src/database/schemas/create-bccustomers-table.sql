@@ -25,6 +25,7 @@ CREATE TABLE BCCustomers (
     PostCode NVARCHAR(20),
     VATRegistrationNo NVARCHAR(20),
     TaxBranchNo NVARCHAR(20),
+    PaymentTermsCode NVARCHAR(50),
     CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME2 DEFAULT GETUTCDATE(),
     INDEX IX_BCCustomers_CustomerNo (CustomerNo)

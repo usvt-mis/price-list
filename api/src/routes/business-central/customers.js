@@ -11,6 +11,39 @@ const router = express.Router();
 const { getPool } = require('../../db');
 const logger = require('../../utils/logger');
 
+let cachedPaymentTermsColumn = undefined;
+
+async function getPaymentTermsColumn(pool) {
+  if (cachedPaymentTermsColumn !== undefined) {
+    return cachedPaymentTermsColumn;
+  }
+
+  const result = await pool.request().query(`
+    SELECT TOP 1 name
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.BCCustomers')
+      AND name IN (N'PaymentTermsCode', N'Payment_Terms_Code', N'PaymentTermCode', N'Payment_Term_Code')
+    ORDER BY CASE name
+      WHEN N'PaymentTermsCode' THEN 1
+      WHEN N'Payment_Terms_Code' THEN 2
+      WHEN N'PaymentTermCode' THEN 3
+      WHEN N'Payment_Term_Code' THEN 4
+      ELSE 5
+    END
+  `);
+
+  cachedPaymentTermsColumn = result.recordset[0]?.name || null;
+  return cachedPaymentTermsColumn;
+}
+
+function getPaymentTermsSelect(columnName) {
+  if (!columnName) {
+    return ", CAST('' AS NVARCHAR(50)) AS PaymentTermsCode";
+  }
+
+  return `, [${columnName}] AS PaymentTermsCode`;
+}
+
 /**
  * GET /api/business-central/customers/search?q={query}
  * Search customers by CustomerNo or CustomerName (min 2 chars)
@@ -55,6 +88,7 @@ router.get('/search', async (req, res, next) => {
     });
 
     const pool = await getPool();
+    const paymentTermsSelect = getPaymentTermsSelect(await getPaymentTermsColumn(pool));
     const result = await pool.request()
       .input('query', `%${q}%`)
       .input('limit', limit)
@@ -68,6 +102,7 @@ router.get('/search', async (req, res, next) => {
           PostCode,
           VATRegistrationNo,
           TaxBranchNo
+          ${paymentTermsSelect}
         FROM BCCustomers
         WHERE CustomerNo LIKE @query
            OR CustomerName LIKE @query
@@ -121,6 +156,7 @@ router.get('/:customerNo', async (req, res, next) => {
     });
 
     const pool = await getPool();
+    const paymentTermsSelect = getPaymentTermsSelect(await getPaymentTermsColumn(pool));
     const result = await pool.request()
       .input('customerNo', customerNo)
       .query(`
@@ -133,6 +169,7 @@ router.get('/:customerNo', async (req, res, next) => {
           PostCode,
           VATRegistrationNo,
           TaxBranchNo,
+          ${paymentTermsSelect.slice(1)},
           CreatedAt,
           UpdatedAt
         FROM BCCustomers

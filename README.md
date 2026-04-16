@@ -49,7 +49,7 @@ The Price List Calculator computes total cost based on four components:
   - **Print Quote**: Generate professional PDF quotation documents (A4 layout) from searched Sales Quotes using html2pdf.js library; PDFs are downloaded directly with automatic pagination handling; includes company logo, customer details, line items, totals, and signatures; print layout can be customized globally via backoffice settings (font sizes, logo width, margins, etc.); salesperson signatures are fetched from uploaded backoffice signatures first, then fallback to Business Central signature data
   - **Date Picker**: Order Date defaults to today (asterisk hidden), Requested Delivery Date prevents past dates (asterisk visible until selected)
   - **Required Field Indicators**: Dynamic red asterisks for 7 fields (Customer No, Order Date, Requested Delivery Date, Salesperson Code, Assigned User ID, Service Order Type, BRANCH) - hide when field has value, show when empty
-  - **Customer Search**: Fast local lookups from BCCustomers table, auto-fills customer details and Sell-to address (Address, Address2, City, PostCode, VAT Reg No, Tax Branch No)
+  - **Customer Search**: Fast local lookups from BCCustomers table, auto-fills customer details, Payment Terms Code, and Sell-to address (Address, Address2, City, PostCode, VAT Reg No, Tax Branch No)
   - **Business Central Integration**: OAuth 2.0 client credentials flow, token caching, mock mode for local development
 - **Backoffice Admin** (`src/backoffice.html`): Standalone backoffice interface accessible via `/backoffice`
   - Separate HTML file with complete UI independence
@@ -194,7 +194,7 @@ The application expects these SQL Server tables:
 | `Jobs` | Job definitions with JobCode, JobName, SortOrder |
 | `Jobs2MotorType` | Junction table linking MotorTypes to Jobs with Manhours (JobsId, MotorTypeId, Manhours) |
 | `Materials` | Material catalog with MaterialCode, MaterialName, UnitCost, IsActive |
-| `BCCustomers` | Local cache of Business Central customer data for fast lookups (CustomerNo, CustomerName, Address, Address2, City, PostCode, VATRegistrationNo, TaxBranchNo, CreatedAt, UpdatedAt) |
+| `BCCustomers` | Local cache of Business Central customer data for fast lookups (CustomerNo, CustomerName, Address, Address2, City, PostCode, VATRegistrationNo, TaxBranchNo, PaymentTermsCode, CreatedAt, UpdatedAt) |
 | `SalesQuoteSubmissionRecords` | Sales Quote submission history tracking (SalesQuoteNumber unique, SenderEmail, WorkDescription, ClientIP, SubmittedAt) |
 | `OnsiteSavedCalculations` | Onsite saved calculation records with run numbers (e.g., ONS-2024-001), GrandTotal, Scope, PriorityLevel, SiteAccess, Onsite Options (Crane, 4 People, Safety) |
 | `OnsiteSavedCalculationJobs` | Jobs associated with each onsite saved calculation |

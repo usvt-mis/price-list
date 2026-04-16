@@ -8,7 +8,7 @@ import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteUpdatedSuccess, showQuoteSendFailure } from './ui.js';
-import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal, isApprovedWorkStatusOnlyMode, syncVatControls } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal, isApprovedWorkStatusOnlyMode, syncVatControls, getBcApprovalStatusAlert } from './ui.js';
 import { fetchWithAuth } from '../core/utils.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
@@ -75,6 +75,16 @@ function ensureQuoteEditableForChanges({ allowApprovedWorkStatusOnly = false } =
   }
 
   return true;
+}
+
+function canAdjustLockedQuotePrintLayout(fieldName) {
+  const isPrintLayoutField = fieldName === 'printHeader' || fieldName === 'printFooter';
+
+  return isPrintLayoutField &&
+    state.quote.mode === 'edit' &&
+    Boolean(state.quote.number) &&
+    state.quote.loadedFromBc === true &&
+    !isQuoteEditable();
 }
 
 const BC_SYNC_TRACKED_FIELD_IDS = new Set([
@@ -288,7 +298,9 @@ function enforceGroupPrintFlagUniqueness(preferredLineId = null) {
 }
 
 function toggleQuoteLinePrintFlag(lineId, fieldName, value) {
-  if (!ensureQuoteEditableForChanges()) {
+  const allowLockedPrintLayoutChange = canAdjustLockedQuotePrintLayout(fieldName);
+
+  if (!allowLockedPrintLayoutChange && !ensureQuoteEditableForChanges()) {
     renderQuoteLines();
     return;
   }
@@ -321,7 +333,9 @@ function toggleQuoteLinePrintFlag(lineId, fieldName, value) {
   enforceGroupPrintFlagUniqueness(lineId);
   saveState();
   renderQuoteLines();
-  refreshQuoteSyncState({ updateUi: false });
+  if (!allowLockedPrintLayoutChange) {
+    refreshQuoteSyncState({ updateUi: false });
+  }
   void updateQuoteEditorModeUi();
 
   if ((fieldName === 'printHeader' || fieldName === 'printFooter') && normalizedValue) {
@@ -1000,6 +1014,34 @@ function uniqueObjectReferences(values) {
   });
 }
 
+const PAYMENT_TERMS_CODE_KEYS = [
+  'paymentTermsCode',
+  'paymentTermCode',
+  'PaymentTermsCode',
+  'PaymentTermCode',
+  'Payment_Terms_Code',
+  'Payment_Term_Code',
+  'paymentTermsCodeSalesHeader',
+  'paymentTermCodeSalesHeader',
+  'PaymentTermsCode_SalesHeader',
+  'PaymentTermCode_SalesHeader',
+  'Payment_Terms_Code_SalesHeader',
+  'Payment_Term_Code_SalesHeader'
+];
+
+const PAYMENT_TERMS_DESCRIPTION_KEYS = [
+  'paymentTermsDescription',
+  'PaymentTermsDescription',
+  'descriptionPaymentTerms',
+  'DescriptionPaymentTerms',
+  'Description_PaymentTerms',
+  'paymentTermsDescriptionSalesHeader',
+  'PaymentTermsDescription_SalesHeader',
+  'descriptionPaymentTermsSalesHeader',
+  'DescriptionPaymentTerms_SalesHeader',
+  'Description_PaymentTerms_SalesHeader'
+];
+
 function normalizeRecordCollection(value) {
   if (Array.isArray(value)) {
     return value.filter(item => item && typeof item === 'object');
@@ -1106,8 +1148,8 @@ function buildSearchQuoteReportContext(data, resolvedSalespersonName, sourceCont
     shipmentDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['shipmentDate', 'ShipmentDate_SalesHeader'], '')),
     quoteValidUntilDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['quoteValidUntilDate', 'quoteValidDate', 'QuoteValidDate_SalesHeader', 'Quote_Valid_Until_Date'], '')),
     requestedDeliveryDate: normalizeBcDate(pickSourceValueFromSources(headerSources, ['requestedDeliveryDate', 'RequestedDeliveryDate_SalesHeader'], '')),
-    paymentTermsCode: pickSourceValueFromSources(headerSources, ['paymentTermsCode', 'Payment_Terms_Code'], ''),
-    paymentTermsDescription: pickSourceValueFromSources(headerSources, ['paymentTermsDescription', 'descriptionPaymentTerms', 'Description_PaymentTerms'], ''),
+    paymentTermsCode: pickSourceValueFromSources(headerSources, ['paymentTermsCode'], ''),
+    paymentTermsDescription: pickSourceValueFromSources(headerSources, PAYMENT_TERMS_DESCRIPTION_KEYS, ''),
     paymentMethodDescription: pickSourceValueFromSources(headerSources, ['paymentMethodDescription', 'descriptionPaymentMethod', 'Description_PaymentMethod'], ''),
     shipMethodDescription: pickSourceValueFromSources(headerSources, ['shipMethodDescription', 'descriptionShipMethod', 'Description_ShipMethod'], ''),
     externalDocumentNo: pickSourceValueFromSources(headerSources, ['externalDocumentNo', 'exDocNo', 'ExDocNo_SalesHeader'], ''),
@@ -1599,6 +1641,10 @@ function buildCustomerDisplayModel(customerRecord, fallbackCustomerNo, fallbackC
   };
 }
 
+function getCustomerPaymentTermsCode(customerRecord = {}) {
+  return pickSourceValue(customerRecord, PAYMENT_TERMS_CODE_KEYS, '');
+}
+
 function mapBcLineToEditorLine(line, index) {
   const existingLineId = line?.id || line?.bcId || null;
   const normalizedQuantity = parseFloat(line?.quantity ?? line?.Quantity ?? line?.qty ?? line?.Qty_SaleLine);
@@ -1660,7 +1706,8 @@ async function fetchCustomerDetails(customerNo, fallbackCustomerName) {
   if (!customerNo) {
     return {
       CustomerNo: '',
-      CustomerName: fallbackCustomerName || ''
+      CustomerName: fallbackCustomerName || '',
+      PaymentTermsCode: ''
     };
   }
 
@@ -1675,7 +1722,8 @@ async function fetchCustomerDetails(customerNo, fallbackCustomerName) {
     console.warn('Unable to enrich searched quote customer from local database:', error);
     return {
       CustomerNo: customerNo,
-      CustomerName: fallbackCustomerName || ''
+      CustomerName: fallbackCustomerName || '',
+      PaymentTermsCode: ''
     };
   }
 }
@@ -1816,6 +1864,7 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     customer: customerDisplay,
     customerNo: customerNumber || null,
     customerName,
+    paymentTermsCode: reportContext.paymentTermsCode || '',
     sellTo: {
       address: customerRecord.Address || reportContext.customerAddressLines?.[0] || '',
       address2: customerRecord.Address2 || reportContext.customerAddressLines?.[1] || '',
@@ -1882,6 +1931,8 @@ async function applySearchedSalesQuote(payload) {
     }
   }
 
+  const bcStatusAlert = await getBcApprovalStatusAlert();
+
   setQuoteSyncBaseline();
   await updateQuoteEditorModeUi();
   saveState();
@@ -1894,6 +1945,9 @@ async function applySearchedSalesQuote(payload) {
     `Loaded ${editableQuote.number || payload.salesQuoteNumber || 'Sales Quote'}`,
     `${processedAtText} You can now review and edit the quote in the form. Click Update Sales Quote when you're ready to sync changes back to Business Central.`
   );
+  if (bcStatusAlert) {
+    showToast(`${bcStatusAlert.message} Please verify before proceeding.`, 'info');
+  }
 
   switchTab('create');
   saveState();
@@ -2034,6 +2088,10 @@ export function selectCustomerFromLocal(customer) {
   if (el('customerName')) {
     el('customerName').value = customer.CustomerName;
   }
+  if (el('paymentTermsCode')) {
+    el('paymentTermsCode').value = getCustomerPaymentTermsCode(customer);
+  }
+  state.quote.paymentTermsCode = getCustomerPaymentTermsCode(customer);
   setFieldValue('sellToAddress', customer.Address || '');
   setFieldValue('sellToAddress2', customer.Address2 || '');
   setFieldValue('sellToCity', customer.City || '');
@@ -4956,6 +5014,7 @@ export function setupEventListeners() {
         customerNoSearch.value = '';
         // Clear related fields
         if (el('customerName')) el('customerName').value = '';
+        if (el('paymentTermsCode')) el('paymentTermsCode').value = '';
         setFieldValue('sellToAddress', '');
         setFieldValue('sellToAddress2', '');
         setFieldValue('sellToCity', '');
@@ -4967,6 +5026,7 @@ export function setupEventListeners() {
         state.quote.customerId = null;
         state.quote.customerNo = null;
         state.quote.customerName = null;
+        state.quote.paymentTermsCode = '';
         state.quote.sellTo = {
           address: null,
           address2: null,

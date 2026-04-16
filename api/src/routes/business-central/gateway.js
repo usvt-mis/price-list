@@ -72,14 +72,16 @@ const GATEWAY_ENDPOINTS = {
     pathEnv: 'GSQFA_PATH',
     keyEnv: 'GSQFA_KEY',
     fallbackKeyEnvs: ['GSQFN_KEY', 'CSQWN_KEY'],
-    method: 'POST'
+    method: 'POST',
+    retryable: true
   },
   getServiceOrderFromArray: {
     defaultPath: 'GetServiceOrderFromArray',
     pathEnv: 'GSVFA_PATH',
     keyEnv: 'GSVFA_KEY',
     fallbackKeyEnvs: ['GTB_KEY'],
-    method: 'POST'
+    method: 'POST',
+    retryable: true
   },
   smartDropdownSQ: {
     defaultPath: 'smartDropdownSQ',
@@ -106,21 +108,24 @@ const GATEWAY_ENDPOINTS = {
     pathEnv: 'GPLFA_PATH',
     keyEnv: 'GPLFA_KEY',
     fallbackKeyEnvs: ['GTB_KEY'],
-    method: 'POST'
+    method: 'POST',
+    retryable: true
   },
   getPOFromArray: {
-    defaultPath: 'getPOFromArray',
+    defaultPath: 'GetPOFromArray',
     pathEnv: 'GPOFA_PATH',
     keyEnv: 'GPOFA_KEY',
     fallbackKeyEnvs: ['GPLFA_KEY', 'GTB_KEY'],
-    method: 'POST'
+    method: 'POST',
+    retryable: true
   },
   getApprovalStatusFromArray: {
     defaultPath: 'GetApprovalStatusFromArray',
     pathEnv: 'GASFA_PATH',
     keyEnv: 'GASFA_KEY',
     fallbackKeyEnvs: ['GPOFA_KEY', 'GPLFA_KEY', 'GTB_KEY'],
-    method: 'POST'
+    method: 'POST',
+    retryable: true
   },
   getTimeBoard: {
     defaultPath: 'GetTimeBoard',
@@ -234,9 +239,10 @@ async function performGatewayFetch(url, fetchOptions, timeoutMs) {
   }
 }
 
-async function fetchGatewayWithRetry(url, fetchOptions, requestMethod, logContext) {
+async function fetchGatewayWithRetry(url, fetchOptions, requestMethod, logContext, options = {}) {
   const normalizedMethod = String(requestMethod || 'GET').toUpperCase();
-  const maxAttempts = RETRYABLE_GATEWAY_METHODS.has(normalizedMethod)
+  const isRetryableRequest = RETRYABLE_GATEWAY_METHODS.has(normalizedMethod) || options.retryable === true;
+  const maxAttempts = isRetryableRequest
     ? GATEWAY_FETCH_MAX_ATTEMPTS
     : 1;
 
@@ -286,6 +292,7 @@ function getGatewayRequestConfig(endpointName) {
     functionKey: functionKey.value,
     functionKeyEnv: functionKey.envName,
     method: endpointConfig.method || 'POST',
+    retryable: endpointConfig.retryable === true,
     baseUrl
   };
 }
@@ -302,6 +309,7 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
       functionKey,
       functionKeyEnv,
       method: configuredMethod,
+      retryable,
       baseUrl
     } = getGatewayRequestConfig(endpointName);
     requestMethod = options.method || configuredMethod;
@@ -334,6 +342,8 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
     const response = await fetchGatewayWithRetry(url, fetchOptions, requestMethod, {
       endpointPath,
       eventType
+    }, {
+      retryable
     });
 
     const contentType = response.headers.get('content-type');

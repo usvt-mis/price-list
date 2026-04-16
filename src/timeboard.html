@@ -1837,6 +1837,7 @@
     const PURCHASE_LINE_BATCH_SIZE = 100;
     const PURCHASE_ORDER_BATCH_SIZE = 100;
     const APPROVAL_STATUS_BATCH_SIZE = 100;
+    const GATEWAY_ARRAY_REQUEST_CONCURRENCY = 3;
     const AUTO_LOAD_TRIGGER_OFFSET = 160;
     const TIMEBOARD_LOAD_STEPS = [
       { key: 'base-data', label: 'Loading timeboard rows', unit: 'SV' },
@@ -3831,6 +3832,54 @@
       return response.json();
     }
 
+    function chunkArray(items, chunkSize) {
+      const normalizedItems = Array.isArray(items) ? items : [];
+      const normalizedChunkSize = Math.max(1, Number(chunkSize) || 1);
+      const chunks = [];
+
+      for (let startIndex = 0; startIndex < normalizedItems.length; startIndex += normalizedChunkSize) {
+        chunks.push(normalizedItems.slice(startIndex, startIndex + normalizedChunkSize));
+      }
+
+      return chunks;
+    }
+
+    async function requestGatewayArrayChunksInParallel(items, batchSize, requestChunk, onProgress = () => {}) {
+      const normalizedItems = Array.isArray(items) ? items.filter(Boolean) : [];
+      const total = normalizedItems.length;
+
+      if (total === 0) {
+        onProgress(100, 0, 0);
+        return [];
+      }
+
+      const chunks = chunkArray(normalizedItems, batchSize);
+      const results = new Array(chunks.length);
+      const workerCount = Math.min(GATEWAY_ARRAY_REQUEST_CONCURRENCY, chunks.length);
+      let nextChunkIndex = 0;
+      let processedCount = 0;
+
+      onProgress(0, 0, total);
+
+      const runWorker = async () => {
+        while (nextChunkIndex < chunks.length) {
+          const chunkIndex = nextChunkIndex;
+          nextChunkIndex += 1;
+          const chunk = chunks[chunkIndex];
+          results[chunkIndex] = await requestChunk(chunk);
+          processedCount += chunk.length;
+          onProgress(
+            Math.round((Math.min(processedCount, total) / total) * 100),
+            Math.min(processedCount, total),
+            total
+          );
+        }
+      };
+
+      await Promise.all(Array.from({ length: workerCount }, runWorker));
+      return results;
+    }
+
     async function requestPurchaseLineDataInChunks(serviceOrderNos, onProgress = () => {}) {
       const normalizedServiceOrderNos = Array.isArray(serviceOrderNos) ? serviceOrderNos.filter(Boolean) : [];
       const total = normalizedServiceOrderNos.length;
@@ -3847,25 +3896,27 @@
         return mergedPayload;
       }
 
-      onProgress(0, 0, total);
+      const chunkPayloads = await requestGatewayArrayChunksInParallel(
+        normalizedServiceOrderNos,
+        PURCHASE_LINE_BATCH_SIZE,
+        async (chunk) => {
+          const chunkPayload = await requestPurchaseLineData(chunk);
 
-      for (let startIndex = 0; startIndex < total; startIndex += PURCHASE_LINE_BATCH_SIZE) {
-        const chunk = normalizedServiceOrderNos.slice(startIndex, startIndex + PURCHASE_LINE_BATCH_SIZE);
-        const chunkPayload = await requestPurchaseLineData(chunk);
+          if (chunkPayload?.success === false) {
+            throw new Error('Failed to fetch purchase line data');
+          }
 
-        if (chunkPayload?.success === false) {
-          throw new Error('Failed to fetch purchase line data');
-        }
+          return chunkPayload;
+        },
+        onProgress
+      );
 
+      chunkPayloads.forEach((chunkPayload) => {
         mergedPayload.serviceOrderNos.push(...(Array.isArray(chunkPayload?.serviceOrderNos) ? chunkPayload.serviceOrderNos : []));
         mergedPayload.purchaseLines.push(...(Array.isArray(chunkPayload?.purchaseLines) ? chunkPayload.purchaseLines : []));
         mergedPayload.totalCount += Number(chunkPayload?.totalCount || 0);
         mergedPayload.processedAt = chunkPayload?.processedAt || mergedPayload.processedAt;
-
-        const processedCount = Math.min(startIndex + chunk.length, total);
-        const percent = Math.round((processedCount / total) * 100);
-        onProgress(percent, processedCount, total);
-      }
+      });
 
       mergedPayload.serviceOrderNos = Array.from(new Set(mergedPayload.serviceOrderNos));
       return mergedPayload;
@@ -3886,24 +3937,26 @@
         return mergedPayload;
       }
 
-      onProgress(0, 0, total);
+      const chunkPayloads = await requestGatewayArrayChunksInParallel(
+        normalizedPurchaseOrderNos,
+        PURCHASE_ORDER_BATCH_SIZE,
+        async (chunk) => {
+          const chunkPayload = await requestPurchaseOrderData(chunk);
 
-      for (let startIndex = 0; startIndex < total; startIndex += PURCHASE_ORDER_BATCH_SIZE) {
-        const chunk = normalizedPurchaseOrderNos.slice(startIndex, startIndex + PURCHASE_ORDER_BATCH_SIZE);
-        const chunkPayload = await requestPurchaseOrderData(chunk);
+          if (chunkPayload?.success === false) {
+            throw new Error('Failed to fetch purchase order data');
+          }
 
-        if (chunkPayload?.success === false) {
-          throw new Error('Failed to fetch purchase order data');
-        }
+          return chunkPayload;
+        },
+        onProgress
+      );
 
+      chunkPayloads.forEach((chunkPayload) => {
         mergedPayload.purchaseOrders.push(...(Array.isArray(chunkPayload?.purchaseOrders) ? chunkPayload.purchaseOrders : []));
         mergedPayload.totalCount += Number(chunkPayload?.totalCount || 0);
         mergedPayload.processedAt = chunkPayload?.processedAt || mergedPayload.processedAt;
-
-        const processedCount = Math.min(startIndex + chunk.length, total);
-        const percent = Math.round((processedCount / total) * 100);
-        onProgress(percent, processedCount, total);
-      }
+      });
 
       return mergedPayload;
     }
@@ -3925,23 +3978,26 @@
         return mergedPayload;
       }
 
-      onProgress(0, 0, total);
-      for (let startIndex = 0; startIndex < total; startIndex += APPROVAL_STATUS_BATCH_SIZE) {
-        const chunk = normalizedDocumentNos.slice(startIndex, startIndex + APPROVAL_STATUS_BATCH_SIZE);
-        const chunkPayload = await requestApprovalStatusData(chunk);
-        const approvalStatuses = Array.isArray(chunkPayload?.approvalStatuses) ? chunkPayload.approvalStatuses : null;
+      const chunkPayloads = await requestGatewayArrayChunksInParallel(
+        normalizedDocumentNos,
+        APPROVAL_STATUS_BATCH_SIZE,
+        async (chunk) => {
+          const chunkPayload = await requestApprovalStatusData(chunk);
+          const approvalStatuses = Array.isArray(chunkPayload?.approvalStatuses) ? chunkPayload.approvalStatuses : null;
 
-        // The BC approval endpoint can return a 200 with a malformed payload for large PR batches.
-        if (chunkPayload?.success === false || approvalStatuses === null) {
-          throw new Error('Failed to fetch approval status data');
-        }
+          // The BC approval endpoint can return a 200 with a malformed payload for large PR batches.
+          if (chunkPayload?.success === false || approvalStatuses === null) {
+            throw new Error('Failed to fetch approval status data');
+          }
 
-        mergedPayload.approvalStatuses.push(...approvalStatuses);
+          return chunkPayload;
+        },
+        onProgress
+      );
 
-        const processedCount = Math.min(startIndex + chunk.length, total);
-        const percent = Math.round((processedCount / total) * 100);
-        onProgress(percent, processedCount, total);
-      }
+      chunkPayloads.forEach((chunkPayload) => {
+        mergedPayload.approvalStatuses.push(...(Array.isArray(chunkPayload?.approvalStatuses) ? chunkPayload.approvalStatuses : []));
+      });
 
       return mergedPayload;
     }
@@ -4327,6 +4383,16 @@
       });
     }
 
+    function createTimeboardLookupPromise(requestPromise, buildLookup, warningMessage, onFallbackProgress = () => {}) {
+      return requestPromise
+        .then((payload) => buildLookup(payload))
+        .catch((error) => {
+          console.warn(warningMessage, error);
+          onFallbackProgress(100, 0, 0);
+          return new Map();
+        });
+    }
+
     async function enrichRowsWithPurchaseLines(rows, options = {}) {
       const {
         onProgress = () => {},
@@ -4341,14 +4407,23 @@
       state.salesQuoteNos = salesQuoteNos;
       let salesQuoteLookup = new Map();
       let serviceOrderLookup = new Map();
+      const salesQuoteLookupPromise = createTimeboardLookupPromise(
+        requestSalesQuoteDataForDocuments(salesQuoteNos, onSalesQuoteProgress),
+        buildSalesQuoteLookup,
+        'Failed to enrich timeboard rows with sales quote data:',
+        onSalesQuoteProgress
+      );
+      const serviceOrderLookupPromise = serviceOrderNos.length > 0
+        ? createTimeboardLookupPromise(
+            requestServiceOrderDataForDocuments(serviceOrderNos, onServiceOrderProgress),
+            buildServiceOrderLookup,
+            'Failed to enrich timeboard rows with service order data:',
+            onServiceOrderProgress
+          )
+        : Promise.resolve(new Map());
 
       if (serviceOrderNos.length === 0) {
-        try {
-          const salesQuotePayload = await requestSalesQuoteDataForDocuments(salesQuoteNos, onSalesQuoteProgress);
-          salesQuoteLookup = buildSalesQuoteLookup(salesQuotePayload);
-        } catch (error) {
-          console.warn('Failed to enrich timeboard rows with sales quote data:', error);
-        }
+        salesQuoteLookup = await salesQuoteLookupPromise;
 
         state.purchaseDocumentNos = {
           pr: [],
@@ -4378,56 +4453,46 @@
         let purchaseOrderLookup = new Map();
         let purchaseOrderApprovalLookup = new Map();
         let purchaseRequestApprovalLookup = new Map();
-
-        try {
-          const purchaseOrderPayload = await requestPurchaseOrderDataInChunks(
-            purchaseOrderNos,
-            onPurchaseOrderProgress
-          );
-          purchaseOrderLookup = buildPurchaseOrderLookup(purchaseOrderPayload);
-        } catch (error) {
-          console.warn('Failed to enrich timeboard rows with purchase order data:', error);
-          onPurchaseOrderProgress(100, 0, 0);
-        }
-
-        try {
-          const purchaseOrderApprovalPayload = await requestApprovalStatusDataForDocuments(
+        const purchaseOrderLookupPromise = createTimeboardLookupPromise(
+          requestPurchaseOrderDataInChunks(purchaseOrderNos, onPurchaseOrderProgress),
+          buildPurchaseOrderLookup,
+          'Failed to enrich timeboard rows with purchase order data:',
+          onPurchaseOrderProgress
+        );
+        const purchaseOrderApprovalLookupPromise = createTimeboardLookupPromise(
+          requestApprovalStatusDataForDocuments(
             purchaseOrderNos,
             normalizePurchaseOrderNumber,
             onPurchaseOrderApprovalProgress
-          );
-          purchaseOrderApprovalLookup = buildApprovalStatusLookup(purchaseOrderApprovalPayload);
-        } catch (error) {
-          console.warn('Failed to enrich timeboard rows with purchase order approval data:', error);
-          onPurchaseOrderApprovalProgress(100, 0, 0);
-        }
-
-        try {
-          const purchaseRequestApprovalPayload = await requestApprovalStatusDataForDocuments(
+          ),
+          buildApprovalStatusLookup,
+          'Failed to enrich timeboard rows with purchase order approval data:',
+          onPurchaseOrderApprovalProgress
+        );
+        const purchaseRequestApprovalLookupPromise = createTimeboardLookupPromise(
+          requestApprovalStatusDataForDocuments(
             purchaseRequestNos,
             normalizePurchaseRequestNumber,
             onPurchaseRequestApprovalProgress
-          );
-          purchaseRequestApprovalLookup = buildApprovalStatusLookup(purchaseRequestApprovalPayload);
-        } catch (error) {
-          console.warn('Failed to enrich timeboard rows with purchase request approval data:', error);
-          onPurchaseRequestApprovalProgress(100, 0, 0);
-        }
+          ),
+          buildApprovalStatusLookup,
+          'Failed to enrich timeboard rows with purchase request approval data:',
+          onPurchaseRequestApprovalProgress
+        );
 
-        try {
-          const salesQuotePayload = await requestSalesQuoteDataForDocuments(salesQuoteNos, onSalesQuoteProgress);
-          salesQuoteLookup = buildSalesQuoteLookup(salesQuotePayload);
-        } catch (error) {
-          console.warn('Failed to enrich timeboard rows with sales quote data:', error);
-        }
-
-        try {
-          const serviceOrderPayload = await requestServiceOrderDataForDocuments(serviceOrderNos, onServiceOrderProgress);
-          serviceOrderLookup = buildServiceOrderLookup(serviceOrderPayload);
-        } catch (error) {
-          console.warn('Failed to enrich timeboard rows with service order data:', error);
-          onServiceOrderProgress(100, 0, 0);
-        }
+        [
+          purchaseOrderLookup,
+          purchaseOrderApprovalLookup,
+          purchaseRequestApprovalLookup,
+          salesQuoteLookup,
+          serviceOrderLookup
+        ] = await Promise.all([
+          purchaseOrderLookupPromise,
+          purchaseOrderApprovalLookupPromise,
+          purchaseRequestApprovalLookupPromise,
+          salesQuoteLookupPromise,
+          serviceOrderLookupPromise
+        ]);
 
         return rows.map((row) => {
           const rowWithSalesQuoteData = mergeSalesQuoteDataIntoRow(row, salesQuoteLookup);
@@ -4464,6 +4529,7 @@
           pr: [],
           po: []
         };
+        salesQuoteLookup = await salesQuoteLookupPromise;
         console.warn('Failed to enrich timeboard rows with purchase line data:', error);
         return rows.map((row) => ({
           ...mergeSalesQuoteDataIntoRow(row, salesQuoteLookup),
@@ -4483,6 +4549,31 @@
           purchaseLine
         }));
       });
+    }
+
+    function getTimeboardRowKey(row) {
+      return [
+        row?.branch,
+        row?.sqNumber,
+        row?.svNumber,
+        row?.dateOrder,
+        row?.systemCreatedAt
+      ].map((value) => String(value || '').trim().toUpperCase()).join('|');
+    }
+
+    function appendUniqueTimeboardRows(existingRows, newRows) {
+      const existingKeys = new Set((Array.isArray(existingRows) ? existingRows : []).map(getTimeboardRowKey));
+      const uniqueRows = (Array.isArray(newRows) ? newRows : []).filter((row) => {
+        const rowKey = getTimeboardRowKey(row);
+        if (existingKeys.has(rowKey)) {
+          return false;
+        }
+
+        existingKeys.add(rowKey);
+        return true;
+      });
+
+      return [...(Array.isArray(existingRows) ? existingRows : []), ...uniqueRows];
     }
 
     function sortDisplayRowsForMode(entries) {
@@ -4795,11 +4886,17 @@
 
       try {
         const rows = await requestTimeboardData(nextFetchSize);
+        const newRows = rows.slice(previousCount);
         loadProgress.completeStep('base-data', {
           processedCount: rows.length,
           totalCount: rows.length
         });
-        const enrichedRows = await enrichRowsWithPurchaseLines(rows, {
+        if (newRows.length === 0) {
+          state.hasMoreData = false;
+          return;
+        }
+
+        const enrichedRows = await enrichRowsWithPurchaseLines(newRows, {
           onProgress: (percent, processedCount, totalCount) => {
             loadProgress.updateStep('purchase-lines', percent, { processedCount, totalCount });
           },
@@ -4820,8 +4917,8 @@
           }
         });
         state.fetchSize = nextFetchSize;
-        state.data = enrichedRows;
-        state.hasMoreData = rows.length > previousCount;
+        state.data = appendUniqueTimeboardRows(state.data, enrichedRows);
+        state.hasMoreData = rows.length > previousCount && state.data.length > previousCount;
       } catch (error) {
         state.hasMoreData = previousCount > 0;
       } finally {

@@ -109,6 +109,18 @@ const DEFAULT_PAGE_LABEL = 'หน้า 1/1';
 const PRINT_LAYOUT_SETTINGS_API = '/api/salesquotes/print-layout-settings';
 const APPROVER_DETAIL_COLUMN_GAP_MM = 6.8;
 const TOTALS_LABEL_ALIGNMENT_OFFSET_MM = -2;
+const PRINT_PAGE_HEIGHT_MM = 297;
+const PRINT_PAGE_PADDING_TOP_MM = 8.5;
+const PRINT_PAGE_HORIZONTAL_PADDING_MM = 9;
+const PRINT_RESERVED_FOOTER_HEIGHT_MM = 112;
+const PRINT_TOPBAR_HEIGHT_MM = 18;
+const PRINT_TITLE_ROW_HEIGHT_MM = 14;
+const PRINT_META_TABLE_HEIGHT_MM = 42;
+const PRINT_LINE_TABLE_MARGIN_TOP_MM = 1.2;
+const PRINT_LINE_TABLE_HEADER_HEIGHT_MM = 9;
+const PRINT_LINE_TABLE_SAFETY_MARGIN_MM = 6;
+const LINE_TABLE_DESCRIPTION_WIDTH_RATIO = 0.385;
+const LINE_TABLE_CHILD_DESCRIPTION_INDENT_MM = 8;
 const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   baseFontSize: 11.4,
   companyThaiFontSize: 15.5,
@@ -767,7 +779,7 @@ async function buildModel() {
     ourRef: documentRef,
     documentDate: formatDate(reportContext.documentDate || reportContext.orderDate || formData.orderDate),
     expiredDate: formatDate(reportContext.quoteValidUntilDate),
-    paymentText: reportContext.paymentTermsCode || reportContext.paymentTermsDescription || '',
+    paymentText: reportContext.paymentTermsCode || formData.paymentTermsCode || reportContext.paymentTermsDescription || '',
     deliveryText: formatDate(formData.deliveryDate),
     attention: formData.contact || reportContext.billToContact || '',
     phone: state.quote.customer?.phone || reportContext.sellToPhoneNo || '',
@@ -1059,15 +1071,37 @@ function renderLineRows(lines) {
   }).join('');
 }
 
+function estimateDescriptionCharsPerLine(settings, isChildLine = false) {
+  const printableWidthMm = 210 - (PRINT_PAGE_HORIZONTAL_PADDING_MM * 2);
+  const descriptionWidthMm = printableWidthMm * LINE_TABLE_DESCRIPTION_WIDTH_RATIO;
+  const usableDescriptionWidthMm = Math.max(
+    30,
+    descriptionWidthMm - (isChildLine ? LINE_TABLE_CHILD_DESCRIPTION_INDENT_MM : 0)
+  );
+  const fontSizeMm = settings.lineTableFontSize * 0.264583;
+  const averageGlyphWidthMm = Math.max(1, fontSizeMm * 0.47);
+
+  return Math.max(24, Math.floor(usableDescriptionWidthMm / averageGlyphWidthMm));
+}
+
+function estimateWrappedLineCount(text, charsPerLine) {
+  const normalized = normalizeSingleLineText(text);
+  if (!normalized) {
+    return 1;
+  }
+
+  return Math.max(1, Math.ceil(Array.from(normalized).length / charsPerLine));
+}
+
 /**
  * Calculate the height in mm for each printable line row
  * Accounts for base row height, description continuations, and special row types
  */
 function calculateRowHeights(lines, settings) {
-  const baseRowHeightMm = 8.5;
-  const commentRowHeightMm = 4.5;
+  const lineHeightMm = settings.lineTableFontSize * 0.264583 * 1.3;
+  const baseRowHeightMm = Math.max(8.5, lineHeightMm + 1.9);
+  const commentRowHeightMm = Math.max(4.5, lineHeightMm + 1.05);
   const groupTotalRowHeightMm = 5.6;
-  const descWidthChars = Math.max(28, Math.floor(95 * settings.baseFontSize / 11));
 
   const heights = [];
 
@@ -1084,14 +1118,13 @@ function calculateRowHeights(lines, settings) {
       ...compactLines(String(line.description2 || '').split(/\r?\n/))
     ];
     let rowHeight = baseRowHeightMm;
+    const descWidthChars = estimateDescriptionCharsPerLine(settings, line.printIsChild && !line.printIsHeader);
 
-    const primaryDescriptionLineCount = primaryDescription
-      ? Math.max(1, Math.ceil(primaryDescription.length / descWidthChars))
-      : 1;
+    const primaryDescriptionLineCount = estimateWrappedLineCount(primaryDescription, descWidthChars);
     rowHeight += Math.max(0, primaryDescriptionLineCount - 1) * commentRowHeightMm;
 
     continuationLines.forEach(text => {
-      const estimatedLineCount = Math.max(1, Math.ceil(String(text || '').length / descWidthChars));
+      const estimatedLineCount = estimateWrappedLineCount(text, descWidthChars);
       rowHeight += estimatedLineCount * commentRowHeightMm;
     });
 
@@ -1104,34 +1137,22 @@ function calculateRowHeights(lines, settings) {
 /**
  * Calculate available content space per page type in mm
  */
-function calculateAvailablePageHeights(settings, hasMetaTable = true) {
-  const pageHeight = 279; // A4 printable height
-  const bodyPaddingTop = 8.5;
-  const bodyPaddingBottom = 8;
-
-  // Fixed section heights (in mm)
-  const topbarHeight = 18; // Logo + company + page number
-  const titleRowHeight = 14; // Title row with certifications
-  const metaTableHeight = hasMetaTable ? 42 : 0; // Meta table rows
-  const lineTableHeaderHeight = 9; // Table header row
-  const footerHeight = 95; // Totals + signatures + document footer
-  const disclaimerOnlyHeight = 12; // Just the disclaimer text
-
-  // First page (full header + meta table)
-  const firstPageHeaderHeight = topbarHeight + titleRowHeight + metaTableHeight;
-  const firstPageAvailable = pageHeight - bodyPaddingTop - bodyPaddingBottom - firstPageHeaderHeight - lineTableHeaderHeight;
-
-  // Middle page (compact header only)
-  const compactHeaderHeight = 12; // Smaller logo + company name + page number
-  const middlePageAvailable = pageHeight - bodyPaddingTop - bodyPaddingBottom - compactHeaderHeight - lineTableHeaderHeight;
-
-  // Last page (compact header + footer)
-  const lastPageAvailable = middlePageAvailable - footerHeight;
+function calculateAvailablePageHeights(hasMetaTable = true) {
+  const fullHeaderHeight = PRINT_TOPBAR_HEIGHT_MM
+    + PRINT_TITLE_ROW_HEIGHT_MM
+    + (hasMetaTable ? PRINT_META_TABLE_HEIGHT_MM : 0);
+  const availableWithFullFooter = PRINT_PAGE_HEIGHT_MM
+    - PRINT_PAGE_PADDING_TOP_MM
+    - PRINT_RESERVED_FOOTER_HEIGHT_MM
+    - fullHeaderHeight
+    - PRINT_LINE_TABLE_MARGIN_TOP_MM
+    - PRINT_LINE_TABLE_HEADER_HEIGHT_MM
+    - PRINT_LINE_TABLE_SAFETY_MARGIN_MM;
 
   return {
-    firstPage: Math.max(20, firstPageAvailable), // Minimum 20mm for content
-    middlePage: Math.max(20, middlePageAvailable),
-    lastPage: Math.max(20, lastPageAvailable)
+    firstPage: Math.max(20, availableWithFullFooter),
+    middlePage: Math.max(20, availableWithFullFooter),
+    lastPage: Math.max(20, availableWithFullFooter)
   };
 }
 
@@ -1140,16 +1161,12 @@ function calculateAvailablePageHeights(settings, hasMetaTable = true) {
  */
 function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
   const rowHeights = calculateRowHeights(lines, settings);
-  const pageHeights = calculateAvailablePageHeights(settings, hasMetaTable);
+  const pageHeights = calculateAvailablePageHeights(hasMetaTable);
   const chunks = [];
   let startIndex = 0;
   let currentHeight = 0;
 
-  // Keep the footer area untouched, but let normal rows use more of the real
-  // printable space so we can match the BC document density more closely.
-  const targetNormalRowsPerPage = 17;
-  const targetLineItemSpace = targetNormalRowsPerPage * 8.5; // 17 standard rows
-  const pageWithFooterAvailable = Math.min(pageHeights.lastPage, targetLineItemSpace);
+  const pageWithFooterAvailable = pageHeights.lastPage;
 
   // Debug: log the calculated values
   console.log('[Chunk Debug] Page with footer available:', pageWithFooterAvailable.toFixed(2), 'mm');
@@ -1168,7 +1185,7 @@ function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
     });
   } else {
     console.log('[Chunk Debug] Need multiple pages');
-    // Build chunks - need to account for footer on last page
+    // Build chunks with the footer reserved on every page.
     for (let i = 0; i < lines.length; i++) {
       const rowHeight = rowHeights[i];
       const isLastItem = i === lines.length - 1;
@@ -1471,7 +1488,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
   const metaRowsMarkup = renderMetaRows(model, customerAddressLines, deliveryAddressLines);
   const metaColumnWidths = resolveMetaTableColumnWidths(settings);
   const signatureSignHeightMm = Math.max(settings.signatureSignMinHeightMm, 22);
-  const reservedFooterHeightMm = 112;
+  const reservedFooterHeightMm = PRINT_RESERVED_FOOTER_HEIGHT_MM;
 
   // Chunk line items into pages
   const pageChunks = chunkLineItemsForPages(model.lineItems, settings, true);

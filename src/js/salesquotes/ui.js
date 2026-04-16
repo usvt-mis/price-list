@@ -20,6 +20,114 @@ async function getApprovalStatus() {
 
 const DEFAULT_VAT_RATE = 7;
 
+function normalizeStatusComparisonValue(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+function getApprovalStatusDisplayLabel(approvalStatus, { pendingRevisionRequest = false, approvalConstants = {} } = {}) {
+  if (!approvalStatus) {
+    return 'Not tracked';
+  }
+
+  if (pendingRevisionRequest) {
+    return 'Approved (Revision Requested)';
+  }
+
+  if (approvalConstants.SUBMITTED_TO_BC === approvalStatus) {
+    return 'Submitted to BC';
+  }
+
+  if (approvalConstants.REVISE === approvalStatus) {
+    return 'Revision Requested';
+  }
+
+  if (approvalConstants.PENDING_APPROVAL === approvalStatus) {
+    return 'Pending Approval';
+  }
+
+  if (approvalConstants.APPROVED === approvalStatus) {
+    return 'Approved';
+  }
+
+  if (approvalConstants.REJECTED === approvalStatus) {
+    return 'Rejected';
+  }
+
+  if (approvalConstants.BEING_REVISED === approvalStatus) {
+    return 'Being Revised';
+  }
+
+  if (approvalConstants.CANCELLED === approvalStatus) {
+    return 'Cancelled';
+  }
+
+  return approvalStatus;
+}
+
+function getExpectedBcStatusesForApprovalStatus(approvalStatus, { pendingRevisionRequest = false, approvalConstants = {} } = {}) {
+  if (pendingRevisionRequest) {
+    return ['Pending Approval'];
+  }
+
+  switch (approvalStatus) {
+    case approvalConstants.PENDING_APPROVAL:
+      return ['Pending Approval'];
+    case approvalConstants.APPROVED:
+      return ['Released'];
+    case approvalConstants.DRAFT:
+    case approvalConstants.SUBMITTED_TO_BC:
+    case approvalConstants.REVISE:
+    case approvalConstants.REJECTED:
+    case approvalConstants.BEING_REVISED:
+    case approvalConstants.CANCELLED:
+    default:
+      return ['Open'];
+  }
+}
+
+export async function getBcApprovalStatusAlert() {
+  const APPROVAL = await getApprovalStatus();
+  const bcStatus = String(state.quote.status || '').trim();
+  const normalizedBcStatus = normalizeStatusComparisonValue(bcStatus);
+
+  if (!normalizedBcStatus || normalizedBcStatus === 'open') {
+    return null;
+  }
+
+  const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus || null;
+  const pendingRevisionRequest = approvalStatus === APPROVAL.APPROVED &&
+    state.approval.hasPendingRevisionRequest === true;
+  const expectedBcStatuses = getExpectedBcStatusesForApprovalStatus(approvalStatus, {
+    pendingRevisionRequest,
+    approvalConstants: APPROVAL
+  });
+  const normalizedExpectedStatuses = expectedBcStatuses.map(normalizeStatusComparisonValue);
+
+  if (normalizedExpectedStatuses.includes(normalizedBcStatus)) {
+    return null;
+  }
+
+  const systemStatusLabel = getApprovalStatusDisplayLabel(approvalStatus, {
+    pendingRevisionRequest,
+    approvalConstants: APPROVAL
+  });
+  const expectedBcStatusText = expectedBcStatuses.join(' or ');
+
+  return {
+    title: 'Business Central status mismatch',
+    message: approvalStatus
+      ? `Business Central shows "${bcStatus}", but this system shows "${systemStatusLabel}". Expected BC status: ${expectedBcStatusText}.`
+      : `Business Central shows "${bcStatus}", but this quote is not tracked in the approval system. Expected BC status: ${expectedBcStatusText}.`,
+    bcStatus,
+    approvalStatus,
+    systemStatusLabel,
+    expectedBcStatuses
+  };
+}
+
 // ============================================================
 // DOM Element Helpers
 // ============================================================
@@ -419,6 +527,7 @@ export function clearCustomerSelection() {
   const searchInput = el('customerSearch');
   const customerNoSearch = el('customerNoSearch');
   const customerName = el('customerName');
+  const paymentTermsCode = el('paymentTermsCode');
   const display = el('selectedCustomerDisplay');
   const sellToSection = el('sellToSection');
 
@@ -429,6 +538,7 @@ export function clearCustomerSelection() {
   if (searchInput) searchInput.value = '';
   if (customerNoSearch) customerNoSearch.value = '';
   if (customerName) customerName.value = '';
+  if (paymentTermsCode) paymentTermsCode.value = '';
   if (display) display.classList.add('hidden');
   if (sellToSection) sellToSection.classList.add('hidden');
 
@@ -436,6 +546,7 @@ export function clearCustomerSelection() {
   state.quote.customer = null;
   state.quote.customerNo = null;
   state.quote.customerName = null;
+  state.quote.paymentTermsCode = '';
   state.quote.sellTo = {
     address: null,
     address2: null,
@@ -602,6 +713,10 @@ function canModifyQuoteLines() {
   return isQuoteEditable();
 }
 
+function canModifyQuoteLinePrintLayout() {
+  return isSearchSalesQuoteEditorMode();
+}
+
 function setMainFormFieldLocked(element, locked, title) {
   if (!element) {
     return;
@@ -752,14 +867,16 @@ const QUOTE_LINE_COLUMNS = [
     cellClass: 'text-center',
     isVisible: () => isSearchSalesQuoteEditorMode(),
     render: (line) => {
-      const editable = canModifyQuoteLines();
+      const editable = canModifyQuoteLinePrintLayout();
       const isVisibleInPrint = line.showInDocument !== false;
 
       return renderQuoteLineFlagToggle(line, 'printHeader', {
-        disabled: !editable || !isVisibleInPrint,
+        disabled: !editable,
         title: !editable
           ? getQuoteEditLockMessage()
-          : (isVisibleInPrint ? 'Mark this line as the group header for print' : 'Enable Show before assigning Header')
+          : (isVisibleInPrint
+              ? 'Mark this line as the group header for print'
+              : 'Mark this line as the group header for print and show it in print')
       });
     }
   },
@@ -771,14 +888,16 @@ const QUOTE_LINE_COLUMNS = [
     cellClass: 'text-center',
     isVisible: () => isSearchSalesQuoteEditorMode(),
     render: (line) => {
-      const editable = canModifyQuoteLines();
+      const editable = canModifyQuoteLinePrintLayout();
       const isVisibleInPrint = line.showInDocument !== false;
 
       return renderQuoteLineFlagToggle(line, 'printFooter', {
-        disabled: !editable || !isVisibleInPrint,
+        disabled: !editable,
         title: !editable
           ? getQuoteEditLockMessage()
-          : (isVisibleInPrint ? 'Mark this line as the group footer for print' : 'Enable Show before assigning Footer')
+          : (isVisibleInPrint
+              ? 'Mark this line as the group footer for print'
+              : 'Mark this line as the group footer for print and show it in print')
       });
     }
   },
@@ -1636,6 +1755,7 @@ export function getQuoteFormData() {
     customerId: state.quote.customerId,
     customerNo: state.quote.customerNo,
     customerName: state.quote.customerName,
+    paymentTermsCode: el('paymentTermsCode')?.value || state.quote.paymentTermsCode || state.quote.reportContext?.paymentTermsCode || '',
     customer: state.quote.customer,
     deliveryDate: el('deliveryDate')?.value || '',
     orderDate: el('orderDate')?.value || '',
@@ -1678,6 +1798,7 @@ export function getQuoteFormData() {
 export function populateQuoteForm(quote) {
   if (el('customerNoSearch')) el('customerNoSearch').value = quote.customerNo || '';
   if (el('customerName')) el('customerName').value = quote.customerName || '';
+  if (el('paymentTermsCode')) el('paymentTermsCode').value = quote.paymentTermsCode || quote.reportContext?.paymentTermsCode || '';
   if (el('workStatus')) el('workStatus').value = quote.workStatus || '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = quote.workDescription || '';
   if (el('quoteRemark')) el('quoteRemark').value = quote.remark || '';
@@ -1764,6 +1885,7 @@ export function clearQuoteForm() {
   if (el('customerSearch')) el('customerSearch').value = '';
   if (el('customerNoSearch')) el('customerNoSearch').value = '';
   if (el('customerName')) el('customerName').value = '';
+  if (el('paymentTermsCode')) el('paymentTermsCode').value = '';
   if (el('workStatus')) el('workStatus').value = '';
   if (el('quoteWorkDescription')) el('quoteWorkDescription').value = '';
   if (el('quoteRemark')) el('quoteRemark').value = '';
@@ -1849,6 +1971,7 @@ export async function updateQuoteEditorModeUi() {
   const requestRevisionBtn = el('requestRevisionBtn');
   const approvalStatus = state.quote.approvalStatus || state.approval.currentStatus;
   const pendingRevisionRequest = hasPendingRevisionRequestState();
+  const bcStatusAlert = await getBcApprovalStatusAlert();
   const approvedWorkStatusOnlyMode = isApprovedWorkStatusOnlyMode();
   const quoteLocked = isSearchSalesQuoteMode && !isQuoteEditable();
   const lockMessage = quoteLocked ? getQuoteEditLockMessage() : '';
@@ -1887,15 +2010,10 @@ export async function updateQuoteEditorModeUi() {
       secondaryMetaParts.push({ label: 'Status', value: state.quote.status, type: 'status' });
     }
     if (approvalStatus) {
-      const statusLabel = pendingRevisionRequest ? 'Approved (Revision Requested)' :
-        APPROVAL.SUBMITTED_TO_BC === approvalStatus ? 'Submitted to BC' :
-        APPROVAL.REVISE === approvalStatus ? 'Revision Requested' :
-        APPROVAL.PENDING_APPROVAL === approvalStatus ? 'Pending Approval' :
-        APPROVAL.APPROVED === approvalStatus ? 'Approved' :
-        APPROVAL.REJECTED === approvalStatus ? 'Rejected' :
-        APPROVAL.BEING_REVISED === approvalStatus ? 'Being Revised' :
-        APPROVAL.CANCELLED === approvalStatus ? 'Cancelled' :
-        approvalStatus;
+      const statusLabel = getApprovalStatusDisplayLabel(approvalStatus, {
+        pendingRevisionRequest,
+        approvalConstants: APPROVAL
+      });
       secondaryMetaParts.push({ label: 'Approval status', value: statusLabel, type: 'approval' });
     }
     if (state.quote.customerName) {
@@ -2006,6 +2124,33 @@ export async function updateQuoteEditorModeUi() {
       const approvalCommentDiv = el('approvalCommentDisplay');
       if (approvalCommentDiv) {
         approvalCommentDiv.classList.add('hidden');
+      }
+    }
+
+    if (bcStatusAlert) {
+      let bcStatusAlertDiv = el('bcStatusAlertDisplay');
+      if (!bcStatusAlertDiv) {
+        bcStatusAlertDiv = document.createElement('div');
+        bcStatusAlertDiv.id = 'bcStatusAlertDisplay';
+        banner.appendChild(bcStatusAlertDiv);
+      }
+      bcStatusAlertDiv.className = 'mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg';
+      bcStatusAlertDiv.innerHTML = `
+        <div class="flex items-start gap-2">
+          <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m0 3.75h.01M10.29 3.86 1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+          </svg>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-amber-900">${escapeHtml(bcStatusAlert.title)}</p>
+            <p class="text-sm text-amber-700 mt-1">${escapeHtml(bcStatusAlert.message)} Please verify the latest status before continuing.</p>
+          </div>
+        </div>
+      `;
+      bcStatusAlertDiv.classList.remove('hidden');
+    } else {
+      const bcStatusAlertDiv = el('bcStatusAlertDisplay');
+      if (bcStatusAlertDiv) {
+        bcStatusAlertDiv.classList.add('hidden');
       }
     }
   }
