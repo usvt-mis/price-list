@@ -7,7 +7,7 @@ import { state, addQuoteLine, insertQuoteLine, removeQuoteLine, clearQuoteLines,
 import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
-import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteUpdatedSuccess, showQuoteSendFailure } from './ui.js';
+import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteUpdatedSuccess, showQuoteSendFailure, normalizeQuoteFailureMessage } from './ui.js';
 import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal, isApprovedWorkStatusOnlyMode, syncVatControls, getBcApprovalStatusAlert, setSerActionButtonState } from './ui.js';
 import { fetchWithAuth } from '../core/utils.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
@@ -253,6 +253,104 @@ function markQuoteSyncFailed(error) {
   state.ui.quoteSync.lastSyncStatus = 'failed';
   state.ui.quoteSync.lastSyncError = error?.message || 'Business Central sync failed.';
   refreshQuoteSyncState();
+}
+
+function getQuoteBcSyncOperation({ isApprovedWorkStatusUpdate = false, isEditMode = false } = {}) {
+  if (isApprovedWorkStatusUpdate) {
+    return {
+      operation: 'PatchSalesQuote',
+      endpoint: GATEWAY_API.PATCH_SALES_QUOTE
+    };
+  }
+
+  if (isEditMode) {
+    return {
+      operation: 'UpdateSalesQuote',
+      endpoint: GATEWAY_API.UPDATE_SALES_QUOTE
+    };
+  }
+
+  return {
+    operation: 'CreateSalesQuoteWithoutNumber',
+    endpoint: GATEWAY_API.CREATE_SALES_QUOTE_WITHOUT_NUMBER
+  };
+}
+
+function extractHttpStatusCodeFromError(error) {
+  const message = error instanceof Error ? error.message : String(error || '');
+  const match = message.match(/\b(?:API Error|HTTP)\s+(\d{3})\b/i);
+  if (!match) {
+    return null;
+  }
+
+  const statusCode = Number.parseInt(match[1], 10);
+  return Number.isFinite(statusCode) ? statusCode : null;
+}
+
+function buildQuoteBcSyncErrorContext({
+  formData = {},
+  sanitizedData = null,
+  operation = '',
+  endpoint = ''
+} = {}) {
+  return {
+    quoteNumber: state.quote.number || formData.quoteNumber || '',
+    quoteId: state.quote.id || sanitizedData?.quoteId || '',
+    quoteMode: state.quote.mode || '',
+    customerNo: state.quote.customerNo || formData.customerNo || '',
+    branchCode: formData.branch || state.quote.branch || '',
+    workStatus: formData.workStatus || '',
+    approvalStatus: state.quote.approvalStatus || state.approval.currentStatus || '',
+    lineCount: Array.isArray(state.quote.lines) ? state.quote.lines.length : 0,
+    operation,
+    endpoint
+  };
+}
+
+async function recordQuoteBcSyncError({
+  error,
+  formData = {},
+  sanitizedData = null,
+  isEditMode = false,
+  isApprovedWorkStatusUpdate = false,
+  modalMessage = ''
+} = {}) {
+  const { operation, endpoint } = getQuoteBcSyncOperation({
+    isEditMode,
+    isApprovedWorkStatusUpdate
+  });
+  const requestContext = buildQuoteBcSyncErrorContext({
+    formData,
+    sanitizedData,
+    operation,
+    endpoint
+  });
+
+  const response = await fetchWithAuth('/api/salesquotes/bc-sync-errors', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      salesQuoteNumber: state.quote.number || '',
+      operation,
+      quoteMode: state.quote.mode || (isEditMode ? 'edit' : 'create'),
+      branchCode: requestContext.branchCode,
+      customerNo: requestContext.customerNo,
+      approvalStatus: requestContext.approvalStatus,
+      workStatus: requestContext.workStatus,
+      httpStatusCode: extractHttpStatusCodeFromError(error),
+      endpoint,
+      modalMessage,
+      rawErrorMessage: error instanceof Error ? error.message : String(error || ''),
+      requestContext
+    })
+  });
+
+  if (!response.ok) {
+    const errorPayload = await response.json().catch(() => null);
+    throw new Error(errorPayload?.error || 'Failed to record BC sync error');
+  }
 }
 
 function normalizePrintFlagValue(value, fallback = false) {
@@ -4279,7 +4377,20 @@ export async function handleSendQuote(options = {}) {
     hideSaving();
     markQuoteSyncFailed(error);
     console.error('Failed to send quote:', error);
-    await showQuoteSendFailure(error);
+    const modalMessage = normalizeQuoteFailureMessage(error);
+    await showQuoteSendFailure(modalMessage);
+    try {
+      await recordQuoteBcSyncError({
+        error,
+        formData,
+        sanitizedData,
+        isEditMode,
+        isApprovedWorkStatusUpdate,
+        modalMessage
+      });
+    } catch (logError) {
+      console.error('Failed to record Sales Quote BC sync error:', logError);
+    }
     return {
       success: false,
       error

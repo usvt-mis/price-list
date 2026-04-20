@@ -317,3 +317,159 @@ test('searched quote update payload uses edited payment terms value', async ({ p
   await expect.poll(() => updatePayload?.paymentTermsCode).toBe('60D');
   expect(updatePayload?.paymentTermCode).toBe('60D');
 });
+
+test('failed searched quote update records BC sync error after showing modal', async ({ page }) => {
+  await mockCommonRoutes(page);
+
+  await page.route('**/api/salesquotes/approvals/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ approval: null })
+    });
+  });
+
+  await page.route('**/api/business-central/gateway/sales-quotes/from-number?**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          id: 'quote-bc-sync-error',
+          number: EDIT_QUOTE_NUMBER,
+          paymentTermsCode: '30D',
+          sellToCustomerName: 'ACME Industries',
+          sellToCustomerNo: 'C0001',
+          salespersonCode: 'SP001',
+          assignedUserId: 'sales@example.com',
+          branch: 'URY',
+          branchCode: 'URY',
+          locationCode: 'RY01',
+          responsibilityCenter: 'URY',
+          orderDate: '2026-04-09',
+          requestedDeliveryDate: '2026-04-20',
+          NavWordReportXmlPart: {
+            Sales_Header: {
+              DocNo_SaleHeader: EDIT_QUOTE_NUMBER,
+              Name: 'ACME Industries',
+              BilltoCustomerNo_SalesHeader: 'C0001',
+              OrderDate_SaleHeader: '2026-04-09',
+              RequestedDeliveryDate_SalesHeader: '2026-04-20'
+            },
+            Integer: []
+          }
+        }
+      })
+    });
+  });
+
+  await page.route('**/api/business-central/gateway/update-sales-quote', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'BC update failed in test' })
+    });
+  });
+
+  let loggedPayload: Record<string, any> | null = null;
+  await page.route('**/api/salesquotes/bc-sync-errors', async (route) => {
+    loggedPayload = route.request().postDataJSON();
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true })
+    });
+  });
+
+  await openSalesQuotes(page);
+  await page.click('#tabSearch');
+  await page.fill('#searchSalesQuoteNumber', EDIT_QUOTE_NUMBER);
+  await page.click('#searchSalesQuoteBtn');
+  await expect(page.locator('#quoteEditorModeTitle')).toContainText(`Editing Sales Quote ${EDIT_QUOTE_NUMBER}`);
+
+  await page.click('#sendQuoteBtn');
+
+  await expect(page.locator('#quoteFailedModal')).toBeVisible();
+  await expect(page.locator('#quoteFailedMessage')).toContainText('Business Central returned HTTP 500');
+  await expect(page.locator('#quoteFailedMessage')).toContainText('BC update failed in test');
+
+  await expect.poll(() => loggedPayload?.operation).toBe('UpdateSalesQuote');
+  expect(loggedPayload?.salesQuoteNumber).toBe(EDIT_QUOTE_NUMBER);
+  expect(loggedPayload?.httpStatusCode).toBe(500);
+  expect(loggedPayload?.modalMessage).toContain('BC update failed in test');
+  expect(loggedPayload?.requestContext?.lineCount).toBe(0);
+  expect(loggedPayload?.requestContext?.endpoint).toBe('/api/business-central/gateway/update-sales-quote');
+});
+
+test('failed BC sync logging does not block quote failure modal', async ({ page }) => {
+  await mockCommonRoutes(page);
+
+  await page.route('**/api/salesquotes/approvals/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ approval: null })
+    });
+  });
+
+  await page.route('**/api/business-central/gateway/sales-quotes/from-number?**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          id: 'quote-bc-sync-log-failure',
+          number: EDIT_QUOTE_NUMBER,
+          paymentTermsCode: '30D',
+          sellToCustomerName: 'ACME Industries',
+          sellToCustomerNo: 'C0001',
+          salespersonCode: 'SP001',
+          assignedUserId: 'sales@example.com',
+          branch: 'URY',
+          branchCode: 'URY',
+          locationCode: 'RY01',
+          responsibilityCenter: 'URY',
+          orderDate: '2026-04-09',
+          requestedDeliveryDate: '2026-04-20',
+          NavWordReportXmlPart: {
+            Sales_Header: {
+              DocNo_SaleHeader: EDIT_QUOTE_NUMBER,
+              Name: 'ACME Industries',
+              BilltoCustomerNo_SalesHeader: 'C0001',
+              OrderDate_SaleHeader: '2026-04-09',
+              RequestedDeliveryDate_SalesHeader: '2026-04-20'
+            },
+            Integer: []
+          }
+        }
+      })
+    });
+  });
+
+  await page.route('**/api/business-central/gateway/update-sales-quote', async (route) => {
+    await route.fulfill({
+      status: 502,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Gateway unavailable in test' })
+    });
+  });
+
+  await page.route('**/api/salesquotes/bc-sync-errors', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Log insert failed in test' })
+    });
+  });
+
+  await openSalesQuotes(page);
+  await page.click('#tabSearch');
+  await page.fill('#searchSalesQuoteNumber', EDIT_QUOTE_NUMBER);
+  await page.click('#searchSalesQuoteBtn');
+  await expect(page.locator('#quoteEditorModeTitle')).toContainText(`Editing Sales Quote ${EDIT_QUOTE_NUMBER}`);
+
+  await page.click('#sendQuoteBtn');
+
+  await expect(page.locator('#quoteFailedModal')).toBeVisible();
+  await expect(page.locator('#quoteFailedMessage')).toContainText('Gateway unavailable in test');
+});

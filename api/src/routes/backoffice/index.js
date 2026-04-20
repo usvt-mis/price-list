@@ -10,6 +10,10 @@ const sql = require('mssql');
 const { ensureSalesQuoteSubmissionRecordsTable } = require('../../utils/salesQuoteSubmissionRecords');
 const { TABLE_NAME: SALESQUOTE_AUDIT_LOG_TABLE, ensureSalesQuoteAuditLogTable } = require('../../utils/salesQuoteAuditLog');
 const {
+  TABLE_NAME: SALESQUOTE_BC_SYNC_ERROR_LOG_TABLE,
+  ensureSalesQuoteBcSyncErrorLogTable
+} = require('../../utils/salesQuoteBcSyncErrorLog');
+const {
   getBackofficeSetting,
   upsertBackofficeSetting
 } = require('../../utils/backofficeSettings');
@@ -1042,6 +1046,112 @@ router.get('/salesquotes/audit-log', async (req, res, next) => {
     }
     console.error(e);
     res.status(500).json({ error: 'Failed to load Sales Quotes audit log' });
+  }
+});
+
+/**
+ * GET /api/backoffice/salesquotes/bc-sync-errors
+ * Get Sales Quote Business Central sync errors that surfaced in the failed modal.
+ * Query params: page (default 1), pageSize (default 50), search (optional filter)
+ * Requires: Backoffice session token
+ */
+router.get('/salesquotes/bc-sync-errors', async (req, res, next) => {
+  try {
+    const session = req.session;
+    console.log(`Backoffice admin ${session.email} accessed Sales Quotes BC sync errors`);
+
+    const page = parseInt(req.query.page, 10) || 1;
+    const pageSize = parseInt(req.query.pageSize, 10) || 50;
+    const searchFilter = String(req.query.search || '').trim();
+    const offset = (page - 1) * pageSize;
+    const normalizedSearch = searchFilter ? `%${searchFilter}%` : '';
+
+    const pool = await getPool();
+    await ensureSalesQuoteBcSyncErrorLogTable(pool);
+
+    const whereClause = `
+      @search = ''
+      OR ISNULL(SalesQuoteNumber, '') LIKE @search
+      OR ISNULL(ActorEmail, '') LIKE @search
+      OR ISNULL(Operation, '') LIKE @search
+      OR ISNULL(BranchCode, '') LIKE @search
+      OR ISNULL(CustomerNo, '') LIKE @search
+      OR ISNULL(ModalMessage, '') LIKE @search
+      OR ISNULL(RawErrorMessage, '') LIKE @search
+    `;
+
+    const countResult = await pool.request()
+      .input('search', sql.NVarChar, normalizedSearch)
+      .query(`
+        SELECT COUNT(*) AS total
+        FROM ${SALESQUOTE_BC_SYNC_ERROR_LOG_TABLE}
+        WHERE (${whereClause})
+      `);
+
+    const total = countResult.recordset[0]?.total || 0;
+    const dataResult = await pool.request()
+      .input('search', sql.NVarChar, normalizedSearch)
+      .input('offset', sql.Int, offset)
+      .input('pageSize', sql.Int, pageSize)
+      .query(`
+        SELECT
+          Id,
+          SalesQuoteNumber,
+          Operation,
+          QuoteMode,
+          ActorEmail,
+          BranchCode,
+          CustomerNo,
+          ApprovalStatus,
+          WorkStatus,
+          HttpStatusCode,
+          Endpoint,
+          ModalMessage,
+          RawErrorMessage,
+          RequestContextJson,
+          ClientIP,
+          CreatedAt
+        FROM ${SALESQUOTE_BC_SYNC_ERROR_LOG_TABLE}
+        WHERE (${whereClause})
+        ORDER BY CreatedAt DESC, Id DESC
+        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
+      `);
+
+    res.status(200).json({
+      entries: dataResult.recordset.map((entry) => ({
+        id: entry.Id,
+        salesQuoteNumber: entry.SalesQuoteNumber || '',
+        operation: entry.Operation || '',
+        quoteMode: entry.QuoteMode || '',
+        actorEmail: entry.ActorEmail || '',
+        branchCode: entry.BranchCode || '',
+        customerNo: entry.CustomerNo || '',
+        approvalStatus: entry.ApprovalStatus || '',
+        workStatus: entry.WorkStatus || '',
+        httpStatusCode: entry.HttpStatusCode,
+        endpoint: entry.Endpoint || '',
+        modalMessage: entry.ModalMessage || '',
+        rawErrorMessage: entry.RawErrorMessage || '',
+        requestContextJson: entry.RequestContextJson || '',
+        clientIP: entry.ClientIP || '',
+        createdAt: entry.CreatedAt
+      })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize))
+      }
+    });
+  } catch (e) {
+    if (e.statusCode === 403) {
+      return res.status(403).json({ error: 'Access denied. Executive role required.' });
+    }
+    if (e.statusCode === 401) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    console.error(e);
+    res.status(500).json({ error: 'Failed to load Sales Quotes BC sync errors' });
   }
 });
 

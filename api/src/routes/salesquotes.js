@@ -7,6 +7,7 @@ const {
   ensureSalesQuoteAuditLogTable,
   logSalesQuoteAuditEvent
 } = require('../utils/salesQuoteAuditLog');
+const { logSalesQuoteBcSyncError } = require('../utils/salesQuoteBcSyncErrorLog');
 const { ensureSalesQuoteUserPreferencesTable } = require('../utils/salesQuoteUserPreferences');
 const {
   ensureSalesQuoteServiceItemLaborTables
@@ -771,6 +772,42 @@ router.post('/audit-events', async (req, res, next) => {
     });
 
     res.status(201).json({ message: 'Audit event recorded' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/bc-sync-errors', async (req, res, next) => {
+  const actorEmail = getAuthenticatedEmail(req);
+  if (!actorEmail) {
+    return res.status(401).json({ error: 'Unable to determine current user email' });
+  }
+
+  const operation = normalizeNullableString(req.body?.operation, 100);
+  if (!operation) {
+    return res.status(400).json({ error: 'Operation is required' });
+  }
+
+  try {
+    const pool = await getPool();
+    await logSalesQuoteBcSyncError(pool, {
+      salesQuoteNumber: normalizeNullableString(req.body?.salesQuoteNumber, 50),
+      operation,
+      quoteMode: normalizeNullableString(req.body?.quoteMode, 20),
+      actorEmail,
+      branchCode: normalizeNullableString(req.body?.branchCode, 20),
+      customerNo: normalizeNullableString(req.body?.customerNo, 50),
+      approvalStatus: normalizeNullableString(req.body?.approvalStatus, 50),
+      workStatus: normalizeNullableString(req.body?.workStatus, 100),
+      httpStatusCode: normalizeNullableInt(req.body?.httpStatusCode),
+      endpoint: normalizeNullableString(req.body?.endpoint, 255),
+      modalMessage: normalizeNullableString(req.body?.modalMessage),
+      rawErrorMessage: normalizeNullableString(req.body?.rawErrorMessage),
+      requestContext: req.body?.requestContext || null,
+      clientIP: getClientIP(req)
+    });
+
+    res.status(201).json({ message: 'BC sync error recorded' });
   } catch (error) {
     next(error);
   }

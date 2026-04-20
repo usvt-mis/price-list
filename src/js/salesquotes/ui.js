@@ -2789,7 +2789,7 @@ function stripHtmlToText(rawMessage) {
   return extracted || trimmed;
 }
 
-function normalizeQuoteFailureMessage(errorOrMessage) {
+export function normalizeQuoteFailureMessage(errorOrMessage) {
   const fallbackMessage = 'Failed to send quote to Business Central. Please review the data and try again.';
   const rawMessage = errorOrMessage instanceof Error
     ? errorOrMessage.message

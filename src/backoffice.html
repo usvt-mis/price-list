@@ -1029,6 +1029,9 @@
             <button type="button" onclick="showBackofficeTab('salesQuotesAudit')" id="backofficeTabSalesQuotesAudit" class="backoffice-tab-btn" data-accent="green" role="tab" aria-selected="false">
               Sales Quotes Audit <span id="salesQuotesAuditCount" class="backoffice-tab-badge">0</span>
             </button>
+            <button type="button" onclick="showBackofficeTab('salesQuotesBcSyncErrors')" id="backofficeTabSalesQuotesBcSyncErrors" class="backoffice-tab-btn" data-accent="orange" role="tab" aria-selected="false">
+              BC Sync Errors <span id="salesQuotesBcSyncErrorTabCount" class="backoffice-tab-badge">0</span>
+            </button>
             <button type="button" onclick="showBackofficeTab('deletion')" id="backofficeTabDeletion" class="backoffice-tab-btn" data-accent="slate" role="tab" aria-selected="false">
               Deletion Log
             </button>
@@ -1460,6 +1463,68 @@
               <button id="salesQuotesAuditNextPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
                 Next
               </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BC Sync Errors Tab -->
+        <div id="backofficeSalesQuotesBcSyncErrorsTab" class="hidden">
+          <div class="backoffice-note mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <p class="text-sm text-orange-800">
+              Review Business Central sync failures that were shown to users through the Sales Quote failed modal. These records are stored separately from Sales Quote audit history.
+            </p>
+          </div>
+
+          <div id="salesQuotesBcSyncErrorsSection">
+            <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900">BC Sync Errors</h3>
+                <p class="text-sm text-slate-500">Errors shown in the Sales Quote failed modal during Business Central create, update, or work-status sync.</p>
+              </div>
+              <span id="salesQuotesBcSyncErrorCount" class="text-sm font-medium text-slate-500">0 errors</span>
+            </div>
+
+            <div class="backoffice-toolbar flex flex-col lg:flex-row gap-4 mb-4">
+              <div class="flex-1">
+                <input id="salesQuotesBcSyncErrorSearch" type="text" placeholder="Search by quote no., email, operation, branch, customer, or error..."
+                  class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent">
+              </div>
+              <button id="salesQuotesBcSyncErrorSearchBtn" class="backoffice-btn-secondary px-4 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 transition-colors">
+                Search
+              </button>
+            </div>
+
+            <div class="backoffice-table-shell border border-slate-200 rounded-lg overflow-hidden">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th class="text-left px-4 py-3 font-medium">Time</th>
+                    <th class="text-left px-4 py-3 font-medium">Quote</th>
+                    <th class="text-left px-4 py-3 font-medium">Operation</th>
+                    <th class="text-left px-4 py-3 font-medium">User / Branch</th>
+                    <th class="text-left px-4 py-3 font-medium">HTTP</th>
+                    <th class="text-left px-4 py-3 font-medium">Modal Message</th>
+                  </tr>
+                </thead>
+                <tbody id="backofficeSalesQuotesBcSyncErrorList" class="divide-y divide-slate-100">
+                  <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-slate-500">Loading BC sync errors...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div id="salesQuotesBcSyncErrorPagination" class="backoffice-pagination flex items-center justify-between mt-4">
+              <span id="salesQuotesBcSyncErrorPaginationInfo" class="text-sm text-slate-600"></span>
+              <div class="flex items-center gap-2">
+                <button id="salesQuotesBcSyncErrorPrevPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
+                  Previous
+                </button>
+                <button id="salesQuotesBcSyncErrorNextPage" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-50" disabled>
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1989,6 +2054,7 @@
       managers: 1,
       customers: 1,
       salesQuotesAudit: 1,
+      salesQuotesBcSyncErrors: 1,
       signatures: 1
     },
     tabUsers: {
@@ -3689,7 +3755,7 @@
     backofficeState.currentTab = tab;
 
     // Reset all tab button styles
-    const tabButtons = ['backofficeTabExecutives', 'backofficeTabSales', 'backofficeTabSalesDirectors', 'backofficeTabManagers', 'backofficeTabCustomers', 'backofficeTabAudit', 'backofficeTabSalesQuotesAudit', 'backofficeTabDeletion', 'backofficeTabSettings', 'backofficeTabSignatures', 'backofficeTabSalesDirectorSignature'];
+    const tabButtons = ['backofficeTabExecutives', 'backofficeTabSales', 'backofficeTabSalesDirectors', 'backofficeTabManagers', 'backofficeTabCustomers', 'backofficeTabAudit', 'backofficeTabSalesQuotesAudit', 'backofficeTabSalesQuotesBcSyncErrors', 'backofficeTabDeletion', 'backofficeTabSettings', 'backofficeTabSignatures', 'backofficeTabSalesDirectorSignature'];
     tabButtons.forEach(btnId => {
       if (el(btnId)) {
         el(btnId).classList.remove('active');
@@ -3698,7 +3764,7 @@
     });
 
     // Hide all tab contents
-    const tabContents = ['backofficeExecutivesTab', 'backofficeSalesTab', 'backofficeSalesDirectorsTab', 'backofficeManagersTab', 'backofficeCustomersTab', 'backofficeAuditTab', 'backofficeSalesQuotesAuditTab', 'backofficeDeletionTab', 'backofficeSettingsTab', 'backofficeSignaturesTab', 'backofficeSalesDirectorSignatureTab'];
+    const tabContents = ['backofficeExecutivesTab', 'backofficeSalesTab', 'backofficeSalesDirectorsTab', 'backofficeManagersTab', 'backofficeCustomersTab', 'backofficeAuditTab', 'backofficeSalesQuotesAuditTab', 'backofficeSalesQuotesBcSyncErrorsTab', 'backofficeDeletionTab', 'backofficeSettingsTab', 'backofficeSignaturesTab', 'backofficeSalesDirectorSignatureTab'];
     tabContents.forEach(contentId => {
       if (el(contentId)) {
         el(contentId).classList.add('hidden');
@@ -3769,6 +3835,15 @@
         el('backofficeSalesQuotesAuditTab').classList.remove('hidden');
       }
       loadSalesQuotesAuditLog();
+    } else if (tab === 'salesQuotesBcSyncErrors') {
+      if (el('backofficeTabSalesQuotesBcSyncErrors')) {
+        el('backofficeTabSalesQuotesBcSyncErrors').classList.add('active');
+        el('backofficeTabSalesQuotesBcSyncErrors').setAttribute('aria-selected', 'true');
+      }
+      if (el('backofficeSalesQuotesBcSyncErrorsTab')) {
+        el('backofficeSalesQuotesBcSyncErrorsTab').classList.remove('hidden');
+      }
+      loadSalesQuotesBcSyncErrorLog();
     } else if (tab === 'deletion') {
       if (el('backofficeTabDeletion')) {
         el('backofficeTabDeletion').classList.add('active');
@@ -4072,6 +4147,34 @@
 
       const quoteNumber = button.getAttribute('data-quote-number') || '';
       toggleSalesQuotesAuditTimeline(quoteNumber);
+    });
+  }
+
+  const salesQuotesBcSyncErrorSearchBtn = el('salesQuotesBcSyncErrorSearchBtn');
+  const salesQuotesBcSyncErrorSearch = el('salesQuotesBcSyncErrorSearch');
+  const salesQuotesBcSyncErrorPrevPage = el('salesQuotesBcSyncErrorPrevPage');
+  const salesQuotesBcSyncErrorNextPage = el('salesQuotesBcSyncErrorNextPage');
+
+  if (salesQuotesBcSyncErrorSearchBtn) {
+    salesQuotesBcSyncErrorSearchBtn.addEventListener('click', () => loadSalesQuotesBcSyncErrorLog(1));
+  }
+  if (salesQuotesBcSyncErrorSearch) {
+    salesQuotesBcSyncErrorSearch.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') loadSalesQuotesBcSyncErrorLog(1);
+    });
+  }
+  if (salesQuotesBcSyncErrorPrevPage) {
+    salesQuotesBcSyncErrorPrevPage.addEventListener('click', () => {
+      const currentPage = backofficeState.tabPages.salesQuotesBcSyncErrors || 1;
+      if (currentPage > 1) {
+        loadSalesQuotesBcSyncErrorLog(currentPage - 1);
+      }
+    });
+  }
+  if (salesQuotesBcSyncErrorNextPage) {
+    salesQuotesBcSyncErrorNextPage.addEventListener('click', () => {
+      const currentPage = backofficeState.tabPages.salesQuotesBcSyncErrors || 1;
+      loadSalesQuotesBcSyncErrorLog(currentPage + 1);
     });
   }
 
@@ -4771,6 +4874,146 @@
     const infoEl = el('salesQuotesAuditPaginationInfo');
     const prevBtn = el('salesQuotesAuditPrevPage');
     const nextBtn = el('salesQuotesAuditNextPage');
+    const page = pagination?.page || 1;
+    const totalPages = pagination?.totalPages || 1;
+    const total = pagination?.total || 0;
+
+    if (infoEl) {
+      infoEl.textContent = `Page ${page} of ${totalPages} (${total} total)`;
+    }
+    if (prevBtn) {
+      prevBtn.disabled = page <= 1;
+    }
+    if (nextBtn) {
+      nextBtn.disabled = page >= totalPages;
+    }
+  }
+
+  async function loadSalesQuotesBcSyncErrorLog(page = null) {
+    if (page === null) {
+      page = backofficeState.tabPages.salesQuotesBcSyncErrors || 1;
+    }
+    backofficeState.tabPages.salesQuotesBcSyncErrors = page;
+
+    try {
+      const url = new URL('/api/backoffice/salesquotes/bc-sync-errors', window.location.origin);
+      url.searchParams.set('page', page);
+      url.searchParams.set('pageSize', backofficeState.pageSize);
+
+      const search = el('salesQuotesBcSyncErrorSearch')?.value?.trim() || '';
+      if (search) {
+        url.searchParams.set('search', search);
+      }
+
+      const response = await fetchWithAuth(url.toString());
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          showNotification('Access denied. Please log in again.', 'error');
+          setTimeout(() => initializePage(), 2000);
+          return;
+        }
+        throw new Error('Failed to load Sales Quotes BC sync errors');
+      }
+
+      const data = await response.json();
+      const countEl = el('salesQuotesBcSyncErrorCount');
+      if (countEl) {
+        const total = data.pagination?.total ?? 0;
+        countEl.textContent = `${total} ${total === 1 ? 'error' : 'errors'}`;
+      }
+      const tabCountEl = el('salesQuotesBcSyncErrorTabCount');
+      if (tabCountEl) {
+        tabCountEl.textContent = data.pagination?.total ?? 0;
+      }
+
+      renderSalesQuotesBcSyncErrorLog(data.entries || []);
+      updateSalesQuotesBcSyncErrorPagination(data.pagination || { page: 1, totalPages: 1, total: 0 });
+    } catch (error) {
+      console.error('Failed to load Sales Quotes BC sync errors:', error);
+      const container = el('backofficeSalesQuotesBcSyncErrorList');
+      if (container) {
+        container.innerHTML = `
+          <tr>
+            <td colspan="6" class="px-4 py-8 text-center text-red-500">
+              Failed to load BC sync errors. ${escapeHtml(error.message)}
+            </td>
+          </tr>
+        `;
+      }
+    }
+  }
+
+  function renderSalesQuotesBcSyncErrorLog(entries) {
+    const container = el('backofficeSalesQuotesBcSyncErrorList');
+    if (!container) return;
+
+    if (!entries.length) {
+      container.innerHTML = `
+        <tr>
+          <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+            No BC sync errors found.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    container.innerHTML = entries.map((entry) => {
+      const statusText = Number.isFinite(Number(entry.httpStatusCode))
+        ? String(entry.httpStatusCode)
+        : '-';
+      const quoteMode = entry.quoteMode
+        ? `<div class="mt-1 text-xs text-slate-500">${escapeHtml(entry.quoteMode)}</div>`
+        : '';
+      const customerText = entry.customerNo
+        ? `<div class="mt-1 text-xs text-slate-500">Customer ${escapeHtml(entry.customerNo)}</div>`
+        : '';
+      const workStatusText = entry.workStatus
+        ? `<div class="mt-1 text-xs text-slate-500">Work ${escapeHtml(entry.workStatus)}</div>`
+        : '';
+      const endpointText = entry.endpoint
+        ? `<div class="mt-1 max-w-xs break-words text-xs text-slate-400">${escapeHtml(entry.endpoint)}</div>`
+        : '';
+      const rawErrorText = entry.rawErrorMessage && entry.rawErrorMessage !== entry.modalMessage
+        ? `<details class="mt-2 text-xs text-slate-500"><summary class="cursor-pointer font-medium text-slate-600">Raw error</summary><div class="mt-1 max-w-xl whitespace-pre-wrap break-words">${escapeHtml(entry.rawErrorMessage)}</div></details>`
+        : '';
+
+      return `
+        <tr class="hover:bg-slate-50" title="Client IP: ${escapeHtml(entry.clientIP || 'unknown')}">
+          <td class="px-4 py-3 align-top whitespace-nowrap text-slate-600">
+            ${formatAuditDateTime(entry.createdAt)}
+          </td>
+          <td class="px-4 py-3 align-top">
+            <div class="font-semibold text-slate-900">${escapeHtml(entry.salesQuoteNumber || '-')}</div>
+            ${quoteMode}
+            ${customerText}
+          </td>
+          <td class="px-4 py-3 align-top">
+            <span class="bo-chip bg-rose-100 text-rose-700">${escapeHtml(entry.operation || '-')}</span>
+            ${endpointText}
+          </td>
+          <td class="px-4 py-3 align-top">
+            <div class="text-sm text-slate-800">${escapeHtml(entry.actorEmail || '-')}</div>
+            <div class="mt-1 text-xs text-slate-500">Branch ${escapeHtml(entry.branchCode || '-')}</div>
+          </td>
+          <td class="px-4 py-3 align-top">
+            <span class="inline-flex min-w-12 justify-center rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">${escapeHtml(statusText)}</span>
+            ${workStatusText}
+          </td>
+          <td class="px-4 py-3 align-top">
+            <div class="max-w-xl whitespace-pre-wrap break-words text-sm text-slate-800">${escapeHtml(entry.modalMessage || '-')}</div>
+            ${rawErrorText}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function updateSalesQuotesBcSyncErrorPagination(pagination) {
+    const infoEl = el('salesQuotesBcSyncErrorPaginationInfo');
+    const prevBtn = el('salesQuotesBcSyncErrorPrevPage');
+    const nextBtn = el('salesQuotesBcSyncErrorNextPage');
     const page = pagination?.page || 1;
     const totalPages = pagination?.totalPages || 1;
     const total = pagination?.total || 0;
