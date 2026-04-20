@@ -174,25 +174,6 @@ body {
   box-shadow: 0 24px 54px rgba(32, 49, 43, 0.14);
 }
 
-.sq-loading-panel::before {
-  display: block;
-}
-
-.sq-loading-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  margin: 0 0 0.5rem;
-  padding: 0.3rem 0.68rem;
-  border: 1px solid #cfe1da;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--sq-accent-strong);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .sq-spinner {
   position: relative;
   flex-shrink: 0;
@@ -793,18 +774,20 @@ input[type="number"] {
   -moz-appearance: textfield; /* Firefox */
 }
 
-/* Placeholder text styling - lower opacity for subtler appearance */
-::placeholder {
-  opacity: 0.4;
-  color: inherit;
+/* Placeholder text styling */
+.salesquotes-page ::placeholder {
+  opacity: 0.62;
+  color: #687d75;
 }
 
-::-webkit-input-placeholder {
-  opacity: 0.4;
+.salesquotes-page ::-webkit-input-placeholder {
+  opacity: 0.62;
+  color: #687d75;
 }
 
-::-moz-placeholder {
-  opacity: 0.4;
+.salesquotes-page ::-moz-placeholder {
+  opacity: 0.62;
+  color: #687d75;
 }
 
 /* Horizontal scroll for wide table */
@@ -1096,23 +1079,34 @@ input:disabled + .toggle-slider {
 }
 
 /* Required Field Empty State - Light Red Background */
-.field-required-empty {
+.field-required-empty,
+.salesquotes-page input.field-required-empty:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.salesquotes-page select.field-required-empty,
+.salesquotes-page textarea.field-required-empty {
   background-color: #fef2f2 !important; /* red-50 */
-  border-color: #fecaca !important; /* red-200 */
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Optional-but-Encouraged Field - Warm tint to suggest filling without implying an error */
-.field-optional-hint {
+.field-optional-hint,
+.salesquotes-page input.field-optional-hint:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.salesquotes-page select.field-optional-hint,
+.salesquotes-page textarea.field-optional-hint {
   background-color: #fff8e8 !important;
-  border-color: #efd7a5 !important;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Remove hint when field has content */
-.field-optional-hint.has-content {
-  background-color: var(--sq-surface) !important;
-  border-color: var(--sq-border-strong) !important;
+.field-optional-hint.has-content,
+.salesquotes-page input.field-optional-hint.has-content:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.salesquotes-page select.field-optional-hint.has-content,
+.salesquotes-page textarea.field-optional-hint.has-content {
+  background-color: #f5f8f6 !important;
+  border-color: transparent !important;
 }
 
 /* Double-clickable table rows */
@@ -1140,6 +1134,153 @@ button:disabled:hover {
   border-color: var(--sq-border) !important;
   background: var(--sq-surface-subtle) !important;
   color: #8ea19b !important;
+}
+
+.sq-ser-action-btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-align: center;
+  white-space: normal;
+  box-shadow: 0 12px 24px rgba(32, 49, 43, 0.14), 0 2px 4px rgba(32, 49, 43, 0.08);
+  transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.sq-ser-action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.sq-ser-action-btn:active {
+  transform: translateY(0);
+}
+
+.sq-ser-action-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--sq-ring), 0 12px 24px rgba(32, 49, 43, 0.14);
+}
+
+.sq-ser-action-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.sq-ser-action-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sq-ser-action-btn.is-new {
+  border-color: var(--sq-accent);
+  background: linear-gradient(180deg, #3b7d75 0%, var(--sq-accent) 100%);
+  color: #ffffff;
+}
+
+.sq-ser-action-btn.is-new:hover {
+  border-color: var(--sq-accent-strong);
+  background: linear-gradient(180deg, #35736c 0%, var(--sq-accent-strong) 100%);
+}
+
+.sq-ser-action-btn.is-edit {
+  border-color: #b9822d;
+  background: linear-gradient(180deg, #c78a31 0%, var(--sq-warning) 100%);
+  color: #ffffff;
+}
+
+.sq-ser-action-btn.is-edit:hover {
+  border-color: #845415;
+  background: linear-gradient(180deg, #ad741f 0%, #845415 100%);
+}
+
+.sq-ser-action-btn.is-created {
+  border-color: var(--sq-success);
+  background: linear-gradient(180deg, #3a9065 0%, var(--sq-success) 100%);
+  color: #ffffff;
+}
+
+.sq-ser-action-btn.is-creating {
+  border-color: var(--sq-accent-strong);
+  background: linear-gradient(180deg, #5f8f89 0%, var(--sq-accent) 100%);
+  color: #ffffff;
+  cursor: wait;
+}
+
+.sq-ser-action-spinner {
+  animation: sq-ser-action-spin 0.8s linear infinite;
+}
+
+button.sq-ser-action-btn:disabled {
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.82 !important;
+  transform: none !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45), 0 3px 8px rgba(32, 49, 43, 0.07) !important;
+}
+
+button.sq-ser-action-btn.is-new:disabled,
+button.sq-ser-action-btn.is-edit:disabled {
+  border-color: #c5d1ca !important;
+  background: #eef3ef !important;
+  color: #657a72 !important;
+}
+
+button.sq-ser-action-btn.is-created:disabled {
+  border-color: var(--sq-success) !important;
+  background: linear-gradient(180deg, #3a9065 0%, var(--sq-success) 100%) !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+button.sq-ser-action-btn.is-creating:disabled {
+  border-color: var(--sq-accent-strong) !important;
+  background: linear-gradient(180deg, #5f8f89 0%, var(--sq-accent) 100%) !important;
+  color: #ffffff !important;
+  opacity: 0.95 !important;
+}
+
+button.sq-ser-action-btn:disabled:hover {
+  border-color: #c5d1ca !important;
+  background: #eef3ef !important;
+  color: #657a72 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45), 0 3px 8px rgba(32, 49, 43, 0.07) !important;
+}
+
+button.sq-ser-action-btn.is-created:disabled:hover {
+  border-color: var(--sq-success) !important;
+  background: linear-gradient(180deg, #3a9065 0%, var(--sq-success) 100%) !important;
+  color: #ffffff !important;
+}
+
+button.sq-ser-action-btn.is-creating:disabled:hover {
+  border-color: var(--sq-accent-strong) !important;
+  background: linear-gradient(180deg, #5f8f89 0%, var(--sq-accent) 100%) !important;
+  color: #ffffff !important;
+}
+
+@keyframes sq-ser-action-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .sq-ser-action-btn {
+    flex-direction: column;
+    gap: 0.2rem;
+    min-height: 3.25rem;
+    padding: 0.45rem 0.35rem;
+  }
+
+  .sq-ser-action-icon {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
 }
 
 .tab-button {
@@ -1175,25 +1316,35 @@ button:disabled:hover {
 .salesquotes-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 .salesquotes-page select,
 .salesquotes-page textarea {
-  border-color: var(--sq-border) !important;
+  border-color: transparent !important;
+  border-width: 1px;
   border-radius: 0.95rem !important;
-  background: rgba(255, 255, 255, 0.88);
-  color: var(--sq-text);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 1px 2px rgba(32, 49, 43, 0.03);
+  background: #f5f8f6;
+  color: #172720;
+  font-weight: 500;
+  box-shadow: none;
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
-.salesquotes-page input[readonly],
+.salesquotes-page input[readonly]:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 .salesquotes-page textarea[readonly],
-.salesquotes-page select[readonly] {
-  background: #f1f5f2 !important;
+.salesquotes-page select[readonly],
+.salesquotes-page input:disabled:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.salesquotes-page textarea:disabled,
+.salesquotes-page select:disabled {
+  background: #eef3ef !important;
+  border-color: transparent !important;
   color: var(--sq-text-muted) !important;
+  box-shadow: none !important;
 }
 
 .salesquotes-page input:focus,
 .salesquotes-page select:focus,
 .salesquotes-page textarea:focus {
-  border-color: var(--sq-accent) !important;
-  box-shadow: var(--sq-ring) !important;
+  outline: none;
+  border-color: transparent !important;
+  background: #eaf5f1 !important;
+  box-shadow: none !important;
 }
 
 .salesquotes-page label {

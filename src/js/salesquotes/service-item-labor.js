@@ -4,6 +4,7 @@ import { getMotorJobDefaults, shouldMotorJobBeCheckedByDefault } from '../core/m
 import { STORAGE_KEYS as ONSITE_STORAGE_KEYS } from '../onsite/config.js';
 
 const SERVICE_ITEM_LABOR_API_BASE = '/api/salesquotes/service-item-labor';
+const MANUAL_OTHER_JOB_CODE = 'SQ-OTHER';
 const ONSITE_SCOPE_LABELS = {
   'low-volt': 'Low Volt',
   'medium-volt': 'Medium Volt',
@@ -249,6 +250,10 @@ function getSelectedBranch() {
   return modalState.branches.find((branch) => String(branch.BranchId) === String(modalState.branchId)) || null;
 }
 
+function isManualOtherJob(job = {}) {
+  return String(job?.JobCode || job?.jobCode || '').trim().toUpperCase() === MANUAL_OTHER_JOB_CODE;
+}
+
 function isOverhaulJob(jobName = '') {
   const value = String(jobName).toLowerCase();
   return OVERHAUL_JOB_PATTERNS.some((pattern) => value.includes(pattern));
@@ -442,7 +447,11 @@ function requiresPositiveManhours(repairMode = modalState.snapshot.repairMode, s
 }
 
 function hasMissingRequiredManhours(job, repairMode = modalState.snapshot.repairMode, snapshot = modalState.snapshot) {
-  if (!requiresPositiveManhours(repairMode, snapshot) || job?.checked === false) {
+  if (job?.checked === false) {
+    return false;
+  }
+
+  if (!requiresPositiveManhours(repairMode, snapshot) && !isManualOtherJob(job)) {
     return false;
   }
 
@@ -683,20 +692,27 @@ async function loadJobsForResolvedMotorType() {
 
   if (repairMode === 'Onsite') {
     const params = new URLSearchParams({
-      motorTypeId: String(resolvedMotorTypeId)
+      motorTypeId: String(resolvedMotorTypeId),
+      includeManualOther: 'true'
     });
     const jobs = await fetchJson(`/api/onsite/labor?${params.toString()}`);
     modalState.jobs = Array.isArray(jobs)
-      ? jobs.map((job) => ({
-        ...job,
-        checked: job.checked !== false,
-        effectiveManHours: Number(job.effectiveManHours ?? 0)
-      }))
+      ? jobs.map((job) => {
+        const manualOtherJob = isManualOtherJob(job);
+
+        return {
+          ...job,
+          ManHours: manualOtherJob ? 0 : Number(job.ManHours || 0),
+          checked: manualOtherJob ? false : job.checked !== false,
+          effectiveManHours: manualOtherJob ? 0 : Number(job.effectiveManHours ?? 0)
+        };
+      })
       : [];
   } else {
     const params = new URLSearchParams({
       motorTypeId: String(resolvedMotorTypeId),
-      motorDriveType: snapshot.motorDriveType
+      motorDriveType: snapshot.motorDriveType,
+      includeManualOther: 'true'
     });
 
     const [jobs, motorJobDefaults] = await Promise.all([
@@ -706,8 +722,11 @@ async function loadJobsForResolvedMotorType() {
 
     modalState.jobs = Array.isArray(jobs)
       ? jobs.map((job) => {
-        const defaultChecked = shouldMotorJobBeCheckedByDefault(job.JobName, motorJobDefaults);
-        const defaultManHours = oversizeWorkshop ? 0 : Number(job.ManHours || 0);
+        const manualOtherJob = isManualOtherJob(job);
+        const defaultChecked = manualOtherJob
+          ? false
+          : shouldMotorJobBeCheckedByDefault(job.JobName, motorJobDefaults);
+        const defaultManHours = manualOtherJob || oversizeWorkshop ? 0 : Number(job.ManHours || 0);
 
         return {
           ...job,
@@ -957,6 +976,14 @@ export function getConfirmNewSerLaborValidation(snapshot) {
         focusElement: document.querySelector(`[data-confirm-ser-job-mh="${missingIndex}"]`)
       };
     }
+  }
+
+  const missingManualOtherIndex = modalState.jobs.findIndex((job) => isManualOtherJob(job) && hasMissingRequiredManhours(job, repairMode, validationSnapshot));
+  if (missingManualOtherIndex !== -1) {
+    return {
+      message: 'Please enter manhours greater than 0 for the checked Other job.',
+      focusElement: document.querySelector(`[data-confirm-ser-job-mh="${missingManualOtherIndex}"]`)
+    };
   }
 
   return null;

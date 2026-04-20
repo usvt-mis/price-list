@@ -82,11 +82,13 @@ const workshopLaborRouter = require('./api/src/routes/workshop/labor');
 // NEW: Business Central integration routes
 const businessCentralRouter = require('./api/src/routes/business-central');
 const salesQuotesRouter = require('./api/src/routes/salesquotes');
+const salesQuotesPriceRequestsRouter = require('./api/src/routes/salesquotes-price-requests');
 const salesQuotesApprovalsRouter = require('./api/src/routes/salesquotes-approvals');
 const timeboardRouter = require('./api/src/routes/timeboard');
 
 // Import authentication middleware
 const { requireAuth } = require('./api/src/middleware/authExpress');
+const { requirePriceRequestApiKey } = require('./api/src/middleware/priceRequestApiKey');
 const { requireBackofficeSession } = require('./api/src/middleware/twoFactorAuthExpress');
 
 const app = express();
@@ -240,6 +242,9 @@ app.use('/api/backoffice', requireBackofficeSession, backofficeRouter);
 
 // Auth info endpoint (public - auth validation happens inside route)
 app.use('/api/auth', authRouter);
+
+// External Sales Quote price request tracking (API key protected)
+app.use('/api/salesquotes/price-requests', requirePriceRequestApiKey, salesQuotesPriceRequestsRouter);
 
 // Sales Quote submission records (requires authentication)
 app.use('/api/salesquotes', requireAuth, salesQuotesRouter);

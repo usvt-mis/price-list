@@ -475,25 +475,6 @@ function joinInlineAddress(parts) {
   return compactLines(parts).join(' ');
 }
 
-function normalizeComparableText(value) {
-  return String(value || '')
-    .replace(/\s+/g, ' ')
-    .replace(/[,:;.-]/g, '')
-    .trim()
-    .toLowerCase();
-}
-
-function comparableLineSetsMatch(leftLines, rightLines) {
-  const left = compactLines(leftLines).map(normalizeComparableText).filter(Boolean);
-  const right = compactLines(rightLines).map(normalizeComparableText).filter(Boolean);
-
-  if (!left.length || !right.length || left.length !== right.length) {
-    return false;
-  }
-
-  return left.every((line, index) => line === right[index]);
-}
-
 function calculateLineTotal(line) {
   return (asNumber(line.quantity) * asNumber(line.unitPrice)) - asNumber(line.discountAmount);
 }
@@ -670,38 +651,6 @@ function buildCustomerAddressLines(formData, reportContext) {
   return sellToLines;
 }
 
-function buildDeliveryAddressLines(formData, reportContext, customerName = '', customerAddressLines = []) {
-  const deliveryLines = reportContext.usvtShipTo
-    ? compactLines([reportContext.usvtShipTo])
-    : compactLines([
-      reportContext.shipToName,
-      reportContext.shipToAddress,
-      reportContext.shipToContact
-    ]);
-
-  if (!deliveryLines.length) {
-    return [];
-  }
-
-  const normalizedCustomerName = normalizeComparableText(customerName);
-  const normalizedDeliveryLines = deliveryLines.map(normalizeComparableText).filter(Boolean);
-  const normalizedCustomerLines = compactLines([
-    customerName,
-    ...customerAddressLines
-  ]).map(normalizeComparableText).filter(Boolean);
-
-  if (
-    (normalizedDeliveryLines.length === 1 && normalizedDeliveryLines[0] === normalizedCustomerName)
-    || comparableLineSetsMatch(deliveryLines, customerAddressLines)
-    || comparableLineSetsMatch(deliveryLines, [customerName, ...customerAddressLines])
-    || comparableLineSetsMatch(normalizedDeliveryLines, normalizedCustomerLines)
-  ) {
-    return [];
-  }
-
-  return deliveryLines;
-}
-
 async function buildModel() {
   if (!(state.quote.mode === 'edit' && state.quote.number && state.quote.loadedFromBc)) {
     throw new Error('Please search and load a Sales Quote before printing.');
@@ -721,7 +670,6 @@ async function buildModel() {
   const salespersonSignature = uploadedSalespersonSignature || normalizeDataUri(requestSignature.signature) || normalizeDataUri(reportContext.salesperson?.signature);
   const customerName = reportContext.customerName || formData.customerName || '';
   const customerAddressLines = buildCustomerAddressLines(formData, reportContext);
-  const deliveryAddressLines = buildDeliveryAddressLines(formData, reportContext, customerName, customerAddressLines);
   const printableLines = buildPrintableLines(formData, reportContext);
 
   // Check approval status for Sales Director signature
@@ -784,7 +732,6 @@ async function buildModel() {
     attention: formData.contact || reportContext.billToContact || '',
     phone: state.quote.customer?.phone || reportContext.sellToPhoneNo || '',
     taxId: formData.sellTo?.vatRegNo || reportContext.vatRegistrationNo || '',
-    deliveryAddressLines,
     lineItems: buildPrintableRenderRows(printableLines),
     detailNotes: [],
     bottomRemark: normalizeSingleLineText(formData.remark) || normalizeSingleLineText(detailNotes.join(' ')),
@@ -885,7 +832,7 @@ function renderRightMetaContent(content, kind = 'label', extraClass = '') {
   return `<span class="${className}">${escapeHtml(normalized)}</span>`;
 }
 
-function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
+function renderMetaRows(model, customerAddressLines) {
   const customerRows = customerAddressLines.map((line, index) => `
     <tr${index === 0 ? ' class="meta-address-row"' : ''}>
       <td class="label">${index === 0 ? 'Address' : ''}</td>
@@ -897,16 +844,16 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
     </tr>
   `).join('');
 
-  const deliveryRows = deliveryAddressLines.map((line, index) => `
+  const deliveryRow = `
     <tr>
-      <td class="label">${index === 0 ? 'Delivery Address' : ''}</td>
-      <td class="value">${renderLeftMetaValueContent(line)}</td>
-      <td class="mid-label">${index === 0 ? renderMetaOffsetContent('Tel.', 'label') : ''}</td>
-      <td class="mid-value">${index === 0 ? renderMetaOffsetContent(model.phone, 'value') : ''}</td>
-      <td class="right-label shifted">${index === 0 ? renderRightMetaContent('Delivery Date', 'label', 'meta-fixed-width') : ''}</td>
-      <td class="right-value shifted">${index === 0 ? renderRightMetaContent(model.deliveryText, 'value') : ''}</td>
+      <td class="label">Delivery Address</td>
+      <td class="value"></td>
+      <td class="mid-label">${renderMetaOffsetContent('Tel.', 'label')}</td>
+      <td class="mid-value">${renderMetaOffsetContent(model.phone, 'value')}</td>
+      <td class="right-label shifted">${renderRightMetaContent('Delivery Date', 'label', 'meta-fixed-width')}</td>
+      <td class="right-value shifted">${renderRightMetaContent(model.deliveryText, 'value')}</td>
     </tr>
-  `).join('');
+  `;
 
   return `
     <tr class="meta-divider">
@@ -942,7 +889,7 @@ function renderMetaRows(model, customerAddressLines, deliveryAddressLines) {
       <td class="right-label shifted">${renderRightMetaContent('Payment', 'label', 'meta-fixed-width')}</td>
       <td class="right-value shifted">${renderRightMetaContent(model.paymentText, 'value')}</td>
     </tr>
-    ${deliveryRows}
+    ${deliveryRow}
   `;
 }
 
@@ -1484,8 +1431,7 @@ function buildPageFooter(model, settings, totals, footerType = 'full', options =
 function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
   const settings = normalizePrintLayoutSettings(layoutSettings);
   const customerAddressLines = renderAddressLines(model.customerAddressLines, 2);
-  const deliveryAddressLines = renderAddressLines(model.deliveryAddressLines, 1);
-  const metaRowsMarkup = renderMetaRows(model, customerAddressLines, deliveryAddressLines);
+  const metaRowsMarkup = renderMetaRows(model, customerAddressLines);
   const metaColumnWidths = resolveMetaTableColumnWidths(settings);
   const signatureSignHeightMm = Math.max(settings.signatureSignMinHeightMm, 22);
   const reservedFooterHeightMm = PRINT_RESERVED_FOOTER_HEIGHT_MM;
@@ -1847,8 +1793,7 @@ ${pagesHtml}
 function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
   const settings = normalizePrintLayoutSettings(layoutSettings);
   const customerAddressLines = renderAddressLines(model.customerAddressLines, 2);
-  const deliveryAddressLines = renderAddressLines(model.deliveryAddressLines, 1);
-  const metaRowsMarkup = renderMetaRows(model, customerAddressLines, deliveryAddressLines);
+  const metaRowsMarkup = renderMetaRows(model, customerAddressLines);
   const companyMarkup = model.companyLines.slice(2).map(line => `<div class="company-line">${escapeHtml(line)}</div>`).join('');
   const remarkMarkup = model.bottomRemark
     ? escapeHtml(model.bottomRemark)

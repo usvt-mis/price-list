@@ -43,7 +43,6 @@
                 Business Central
               </span>
             </div>
-            <p class="text-sm text-gray-600 mt-0.5">Create and manage sales quotes with a calmer operational workspace</p>
           </div>
         </div>
         <div id="authSection"></div>
@@ -95,9 +94,9 @@
         <div class="flex items-start gap-3">
           <div class="sq-create-inline-spinner mt-0.5" aria-hidden="true"></div>
           <div>
-            <p class="sq-create-loading-eyebrow text-sm font-semibold">Loading Create Sales Quote...</p>
+            <p class="sq-create-loading-eyebrow text-sm font-semibold">Loading Sales Quote form...</p>
             <p id="salesQuoteCreateInitialLoadingMessage" class="sq-create-loading-message text-xs">
-              Preparing your form, branch defaults, and editor tools. You can stay on this page while setup completes.
+              Loading required data.
             </p>
           </div>
         </div>
@@ -409,8 +408,7 @@
               id="workStatus"
               class="w-full rounded-lg border-slate-200 shadow-sm px-4 py-2.5 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
             >
-              <option value="">Select status...</option>
-              <option value=" "> </option>
+              <option value=""></option>
               <option value="Win">Win</option>
               <option value="Lose">Lose</option>
               <option value="Cancelled">Cancelled</option>
@@ -722,16 +720,6 @@
           Clear
         </button>
         <button
-          id="saveDraftBtn"
-          class="hidden sq-btn sq-btn-secondary"
-          onclick="window.saveDraft()"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-          </svg>
-          Save Draft
-        </button>
-        <button
           id="sendQuoteBtn"
           class="sq-btn sq-btn-primary"
           onclick="window.sendQuote()"
@@ -745,16 +733,6 @@
 
       <!-- Mobile Floating Action Buttons -->
       <div class="md:hidden fixed bottom-6 right-6 flex flex-col gap-3 z-40">
-        <button
-          id="fabSaveDraft"
-          class="hidden sq-fab sq-fab-secondary"
-          onclick="window.saveDraft()"
-          title="Save Draft"
-        >
-          <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-          </svg>
-        </button>
         <button
           id="fabAddLine"
           class="sq-fab sq-fab-primary"
@@ -1046,7 +1024,6 @@
     <div class="sq-card sq-loading-panel p-8 flex items-center gap-4">
       <div class="spinner sq-spinner"></div>
       <div>
-        <p class="sq-loading-eyebrow">Operational Flow</p>
         <h3 class="text-lg font-semibold text-gray-900" id="loadingTitle">Processing</h3>
         <span class="text-sm text-gray-600" id="loadingMessage">Loading...</span>
       </div>
@@ -1068,8 +1045,8 @@
     (() => {
       const INITIAL_LOAD_DELAY_MS = 350;
       const initialLoadingCopy = {
-        title: 'Loading Create Sales Quote...',
-        message: 'Preparing your form, branch defaults, and editor tools. You can stay on this page while setup completes.'
+        title: 'Loading Sales Quote form...',
+        message: 'Loading required data.'
       };
       const state = {
         done: false,

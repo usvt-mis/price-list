@@ -35,24 +35,24 @@
       --calm-sla-bg-start: rgba(245, 249, 252, 0.98);
       --calm-sla-bg-end: rgba(233, 241, 248, 0.98);
       --timeboard-sticky-sq-width: 0px;
-      --timeboard-col-sq-width: 140px;
-      --timeboard-col-sv-width: 140px;
-      --timeboard-col-inspection-width: 160px;
-      --timeboard-col-price-request-width: 150px;
-      --timeboard-col-price-report-width: 150px;
-      --timeboard-col-sq-complete-width: 150px;
-      --timeboard-col-confirmation-width: 150px;
-      --timeboard-col-planning-request-width: 170px;
-      --timeboard-col-pr-width: 160px;
-      --timeboard-col-pr-complete-width: 150px;
-      --timeboard-col-po-width: 160px;
-      --timeboard-col-po-complete-width: 150px;
-      --timeboard-col-goods-receipt-width: 180px;
-      --timeboard-col-factory-procedure-width: 170px;
-      --timeboard-col-sh-record-width: 160px;
-      --timeboard-col-st-width: 160px;
-      --timeboard-col-posted-st-width: 170px;
-      --timeboard-col-expected-width: 150px;
+      --timeboard-col-sq-width: 120px;
+      --timeboard-col-sv-width: 120px;
+      --timeboard-col-inspection-width: 98px;
+      --timeboard-col-price-request-width: 88px;
+      --timeboard-col-price-report-width: 88px;
+      --timeboard-col-sq-complete-width: 90px;
+      --timeboard-col-confirmation-width: 104px;
+      --timeboard-col-planning-request-width: 98px;
+      --timeboard-col-pr-width: 118px;
+      --timeboard-col-pr-complete-width: 88px;
+      --timeboard-col-po-width: 118px;
+      --timeboard-col-po-complete-width: 88px;
+      --timeboard-col-goods-receipt-width: 94px;
+      --timeboard-col-factory-procedure-width: 98px;
+      --timeboard-col-sh-record-width: 118px;
+      --timeboard-col-st-width: 112px;
+      --timeboard-col-posted-st-width: 118px;
+      --timeboard-col-expected-width: 102px;
       --font-sans: "IBM Plex Sans", "Segoe UI", "Noto Sans Thai", system-ui, sans-serif;
       --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
       --ops-shell-bg: #edf3f2;
@@ -145,7 +145,7 @@
     .calm-table thead th {
       font-family: var(--font-sans);
       text-align: center;
-      padding: 14px 16px;
+      padding: 14px 10px;
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
@@ -209,7 +209,7 @@
     }
 
     .calm-table tbody td {
-      padding: 10px 14px;
+      padding: 10px 8px;
       font-size: 13px;
       line-height: 1.3;
       color: var(--calm-text-primary);
@@ -379,7 +379,7 @@
       font-size: 12.5px;
       color: var(--calm-date-color);
       font-variant-numeric: tabular-nums;
-      white-space: nowrap;
+      white-space: normal;
     }
 
     .col-metric {
@@ -1356,6 +1356,175 @@
       color: var(--ops-shell-accent-strong);
     }
 
+    .timeboard-alert-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: clamp(2rem, 8vh, 4.5rem) 16px 20px;
+      background: rgba(31, 45, 40, 0.24);
+      backdrop-filter: blur(12px);
+    }
+
+    .timeboard-alert-modal.hidden {
+      display: none;
+    }
+
+    .timeboard-alert-panel {
+      position: relative;
+      width: min(100%, 512px);
+      overflow: hidden;
+      border: 1px solid rgba(185, 200, 191, 0.95);
+      border-radius: 19px;
+      background: linear-gradient(180deg, rgba(248, 251, 249, 0.98) 0%, rgba(241, 246, 243, 0.97) 100%);
+      box-shadow:
+        0 18px 38px rgba(32, 49, 43, 0.12),
+        0 1px 0 rgba(255, 255, 255, 0.75) inset;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .timeboard-alert-panel::before {
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 3px;
+      background: linear-gradient(90deg, rgba(157, 185, 175, 0.88) 0%, rgba(47, 111, 104, 0.82) 58%, rgba(124, 159, 149, 0.82) 100%);
+      content: "";
+    }
+
+    .timeboard-alert-header {
+      padding: 23px 22px 15px;
+      border-bottom: 1px solid rgba(211, 221, 214, 0.75);
+      background: linear-gradient(180deg, rgba(232, 240, 235, 0.94) 0%, rgba(244, 248, 246, 0.98) 100%);
+    }
+
+    .timeboard-alert-status {
+      display: inline-flex;
+      align-items: center;
+      margin: 0 0 10px;
+      padding: 5px 11px;
+      border: 1px solid #e7c1ba;
+      border-radius: 999px;
+      background: #f9e8e5;
+      color: #9f4b43;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .timeboard-alert-title {
+      margin: 0;
+      color: var(--ops-shell-text);
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
+    .timeboard-alert-text {
+      margin: 7px 0 0;
+      color: var(--ops-shell-text-soft);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .timeboard-alert-body {
+      display: grid;
+      gap: 14px;
+      padding: 18px 22px;
+      background: linear-gradient(180deg, rgba(247, 250, 248, 0.78) 0%, rgba(242, 247, 244, 0.95) 100%);
+    }
+
+    .timeboard-alert-section {
+      border: 1px solid rgba(211, 221, 214, 0.84);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.76);
+      padding: 15px 16px;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.82),
+        0 8px 18px rgba(32, 49, 43, 0.04);
+    }
+
+    .timeboard-alert-section-warning {
+      border-color: #e7d19d;
+      background: linear-gradient(135deg, rgba(250, 242, 223, 0.92) 0%, rgba(255, 250, 240, 0.96) 100%);
+    }
+
+    .timeboard-alert-label {
+      margin: 0;
+      color: var(--ops-shell-text-muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .timeboard-alert-value {
+      margin: 7px 0 0;
+      color: var(--ops-shell-text-soft);
+      font-size: 14px;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    .timeboard-alert-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 20px 20px;
+      border-top: 1px solid rgba(211, 221, 214, 0.9);
+      background: rgba(238, 244, 240, 0.85);
+    }
+
+    .timeboard-alert-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 128px;
+      padding: 12px 16px;
+      border: 1px solid var(--ops-shell-accent);
+      border-radius: 13px;
+      background: var(--ops-shell-accent);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .timeboard-alert-btn:hover {
+      border-color: var(--ops-shell-accent-strong);
+      background: var(--ops-shell-accent-strong);
+    }
+
+    .timeboard-alert-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(43, 103, 119, 0.18);
+    }
+
+    @media (max-width: 640px) {
+      .timeboard-alert-modal {
+        align-items: center;
+        padding: 16px;
+      }
+
+      .timeboard-alert-header,
+      .timeboard-alert-body {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .timeboard-alert-footer {
+        padding: 16px 18px 18px;
+      }
+
+      .timeboard-alert-btn {
+        width: 100%;
+      }
+    }
+
     .timeboard-table-wrap {
       position: relative;
       overflow-x: auto;
@@ -1630,6 +1799,44 @@
       </div>
     </div>
 
+    <div
+      id="timeboardAccessDeniedModal"
+      class="timeboard-alert-modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="timeboardAccessDeniedTitle"
+      aria-describedby="timeboardAccessDeniedDescription"
+    >
+      <div id="timeboardAccessDeniedPanel" class="timeboard-alert-panel">
+        <div class="timeboard-alert-header">
+          <p class="timeboard-alert-status">Access Required</p>
+          <h2 id="timeboardAccessDeniedTitle" class="timeboard-alert-title">Access denied</h2>
+          <p id="timeboardAccessDeniedDescription" class="timeboard-alert-text">
+            Time Board is available only to Managers, Executives, and Sales Directors.
+          </p>
+        </div>
+        <div class="timeboard-alert-body">
+          <div class="timeboard-alert-section">
+            <p class="timeboard-alert-label">Detected role</p>
+            <p id="timeboardAccessDeniedRole" class="timeboard-alert-value">Unassigned / unavailable</p>
+          </div>
+          <div id="timeboardAccessDeniedEmailBox" class="timeboard-alert-section hidden">
+            <p class="timeboard-alert-label">User</p>
+            <p id="timeboardAccessDeniedEmail" class="timeboard-alert-value"></p>
+          </div>
+          <div class="timeboard-alert-section timeboard-alert-section-warning">
+            <p class="timeboard-alert-label">Next step</p>
+            <p class="timeboard-alert-value">Please contact an administrator if your account should have Time Board access.</p>
+          </div>
+        </div>
+        <div class="timeboard-alert-footer">
+          <button id="timeboardAccessDeniedBackBtn" type="button" class="timeboard-alert-btn">
+            Back to Menu
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="branchSelectModal" class="branch-select-modal fixed inset-0 z-40 hidden">
       <div class="branch-select-backdrop"></div>
       <div class="branch-select-panel">
@@ -1842,6 +2049,8 @@
     import { ROLE } from './js/core/config.js';
 
     const FETCH_BATCH_SIZE = 50;
+    const EXPECTED_DATE_FETCH_BATCH_SIZE = 500;
+    const SALES_QUOTE_BATCH_SIZE = 100;
     const PURCHASE_LINE_BATCH_SIZE = 100;
     const PURCHASE_ORDER_BATCH_SIZE = 100;
     const APPROVAL_STATUS_BATCH_SIZE = 100;
@@ -1966,6 +2175,7 @@
       useMockTimeline: true,
       sortDirection: 'DESC',
       fetchSize: FETCH_BATCH_SIZE,
+      nextCursor: null,
       hasMoreData: true,
       isFetching: false,
       isLoadingMore: false,
@@ -2254,6 +2464,49 @@
 
     function hideBranchSelectModal() {
       document.getElementById('branchSelectModal').classList.add('hidden');
+    }
+
+    function showAccessDeniedModal({ userRole = '', userEmail = '' } = {}) {
+      const modal = document.getElementById('timeboardAccessDeniedModal');
+      const panel = document.getElementById('timeboardAccessDeniedPanel');
+      const roleEl = document.getElementById('timeboardAccessDeniedRole');
+      const emailBox = document.getElementById('timeboardAccessDeniedEmailBox');
+      const emailEl = document.getElementById('timeboardAccessDeniedEmail');
+      const backBtn = document.getElementById('timeboardAccessDeniedBackBtn');
+
+      if (!modal || !panel || !backBtn) {
+        window.location.href = '/';
+        return Promise.resolve();
+      }
+
+      const normalizedRole = String(userRole || '').trim() || 'Unassigned / unavailable';
+      const normalizedEmail = String(userEmail || '').trim();
+
+      if (roleEl) {
+        roleEl.textContent = normalizedRole;
+      }
+      if (emailBox && emailEl) {
+        emailEl.textContent = normalizedEmail;
+        emailBox.classList.toggle('hidden', normalizedEmail.length === 0);
+      }
+
+      return new Promise((resolve) => {
+        const goBackToMenu = () => {
+          resolve();
+          window.location.href = '/';
+        };
+
+        backBtn.addEventListener('click', goBackToMenu, { once: true });
+        modal.classList.remove('hidden');
+        panel.style.opacity = '0';
+        panel.style.transform = 'translateY(-10px)';
+
+        requestAnimationFrame(() => {
+          panel.style.opacity = '1';
+          panel.style.transform = 'translateY(0)';
+          backBtn.focus({ preventScroll: true });
+        });
+      });
     }
 
     function setActiveBranchButton(branchCode) {
@@ -2567,7 +2820,7 @@
       renderTimeboardDataModeMeta();
     }
 
-    // Check access (Manager + Executive only)
+    // Check access (Manager + Executive + Sales Director only)
     async function checkAccess() {
       try {
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -2584,8 +2837,10 @@
         const userIdentity = userData?.clientPrincipal?.userDetails || userData?.clientPrincipal?.userId || '';
         setTimeboardCurrentUser(userIdentity);
         if (userRole !== ROLE.MANAGER && userRole !== ROLE.EXECUTIVE && userRole !== ROLE.SALES_DIRECTOR) {
-          alert('Access denied. Time Board is only available to Managers, Executives, and Sales Directors.');
-          window.location.href = '/';
+          await showAccessDeniedModal({
+            userRole,
+            userEmail: userIdentity
+          });
           return false;
         }
         return true;
@@ -2598,17 +2853,24 @@
 
     // Fetch timeboard data from local Time Board API backed by dbo.ServCostRevs
     // Data structure also includes approvalTime, confirmationStatus, and confirmationTime from local Sales Quote tracking.
-    async function requestTimeboardData(requestedSize) {
+    async function requestTimeboardData(options = {}) {
       try {
         if (!state.selectedBranch) {
           throw new Error('Branch selection is required before loading timeboard data');
         }
 
+        const {
+          limit = FETCH_BATCH_SIZE,
+          cursor = null
+        } = options;
         const params = new URLSearchParams();
-        params.append('offset', requestedSize);
+        params.append('limit', limit);
         params.append('orderBy', state.sortDirection);
         params.append('branch', state.selectedBranch);
         params.append('bucket', state.activeBucket);
+        if (cursor) {
+          params.append('cursor', JSON.stringify(cursor));
+        }
 
         const response = await fetch(`/api/timeboard?${params.toString()}`);
         if (!response.ok) {
@@ -2626,7 +2888,11 @@
           throw new Error(errorMessage);
         }
         const data = await response.json();
-        return data.tableRows || [];
+        return {
+          tableRows: Array.isArray(data.tableRows) ? data.tableRows : [],
+          hasMore: data.hasMore === true,
+          nextCursor: data.nextCursor || null
+        };
       } catch (error) {
         console.error('Error fetching data:', error);
         throw error;
@@ -2864,6 +3130,48 @@
       return String(value || '').trim();
     }
 
+    function normalizePriceRequestRecords(item) {
+      return (Array.isArray(item?.priceRequests) ? item.priceRequests : [])
+        .filter((record) => record && (record.priceRequestTime || record.priceReportTime || record.id))
+        .slice()
+        .sort((left, right) => {
+          const leftTime = parseDateTime(left.priceRequestTime)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+          const rightTime = parseDateTime(right.priceRequestTime)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+          if (leftTime !== rightTime) {
+            return leftTime - rightTime;
+          }
+
+          return String(left.id || '').localeCompare(String(right.id || ''));
+        });
+    }
+
+    function formatPriceRequestTooltipValue(record) {
+      const requestTime = formatTooltipDate(record?.priceRequestTime) || '-';
+      const reportTime = formatTooltipDate(record?.priceReportTime) || '-';
+      const equipment = [
+        String(record?.brand || '').trim(),
+        String(record?.model || '').trim()
+      ].filter(Boolean).join(' ');
+
+      return [
+        `Request: ${requestTime}`,
+        `Report: ${reportTime}`,
+        equipment
+      ].filter(Boolean).join(' | ');
+    }
+
+    function buildPriceRequestTooltipEntries(item) {
+      return normalizePriceRequestRecords(item)
+        .map((record, index) => {
+          const requestId = String(record?.id || '').trim();
+          return {
+            label: requestId ? `Price ${requestId}` : `Price ${index + 1}`,
+            value: formatPriceRequestTooltipValue(record)
+          };
+        })
+        .filter((entry) => entry.value);
+    }
+
     function encodeTooltipPayload(entries) {
       try {
         return encodeURIComponent(JSON.stringify(Array.isArray(entries) ? entries : []));
@@ -3070,8 +3378,8 @@
     }
 
     function isSlaExceeded(previousDate, currentDate, maxHours) {
-      const previous = parseValidDate(previousDate);
-      const current = parseValidDate(currentDate);
+      const previous = parseDateTime(previousDate);
+      const current = parseDateTime(currentDate);
       const thresholdHours = Number(maxHours);
 
       if (!previous || !current || !Number.isFinite(thresholdHours)) {
@@ -3284,11 +3592,21 @@
       const preserveGoodsReceiptTime = hasMeaningfulTimeComponent(goodsReceiptSource);
       const goodsReceipt = parseDateTime(goodsReceiptSource);
       const factoryProcedure = parseValidDate(item?.factoryProcedure);
+      const priceRequestSource = item?.priceRequestTime;
+      const preservePriceRequestTime = hasMeaningfulTimeComponent(priceRequestSource);
+      const priceRequest = preservePriceRequestTime
+        ? parseDateTime(priceRequestSource)
+        : parseValidDate(priceRequestSource);
+      const priceReportSource = item?.priceReportTime;
+      const preservePriceReportTime = hasMeaningfulTimeComponent(priceReportSource);
+      const priceReport = preservePriceReportTime
+        ? parseDateTime(priceReportSource)
+        : parseValidDate(priceReportSource);
 
       return {
         inspectionComplete: '',
-        priceRequest: '',
-        priceReport: '',
+        priceRequest: toIsoDate(priceRequest, { preserveTime: preservePriceRequestTime }),
+        priceReport: toIsoDate(priceReport, { preserveTime: preservePriceReportTime }),
         sqComplete: item?.approvalTime || '',
         confirmation: item?.confirmationTime || '',
         confirmationStatus,
@@ -3453,8 +3771,7 @@
       ) || '').trim();
       const postedStDate = formatTooltipDate(item?.postedStCreated);
       const postedStValue = [postedStNumber, postedStDate].filter(Boolean).join(' | ');
-
-      return [
+      const baseEntries = [
         { label: 'Customer No', value: String(item?.customerNo || '').trim() },
         { label: 'Customer Name', value: String(item?.customerName || '').trim() },
         { label: 'Service Type', value: String(item?.serviceOrderType || '').trim() },
@@ -3469,6 +3786,11 @@
         { label: '% Complete', value: formatTooltipPercent(item?.percent) },
         { label: 'Date Order', value: formatTooltipDate(item?.dateOrder) }
       ].filter((entry) => entry.value);
+
+      return [
+        ...baseEntries,
+        ...buildPriceRequestTooltipEntries(item)
+      ];
     }
 
     function renderSvTooltipTrigger(item) {
@@ -4027,15 +4349,35 @@
         return mergedPayload;
       }
 
-      onProgress(0, 0, total);
-      const chunkPayload = await requestSalesQuoteData(normalizedSalesQuoteNos);
+      const chunkPayloads = await requestGatewayArrayChunksInParallel(
+        normalizedSalesQuoteNos,
+        SALES_QUOTE_BATCH_SIZE,
+        async (chunk) => {
+          try {
+            const chunkPayload = await requestSalesQuoteData(chunk);
 
-      if (chunkPayload?.success === false) {
-        throw new Error('Failed to fetch sales quote data');
-      }
+            if (chunkPayload?.success === false) {
+              throw new Error('Sales quote gateway returned success=false');
+            }
 
-      mergedPayload.salesQuotes.push(...(Array.isArray(chunkPayload?.salesQuotes) ? chunkPayload.salesQuotes : []));
-      onProgress(100, total, total);
+            return chunkPayload;
+          } catch (error) {
+            console.warn(
+              `Failed to fetch Time Board sales quote data for ${chunk.length} SQ numbers; keeping base row expected dates for this chunk.`,
+              error
+            );
+            return {
+              success: false,
+              salesQuotes: []
+            };
+          }
+        },
+        onProgress
+      );
+
+      chunkPayloads.forEach((chunkPayload) => {
+        mergedPayload.salesQuotes.push(...(Array.isArray(chunkPayload?.salesQuotes) ? chunkPayload.salesQuotes : []));
+      });
 
       return mergedPayload;
     }
@@ -4584,6 +4926,22 @@
       return [...(Array.isArray(existingRows) ? existingRows : []), ...uniqueRows];
     }
 
+    function getAllPurchaseLinesFromRows(rows) {
+      return (Array.isArray(rows) ? rows : []).flatMap((row) => (
+        Array.isArray(row?.purchaseLines) ? row.purchaseLines : []
+      ));
+    }
+
+    function syncTimeboardDocumentStateFromRows(rows) {
+      const purchaseLines = getAllPurchaseLinesFromRows(rows);
+
+      state.salesQuoteNos = getDistinctSalesQuoteNumbers(rows);
+      state.purchaseDocumentNos = {
+        pr: getDistinctPurchaseRequestNumbers(purchaseLines),
+        po: getDistinctPurchaseOrderNumbers(purchaseLines)
+      };
+    }
+
     function sortDisplayRowsForMode(entries) {
       if (state.displayMode !== 'expectedDeliveryDate') {
         return entries;
@@ -4616,11 +4974,12 @@
       // Filter out records without SQ
       filtered = filtered.filter(item => item.sqNumber && item.sqNumber.trim() !== '');
 
-      // Filter out Finished status
-      filtered = filtered.filter((item) => {
-        const normalizedStatus = String(item.status || '').trim().toLowerCase();
-        return !['finish', 'finished', 'completed'].includes(normalizedStatus);
-      });
+      if (state.activeBucket === 'inProgress') {
+        filtered = filtered.filter((item) => {
+          const normalizedStatus = String(item.status || '').trim().toLowerCase();
+          return !['finish', 'finished', 'completed'].includes(normalizedStatus);
+        });
+      }
 
       // Search filter (client-side only)
       if (state.searchQuery) {
@@ -4814,49 +5173,117 @@
       syncStickyTimeboardHeader();
     }
 
+    function createTimeboardEnrichmentProgressHandlers(loadProgress) {
+      return {
+        onProgress: (percent, processedCount, totalCount) => {
+          loadProgress.updateStep('purchase-lines', percent, { processedCount, totalCount });
+        },
+        onPurchaseOrderProgress: (percent, processedCount, totalCount) => {
+          loadProgress.updateStep('purchase-orders', percent, { processedCount, totalCount });
+        },
+        onPurchaseOrderApprovalProgress: (percent, processedCount, totalCount) => {
+          loadProgress.updateStep('po-approvals', percent, { processedCount, totalCount });
+        },
+        onPurchaseRequestApprovalProgress: (percent, processedCount, totalCount) => {
+          loadProgress.updateStep('pr-approvals', percent, { processedCount, totalCount });
+        },
+        onSalesQuoteProgress: (percent, processedCount, totalCount) => {
+          loadProgress.updateStep('sales-quotes', percent, { processedCount, totalCount });
+        },
+        onServiceOrderProgress: (percent, processedCount, totalCount) => {
+          loadProgress.updateStep('service-orders', percent, { processedCount, totalCount });
+        }
+      };
+    }
+
+    async function enrichTimeboardRows(rows, loadProgress) {
+      return enrichRowsWithPurchaseLines(
+        rows,
+        createTimeboardEnrichmentProgressHandlers(loadProgress)
+      );
+    }
+
+    async function loadAllTimeboardDataForExpectedDateMode(loadProgress) {
+      let cursor = null;
+      let allRows = [];
+      let enrichedRows = [];
+
+      while (true) {
+        const payload = await requestTimeboardData({
+          limit: EXPECTED_DATE_FETCH_BATCH_SIZE,
+          cursor
+        });
+        const rows = payload.tableRows;
+
+        allRows = appendUniqueTimeboardRows(allRows, rows);
+        loadProgress.updateStep('base-data', payload.hasMore && payload.nextCursor ? 50 : 100, {
+          processedCount: allRows.length,
+          totalCount: allRows.length
+        });
+
+        if (rows.length > 0) {
+          const enrichedBatchRows = await enrichTimeboardRows(rows, loadProgress);
+          enrichedRows = appendUniqueTimeboardRows(enrichedRows, enrichedBatchRows);
+        }
+
+        if (!payload.hasMore || !payload.nextCursor || rows.length === 0) {
+          break;
+        }
+
+        cursor = payload.nextCursor;
+      }
+
+      if (allRows.length === 0) {
+        enrichedRows = await enrichTimeboardRows([], loadProgress);
+      }
+
+      syncTimeboardDocumentStateFromRows(enrichedRows);
+
+      return enrichedRows;
+    }
+
     async function refreshData(message = 'Loading timeboard data...') {
       if (state.isFetching) return;
 
       state.isFetching = true;
       state.isLoadingMore = false;
       state.fetchSize = FETCH_BATCH_SIZE;
+      state.nextCursor = null;
       state.hasMoreData = true;
       hideInlineLoader();
       updateLoadMoreUi();
-      showLoading(message);
+      showLoading(
+        state.displayMode === 'expectedDeliveryDate'
+          ? 'Loading all rows for expected date order...'
+          : message
+      );
       const loadProgress = createTimeboardLoadProgressTracker(updateLoadingDetail);
       loadProgress.start();
 
       try {
-        const rows = await requestTimeboardData(state.fetchSize);
-        loadProgress.completeStep('base-data', {
-          processedCount: rows.length,
-          totalCount: rows.length
-        });
-        const enrichedRows = await enrichRowsWithPurchaseLines(rows, {
-          onProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('purchase-lines', percent, { processedCount, totalCount });
-          },
-          onPurchaseOrderProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('purchase-orders', percent, { processedCount, totalCount });
-          },
-          onPurchaseOrderApprovalProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('po-approvals', percent, { processedCount, totalCount });
-          },
-          onPurchaseRequestApprovalProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('pr-approvals', percent, { processedCount, totalCount });
-          },
-          onSalesQuoteProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('sales-quotes', percent, { processedCount, totalCount });
-          },
-          onServiceOrderProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('service-orders', percent, { processedCount, totalCount });
-          }
-        });
-        state.data = enrichedRows;
-        state.hasMoreData = rows.length >= FETCH_BATCH_SIZE;
+        if (state.displayMode === 'expectedDeliveryDate') {
+          state.fetchSize = EXPECTED_DATE_FETCH_BATCH_SIZE;
+          state.data = await loadAllTimeboardDataForExpectedDateMode(loadProgress);
+          state.nextCursor = null;
+          state.hasMoreData = false;
+        } else {
+          const payload = await requestTimeboardData({
+            limit: FETCH_BATCH_SIZE
+          });
+          const rows = payload.tableRows;
+          loadProgress.completeStep('base-data', {
+            processedCount: rows.length,
+            totalCount: rows.length
+          });
+          const enrichedRows = await enrichTimeboardRows(rows, loadProgress);
+          state.data = enrichedRows;
+          syncTimeboardDocumentStateFromRows(state.data);
+          state.nextCursor = payload.nextCursor;
+          state.hasMoreData = payload.hasMore && Boolean(payload.nextCursor);
+        }
       } catch (error) {
         state.data = [];
+        state.nextCursor = null;
         state.hasMoreData = false;
       } finally {
         const renderMeta = applyFilters();
@@ -4878,7 +5305,12 @@
 
       const { silent = false } = options;
       const previousCount = state.data.length;
-      const nextFetchSize = state.fetchSize + FETCH_BATCH_SIZE;
+      const cursor = state.nextCursor;
+      if (!cursor) {
+        state.hasMoreData = false;
+        updateLoadMoreUi();
+        return;
+      }
 
       state.isFetching = true;
       state.isLoadingMore = true;
@@ -4893,40 +5325,26 @@
       loadProgress.start();
 
       try {
-        const rows = await requestTimeboardData(nextFetchSize);
-        const newRows = rows.slice(previousCount);
+        const payload = await requestTimeboardData({
+          limit: FETCH_BATCH_SIZE,
+          cursor
+        });
+        const newRows = payload.tableRows;
         loadProgress.completeStep('base-data', {
-          processedCount: rows.length,
-          totalCount: rows.length
+          processedCount: newRows.length,
+          totalCount: newRows.length
         });
         if (newRows.length === 0) {
+          state.nextCursor = null;
           state.hasMoreData = false;
           return;
         }
 
-        const enrichedRows = await enrichRowsWithPurchaseLines(newRows, {
-          onProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('purchase-lines', percent, { processedCount, totalCount });
-          },
-          onPurchaseOrderProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('purchase-orders', percent, { processedCount, totalCount });
-          },
-          onPurchaseOrderApprovalProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('po-approvals', percent, { processedCount, totalCount });
-          },
-          onPurchaseRequestApprovalProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('pr-approvals', percent, { processedCount, totalCount });
-          },
-          onSalesQuoteProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('sales-quotes', percent, { processedCount, totalCount });
-          },
-          onServiceOrderProgress: (percent, processedCount, totalCount) => {
-            loadProgress.updateStep('service-orders', percent, { processedCount, totalCount });
-          }
-        });
-        state.fetchSize = nextFetchSize;
+        const enrichedRows = await enrichTimeboardRows(newRows, loadProgress);
         state.data = appendUniqueTimeboardRows(state.data, enrichedRows);
-        state.hasMoreData = rows.length > previousCount && state.data.length > previousCount;
+        syncTimeboardDocumentStateFromRows(state.data);
+        state.nextCursor = payload.nextCursor;
+        state.hasMoreData = payload.hasMore && Boolean(payload.nextCursor) && state.data.length > previousCount;
       } catch (error) {
         state.hasMoreData = previousCount > 0;
       } finally {

@@ -8,7 +8,7 @@ import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteUpdatedSuccess, showQuoteSendFailure } from './ui.js';
-import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal, isApprovedWorkStatusOnlyMode, syncVatControls, getBcApprovalStatusAlert } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal, isApprovedWorkStatusOnlyMode, syncVatControls, getBcApprovalStatusAlert, setSerActionButtonState } from './ui.js';
 import { fetchWithAuth } from '../core/utils.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
@@ -3027,8 +3027,7 @@ async function saveExistingServiceItemLaborProfile(confirmSnapshot = null, labor
   const newSerButton = document.getElementById('editLineCreateSv');
   if (newSerButton) {
     newSerButton.disabled = true;
-    newSerButton.textContent = 'Saving...';
-    newSerButton.style.opacity = '0.7';
+    setSerActionButtonState(newSerButton, 'saving');
   }
 
   let laborProfileSaved = false;
@@ -3109,8 +3108,7 @@ async function createServiceItemAndLockFields(confirmSnapshot = null, laborJobsS
   const newSerButton = document.getElementById('lineCreateSv');
   if (newSerButton) {
     newSerButton.disabled = true;
-    newSerButton.innerHTML = 'Creating...';
-    newSerButton.style.opacity = '0.7';
+    setSerActionButtonState(newSerButton, 'creating');
   }
 
   try {
@@ -3159,8 +3157,7 @@ async function createServiceItemAndLockFields(confirmSnapshot = null, laborJobsS
     // Update button to "Created" state (disabled)
     if (newSerButton) {
       newSerButton.disabled = true;
-      newSerButton.innerHTML = '✓ Created';
-      newSerButton.style.opacity = '1';
+      setSerActionButtonState(newSerButton, 'created');
     }
 
     // Show success message
@@ -3175,8 +3172,7 @@ async function createServiceItemAndLockFields(confirmSnapshot = null, laborJobsS
     showError(error.message || 'Failed to create Service Item. Please try again.');
     if (newSerButton) {
       newSerButton.disabled = false;
-      newSerButton.innerHTML = 'New SER';
-      newSerButton.style.opacity = '1';
+      setSerActionButtonState(newSerButton, 'new');
     }
   }
 }
@@ -3226,30 +3222,6 @@ export function confirmClearQuote() {
  */
 export function cancelClearQuote() {
   hideConfirmClearQuoteModal();
-}
-
-/**
- * Save draft quote
- */
-export function handleSaveDraft() {
-  const formData = getQuoteFormData();
-
-  // Validate
-  const validation = validateAndUpdate(formData);
-  if (!validation.isValid) {
-    displayValidationErrors(validation.errors);
-    showError('Please fix validation errors before saving');
-    return;
-  }
-
-  // Save to session storage
-  try {
-    sessionStorage.setItem('salesquotes-draft', JSON.stringify(formData));
-    showSuccess('Draft saved successfully');
-  } catch (error) {
-    console.error('Failed to save draft:', error);
-    showError('Failed to save draft');
-  }
 }
 
 // Helpers for normalizing Gateway/Business Central error payloads.
@@ -3760,7 +3732,7 @@ async function createServiceItem(description, customerNo, groupNo, serviceType =
     const newSerButton = el('lineCreateSv');
     if (newSerButton) {
       newSerButton.disabled = true;
-      newSerButton.innerHTML = '<span class="animate-pulse">Creating...</span>';
+      setSerActionButtonState(newSerButton, 'creating');
     }
 
     const response = await fetch(API_URL, {
@@ -4784,27 +4756,27 @@ function updateNewSerButtonStateForEditModal(excludeLineId) {
 
   if (isComment) {
     newSerButton.disabled = true;
-    newSerButton.innerHTML = 'New SER';
+    setSerActionButtonState(newSerButton, 'new');
     newSerButton.removeAttribute('title');
     newSerButton.style.cursor = '';
   } else if (state.ui.serCreatedEdit) {
     newSerButton.disabled = true;
-    newSerButton.innerHTML = '✓ Created';
+    setSerActionButtonState(newSerButton, 'created');
     newSerButton.removeAttribute('title');
     newSerButton.style.cursor = '';
   } else if (hasExistingServiceItemOnLine) {
     newSerButton.disabled = false;
-    newSerButton.innerHTML = 'Edit SER';
+    setSerActionButtonState(newSerButton, 'edit');
     newSerButton.title = 'Edit the saved labor profile for this Service Item.';
     newSerButton.style.cursor = '';
   } else if (hasExistingSerInGroup) {
     newSerButton.disabled = true;
-    newSerButton.innerHTML = 'New SER';
+    setSerActionButtonState(newSerButton, 'new');
     newSerButton.title = getGroupServiceItemLockMessage(groupNo);
     newSerButton.style.cursor = 'not-allowed';
   } else {
     newSerButton.disabled = false;
-    newSerButton.innerHTML = 'New SER';
+    setSerActionButtonState(newSerButton, 'new');
     newSerButton.removeAttribute('title');
     newSerButton.style.cursor = '';
   }
@@ -4906,9 +4878,9 @@ export function setupLineModalHandlers() {
 
     // Update New SER button state
     if (isComment) {
-      newSerButton.innerHTML = 'New SER';
+      setSerActionButtonState(newSerButton, 'new');
     } else {
-      newSerButton.innerHTML = 'New SER';
+      setSerActionButtonState(newSerButton, 'new');
     }
 
     // Update New SER button state based on Group No after the button label is reset
@@ -5514,7 +5486,6 @@ if (typeof window !== 'undefined') {
 
   // Quote actions
   window.clearQuote = handleClearQuote;
-  window.saveDraft = handleSaveDraft;
   window.sendQuote = handleSendQuote;
   window.sendApprovalRequest = sendApprovalRequest;
   window.cancelCurrentQuoteApproval = cancelCurrentQuoteApproval;
@@ -5685,16 +5656,15 @@ async function openEditLineModal(lineId) {
     if (hasExistingSer || isComment) {
       if (hasExistingSer) {
         newSerButton.disabled = false;
-        newSerButton.innerHTML = 'Edit SER';
+        setSerActionButtonState(newSerButton, 'edit');
       } else {
         newSerButton.disabled = true;
-        newSerButton.innerHTML = 'New SER';
+        setSerActionButtonState(newSerButton, 'new');
       }
     } else {
       newSerButton.disabled = false;
-      newSerButton.innerHTML = 'New SER';
+      setSerActionButtonState(newSerButton, 'new');
     }
-    newSerButton.style.opacity = '1';
   }
 
   // Update New SER button state based on Group No (checks for existing Service Items in the same group)
@@ -5980,7 +5950,7 @@ function updateEditModalFieldStates(type) {
     // Disable New SER button for Comment type
     if (newSerButton) {
       newSerButton.disabled = true;
-      newSerButton.innerHTML = 'New SER';
+      setSerActionButtonState(newSerButton, 'new');
     }
 
     // Update line total preview to reflect 0 quantity
@@ -6227,8 +6197,7 @@ async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null, lab
   const newSerButton = document.getElementById('editLineCreateSv');
   if (newSerButton) {
     newSerButton.disabled = true;
-    newSerButton.innerHTML = 'Creating...';
-    newSerButton.style.opacity = '0.7';
+    setSerActionButtonState(newSerButton, 'creating');
   }
 
   try {
@@ -6269,8 +6238,7 @@ async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null, lab
     // Update button to "Created" state (disabled)
     if (newSerButton) {
       newSerButton.disabled = true;
-      newSerButton.innerHTML = '✓ Created';
-      newSerButton.style.opacity = '1';
+      setSerActionButtonState(newSerButton, 'created');
     }
 
     // Show success message
@@ -6285,8 +6253,7 @@ async function createServiceItemAndLockFieldsForEdit(confirmSnapshot = null, lab
     showError(error.message || 'Failed to create Service Item. Please try again.');
     if (newSerButton) {
       newSerButton.disabled = false;
-      newSerButton.innerHTML = 'New SER';
-      newSerButton.style.opacity = '1';
+      setSerActionButtonState(newSerButton, 'new');
     }
   }
 }

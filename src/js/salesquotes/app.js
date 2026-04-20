@@ -177,10 +177,9 @@ async function initApp() {
     renderAuthSection();
     console.log('Auth section rendered');
 
-    // 3. Clear any old state and draft to start fresh
+    // 3. Clear any old state to start fresh
     sessionStorage.removeItem(STORAGE_KEYS.STATE);
-    sessionStorage.removeItem(STORAGE_KEYS.DRAFT_QUOTE);
-    console.log('Old state and draft cleared');
+    console.log('Old state cleared');
 
     // 4. Initialize state
     initState();

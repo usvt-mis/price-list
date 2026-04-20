@@ -20,6 +20,54 @@ async function getApprovalStatus() {
 
 const DEFAULT_VAT_RATE = 7;
 
+const SER_ACTION_BUTTON_STATES = {
+  new: {
+    label: 'New SER',
+    className: 'is-new',
+    icon: '<svg class="sq-ser-action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M12 5v14m7-7H5"></path></svg>'
+  },
+  edit: {
+    label: 'Edit SER',
+    className: 'is-edit',
+    icon: '<svg class="sq-ser-action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M19.5 7.125L16.875 4.5"></path></svg>'
+  },
+  created: {
+    label: 'Created',
+    className: 'is-created',
+    icon: '<svg class="sq-ser-action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M5 13l4 4L19 7"></path></svg>'
+  },
+  creating: {
+    label: 'Creating...',
+    className: 'is-creating',
+    icon: '<svg class="sq-ser-action-icon sq-ser-action-spinner" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.25"></circle><path fill="currentColor" d="M21 12a9 9 0 00-9-9v3a6 6 0 016 6h3z"></path></svg>'
+  },
+  saving: {
+    label: 'Saving...',
+    className: 'is-creating',
+    icon: '<svg class="sq-ser-action-icon sq-ser-action-spinner" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.25"></circle><path fill="currentColor" d="M21 12a9 9 0 00-9-9v3a6 6 0 016 6h3z"></path></svg>'
+  }
+};
+
+export function setSerActionButtonState(button, stateName = 'new') {
+  if (!button) {
+    return;
+  }
+
+  const config = SER_ACTION_BUTTON_STATES[stateName] || SER_ACTION_BUTTON_STATES.new;
+  button.classList.add('sq-ser-action-btn');
+  button.classList.remove(
+    'is-new',
+    'is-edit',
+    'is-created',
+    'is-creating'
+  );
+  button.classList.add(config.className);
+  button.dataset.serState = stateName;
+  button.style.opacity = '';
+  button.innerHTML = `${config.icon}<span class="sq-ser-action-label">${config.label}</span>`;
+  button.setAttribute('aria-label', config.label);
+}
+
 function normalizeStatusComparisonValue(value) {
   return String(value || '')
     .trim()
@@ -1494,9 +1542,9 @@ export function openAddLineModal(insertIndex = null) {
     // New SER button - reset to normal state
     if (el('lineCreateSv')) {
       const button = el('lineCreateSv');
-      // Reset to normal state (Tailwind classes handle styling)
+      // Reset to normal state (SER helper handles styling and icon markup)
       button.disabled = false;
-      button.innerHTML = 'New SER';
+      setSerActionButtonState(button, 'new');
     }
 
     // Service Item fields

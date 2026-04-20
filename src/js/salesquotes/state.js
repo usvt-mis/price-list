@@ -170,7 +170,6 @@ export const state = {
 
 export const STORAGE_KEYS = {
   STATE: STORAGE_KEY_PREFIXES.SALESQUOTES + 'state',
-  DRAFT_QUOTE: STORAGE_KEY_PREFIXES.SALESQUOTES + 'draft',
   BC_CONFIG: 'bc_config'
 };
 
@@ -247,45 +246,9 @@ export function loadState() {
 export function clearState() {
   try {
     sessionStorage.removeItem(STORAGE_KEYS.STATE);
-    sessionStorage.removeItem(STORAGE_KEYS.DRAFT_QUOTE);
     console.log('State cleared');
   } catch (error) {
     console.error('Failed to clear state:', error);
-  }
-}
-
-/**
- * Save draft quote
- */
-export function saveDraftQuote() {
-  try {
-    const draft = {
-      ...state.quote,
-      savedAt: new Date().toISOString()
-    };
-    sessionStorage.setItem(STORAGE_KEYS.DRAFT_QUOTE, JSON.stringify(draft));
-    console.log('Draft quote saved');
-  } catch (error) {
-    console.error('Failed to save draft quote:', error);
-  }
-}
-
-/**
- * Load draft quote
- */
-export function loadDraftQuote() {
-  try {
-    const draft = sessionStorage.getItem(STORAGE_KEYS.DRAFT_QUOTE);
-    if (draft) {
-      const parsed = JSON.parse(draft);
-      Object.assign(state.quote, parsed);
-      console.log('Draft quote loaded');
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error('Failed to load draft quote:', error);
-    return false;
   }
 }
 
