@@ -9,6 +9,7 @@ const { getPool } = require('../../db');
 const sql = require('mssql');
 const { ensureSalesQuoteSubmissionRecordsTable } = require('../../utils/salesQuoteSubmissionRecords');
 const { TABLE_NAME: SALESQUOTE_AUDIT_LOG_TABLE, ensureSalesQuoteAuditLogTable } = require('../../utils/salesQuoteAuditLog');
+const { TABLE_NAME: TIMEBOARD_ACCESS_LOG_TABLE, ensureTimeboardAccessLogTable } = require('../../utils/timeboardAccessLog');
 const {
   TABLE_NAME: SALESQUOTE_BC_SYNC_ERROR_LOG_TABLE,
   ensureSalesQuoteBcSyncErrorLogTable
@@ -460,7 +461,7 @@ router.get('/users', async (req, res, next) => {
 /**
  * POST /api/backoffice/users/:email/role
  * Assign or update a user's role
- * Body: { role: 'NoRole' | 'Sales' | 'SalesDirector' | 'Executive' | 'Customer', justification?: string }
+ * Body: { role: 'NoRole' | 'Sales' | 'SalesDirector' | 'Executive' | 'Customer' | 'Manager' | 'GeneralOfficer', justification?: string }
  * Requires: Backoffice session token
  */
 router.post('/users/:email/role', async (req, res, next) => {
@@ -473,8 +474,8 @@ router.post('/users/:email/role', async (req, res, next) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    if (!role || !['NoRole', 'Sales', 'SalesDirector', 'Executive', 'Customer', 'Manager'].includes(role)) {
-      return res.status(400).json({ error: "Role must be 'NoRole', 'Sales', 'SalesDirector', 'Executive', 'Customer', or 'Manager'" });
+    if (!role || !['NoRole', 'Sales', 'SalesDirector', 'Executive', 'Customer', 'Manager', 'GeneralOfficer'].includes(role)) {
+      return res.status(400).json({ error: "Role must be 'NoRole', 'Sales', 'SalesDirector', 'Executive', 'Customer', 'Manager', or 'GeneralOfficer'" });
     }
 
     console.log(`Backoffice admin ${session.email} assigned ${role} role to ${email}`);
@@ -821,6 +822,96 @@ router.get('/audit-log', async (req, res, next) => {
     }
     console.error(e);
     res.status(500).json({ error: 'Failed to load audit log' });
+  }
+});
+
+/**
+ * GET /api/backoffice/timeboard-access-log
+ * Get Time Board access log (paginated)
+ * Query params: page (default 1), pageSize (default 50), search (optional filter)
+ * Requires: Backoffice session token
+ */
+router.get('/timeboard-access-log', async (req, res, next) => {
+  try {
+    const session = req.session;
+    console.log(`Backoffice admin ${session.email} accessed Time Board access log`);
+
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.min(Math.max(1, parseInt(req.query.pageSize, 10) || 50), 200);
+    const searchFilter = String(req.query.search || '').trim();
+    const offset = (page - 1) * pageSize;
+    const normalizedSearch = searchFilter ? `%${searchFilter}%` : '';
+
+    const pool = await getPool();
+    await ensureTimeboardAccessLogTable(pool);
+
+    const whereClause = `
+      @search = ''
+      OR ISNULL(ActorEmail, '') LIKE @search
+      OR ISNULL(EffectiveRole, '') LIKE @search
+      OR ISNULL(BranchCode, '') LIKE @search
+      OR ISNULL(ClientIP, '') LIKE @search
+      OR ISNULL(UserAgent, '') LIKE @search
+    `;
+
+    const countResult = await pool.request()
+      .input('search', sql.NVarChar, normalizedSearch)
+      .query(`
+        SELECT COUNT(*) AS total
+        FROM dbo.${TIMEBOARD_ACCESS_LOG_TABLE}
+        WHERE (${whereClause})
+      `);
+
+    const total = countResult.recordset[0]?.total || 0;
+    const dataResult = await pool.request()
+      .input('search', sql.NVarChar, normalizedSearch)
+      .input('offset', sql.Int, offset)
+      .input('pageSize', sql.Int, pageSize)
+      .query(`
+        SELECT
+          Id,
+          ActorEmail,
+          EffectiveRole,
+          BranchCode,
+          Bucket,
+          SortDirection,
+          ClientIP,
+          UserAgent,
+          CreatedAt
+        FROM dbo.${TIMEBOARD_ACCESS_LOG_TABLE}
+        WHERE (${whereClause})
+        ORDER BY CreatedAt DESC, Id DESC
+        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
+      `);
+
+    res.status(200).json({
+      entries: dataResult.recordset.map((entry) => ({
+        id: entry.Id,
+        actorEmail: entry.ActorEmail || '',
+        effectiveRole: entry.EffectiveRole || '',
+        branchCode: entry.BranchCode || '',
+        bucket: entry.Bucket || '',
+        sortDirection: entry.SortDirection || '',
+        clientIP: entry.ClientIP || '',
+        userAgent: entry.UserAgent || '',
+        createdAt: entry.CreatedAt
+      })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize))
+      }
+    });
+  } catch (e) {
+    if (e.statusCode === 403) {
+      return res.status(403).json({ error: 'Access denied. Backoffice access required.' });
+    }
+    if (e.statusCode === 401) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    console.error(e);
+    res.status(500).json({ error: 'Failed to load Time Board access log' });
   }
 });
 
@@ -1454,6 +1545,22 @@ router.get('/repair', async (req, res, next) => {
     if (salesQuoteRecordsExists.recordset.length === 0) {
       await ensureSalesQuoteSubmissionRecordsTable(pool);
       results.tablesCreated.push('SalesQuoteSubmissionRecords');
+    }
+
+    // Check and create TimeboardAccessLog table
+    results.tablesChecked.push(TIMEBOARD_ACCESS_LOG_TABLE);
+    const timeboardAccessLogExists = await pool.request()
+      .input('tableName', sql.NVarChar, TIMEBOARD_ACCESS_LOG_TABLE)
+      .query(`
+        SELECT 1
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = 'dbo'
+          AND TABLE_NAME = @tableName
+      `);
+
+    if (timeboardAccessLogExists.recordset.length === 0) {
+      await ensureTimeboardAccessLogTable(pool);
+      results.tablesCreated.push(TIMEBOARD_ACCESS_LOG_TABLE);
     }
 
     // Check and create BackofficeAdmins table (for two-factor auth)

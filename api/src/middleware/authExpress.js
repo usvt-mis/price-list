@@ -402,6 +402,8 @@ function normalizeEffectiveRole(role) {
     salesdirector: 'SalesDirector',
     pricelistsales: 'Sales',
     sales: 'Sales',
+    pricelistgeneralofficer: 'GeneralOfficer',
+    generalofficer: 'GeneralOfficer',
     pricelistmanager: 'Manager',
     manager: 'Manager',
     customer: 'Customer',
@@ -429,6 +431,9 @@ function getEffectiveRoleFromRoleClaims(userRoles) {
   }
   if (normalizedRoles.includes('Manager')) {
     return 'Manager';
+  }
+  if (normalizedRoles.includes('GeneralOfficer')) {
+    return 'GeneralOfficer';
   }
   if (normalizedRoles.includes('Sales')) {
     return 'Sales';
@@ -661,9 +666,13 @@ function getRoleLabel(role) {
     'PriceListExecutive': 'Executive',
     'PriceListSalesDirector': 'Sales Director',
     'PriceListSales': 'Sales',
+    'PriceListGeneralOfficer': 'General Officer',
     'Executive': 'Executive',
     'SalesDirector': 'Sales Director',
+    'Manager': 'Manager',
     'Sales': 'Sales',
+    'GeneralOfficer': 'General Officer',
+    'Customer': 'Customer',
     'NoRole': 'Unassigned'
   };
   return roleLabels[role] || role;
@@ -676,7 +685,7 @@ function getRoleLabel(role) {
  */
 function mapMockRoleToEffective(mockRole) {
   const role = normalizeEffectiveRole(mockRole);
-  return ['Executive', 'SalesDirector', 'Manager', 'Sales', 'Customer', 'NoRole'].includes(role) ? role : 'Sales';
+  return ['Executive', 'SalesDirector', 'Manager', 'GeneralOfficer', 'Sales', 'Customer', 'NoRole'].includes(role) ? role : 'Sales';
 }
 
 module.exports = {

@@ -8,8 +8,9 @@ const router = express.Router();
 const { getPool } = require('../db');
 const sql = require('mssql');
 const { ensureSalesQuoteApprovalsTable } = require('../utils/salesQuoteApprovals');
+const { logTimeboardAccessEvent } = require('../utils/timeboardAccessLog');
 
-const ALLOWED_ROLES = new Set(['Executive', 'Manager', 'SalesDirector']);
+const ALLOWED_ROLES = new Set(['Executive', 'Manager', 'SalesDirector', 'GeneralOfficer']);
 const DEFAULT_FETCH_SIZE = 50;
 const MAX_FETCH_SIZE = 500;
 const TIMEBOARD_BUCKETS = new Set(['inProgress', 'temp', 'invoiced']);
@@ -17,6 +18,17 @@ const CURSOR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function getAuthenticatedRole(req) {
   return req.user?.effectiveRole || req.effectiveRole || req.session?.user?.effectiveRole || 'NoRole';
+}
+
+function getAuthenticatedEmail(req) {
+  return req.user?.userDetails || req.user?.email || req.user?.upn || null;
+}
+
+function getClientIP(req) {
+  return (req.headers['x-forwarded-for'] || '').split(',')[0]?.trim() ||
+         req.headers['x-client-ip'] ||
+         req.ip ||
+         null;
 }
 
 function hasTimeboardAccess(req) {
@@ -47,6 +59,10 @@ function normalizeBranch(value) {
 function normalizeBucket(value) {
   const normalized = String(value || '').trim();
   return TIMEBOARD_BUCKETS.has(normalized) ? normalized : 'inProgress';
+}
+
+function shouldTrackAccess(value) {
+  return String(value || '').trim() === '1';
 }
 
 function createBadCursorError() {
@@ -118,6 +134,7 @@ function parsePriceRequestsJson(value) {
       id: record.id || '',
       brand: record.brand || '',
       model: record.model || '',
+      requester: record.requester || '',
       priceRequestTime: record.priceRequestTime || null,
       priceReportTime: record.priceReportTime || null
     }));
@@ -178,7 +195,7 @@ function getCursorPredicate(sortDirection) {
 router.get('/', async (req, res, next) => {
   try {
     if (!hasTimeboardAccess(req)) {
-      return res.status(403).json({ error: 'Access denied. Manager, Executive, or Sales Director role required.' });
+      return res.status(403).json({ error: 'Access denied. Manager, Executive, Sales Director, or General Officer role required.' });
     }
 
     const branch = normalizeBranch(req.query.branch);
@@ -190,6 +207,7 @@ router.get('/', async (req, res, next) => {
     const fetchSizePlusOne = fetchSize + 1;
     const sortDirection = normalizeSortDirection(req.query.orderBy);
     const bucket = normalizeBucket(req.query.bucket);
+    const trackAccess = shouldTrackAccess(req.query.trackAccess);
     const cursor = normalizeCursor(req.query.cursor);
     const cursorPredicate = getCursorPredicate(sortDirection);
     const pool = await getPool();
@@ -210,12 +228,12 @@ router.get('/', async (req, res, next) => {
 
         WITH priceRequestSummary AS (
           SELECT
-            LTRIM(RTRIM(ISNULL(ServiceOrderNo, ''))) AS svNumber,
+            LTRIM(RTRIM(ISNULL(SalesQuoteNo, ''))) AS sqNumber,
             MIN(PriceRequestTime) AS priceRequestTime,
             MAX(PriceReportTime) AS priceReportTime
           FROM dbo.SalesQuotePriceRequests
-          WHERE LTRIM(RTRIM(ISNULL(ServiceOrderNo, ''))) <> ''
-          GROUP BY LTRIM(RTRIM(ISNULL(ServiceOrderNo, '')))
+          WHERE LTRIM(RTRIM(ISNULL(SalesQuoteNo, ''))) <> ''
+          GROUP BY LTRIM(RTRIM(ISNULL(SalesQuoteNo, '')))
         ),
         normalizedRows AS (
           SELECT
@@ -295,6 +313,7 @@ router.get('/', async (req, res, next) => {
                 LTRIM(RTRIM(ISNULL(sqpr.Id, ''))) AS id,
                 LTRIM(RTRIM(ISNULL(sqpr.Brand, ''))) AS brand,
                 LTRIM(RTRIM(ISNULL(sqpr.Model, ''))) AS model,
+                LTRIM(RTRIM(ISNULL(sqpr.Requester, ''))) AS requester,
                 CASE
                   WHEN sqpr.PriceRequestTime IS NULL THEN NULL
                   ELSE CONCAT(CONVERT(varchar(33), sqpr.PriceRequestTime, 126), 'Z')
@@ -304,7 +323,7 @@ router.get('/', async (req, res, next) => {
                   ELSE CONCAT(CONVERT(varchar(33), sqpr.PriceReportTime, 126), 'Z')
                 END AS priceReportTime
               FROM dbo.SalesQuotePriceRequests sqpr
-              WHERE LTRIM(RTRIM(ISNULL(sqpr.ServiceOrderNo, ''))) = LTRIM(RTRIM(ISNULL(scr.ServiceOrderNo, '')))
+              WHERE LTRIM(RTRIM(ISNULL(sqpr.SalesQuoteNo, ''))) = LTRIM(RTRIM(ISNULL(scr.JopProjectNo, '')))
               ORDER BY
                 sqpr.PriceRequestTime ASC,
                 sqpr.Id ASC
@@ -314,7 +333,7 @@ router.get('/', async (req, res, next) => {
           LEFT JOIN dbo.SalesQuoteApprovals a
             ON LTRIM(RTRIM(ISNULL(a.SalesQuoteNumber, ''))) = LTRIM(RTRIM(ISNULL(scr.JopProjectNo, '')))
           LEFT JOIN priceRequestSummary prs
-            ON prs.svNumber = LTRIM(RTRIM(ISNULL(scr.ServiceOrderNo, '')))
+            ON prs.sqNumber = LTRIM(RTRIM(ISNULL(scr.JopProjectNo, '')))
           WHERE LTRIM(RTRIM(ISNULL(scr.Branch, ''))) = @branch
             AND LTRIM(RTRIM(ISNULL(scr.JopProjectNo, ''))) <> ''
             AND (
@@ -371,7 +390,7 @@ router.get('/', async (req, res, next) => {
           salespersonCode,
           lastMonthStatus,
           repairStatusCode,
-          dateOrder,
+          CONVERT(varchar(10), dateOrder, 23) AS dateOrder,
           approvalTime,
           confirmationStatus,
           confirmationTime,
@@ -397,6 +416,22 @@ router.get('/', async (req, res, next) => {
       hasMore,
       nextCursor: hasMore ? buildNextCursor(lastRow) : null
     });
+
+    if (trackAccess) {
+      try {
+        await logTimeboardAccessEvent(pool, {
+          actorEmail: getAuthenticatedEmail(req),
+          effectiveRole: getAuthenticatedRole(req),
+          branchCode: branch,
+          bucket,
+          sortDirection,
+          clientIP: getClientIP(req),
+          userAgent: req.get('user-agent') || null
+        });
+      } catch (logError) {
+        console.error('Failed to record Time Board access log:', logError);
+      }
+    }
   } catch (error) {
     console.error('Time Board API error:', error);
     next(error);

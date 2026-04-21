@@ -34,6 +34,16 @@
       --calm-sla-border: #cbd5e1;
       --calm-sla-bg-start: rgba(245, 249, 252, 0.98);
       --calm-sla-bg-end: rgba(233, 241, 248, 0.98);
+      --timeboard-col-tone-a: #ffffff;
+      --timeboard-col-tone-b: #f7fafc;
+      --timeboard-col-header-tone-a: rgba(248, 250, 252, 0.96);
+      --timeboard-col-header-tone-b: rgba(241, 245, 249, 0.96);
+      --timeboard-col-sla-tone-b-start: rgba(239, 246, 250, 0.98);
+      --timeboard-col-sla-tone-b-end: rgba(226, 236, 244, 0.98);
+      --timeboard-delayed-col-tone-a: #fef2f2;
+      --timeboard-delayed-col-tone-b: #fff5f5;
+      --timeboard-delayed-hover-tone-a: #fee2e2;
+      --timeboard-delayed-hover-tone-b: #ffe7e7;
       --timeboard-sticky-sq-width: 0px;
       --timeboard-col-sq-width: 120px;
       --timeboard-col-sv-width: 120px;
@@ -152,7 +162,7 @@
       letter-spacing: 0.05em;
       color: var(--calm-text-secondary);
       border-bottom: 2px solid var(--calm-border);
-      background: rgba(248, 250, 252, 0.96);
+      background: var(--timeboard-column-header-bg, rgba(248, 250, 252, 0.96));
       backdrop-filter: blur(8px);
       box-shadow: 0 1px 0 rgba(226, 232, 240, 0.95);
     }
@@ -177,7 +187,7 @@
       text-transform: none;
       color: var(--calm-sla-text);
       border-bottom: 2px solid var(--calm-sla-border);
-      background: linear-gradient(180deg, var(--calm-sla-bg-start) 0%, var(--calm-sla-bg-end) 100%);
+      background: var(--timeboard-column-sla-bg, linear-gradient(180deg, var(--calm-sla-bg-start) 0%, var(--calm-sla-bg-end) 100%));
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), inset 0 -1px 0 rgba(203, 213, 225, 0.42);
     }
 
@@ -215,38 +225,7 @@
       color: var(--calm-text-primary);
       border-bottom: 1px solid var(--calm-border);
       text-align: center;
-    }
-
-    .calm-table tbody tr:hover {
-      background: var(--calm-accent-light);
-    }
-
-    .calm-table tbody tr:hover td.col-sticky-sq,
-    .calm-table tbody tr:hover td.col-sticky-sv,
-    .calm-table tbody tr:hover td.col-sticky-expected {
-      background: var(--calm-accent-light);
-    }
-
-    .calm-table tbody tr.timeboard-delayed-row td {
-      background: #fef2f2;
-      border-bottom-color: #fecaca;
-    }
-
-    .calm-table tbody tr.timeboard-delayed-row td.col-sticky-sq,
-    .calm-table tbody tr.timeboard-delayed-row td.col-sticky-sv,
-    .calm-table tbody tr.timeboard-delayed-row td.col-sticky-expected {
-      background: #fef2f2;
-      border-bottom-color: #fecaca;
-    }
-
-    .calm-table tbody tr.timeboard-delayed-row:hover td {
-      background: #fee2e2;
-    }
-
-    .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-sq,
-    .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-sv,
-    .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-expected {
-      background: #fee2e2;
+      background: var(--timeboard-column-bg, transparent);
     }
 
     .timeboard-sla-overdue {
@@ -285,19 +264,57 @@
     .timeboard-table-wrap .calm-table thead th.col-sticky-expected,
     .timeboard-table-wrap .calm-table tbody td.col-sticky-expected {
       position: sticky;
-      background: var(--calm-surface);
+      background: var(--timeboard-column-bg, var(--calm-surface));
     }
 
     .timeboard-table-wrap .calm-table thead th.col-sticky-sq,
     .timeboard-table-wrap .calm-table thead th.col-sticky-sv,
     .timeboard-table-wrap .calm-table thead th.col-sticky-expected {
-      background: rgba(248, 250, 252, 0.98);
+      background: var(--timeboard-column-header-bg, rgba(248, 250, 252, 0.98));
     }
 
     .timeboard-table-wrap .calm-table thead tr.timeboard-header-sla-row th.col-sticky-sq,
     .timeboard-table-wrap .calm-table thead tr.timeboard-header-sla-row th.col-sticky-sv,
     .timeboard-table-wrap .calm-table thead tr.timeboard-header-sla-row th.col-sticky-expected {
-      background: linear-gradient(180deg, var(--calm-sla-bg-start) 0%, var(--calm-sla-bg-end) 100%);
+      background: var(--timeboard-column-sla-bg, linear-gradient(180deg, var(--calm-sla-bg-start) 0%, var(--calm-sla-bg-end) 100%));
+    }
+
+    .timeboard-col-tone-a {
+      --timeboard-column-bg: var(--timeboard-col-tone-a);
+      --timeboard-column-header-bg: var(--timeboard-col-header-tone-a);
+      --timeboard-column-sla-bg: linear-gradient(180deg, var(--calm-sla-bg-start) 0%, var(--calm-sla-bg-end) 100%);
+      --timeboard-delayed-column-bg: var(--timeboard-delayed-col-tone-a);
+      --timeboard-delayed-hover-bg: var(--timeboard-delayed-hover-tone-a);
+    }
+
+    .timeboard-col-tone-b {
+      --timeboard-column-bg: var(--timeboard-col-tone-b);
+      --timeboard-column-header-bg: var(--timeboard-col-header-tone-b);
+      --timeboard-column-sla-bg: linear-gradient(180deg, var(--timeboard-col-sla-tone-b-start) 0%, var(--timeboard-col-sla-tone-b-end) 100%);
+      --timeboard-delayed-column-bg: var(--timeboard-delayed-col-tone-b);
+      --timeboard-delayed-hover-bg: var(--timeboard-delayed-hover-tone-b);
+    }
+
+    .calm-table tbody tr:hover td,
+    .calm-table tbody tr:hover td.col-sticky-sq,
+    .calm-table tbody tr:hover td.col-sticky-sv,
+    .calm-table tbody tr:hover td.col-sticky-expected {
+      background: var(--calm-accent-light);
+    }
+
+    .calm-table tbody tr.timeboard-delayed-row td,
+    .calm-table tbody tr.timeboard-delayed-row td.col-sticky-sq,
+    .calm-table tbody tr.timeboard-delayed-row td.col-sticky-sv,
+    .calm-table tbody tr.timeboard-delayed-row td.col-sticky-expected {
+      background: var(--timeboard-delayed-column-bg, #fef2f2);
+      border-bottom-color: #fecaca;
+    }
+
+    .calm-table tbody tr.timeboard-delayed-row:hover td,
+    .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-sq,
+    .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-sv,
+    .calm-table tbody tr.timeboard-delayed-row:hover td.col-sticky-expected {
+      background: var(--timeboard-delayed-hover-bg, #fee2e2);
     }
 
     .timeboard-table-wrap .calm-table thead th.col-sticky-sq,
@@ -346,8 +363,14 @@
     .timeboard-sticky-header .col-sticky-sv,
     .timeboard-sticky-header .col-sticky-expected {
       position: relative;
-      background: rgba(248, 250, 252, 0.98);
+      background: var(--timeboard-column-header-bg, rgba(248, 250, 252, 0.98));
       will-change: transform;
+    }
+
+    .timeboard-sticky-header tr.timeboard-header-sla-row .col-sticky-sq,
+    .timeboard-sticky-header tr.timeboard-header-sla-row .col-sticky-sv,
+    .timeboard-sticky-header tr.timeboard-header-sla-row .col-sticky-expected {
+      background: var(--timeboard-column-sla-bg, linear-gradient(180deg, var(--calm-sla-bg-start) 0%, var(--calm-sla-bg-end) 100%));
     }
 
     .timeboard-sticky-header .col-sticky-sq {
@@ -727,21 +750,6 @@
       box-shadow: 0 14px 28px rgba(37, 63, 72, 0.08);
     }
 
-    /* Stats */
-    .stat-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--calm-text-primary);
-    }
-
-    .stat-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--calm-text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
     /* Loading Modal */
     .loading-modal {
       display: flex;
@@ -876,6 +884,11 @@
 
     /* Filter bar */
     .timeboard-filter-bar {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: fit-content;
+      max-width: 100%;
       padding: 18px 20px;
       background:
         linear-gradient(160deg, rgba(255, 255, 255, 0.9) 0%, rgba(243, 247, 246, 0.96) 52%, rgba(235, 242, 240, 0.96) 100%),
@@ -890,7 +903,7 @@
     .timeboard-filter-top {
       display: flex;
       align-items: flex-start;
-      justify-content: space-between;
+      justify-content: flex-start;
       gap: 14px;
       flex-wrap: wrap;
     }
@@ -900,15 +913,9 @@
       flex-direction: column;
       justify-content: center;
       gap: 4px;
-      min-width: 220px;
-    }
-
-    .timeboard-filter-kicker {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--ops-shell-accent);
+      flex: 0 0 auto;
+      width: fit-content;
+      min-width: 0;
     }
 
     .timeboard-filter-title {
@@ -918,41 +925,13 @@
       line-height: 1.2;
     }
 
-    .timeboard-filter-summary {
-      display: flex;
-      align-items: stretch;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .timeboard-filter-stat {
-      min-width: 120px;
-      padding: 12px 14px;
-      border-radius: 16px;
-      border: 1px solid rgba(124, 144, 154, 0.22);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(236, 242, 241, 0.9) 100%);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.8),
-        0 8px 18px rgba(37, 63, 72, 0.06);
-    }
-
-    .timeboard-filter-stat .stat-label {
-      color: var(--ops-shell-text-muted);
-      letter-spacing: 0.12em;
-    }
-
-    .timeboard-filter-stat .stat-value {
-      margin-top: 4px;
-      font-size: 24px;
-      line-height: 1;
-      color: var(--ops-shell-accent-strong);
-    }
-
     .timeboard-filter-grid {
       display: flex;
       align-items: stretch;
       gap: 12px;
       flex-wrap: wrap;
+      width: fit-content;
+      max-width: 100%;
       margin-top: 16px;
     }
 
@@ -1722,6 +1701,78 @@
       height: 1px;
     }
 
+    @media (min-width: 1360px) {
+      .timeboard-filter-bar {
+        padding-right: 16px;
+        padding-left: 16px;
+      }
+
+      .timeboard-filter-grid {
+        gap: 8px;
+        flex-wrap: nowrap;
+      }
+
+      .timeboard-filter-section {
+        padding: 12px 10px 11px;
+      }
+
+      .timeboard-filter-section::before {
+        left: 12px;
+        right: 12px;
+      }
+
+      .timeboard-filter-section-branch {
+        width: 248px;
+      }
+
+      .timeboard-filter-section-sort {
+        width: 160px;
+      }
+
+      .timeboard-filter-section-bucket {
+        width: 348px;
+      }
+
+      .timeboard-filter-section-department {
+        width: 480px;
+      }
+
+      .branch-filter-grid,
+      .timeboard-bucket-grid,
+      .department-filter-grid {
+        gap: 6px;
+      }
+
+      .timeboard-bucket-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .branch-btn {
+        padding-right: 8px;
+        padding-left: 8px;
+      }
+
+      .timeboard-bucket-btn {
+        padding-right: 8px;
+        padding-left: 8px;
+      }
+
+      .department-filter-option {
+        gap: 6px;
+        padding-right: 8px;
+        padding-left: 8px;
+      }
+
+      .department-filter-chip {
+        font-size: 12px;
+      }
+
+      .department-filter-action-grid {
+        padding-right: 8px;
+        padding-left: 8px;
+      }
+    }
+
     @media (max-width: 1024px) {
       .timeboard-hover-card {
         max-width: min(320px, calc(100vw - 24px));
@@ -1750,16 +1801,16 @@
         grid-template-columns: 1fr;
       }
 
-      .timeboard-filter-stat {
-        min-width: 100%;
-      }
-
       .timeboard-filter-section {
         width: 100%;
       }
 
       .branch-filter-grid-3x2,
       .branch-filter-grid-4x2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .department-filter-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -1812,7 +1863,7 @@
           <p class="timeboard-alert-status">Access Required</p>
           <h2 id="timeboardAccessDeniedTitle" class="timeboard-alert-title">Access denied</h2>
           <p id="timeboardAccessDeniedDescription" class="timeboard-alert-text">
-            Time Board is available only to Managers, Executives, and Sales Directors.
+            Time Board is available only to Managers, Executives, Sales Directors, and General Officers.
           </p>
         </div>
         <div class="timeboard-alert-body">
@@ -1862,14 +1913,7 @@
     <div class="calm-card timeboard-filter-bar mb-6">
       <div class="timeboard-filter-top">
         <div class="timeboard-filter-heading">
-          <span class="timeboard-filter-kicker">Calm Operational</span>
           <h2 class="timeboard-filter-title">Board control panel</h2>
-        </div>
-        <div id="stats" class="timeboard-filter-summary">
-          <div class="timeboard-filter-stat">
-            <div class="stat-label">Total</div>
-            <div id="statTotal" class="stat-value">0</div>
-          </div>
         </div>
       </div>
       <div class="timeboard-filter-grid">
@@ -1887,8 +1931,8 @@
         <div class="timeboard-filter-section timeboard-filter-section-sort filter-group">
           <span class="filter-label">Display Mode</span>
           <div class="branch-filter branch-filter-grid branch-filter-grid-1x2">
-            <button class="branch-btn display-mode-btn" data-display-mode="normal">Normal order</button>
-            <button class="branch-btn display-mode-btn active" data-display-mode="expectedDeliveryDate">Expected date</button>
+            <button class="branch-btn display-mode-btn active" data-display-mode="normal">Normal order</button>
+            <button class="branch-btn display-mode-btn" data-display-mode="expectedDeliveryDate">Expected date</button>
           </div>
         </div>
         <div class="timeboard-filter-section timeboard-filter-section-bucket filter-group">
@@ -2062,6 +2106,7 @@
       { key: 'purchase-orders', label: 'Loading purchase orders', unit: 'PO' },
       { key: 'po-approvals', label: 'Loading PO approval status', unit: 'PO' },
       { key: 'pr-approvals', label: 'Loading PR approval status', unit: 'PR' },
+      { key: 'sq-approvals', label: 'Loading SQ Complete status', unit: 'SQ' },
       { key: 'sales-quotes', label: 'Loading sales quote dates', unit: 'SQ' },
       { key: 'service-orders', label: 'Loading service order dates', unit: 'SV' }
     ];
@@ -2095,7 +2140,7 @@
     ]);
     const TIMEBOARD_BRANCH_OPTIONS = Object.freeze(['URY', 'UCB', 'USB', 'UPB', 'UKK', 'USR']);
     const TIMEBOARD_DEFAULT_BUCKET = 'inProgress';
-    const TIMEBOARD_DEFAULT_DISPLAY_MODE = 'expectedDeliveryDate';
+    const TIMEBOARD_DEFAULT_DISPLAY_MODE = 'normal';
     const TIMEBOARD_USER_PREFERENCES_STORAGE_PREFIX = 'timeboard:user-preferences:v1';
     const TIMEBOARD_COLUMN_DEPARTMENTS = Object.freeze({
       sq: 'salesperson',
@@ -2182,7 +2227,8 @@
       autoLoadScrollQueued: false,
       renderVersion: 0,
       lastRenderMeta: null,
-      currentUserPreferenceKey: ''
+      currentUserPreferenceKey: '',
+      hasTrackedTimeboardAccess: false
     };
 
     // Show loading modal
@@ -2330,14 +2376,12 @@
 
       const tbody = document.getElementById('timeboardBody');
       const paginationInfo = document.getElementById('paginationInfo');
-      const statTotal = document.getElementById('statTotal');
-      if (!tbody || !paginationInfo || !statTotal) {
+      if (!tbody || !paginationInfo) {
         return false;
       }
 
       const renderedRowCount = tbody.querySelectorAll(':scope > tr').length;
       const paginationText = String(paginationInfo.textContent || '').trim();
-      const statTotalText = String(statTotal.textContent || '').trim();
       const expectedPaginationText = getTimeboardPaginationText(expectedMeta.filteredCount, expectedMeta.loadedCount);
 
       return (
@@ -2347,7 +2391,6 @@
         && state.filteredData.length === expectedMeta.filteredSourceCount
         && renderedRowCount === expectedMeta.renderedRowCount
         && paginationText === expectedPaginationText
-        && statTotalText === String(expectedMeta.renderedStatTotal)
       );
     }
 
@@ -2654,11 +2697,26 @@
     }
 
     function applyDepartmentColumnFilter() {
-      const visibleColumns = new Set(getVisibleTimeboardColumnKeys());
+      const visibleColumnKeys = getVisibleTimeboardColumnKeys();
+      const visibleColumns = new Set(visibleColumnKeys);
+      const columnToneByKey = new Map(
+        visibleColumnKeys.map((columnKey, index) => [
+          columnKey,
+          index % 2 === 0 ? 'timeboard-col-tone-a' : 'timeboard-col-tone-b'
+        ])
+      );
 
       document.querySelectorAll('[data-column-key]').forEach((element) => {
-        const isVisible = visibleColumns.has(element.dataset.columnKey);
+        const columnKey = element.dataset.columnKey;
+        const isVisible = visibleColumns.has(columnKey);
+        const toneClass = columnToneByKey.get(columnKey);
+
         element.classList.toggle('timeboard-column-hidden', !isVisible);
+        element.classList.remove('timeboard-col-tone-a', 'timeboard-col-tone-b');
+        if (isVisible && toneClass) {
+          element.classList.add(toneClass);
+        }
+
         if (element.tagName !== 'COL') {
           element.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
         }
@@ -2820,7 +2878,7 @@
       renderTimeboardDataModeMeta();
     }
 
-    // Check access (Manager + Executive + Sales Director only)
+    // Check access (Manager + Executive + Sales Director + General Officer only)
     async function checkAccess() {
       try {
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -2836,7 +2894,12 @@
         const userRole = userData.effectiveRole;
         const userIdentity = userData?.clientPrincipal?.userDetails || userData?.clientPrincipal?.userId || '';
         setTimeboardCurrentUser(userIdentity);
-        if (userRole !== ROLE.MANAGER && userRole !== ROLE.EXECUTIVE && userRole !== ROLE.SALES_DIRECTOR) {
+        if (
+          userRole !== ROLE.MANAGER &&
+          userRole !== ROLE.EXECUTIVE &&
+          userRole !== ROLE.SALES_DIRECTOR &&
+          userRole !== ROLE.GENERAL_OFFICER
+        ) {
           await showAccessDeniedModal({
             userRole,
             userEmail: userIdentity
@@ -2871,6 +2934,10 @@
         if (cursor) {
           params.append('cursor', JSON.stringify(cursor));
         }
+        const shouldTrackAccess = !state.hasTrackedTimeboardAccess && !cursor;
+        if (shouldTrackAccess) {
+          params.append('trackAccess', '1');
+        }
 
         const response = await fetch(`/api/timeboard?${params.toString()}`);
         if (!response.ok) {
@@ -2888,6 +2955,9 @@
           throw new Error(errorMessage);
         }
         const data = await response.json();
+        if (shouldTrackAccess) {
+          state.hasTrackedTimeboardAccess = true;
+        }
         return {
           tableRows: Array.isArray(data.tableRows) ? data.tableRows : [],
           hasMore: data.hasMore === true,
@@ -3084,6 +3154,40 @@
       return '';
     }
 
+    function isWinWorkStatus(value) {
+      return String(value || '').trim().toLowerCase() === 'win';
+    }
+
+    function isLoseWorkStatus(value) {
+      return String(value || '').trim().toLowerCase() === 'lose';
+    }
+
+    function getDateOnlyIsoValue(value) {
+      const date = parseValidDate(value);
+      return date ? toIsoDate(date) : '';
+    }
+
+    function resolveTimeboardConfirmation(item, fallbackConfirmation = '') {
+      const confirmationTime = isPlaceholderDateValue(item?.confirmationTime)
+        ? ''
+        : item?.confirmationTime;
+      const winDateOrder = isWinWorkStatus(item?.workStatus)
+        ? getDateOnlyIsoValue(item?.dateOrder)
+        : '';
+      const confirmation = confirmationTime || winDateOrder || fallbackConfirmation || '';
+      const usesWinDateOrder = Boolean(winDateOrder) && confirmation === winDateOrder;
+      const fallbackStatus = usesWinDateOrder
+        ? 'Win'
+        : isLoseWorkStatus(item?.workStatus)
+          ? 'Lose'
+          : '';
+
+      return {
+        confirmation,
+        confirmationStatus: normalizeConfirmationStatus(item?.confirmationStatus) || fallbackStatus
+      };
+    }
+
     function getPreferredDateTimeValue(...values) {
       let fallbackValue = '';
 
@@ -3152,10 +3256,12 @@
         String(record?.brand || '').trim(),
         String(record?.model || '').trim()
       ].filter(Boolean).join(' ');
+      const requester = String(record?.requester || '').trim();
 
       return [
         `Request: ${requestTime}`,
         `Report: ${reportTime}`,
+        requester ? `Requester: ${requester}` : '',
         equipment
       ].filter(Boolean).join(' | ');
     }
@@ -3409,7 +3515,6 @@
       const expectedDate = parseValidDate(item?.expectedDate);
       const approvalTime = parseValidDate(item?.approvalTime);
       const confirmationTime = parseValidDate(item?.confirmationTime);
-      const confirmationStatus = normalizeConfirmationStatus(item?.confirmationStatus);
 
       const fallbackStart = maxDate(
         svCreated,
@@ -3556,13 +3661,15 @@
         expectedDeliveryDate = addDays(shCreated, -1);
       }
 
+      const resolvedConfirmation = resolveTimeboardConfirmation(item, toIsoDate(confirmation));
+
       return {
         inspectionComplete: toIsoDate(inspectionComplete),
         priceRequest: toIsoDate(priceRequest),
         priceReport: toIsoDate(priceReport),
         sqComplete: item?.approvalTime || toIsoDate(sqComplete),
-        confirmation: item?.confirmationTime || toIsoDate(confirmation),
-        confirmationStatus,
+        confirmation: resolvedConfirmation.confirmation,
+        confirmationStatus: resolvedConfirmation.confirmationStatus,
         planningRequest: toIsoDate(planningRequest),
         prComplete: toIsoDate(prComplete, { preserveTime: preservePrCompleteTime }),
         poComplete: toIsoDate(poComplete),
@@ -3575,7 +3682,7 @@
     }
 
     function buildActualTimeline(item, purchaseLine) {
-      const confirmationStatus = normalizeConfirmationStatus(item?.confirmationStatus);
+      const resolvedConfirmation = resolveTimeboardConfirmation(item);
       const stCreated = parseValidDate(item?.postedStCreated || item?.stCreated);
       const expectedDate = parseValidDate(item?.expectedDate);
       const planningRequestSource = item?.planningRequest;
@@ -3608,8 +3715,8 @@
         priceRequest: toIsoDate(priceRequest, { preserveTime: preservePriceRequestTime }),
         priceReport: toIsoDate(priceReport, { preserveTime: preservePriceReportTime }),
         sqComplete: item?.approvalTime || '',
-        confirmation: item?.confirmationTime || '',
-        confirmationStatus,
+        confirmation: resolvedConfirmation.confirmation,
+        confirmationStatus: resolvedConfirmation.confirmationStatus,
         planningRequest: toIsoDate(planningRequest, { preserveTime: preservePlanningRequestTime }),
         prComplete: toIsoDate(prComplete, { preserveTime: preservePrCompleteTime }),
         poComplete: '',
@@ -3700,7 +3807,7 @@
       return `
         <div class="timeboard-event-cell">
           <span class="timeboard-event-status timeboard-event-status-${escapeHtml(statusClassName)}">${escapeHtml(normalizedStatus)}</span>
-          <span class="merged-date">${formattedDateMarkup}</span>
+          ${isPlaceholderDateValue(dateValue) ? '' : `<span class="merged-date">${formattedDateMarkup}</span>`}
         </div>
       `;
     }
@@ -3733,9 +3840,34 @@
       `;
     }
 
+    function renderSqTooltipTrigger(item) {
+      const normalizedSqNumber = String(item?.sqNumber || '').trim();
+      if (!normalizedSqNumber) {
+        return '<span class="merged-doc text-slate-300">—</span>';
+      }
+
+      const tooltipEntries = buildPriceRequestTooltipEntries(item);
+      if (tooltipEntries.length === 0) {
+        return `<span class="merged-doc">${escapeHtml(normalizedSqNumber)}</span>`;
+      }
+      const payload = encodeTooltipPayload(tooltipEntries);
+
+      return `
+        <span
+          class="merged-doc timeboard-doc-tooltip-trigger"
+          tabindex="0"
+          aria-label="Price request details for ${escapeHtml(normalizedSqNumber)}"
+          data-tooltip-title="Additional SQ Details"
+          data-tooltip-payload="${payload}"
+        >${escapeHtml(normalizedSqNumber)}</span>
+      `;
+    }
+
     function renderSqCombinedCell(item, showSq, suppressRepeatedMarker = false) {
       if (showSq) {
-        return renderMergedDocCell(item.sqNumber, item.sqCreated);
+        return renderMergedDocCell(item.sqNumber, item.sqCreated, {
+          docContentMarkup: renderSqTooltipTrigger(item)
+        });
       }
 
       if (suppressRepeatedMarker) {
@@ -3787,10 +3919,7 @@
         { label: 'Date Order', value: formatTooltipDate(item?.dateOrder) }
       ].filter((entry) => entry.value);
 
-      return [
-        ...baseEntries,
-        ...buildPriceRequestTooltipEntries(item)
-      ];
+      return baseEntries;
     }
 
     function renderSvTooltipTrigger(item) {
@@ -4678,6 +4807,20 @@
       };
     }
 
+    function mergeSalesQuoteApprovalIntoRow(row, approvalStatusLookup) {
+      const sqNumber = normalizeSalesQuoteNumber(row?.sqNumber);
+      const approvalStatus = sqNumber ? approvalStatusLookup.get(sqNumber) : null;
+
+      if (!approvalStatus) {
+        return row;
+      }
+
+      return {
+        ...row,
+        approvalTime: getFirstNonEmptyValue(approvalStatus.approvalDate, row?.approvalTime)
+      };
+    }
+
     function mergeServiceOrderDataIntoRow(row, serviceOrderLookup) {
       const svNumber = normalizeServiceOrderNumber(row?.svNumber);
       const serviceOrder = svNumber ? serviceOrderLookup.get(svNumber) : null;
@@ -4749,6 +4892,7 @@
         onPurchaseOrderProgress = () => {},
         onPurchaseOrderApprovalProgress = () => {},
         onPurchaseRequestApprovalProgress = () => {},
+        onSalesQuoteApprovalProgress = () => {},
         onSalesQuoteProgress = () => {},
         onServiceOrderProgress = () => {}
       } = options;
@@ -4756,12 +4900,23 @@
       const serviceOrderNos = getDistinctServiceOrderNumbers(rows);
       state.salesQuoteNos = salesQuoteNos;
       let salesQuoteLookup = new Map();
+      let salesQuoteApprovalLookup = new Map();
       let serviceOrderLookup = new Map();
       const salesQuoteLookupPromise = createTimeboardLookupPromise(
         requestSalesQuoteDataForDocuments(salesQuoteNos, onSalesQuoteProgress),
         buildSalesQuoteLookup,
         'Failed to enrich timeboard rows with sales quote data:',
         onSalesQuoteProgress
+      );
+      const salesQuoteApprovalLookupPromise = createTimeboardLookupPromise(
+        requestApprovalStatusDataForDocuments(
+          salesQuoteNos,
+          normalizeSalesQuoteNumber,
+          onSalesQuoteApprovalProgress
+        ),
+        buildApprovalStatusLookup,
+        'Failed to enrich timeboard rows with SQ Complete approval data:',
+        onSalesQuoteApprovalProgress
       );
       const serviceOrderLookupPromise = serviceOrderNos.length > 0
         ? createTimeboardLookupPromise(
@@ -4773,7 +4928,13 @@
         : Promise.resolve(new Map());
 
       if (serviceOrderNos.length === 0) {
-        salesQuoteLookup = await salesQuoteLookupPromise;
+        [
+          salesQuoteLookup,
+          salesQuoteApprovalLookup
+        ] = await Promise.all([
+          salesQuoteLookupPromise,
+          salesQuoteApprovalLookupPromise
+        ]);
 
         state.purchaseDocumentNos = {
           pr: [],
@@ -4785,7 +4946,10 @@
         onPurchaseRequestApprovalProgress(100, 0, 0);
         onServiceOrderProgress(100, 0, 0);
         return rows.map((row) => ({
-          ...mergeSalesQuoteDataIntoRow(row, salesQuoteLookup),
+          ...mergeSalesQuoteApprovalIntoRow(
+            mergeSalesQuoteDataIntoRow(row, salesQuoteLookup),
+            salesQuoteApprovalLookup
+          ),
           purchaseLines: []
         }));
       }
@@ -4835,17 +4999,22 @@
           purchaseOrderApprovalLookup,
           purchaseRequestApprovalLookup,
           salesQuoteLookup,
+          salesQuoteApprovalLookup,
           serviceOrderLookup
         ] = await Promise.all([
           purchaseOrderLookupPromise,
           purchaseOrderApprovalLookupPromise,
           purchaseRequestApprovalLookupPromise,
           salesQuoteLookupPromise,
+          salesQuoteApprovalLookupPromise,
           serviceOrderLookupPromise
         ]);
 
         return rows.map((row) => {
-          const rowWithSalesQuoteData = mergeSalesQuoteDataIntoRow(row, salesQuoteLookup);
+          const rowWithSalesQuoteData = mergeSalesQuoteApprovalIntoRow(
+            mergeSalesQuoteDataIntoRow(row, salesQuoteLookup),
+            salesQuoteApprovalLookup
+          );
           const rowWithServiceOrderData = mergeServiceOrderDataIntoRow(rowWithSalesQuoteData, serviceOrderLookup);
           const svNumber = normalizeServiceOrderNumber(rowWithServiceOrderData?.svNumber);
           const purchaseLines = purchaseLineLookup.get(svNumber) || [];
@@ -4879,10 +5048,19 @@
           pr: [],
           po: []
         };
-        salesQuoteLookup = await salesQuoteLookupPromise;
+        [
+          salesQuoteLookup,
+          salesQuoteApprovalLookup
+        ] = await Promise.all([
+          salesQuoteLookupPromise,
+          salesQuoteApprovalLookupPromise
+        ]);
         console.warn('Failed to enrich timeboard rows with purchase line data:', error);
         return rows.map((row) => ({
-          ...mergeSalesQuoteDataIntoRow(row, salesQuoteLookup),
+          ...mergeSalesQuoteApprovalIntoRow(
+            mergeSalesQuoteDataIntoRow(row, salesQuoteLookup),
+            salesQuoteApprovalLookup
+          ),
           purchaseLines: []
         }));
       }
@@ -5187,6 +5365,9 @@
         onPurchaseRequestApprovalProgress: (percent, processedCount, totalCount) => {
           loadProgress.updateStep('pr-approvals', percent, { processedCount, totalCount });
         },
+        onSalesQuoteApprovalProgress: (percent, processedCount, totalCount) => {
+          loadProgress.updateStep('sq-approvals', percent, { processedCount, totalCount });
+        },
         onSalesQuoteProgress: (percent, processedCount, totalCount) => {
           loadProgress.updateStep('sales-quotes', percent, { processedCount, totalCount });
         },
@@ -5395,7 +5576,6 @@
 
       if (displayRows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="${getVisibleTimeboardColumnCount()}" class="text-center py-16 text-slate-400">${escapeHtml(activeBucketConfig.emptyMessage)}</td></tr>`;
-        document.getElementById('statTotal').textContent = '0';
         document.getElementById('paginationInfo').textContent =
           getTimeboardPaginationText(0, state.data.length);
         updateLoadMoreUi();
@@ -5406,8 +5586,7 @@
           loadedCount: state.data.length,
           filteredSourceCount: state.filteredData.length,
           filteredCount: 0,
-          renderedRowCount: 1,
-          renderedStatTotal: 0
+          renderedRowCount: 1
         };
         state.lastRenderMeta = emptyRenderMeta;
         return emptyRenderMeta;
@@ -5526,8 +5705,8 @@
             ${renderTableCell('sq', 'col-merged-doc col-sticky-sq', renderSqCombinedCell(rowItem, showSq, suppressSqCreatedMarker))}
             ${renderTableCell('sv', 'col-merged-doc col-sticky-sv', renderSvCombinedCell(rowItem, showSvSummary, { className: slaOverdueClasses.sv }))}
             ${renderTableCell('inspectionComplete', 'col-date', renderSvSummaryOnlyDate(timeline.inspectionComplete, { className: slaOverdueClasses.inspectionComplete }))}
-            ${renderTableCell('priceRequest', 'col-date', renderSvSummaryOnlyDate(timeline.priceRequest, { className: slaOverdueClasses.priceRequest }))}
-            ${renderTableCell('priceReport', 'col-date', renderSvSummaryOnlyDate(timeline.priceReport, { className: slaOverdueClasses.priceReport }))}
+            ${renderTableCell('priceRequest', 'col-date', showSq ? renderDate(timeline.priceRequest, { className: slaOverdueClasses.priceRequest }) : '')}
+            ${renderTableCell('priceReport', 'col-date', showSq ? renderDate(timeline.priceReport, { className: slaOverdueClasses.priceReport }) : '')}
             ${renderTableCell('sqComplete', 'col-date', renderSvSummaryOnlyDate(timeline.sqComplete, { className: slaOverdueClasses.sqComplete }))}
             ${renderTableCell('confirmation', 'col-date', renderSvSummaryOnlyConfirmation(timeline.confirmationStatus, timeline.confirmation, { className: slaOverdueClasses.confirmation }))}
             ${renderTableCell('planningRequest', 'col-date', renderSvSummaryOnlyDate(timeline.planningRequest, {
@@ -5549,9 +5728,6 @@
         `;
       }).join('');
 
-      // Update stats
-      document.getElementById('statTotal').textContent = displayRows.length;
-
       document.getElementById('paginationInfo').textContent =
         getTimeboardPaginationText(displayRows.length, state.data.length);
       updateLoadMoreUi();
@@ -5562,8 +5738,7 @@
         loadedCount: state.data.length,
         filteredSourceCount: state.filteredData.length,
         filteredCount: displayRows.length,
-        renderedRowCount: displayRows.length,
-        renderedStatTotal: displayRows.length
+        renderedRowCount: displayRows.length
       };
       state.lastRenderMeta = renderMeta;
       return renderMeta;

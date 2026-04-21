@@ -490,8 +490,10 @@ function getRoleLabel(role) {
   const roleLabels = {
     'PriceListExecutive': 'Executive',
     'PriceListSales': 'Sales',
+    'PriceListGeneralOfficer': 'General Officer',
     'Executive': 'Executive',
     'Sales': 'Sales',
+    'GeneralOfficer': 'General Officer',
     'NoRole': 'Unassigned'
   };
   return roleLabels[role] || role;

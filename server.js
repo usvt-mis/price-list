@@ -252,7 +252,7 @@ app.use('/api/salesquotes', requireAuth, salesQuotesRouter);
 // Sales Quote approvals workflow (requires authentication)
 app.use('/api/salesquotes/approvals', requireAuth, salesQuotesApprovalsRouter);
 
-// Time Board (requires authentication - Manager/Executive checked in route)
+// Time Board (requires authentication - role access checked in route)
 app.use('/api/timeboard', requireAuth, timeboardRouter);
 
 // Sales Director signature public endpoint (no auth required)

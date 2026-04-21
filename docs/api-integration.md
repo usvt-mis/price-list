@@ -12,8 +12,25 @@ Sales Quotes module integrates with Business Central through Azure Function APIs
 - **CreateServiceOrderFromSQ** - Create service orders from sales quote (automatic after quote creation)
 
 Frontend requests now go through Express proxy routes under `/api/business-central/gateway/*`.
-The server reads `GATEWAY_BASE_URL`, `CSQWN_KEY`, `CSI_KEY`, and `CSOFSQ_KEY`
-from `.env.local` during local development and from Azure App Settings in prod/uat.
+The server reads `GATEWAY_BASE_URL`, `CSQWN_KEY`, `CSI_KEY`, `CSOFSQ_KEY`, and
+endpoint-specific timeout overrides from `.env.local` during local development
+and from Azure App Settings in prod/uat.
+
+### Gateway Timeouts
+
+Lookup endpoints use the shared `GATEWAY_REQUEST_TIMEOUT_MS` setting, which
+defaults to 15 seconds. Heavy write endpoints use longer defaults because large
+Sales Quotes may contain hundreds or thousands of lines:
+
+| Endpoint | Env Override | Default |
+|----------|--------------|---------|
+| CreateSalesQuoteWithoutNumber | `GATEWAY_CREATE_SALES_QUOTE_TIMEOUT_MS` | `600000` ms |
+| UpdateSalesQuote | `GATEWAY_UPDATE_SALES_QUOTE_TIMEOUT_MS` | `600000` ms |
+| CreateServiceOrderFromSQ | `GATEWAY_CREATE_SERVICE_ORDER_TIMEOUT_MS` | `300000` ms |
+
+POST requests that create or update Sales Quotes are not automatically retried.
+If the gateway times out, Business Central may still finish the operation, so
+users should search Business Central before sending the same quote again.
 
 ---
 

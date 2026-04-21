@@ -2791,6 +2791,7 @@ function stripHtmlToText(rawMessage) {
 
 export function normalizeQuoteFailureMessage(errorOrMessage) {
   const fallbackMessage = 'Failed to send quote to Business Central. Please review the data and try again.';
+  const timeoutRecoveryMessage = 'Business Central may still finish creating this quote after the app stops waiting. Please search Business Central or My Records before sending again to avoid creating a duplicate Sales Quote.';
   const rawMessage = errorOrMessage instanceof Error
     ? errorOrMessage.message
     : typeof errorOrMessage === 'string'
@@ -2813,6 +2814,11 @@ export function normalizeQuoteFailureMessage(errorOrMessage) {
 
   if (!normalizedMessage) {
     normalizedMessage = fallbackMessage;
+  }
+
+  const isGatewayTimeout = statusCode === '504' || /\btimeout|timed out\b/i.test(normalizedMessage);
+  if (isGatewayTimeout && !normalizedMessage.includes('may still finish creating this quote')) {
+    normalizedMessage = `${normalizedMessage} ${timeoutRecoveryMessage}`;
   }
 
   if (statusCode && !normalizedMessage.includes(`HTTP ${statusCode}`)) {

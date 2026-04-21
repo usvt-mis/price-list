@@ -4,8 +4,9 @@ const { getPool } = require('../db');
 
 const router = express.Router();
 const PRICE_REQUEST_ID_MAX_LENGTH = 20;
-const SERVICE_ORDER_NO_MAX_LENGTH = 50;
+const SALES_QUOTE_NO_MAX_LENGTH = 50;
 const BRAND_MODEL_MAX_LENGTH = 100;
+const REQUESTER_MAX_LENGTH = 100;
 
 function normalizeRequiredQueryValue(value) {
   const normalized = String(value || '').trim();
@@ -28,42 +29,47 @@ function isUniqueConstraintError(error) {
 function mapPriceRequestRecord(record) {
   return {
     id: record.Id,
-    serviceOrderNo: record.ServiceOrderNo,
+    salesQuoteNo: record.SalesQuoteNo,
     brand: record.Brand || null,
     model: record.Model || null,
+    requester: record.Requester || null,
     priceRequestTime: record.PriceRequestTime,
     priceReportTime: record.PriceReportTime || null
   };
 }
 
-async function insertPriceRequest({ id, serviceOrderNo, brand, model }) {
+async function insertPriceRequest({ id, salesQuoteNo, brand, model, requester }) {
   const pool = await getPool();
   const result = await pool.request()
     .input('id', sql.NVarChar(PRICE_REQUEST_ID_MAX_LENGTH), id)
-    .input('serviceOrderNo', sql.NVarChar(SERVICE_ORDER_NO_MAX_LENGTH), serviceOrderNo)
+    .input('salesQuoteNo', sql.NVarChar(SALES_QUOTE_NO_MAX_LENGTH), salesQuoteNo)
     .input('brand', sql.NVarChar(BRAND_MODEL_MAX_LENGTH), brand)
     .input('model', sql.NVarChar(BRAND_MODEL_MAX_LENGTH), model)
+    .input('requester', sql.NVarChar(REQUESTER_MAX_LENGTH), requester)
     .query(`
       INSERT INTO dbo.SalesQuotePriceRequests (
         Id,
-        ServiceOrderNo,
+        SalesQuoteNo,
         Brand,
         Model,
+        Requester,
         PriceRequestTime,
         PriceReportTime
       )
       OUTPUT
         INSERTED.Id,
-        INSERTED.ServiceOrderNo,
+        INSERTED.SalesQuoteNo,
         INSERTED.Brand,
         INSERTED.Model,
+        INSERTED.Requester,
         INSERTED.PriceRequestTime,
         INSERTED.PriceReportTime
       VALUES (
         @id,
-        @serviceOrderNo,
+        @salesQuoteNo,
         @brand,
         @model,
+        @requester,
         GETUTCDATE(),
         NULL
       )
@@ -74,9 +80,10 @@ async function insertPriceRequest({ id, serviceOrderNo, brand, model }) {
 
 router.post('/', async (req, res, next) => {
   const id = normalizeRequiredQueryValue(req.query.id);
-  const serviceOrderNo = normalizeRequiredQueryValue(req.query.serviceOrderNo);
+  const salesQuoteNo = normalizeRequiredQueryValue(req.query.salesQuoteNo);
   const brand = normalizeOptionalQueryValue(req.query.brand);
   const model = normalizeOptionalQueryValue(req.query.model);
+  const requester = normalizeOptionalQueryValue(req.query.requester);
 
   if (!id) {
     return res.status(400).json({ error: 'Id is required' });
@@ -86,12 +93,12 @@ router.post('/', async (req, res, next) => {
     return res.status(400).json({ error: 'Id must be 20 characters or less' });
   }
 
-  if (!serviceOrderNo) {
-    return res.status(400).json({ error: 'Service Order No is required' });
+  if (!salesQuoteNo) {
+    return res.status(400).json({ error: 'Sales Quote No is required' });
   }
 
-  if (isTooLong(serviceOrderNo, SERVICE_ORDER_NO_MAX_LENGTH)) {
-    return res.status(400).json({ error: 'Service Order No must be 50 characters or less' });
+  if (isTooLong(salesQuoteNo, SALES_QUOTE_NO_MAX_LENGTH)) {
+    return res.status(400).json({ error: 'Sales Quote No must be 50 characters or less' });
   }
 
   if (brand && isTooLong(brand, BRAND_MODEL_MAX_LENGTH)) {
@@ -102,8 +109,12 @@ router.post('/', async (req, res, next) => {
     return res.status(400).json({ error: 'Model must be 100 characters or less' });
   }
 
+  if (requester && isTooLong(requester, REQUESTER_MAX_LENGTH)) {
+    return res.status(400).json({ error: 'Requester must be 100 characters or less' });
+  }
+
   try {
-    const record = await insertPriceRequest({ id, serviceOrderNo, brand, model });
+    const record = await insertPriceRequest({ id, salesQuoteNo, brand, model, requester });
     res.status(201).json(mapPriceRequestRecord(record));
   } catch (error) {
     if (isUniqueConstraintError(error)) {
@@ -116,7 +127,7 @@ router.post('/', async (req, res, next) => {
 
 router.patch('/report-time', async (req, res, next) => {
   const id = normalizeRequiredQueryValue(req.query.id);
-  const serviceOrderNo = normalizeRequiredQueryValue(req.query.serviceOrderNo);
+  const salesQuoteNo = normalizeRequiredQueryValue(req.query.salesQuoteNo);
 
   if (!id) {
     return res.status(400).json({ error: 'Id is required' });
@@ -126,31 +137,32 @@ router.patch('/report-time', async (req, res, next) => {
     return res.status(400).json({ error: 'Id must be 20 characters or less' });
   }
 
-  if (!serviceOrderNo) {
-    return res.status(400).json({ error: 'Service Order No is required' });
+  if (!salesQuoteNo) {
+    return res.status(400).json({ error: 'Sales Quote No is required' });
   }
 
-  if (isTooLong(serviceOrderNo, SERVICE_ORDER_NO_MAX_LENGTH)) {
-    return res.status(400).json({ error: 'Service Order No must be 50 characters or less' });
+  if (isTooLong(salesQuoteNo, SALES_QUOTE_NO_MAX_LENGTH)) {
+    return res.status(400).json({ error: 'Sales Quote No must be 50 characters or less' });
   }
 
   try {
     const pool = await getPool();
     const result = await pool.request()
       .input('id', sql.NVarChar(PRICE_REQUEST_ID_MAX_LENGTH), id)
-      .input('serviceOrderNo', sql.NVarChar(SERVICE_ORDER_NO_MAX_LENGTH), serviceOrderNo)
+      .input('salesQuoteNo', sql.NVarChar(SALES_QUOTE_NO_MAX_LENGTH), salesQuoteNo)
       .query(`
         UPDATE dbo.SalesQuotePriceRequests
         SET PriceReportTime = GETUTCDATE()
         OUTPUT
           INSERTED.Id,
-          INSERTED.ServiceOrderNo,
+          INSERTED.SalesQuoteNo,
           INSERTED.Brand,
           INSERTED.Model,
+          INSERTED.Requester,
           INSERTED.PriceRequestTime,
           INSERTED.PriceReportTime
         WHERE Id = @id
-          AND ServiceOrderNo = @serviceOrderNo
+          AND SalesQuoteNo = @salesQuoteNo
       `);
 
     if (result.recordset.length === 0) {

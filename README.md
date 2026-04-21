@@ -335,6 +335,8 @@ VALUES ('user@example.com', NULL, 'admin@example.com', GETDATE());
 | `/api/business-central/gateway/sales-quotes/from-number` | GET | Gateway proxy to Azure Function GetSalesQuotesFromNumber | Yes |
 | `/api/business-central/gateway/sales-quotes/smart-dropdown` | GET | Gateway proxy to Azure Function SmartDropdownSQ (search suggestions) | Yes |
 | `/api/business-central/gateway/update-sales-quote` | POST | Gateway proxy to Azure Function UpdateSalesQuote | Yes |
+| `/api/salesquotes/price-requests` | POST | External price request tracking by Sales Quote No (API key) | API Key |
+| `/api/salesquotes/price-requests/report-time` | PATCH | Mark external price report completion by Sales Quote No (API key) | API Key |
 | `/api/salesquotes/records` | GET | List current user's Sales Quote submission records (?search={query}) | Yes |
 | `/api/salesquotes/records` | POST | Save a new Sales Quote submission record | Yes |
 | `/api/salesquotes/print-layout-settings` | GET | Read Sales Quotes print layout settings (all users) | Yes |
@@ -379,11 +381,18 @@ CSI_KEY="your-create-service-item-function-key"
 CSOFSQ_KEY="your-create-service-order-from-sq-function-key"
 GSQFN_KEY="your-get-sales-quotes-from-number-function-key"
 USQ_KEY="your-update-sales-quote-function-key"
+PRICE_REQUEST_API_KEY="your-price-request-api-key"
+
+# Gateway timeout overrides for large Sales Quotes
+# Create/update quote defaults are 10 minutes; service order creation defaults to 5 minutes.
+GATEWAY_CREATE_SALES_QUOTE_TIMEOUT_MS=600000
+GATEWAY_UPDATE_SALES_QUOTE_TIMEOUT_MS=600000
+GATEWAY_CREATE_SERVICE_ORDER_TIMEOUT_MS=300000
 ```
 
 **Optional**: Set `MOCK_USER_EMAIL` to match existing database records' CreatorEmail values for delete operations in local development. Defaults to `'Dev User'`. Set `MOCK_USER_ROLE` to `PriceListExecutive` to test Executive features in local development. Defaults to `PriceListSales`.
 
-**Business Central Integration**: Configure BC gateway credentials to enable real API integration. If `BC_MOCK_ENABLED=true`, the app uses mock data for local development without requiring BC credentials. The gateway proxy pattern keeps API keys server-side for security.
+**Business Central Integration**: Configure BC gateway credentials to enable real API integration. If `BC_MOCK_ENABLED=true`, the app uses mock data for local development without requiring BC credentials. The gateway proxy pattern keeps API keys server-side for security. Large Sales Quotes can take substantially longer than lookup calls, so create/update quote endpoints use longer endpoint-specific gateway timeouts to avoid false failures where Business Central creates the quote but the app stops waiting before the response returns.
 
 ### Running Locally
 

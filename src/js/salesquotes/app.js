@@ -38,6 +38,8 @@ function normalizeSalesQuotesRole(role) {
     salesdirector: 'SalesDirector',
     pricelistexecutive: 'Executive',
     executive: 'Executive',
+    pricelistgeneralofficer: 'GeneralOfficer',
+    generalofficer: 'GeneralOfficer',
     norole: 'NoRole',
     unassigned: 'NoRole'
   };

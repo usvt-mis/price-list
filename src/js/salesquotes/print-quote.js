@@ -112,15 +112,17 @@ const TOTALS_LABEL_ALIGNMENT_OFFSET_MM = -2;
 const PRINT_PAGE_HEIGHT_MM = 297;
 const PRINT_PAGE_PADDING_TOP_MM = 8.5;
 const PRINT_PAGE_HORIZONTAL_PADDING_MM = 9;
-const PRINT_RESERVED_FOOTER_HEIGHT_MM = 100;
-const PRINT_TOPBAR_HEIGHT_MM = 18;
-const PRINT_TITLE_ROW_HEIGHT_MM = 14;
-const PRINT_META_TABLE_HEIGHT_MM = 42;
-const PRINT_LINE_TABLE_MARGIN_TOP_MM = 1.2;
-const PRINT_LINE_TABLE_HEADER_HEIGHT_MM = 9;
-const PRINT_LINE_TABLE_SAFETY_MARGIN_MM = 3;
+const PRINT_RESERVED_FOOTER_HEIGHT_MM = 90.5;
+const PRINT_TOPBAR_HEIGHT_MM = 25.7;
+const PRINT_TITLE_ROW_HEIGHT_MM = 18.7;
+const PRINT_META_TABLE_HEIGHT_MM = 40.5;
+const PRINT_LINE_TABLE_MARGIN_TOP_MM = 3.3;
+const PRINT_LINE_TABLE_HEADER_HEIGHT_MM = 8.9;
+const PRINT_LINE_TABLE_SAFETY_MARGIN_MM = 0.25;
+const PRINT_FIRST_PAGE_EXTRA_LINE_ROOM_MM = 4;
 const LINE_TABLE_DESCRIPTION_WIDTH_RATIO = 0.385;
 const LINE_TABLE_CHILD_DESCRIPTION_INDENT_MM = 8;
+const CSS_PX_TO_MM = 25.4 / 96;
 const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   baseFontSize: 11.4,
   companyThaiFontSize: 15.5,
@@ -925,6 +927,21 @@ function resolveMetaTableColumnWidths(layoutSettings) {
   };
 }
 
+function renderLineTableHeader() {
+  return `
+        <thead>
+          <tr>
+            <th style="width: 6.5%;">Item</th>
+            <th style="width: 38.5%;">Description</th>
+            <th style="width: 8.5%;">Qty</th>
+            <th style="width: 6%;">@</th>
+            <th style="width: 15.5%;">Unit/Price</th>
+            <th style="width: 10.5%;">Discount</th>
+            <th style="width: 14.5%;">Total</th>
+          </tr>
+        </thead>`;
+}
+
 function renderLineRows(lines) {
   if (!lines.length) {
     return '<tr><td colspan="7" class="empty-row">No printable lines available.</td></tr>';
@@ -1046,7 +1063,8 @@ function estimateWrappedLineCount(text, charsPerLine) {
  */
 function calculateRowHeights(lines, settings) {
   const lineHeightMm = settings.lineTableFontSize * 0.264583 * 1.3;
-  const baseRowHeightMm = Math.max(8.5, lineHeightMm + 1.9);
+  const baseRowHeightMm = Math.max(5.7, lineHeightMm + 1.9);
+  const wrappedLineHeightMm = Math.max(3.8, lineHeightMm + 0.3);
   const commentRowHeightMm = Math.max(4.5, lineHeightMm + 1.05);
   const groupTotalRowHeightMm = 5.6;
 
@@ -1065,10 +1083,10 @@ function calculateRowHeights(lines, settings) {
       ...compactLines(String(line.description2 || '').split(/\r?\n/))
     ];
     let rowHeight = baseRowHeightMm;
-    const descWidthChars = estimateDescriptionCharsPerLine(settings, line.printIsChild && !line.printIsHeader);
+    const descWidthChars = estimateDescriptionCharsPerLine(settings, !line.printIsHeader);
 
     const primaryDescriptionLineCount = estimateWrappedLineCount(primaryDescription, descWidthChars);
-    rowHeight += Math.max(0, primaryDescriptionLineCount - 1) * commentRowHeightMm;
+    rowHeight += Math.max(0, primaryDescriptionLineCount - 1) * wrappedLineHeightMm;
 
     continuationLines.forEach(text => {
       const estimatedLineCount = estimateWrappedLineCount(text, descWidthChars);
@@ -1097,7 +1115,7 @@ function calculateAvailablePageHeights(hasMetaTable = true) {
     - PRINT_LINE_TABLE_SAFETY_MARGIN_MM;
 
   return {
-    firstPage: Math.max(20, availableWithFullFooter),
+    firstPage: Math.max(20, availableWithFullFooter + PRINT_FIRST_PAGE_EXTRA_LINE_ROOM_MM),
     middlePage: Math.max(20, availableWithFullFooter),
     lastPage: Math.max(20, availableWithFullFooter)
   };
@@ -1106,24 +1124,35 @@ function calculateAvailablePageHeights(hasMetaTable = true) {
 /**
  * Split line items into page chunks based on available height
  */
-function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
-  const rowHeights = calculateRowHeights(lines, settings);
+function resolveRowHeights(lines, settings, measuredRowHeights = null) {
+  if (Array.isArray(measuredRowHeights) && measuredRowHeights.length === lines.length) {
+    const normalizedHeights = measuredRowHeights.map(value => asNumber(value, NaN));
+
+    if (normalizedHeights.every(value => Number.isFinite(value) && value > 0)) {
+      return normalizedHeights;
+    }
+  }
+
+  return calculateRowHeights(lines, settings);
+}
+
+function chunkLineItemsForPages(lines, settings, hasMetaTable = true, measuredRowHeights = null) {
+  const rowHeights = resolveRowHeights(lines, settings, measuredRowHeights);
   const pageHeights = calculateAvailablePageHeights(hasMetaTable);
   const chunks = [];
   let startIndex = 0;
   let currentHeight = 0;
+  let pageIndex = 0;
 
-  const pageWithFooterAvailable = pageHeights.lastPage;
-
-  // Debug: log the calculated values
-  console.log('[Chunk Debug] Page with footer available:', pageWithFooterAvailable.toFixed(2), 'mm');
-  console.log('[Chunk Debug] Total lines:', lines.length);
-  console.log('[Chunk Debug] Total row height:', rowHeights.reduce((a, b) => a + b, 0).toFixed(2), 'mm');
+  const getAvailableHeightForCurrentPage = () => (
+    pageIndex === 0
+      ? pageHeights.firstPage
+      : pageHeights.middlePage
+  );
 
   // Check if everything fits on one page
   const totalHeight = rowHeights.reduce((a, b) => a + b, 0);
-  if (totalHeight <= pageWithFooterAvailable) {
-    console.log('[Chunk Debug] Everything fits on one page');
+  if (totalHeight <= pageHeights.firstPage) {
     chunks.push({
       startIndex: 0,
       endIndex: lines.length,
@@ -1131,25 +1160,18 @@ function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
       lines: lines
     });
   } else {
-    console.log('[Chunk Debug] Need multiple pages');
     // Build chunks with the footer reserved on every page.
     for (let i = 0; i < lines.length; i++) {
       const rowHeight = rowHeights[i];
       const isLastItem = i === lines.length - 1;
-      const remainingItemsCount = lines.length - i;
-      const remainingItemsHeight = rowHeights.slice(i).reduce((a, b) => a + b, 0);
 
       // Calculate available height for current page
-      // All pages have the same available height (all have signatures/footer)
-      const availableHeight = pageWithFooterAvailable;
-
-      console.log(`[Chunk Debug] i=${i}: currentHeight=${currentHeight.toFixed(1)}, rowHeight=${rowHeight}, remaining=${remainingItemsHeight.toFixed(1)}, available=${availableHeight}`);
+      const availableHeight = getAvailableHeightForCurrentPage();
 
       if (currentHeight + rowHeight <= availableHeight) {
         currentHeight += rowHeight;
       } else {
         // Row doesn't fit, start a new page
-        console.log(`[Chunk Debug] Overflow at i=${i}: currentHeight=${currentHeight}, rowHeight=${rowHeight}, total=${currentHeight + rowHeight}`);
         if (startIndex < i) {
           chunks.push({
             startIndex,
@@ -1157,16 +1179,15 @@ function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
             pageType: 'middle',
             lines: lines.slice(startIndex, i)
           });
-          console.log(`[Chunk Debug] Pushed chunk: ${startIndex} to ${i}`);
         }
 
         startIndex = i;
         currentHeight = rowHeight;
+        pageIndex += 1;
       }
 
       // If this is the last item, add the final chunk
       if (isLastItem && startIndex < lines.length) {
-        console.log(`[Chunk Debug] Last item: pushing chunk from ${startIndex} to ${lines.length}`);
         chunks.push({
           startIndex,
           endIndex: lines.length,
@@ -1175,8 +1196,6 @@ function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
         });
       }
     }
-
-    console.log('[Chunk Debug] Chunks after loop:', chunks.length);
   }
 
   // Adjust page types
@@ -1189,12 +1208,6 @@ function chunkLineItemsForPages(lines, settings, hasMetaTable = true) {
     }
     chunks[chunks.length - 1].pageType = 'last';
   }
-
-  // Debug logging
-  console.log('[Multi-Page Debug] Total chunks:', chunks.length);
-  chunks.forEach((chunk, i) => {
-    console.log(`[Multi-Page Debug] Chunk ${i + 1}: type=${chunk.pageType}, items=${chunk.lines.length}, startIndex=${chunk.startIndex}, endIndex=${chunk.endIndex}`);
-  });
 
   return chunks;
 }
@@ -1425,10 +1438,126 @@ function buildPageFooter(model, settings, totals, footerType = 'full', options =
       </div>`;
 }
 
+function buildRowMeasurementHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
+  const settings = normalizePrintLayoutSettings(layoutSettings);
+  const measurementRows = model.lineItems.map((line, index) => `
+    <table class="line-table line-table-measure">
+      ${renderLineTableHeader()}
+      <tbody data-print-line-measure="${index}">${renderLineRows([line])}</tbody>
+    </table>
+  `).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${escapeHtml(model.ourRef || 'Sales Quote')} Row Measurement</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      background: #fff;
+      color: #000;
+      font-family: Tahoma, Arial, sans-serif;
+      font-size: ${settings.baseFontSize}px;
+      line-height: 1.22;
+    }
+    body {
+      width: 210mm;
+      padding: 0 9mm;
+      opacity: 0;
+      overflow: hidden;
+    }
+    .line-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 0; table-layout: fixed; font-size: ${settings.lineTableFontSize}px; line-height: 1.3; }
+    .line-table thead { display: table-header-group; }
+    .line-table th {
+      background: #d9d9d9;
+      color: #000;
+      font-size: ${settings.lineTableHeaderFontSize}px;
+      font-weight: 700;
+      padding: 2.35mm 0.85mm;
+      text-align: center;
+    }
+    .line-table th:first-child { text-align: left; }
+    .line-table th:nth-child(2) { text-align: center; }
+    .line-table td {
+      padding: 0.95mm 1.15mm;
+      vertical-align: top;
+    }
+    .line-table tr { page-break-inside: avoid; }
+    .line-table-measure { margin-bottom: 0; }
+    .item-cell { white-space: nowrap; text-align: left; padding-right: 1.6mm; }
+    .item-cell-value { display: inline-block; }
+    .desc-cell { word-break: break-word; padding-left: 1.2mm; }
+    .qty-cell,
+    .num-cell { text-align: right; white-space: nowrap; }
+    .unit-cell { text-align: center; white-space: nowrap; }
+    .line-main-row td { min-height: 6.8mm; }
+    .line-comment-row td { padding-top: 0.35mm; padding-bottom: 0.7mm; }
+    .line-comment-row .desc-cell { padding-left: 1.2mm; }
+    .line-group-header .item-cell { padding-left: 0.85mm; padding-right: 0; }
+    .line-group-header .item-cell .item-cell-value { min-width: 4.6mm; text-align: center; transform: translateX(1.15mm); }
+    .line-group-header .desc-cell,
+    .line-comment-row.line-group-header .desc-cell { padding-left: 0; padding-right: 0; }
+    .line-group-child .desc-cell { padding-left: 8mm; }
+    .line-comment-row.line-group-child .desc-cell { padding-left: 8mm; }
+    .line-group-total-row td { padding-top: 1.25mm; padding-bottom: 0.9mm; }
+    .group-total-label-cell { font-weight: 700; text-align: left; padding-left: 0; }
+    .group-total-label-text { display: block; width: 100%; white-space: nowrap; transform: none; }
+    .group-total-amount-cell { text-align: right; }
+    .group-total-amount { display: block; width: 100%; max-width: 100%; box-sizing: border-box; padding-bottom: 0.95mm; text-align: right; border-bottom: 4px double #000; }
+    .empty-row { text-align: center; color: #666; padding: 6mm 0; }
+  </style>
+</head>
+<body>
+  ${measurementRows}
+</body>
+</html>`;
+}
+
+function waitForPrintWindowReady(printWindow) {
+  return new Promise(resolve => {
+    let resolved = false;
+    const finish = () => {
+      if (resolved) return;
+      resolved = true;
+      printWindow.setTimeout(resolve, 80);
+    };
+
+    if (printWindow.document.readyState === 'complete') {
+      finish();
+      return;
+    }
+
+    printWindow.addEventListener('load', finish, { once: true });
+    printWindow.setTimeout(finish, 1500);
+  });
+}
+
+async function measurePrintableRowHeights(printWindow, model, settings) {
+  try {
+    printWindow.document.open();
+    printWindow.document.write(buildRowMeasurementHtml(model, settings));
+    printWindow.document.close();
+    await waitForPrintWindowReady(printWindow);
+
+    const measuredHeights = Array.from(
+      printWindow.document.querySelectorAll('[data-print-line-measure]')
+    ).map(element => element.getBoundingClientRect().height * CSS_PX_TO_MM);
+
+    return measuredHeights.length === model.lineItems.length
+      ? measuredHeights
+      : null;
+  } catch (error) {
+    console.warn('Falling back to estimated Sales Quote print row heights:', error);
+    return null;
+  }
+}
+
 /**
  * Build multi-page HTML for documents that span multiple pages
  */
-function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
+function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS, measuredRowHeights = null) {
   const settings = normalizePrintLayoutSettings(layoutSettings);
   const customerAddressLines = renderAddressLines(model.customerAddressLines, 2);
   const metaRowsMarkup = renderMetaRows(model, customerAddressLines);
@@ -1437,9 +1566,8 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
   const reservedFooterHeightMm = PRINT_RESERVED_FOOTER_HEIGHT_MM;
 
   // Chunk line items into pages
-  const pageChunks = chunkLineItemsForPages(model.lineItems, settings, true);
+  const pageChunks = chunkLineItemsForPages(model.lineItems, settings, true, measuredRowHeights);
   const totalPages = pageChunks.length;
-  console.log('[Multi-Page Debug] Building HTML with', totalPages, 'pages');
 
   let pagesHtml = '';
 
@@ -1450,7 +1578,6 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
 
     // ALL pages have identical structure: header, meta, disclaimer, totals, signatures, footer
     // Only line items and page number differ
-    console.log(`[Multi-Page Debug] Page ${pageNumber}: items=${chunk.lines.length}`);
 
     // Build page - all pages have full header and meta table
     pagesHtml += `
@@ -1471,17 +1598,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
       </table>
 
       <table class="line-table">
-        <thead>
-          <tr>
-            <th style="width: 6.5%;">Item</th>
-            <th style="width: 38.5%;">Description</th>
-            <th style="width: 8.5%;">Qty</th>
-            <th style="width: 6%;">@</th>
-            <th style="width: 15.5%;">Unit/Price</th>
-            <th style="width: 10.5%;">Discount</th>
-            <th style="width: 14.5%;">Total</th>
-          </tr>
-        </thead>
+        ${renderLineTableHeader()}
         <tbody>${renderLineRows(chunk.lines)}</tbody>
       </table>
     </div>
@@ -1665,7 +1782,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
       position: absolute;
       left: 9mm;
       right: 9mm;
-      bottom: 10mm;
+      bottom: 5mm;
       margin-top: 0;
       padding-top: 6.6mm;
       max-width: calc(100% - 18mm);
@@ -1983,7 +2100,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
       position: absolute;
       left: 9mm;
       right: 9mm;
-      bottom: 10mm;
+      bottom: 5mm;
       margin-top: 0;
       padding-top: 6.6mm;
       max-width: calc(100% - 18mm);
@@ -2290,12 +2407,6 @@ function willOverflowSinglePage(model, settings) {
   const rowHeights = calculateRowHeights(model.lineItems, settings);
   const totalLineItemsHeight = rowHeights.reduce((sum, h) => sum + h, 0);
 
-  // Debug logging
-  console.log('[Multi-Page Debug] Line items count:', model.lineItems.length);
-  console.log('[Multi-Page Debug] Total line items height:', totalLineItemsHeight.toFixed(2), 'mm');
-  console.log('[Multi-Page Debug] Single page available:', singlePageAvailable.toFixed(2), 'mm');
-  console.log('[Multi-Page Debug] Will overflow?', totalLineItemsHeight > singlePageAvailable);
-
   return totalLineItemsHeight > singlePageAvailable;
 }
 
@@ -2316,10 +2427,11 @@ export async function printSearchedSalesQuote() {
 
     const layoutSettings = await loadPrintLayoutSettings();
     const normalizedSettings = normalizePrintLayoutSettings(layoutSettings);
+    const measuredRowHeights = await measurePrintableRowHeights(printWindow, model, normalizedSettings);
 
     // Use multi-page mode (split content across pages)
     printWindow.document.open();
-    printWindow.document.write(buildMultiPageHtml(model, normalizedSettings));
+    printWindow.document.write(buildMultiPageHtml(model, normalizedSettings, measuredRowHeights));
     printWindow.document.close();
     showToast(`Opening print preview for ${state.quote.number}`, 'success');
   } catch (error) {

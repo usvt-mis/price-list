@@ -19,6 +19,7 @@ export const ROLE = {
   EXECUTIVE: 'Executive',
   SALES_DIRECTOR: 'SalesDirector',
   MANAGER: 'Manager',
+  GENERAL_OFFICER: 'GeneralOfficer',
   SALES: 'Sales',
   NO_ROLE: 'NoRole'
 };

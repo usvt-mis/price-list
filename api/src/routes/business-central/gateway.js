@@ -27,13 +27,18 @@ function parsePositiveInteger(value, fallbackValue) {
 const GATEWAY_REQUEST_TIMEOUT_MS = parsePositiveInteger(process.env.GATEWAY_REQUEST_TIMEOUT_MS, 15000);
 const GATEWAY_FETCH_MAX_ATTEMPTS = parsePositiveInteger(process.env.GATEWAY_FETCH_MAX_ATTEMPTS, 3);
 const GATEWAY_FETCH_RETRY_DELAY_MS = parsePositiveInteger(process.env.GATEWAY_FETCH_RETRY_DELAY_MS, 400);
+const DEFAULT_CREATE_SALES_QUOTE_TIMEOUT_MS = 600000;
+const DEFAULT_UPDATE_SALES_QUOTE_TIMEOUT_MS = 600000;
+const DEFAULT_CREATE_SERVICE_ORDER_TIMEOUT_MS = 300000;
 
 const GATEWAY_ENDPOINTS = {
   createSalesQuoteWithoutNumber: {
     defaultPath: 'CreateSalesQuoteWithoutNumber',
     pathEnv: 'CSQWN_PATH',
     keyEnv: 'CSQWN_KEY',
-    method: 'POST'
+    method: 'POST',
+    timeoutEnv: 'GATEWAY_CREATE_SALES_QUOTE_TIMEOUT_MS',
+    defaultTimeoutMs: DEFAULT_CREATE_SALES_QUOTE_TIMEOUT_MS
   },
   createServiceItem: {
     defaultPath: 'CreateServiceItem',
@@ -52,7 +57,9 @@ const GATEWAY_ENDPOINTS = {
     defaultPath: 'CreateServiceOrderFromSQ',
     pathEnv: 'CSOFSQ_PATH',
     keyEnv: 'CSOFSQ_KEY',
-    method: 'POST'
+    method: 'POST',
+    timeoutEnv: 'GATEWAY_CREATE_SERVICE_ORDER_TIMEOUT_MS',
+    defaultTimeoutMs: DEFAULT_CREATE_SERVICE_ORDER_TIMEOUT_MS
   },
   updateServiceOrderFromSQ: {
     defaultPath: 'UpdateServiceOrderFromSQ',
@@ -95,7 +102,9 @@ const GATEWAY_ENDPOINTS = {
     pathEnv: 'USQ_PATH',
     keyEnv: 'USQ_KEY',
     fallbackKeyEnvs: ['CSQWN_KEY'],
-    method: 'POST'
+    method: 'POST',
+    timeoutEnv: 'GATEWAY_UPDATE_SALES_QUOTE_TIMEOUT_MS',
+    defaultTimeoutMs: DEFAULT_UPDATE_SALES_QUOTE_TIMEOUT_MS
   },
   patchSalesQuote: {
     defaultPath: 'PatchSalesQuote',
@@ -171,6 +180,13 @@ function resolveGatewayFunctionKey(endpointConfig) {
   throw new Error(`Missing required gateway environment variable: ${endpointConfig.keyEnv}`);
 }
 
+function resolveGatewayTimeoutMs(endpointConfig) {
+  const fallbackTimeoutMs = endpointConfig.defaultTimeoutMs || GATEWAY_REQUEST_TIMEOUT_MS;
+  return endpointConfig.timeoutEnv
+    ? parsePositiveInteger(process.env[endpointConfig.timeoutEnv], fallbackTimeoutMs)
+    : fallbackTimeoutMs;
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -191,11 +207,19 @@ function isRetryableGatewayFetchError(error) {
     || RETRYABLE_GATEWAY_ERROR_CODES.has(errorCode);
 }
 
-function mapGatewayProxyError(error) {
+function mapGatewayProxyError(error, eventType) {
   if (error?.name === 'GatewayTimeoutError') {
+    const salesQuoteWriteEvents = new Set([
+      'CreateSalesQuoteWithoutNumber',
+      'UpdateSalesQuote',
+      'PatchSalesQuote'
+    ]);
+
     return {
       statusCode: 504,
-      message: 'Business Central gateway timed out while loading data. Please try again.'
+      message: salesQuoteWriteEvents.has(eventType)
+        ? 'Business Central did not respond before the gateway timeout. The quote may still have been created in Business Central; search Business Central or My Records before sending again.'
+        : 'Business Central gateway timed out while loading data. Please try again.'
     };
   }
 
@@ -229,6 +253,7 @@ async function performGatewayFetch(url, fetchOptions, timeoutMs) {
     if (didTimeout) {
       const timeoutError = new Error(`Gateway request timed out after ${timeoutMs}ms`);
       timeoutError.name = 'GatewayTimeoutError';
+      timeoutError.timeoutMs = timeoutMs;
       timeoutError.cause = error;
       throw timeoutError;
     }
@@ -245,16 +270,20 @@ async function fetchGatewayWithRetry(url, fetchOptions, requestMethod, logContex
   const maxAttempts = isRetryableRequest
     ? GATEWAY_FETCH_MAX_ATTEMPTS
     : 1;
+  const timeoutMs = options.timeoutMs || GATEWAY_REQUEST_TIMEOUT_MS;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const attemptStartedAt = Date.now();
     try {
-      return await performGatewayFetch(url, fetchOptions, GATEWAY_REQUEST_TIMEOUT_MS);
+      return await performGatewayFetch(url, fetchOptions, timeoutMs);
     } catch (error) {
+      error.gatewayAttemptElapsedMs = Date.now() - attemptStartedAt;
       const shouldRetry = attempt < maxAttempts && isRetryableGatewayFetchError(error);
       const errorCode = getGatewayErrorCode(error);
 
       if (!shouldRetry) {
         error.gatewayAttempt = attempt;
+        error.gatewayTimeoutMs = timeoutMs;
         throw error;
       }
 
@@ -263,6 +292,8 @@ async function fetchGatewayWithRetry(url, fetchOptions, requestMethod, logContex
         method: normalizedMethod,
         attempt,
         maxAttempts,
+        timeoutMs,
+        elapsedMs: error.gatewayAttemptElapsedMs,
         error: error.message,
         errorCode
       });
@@ -286,6 +317,7 @@ function getGatewayRequestConfig(endpointName) {
   }
 
   const functionKey = resolveGatewayFunctionKey(endpointConfig);
+  const timeoutMs = resolveGatewayTimeoutMs(endpointConfig);
 
   return {
     endpointPath: resolvedPath,
@@ -293,6 +325,7 @@ function getGatewayRequestConfig(endpointName) {
     functionKeyEnv: functionKey.envName,
     method: endpointConfig.method || 'POST',
     retryable: endpointConfig.retryable === true,
+    timeoutMs,
     baseUrl
   };
 }
@@ -302,6 +335,8 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
   let url;
   let targetHost;
   let targetPath;
+  let timeoutMs;
+  const requestStartedAt = Date.now();
 
   try {
     const {
@@ -310,8 +345,10 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
       functionKeyEnv,
       method: configuredMethod,
       retryable,
+      timeoutMs: configuredTimeoutMs,
       baseUrl
     } = getGatewayRequestConfig(endpointName);
+    timeoutMs = configuredTimeoutMs;
     requestMethod = options.method || configuredMethod;
     url = buildGatewayUrl(baseUrl, endpointPath, options.queryParams);
     const resolvedUrl = new URL(url);
@@ -323,7 +360,8 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
       method: requestMethod,
       functionKeyEnv,
       targetHost,
-      targetPath
+      targetPath,
+      timeoutMs
     });
 
     const headers = {
@@ -343,7 +381,8 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
       endpointPath,
       eventType
     }, {
-      retryable
+      retryable,
+      timeoutMs
     });
 
     const contentType = response.headers.get('content-type');
@@ -352,7 +391,9 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
     logger.info('BC_GATEWAY', `${eventType}Complete`, 'Azure Function gateway responded', {
       endpoint: endpointPath,
       ok: response.ok,
-      statusCode: response.status
+      statusCode: response.status,
+      timeoutMs,
+      elapsedMs: Date.now() - requestStartedAt
     });
 
     if (contentType) {
@@ -361,7 +402,7 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
 
     res.status(response.status).send(responseBody);
   } catch (err) {
-    const mappedError = mapGatewayProxyError(err);
+    const mappedError = mapGatewayProxyError(err, eventType);
 
     logger.error('BC_GATEWAY', `${eventType}Error`, 'Azure Function gateway request failed', {
       endpoint: endpointName,
@@ -370,6 +411,9 @@ async function proxyGatewayRequest(req, res, next, endpointName, eventType, opti
       targetHost,
       targetPath,
       attempt: err.gatewayAttempt || 1,
+      timeoutMs: err.gatewayTimeoutMs || timeoutMs,
+      elapsedMs: Date.now() - requestStartedAt,
+      attemptElapsedMs: err.gatewayAttemptElapsedMs || null,
       error: err.message,
       errorName: err.name,
       errorCode: getGatewayErrorCode(err),

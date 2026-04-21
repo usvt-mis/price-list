@@ -3,7 +3,7 @@
 -- Date: 2026-04-17
 -- Description:
 --   Creates/updates dbo.SalesQuotePriceRequests for external price
---   request calls. Id is supplied by the caller. ServiceOrderNo can
+--   request calls. Id is supplied by the caller. SalesQuoteNo can
 --   appear in multiple rows.
 -- ============================================================
 
@@ -20,9 +20,10 @@ IF OBJECT_ID(N'dbo.SalesQuotePriceRequests', N'U') IS NULL
 BEGIN
   CREATE TABLE dbo.SalesQuotePriceRequests (
     Id NVARCHAR(20) NOT NULL,
-    ServiceOrderNo NVARCHAR(50) NOT NULL,
+    SalesQuoteNo NVARCHAR(50) NOT NULL,
     Brand NVARCHAR(100) NULL,
     Model NVARCHAR(100) NULL,
+    Requester NVARCHAR(100) NULL,
     PriceRequestTime DATETIME2 NOT NULL CONSTRAINT DF_SalesQuotePriceRequests_PriceRequestTime DEFAULT GETUTCDATE(),
     PriceReportTime DATETIME2 NULL,
     CONSTRAINT PK_SalesQuotePriceRequests PRIMARY KEY (Id)
@@ -33,6 +34,29 @@ END
 ELSE
 BEGIN
   PRINT 'dbo.SalesQuotePriceRequests already exists.';
+END
+GO
+
+IF OBJECT_ID(N'dbo.SalesQuotePriceRequests', N'U') IS NOT NULL
+  AND COL_LENGTH(N'dbo.SalesQuotePriceRequests', N'SalesQuoteNo') IS NULL
+  AND COL_LENGTH(N'dbo.SalesQuotePriceRequests', N'ServiceOrderNo') IS NOT NULL
+BEGIN
+  EXEC sp_rename N'dbo.SalesQuotePriceRequests.ServiceOrderNo', N'SalesQuoteNo', N'COLUMN';
+  PRINT 'Renamed ServiceOrderNo column to SalesQuoteNo in dbo.SalesQuotePriceRequests.';
+END
+GO
+
+IF OBJECT_ID(N'dbo.SalesQuotePriceRequests', N'U') IS NOT NULL
+  AND COL_LENGTH(N'dbo.SalesQuotePriceRequests', N'SalesQuoteNo') IS NULL
+BEGIN
+  ALTER TABLE dbo.SalesQuotePriceRequests
+  ADD SalesQuoteNo NVARCHAR(50) NOT NULL
+    CONSTRAINT DF_SalesQuotePriceRequests_SalesQuoteNo DEFAULT N'';
+
+  ALTER TABLE dbo.SalesQuotePriceRequests
+  DROP CONSTRAINT DF_SalesQuotePriceRequests_SalesQuoteNo;
+
+  PRINT 'Added SalesQuoteNo column to dbo.SalesQuotePriceRequests.';
 END
 GO
 
@@ -57,6 +81,16 @@ END
 GO
 
 IF OBJECT_ID(N'dbo.SalesQuotePriceRequests', N'U') IS NOT NULL
+  AND COL_LENGTH(N'dbo.SalesQuotePriceRequests', N'Requester') IS NULL
+BEGIN
+  ALTER TABLE dbo.SalesQuotePriceRequests
+  ADD Requester NVARCHAR(100) NULL;
+
+  PRINT 'Added Requester column to dbo.SalesQuotePriceRequests.';
+END
+GO
+
+IF OBJECT_ID(N'dbo.SalesQuotePriceRequests', N'U') IS NOT NULL
   AND EXISTS (
     SELECT 1
     FROM sys.key_constraints
@@ -72,17 +106,43 @@ END
 GO
 
 IF OBJECT_ID(N'dbo.SalesQuotePriceRequests', N'U') IS NOT NULL
-  AND NOT EXISTS (
+  AND EXISTS (
     SELECT 1
     FROM sys.indexes
     WHERE object_id = OBJECT_ID(N'dbo.SalesQuotePriceRequests')
       AND name = N'IX_SalesQuotePriceRequests_ServiceOrderNo'
   )
 BEGIN
-  CREATE INDEX IX_SalesQuotePriceRequests_ServiceOrderNo
-  ON dbo.SalesQuotePriceRequests(ServiceOrderNo);
+  DROP INDEX IX_SalesQuotePriceRequests_ServiceOrderNo
+  ON dbo.SalesQuotePriceRequests;
 
-  PRINT 'Created IX_SalesQuotePriceRequests_ServiceOrderNo.';
+  PRINT 'Dropped IX_SalesQuotePriceRequests_ServiceOrderNo.';
+END
+GO
+
+IF OBJECT_ID(N'dbo.SalesQuotePriceRequests', N'U') IS NOT NULL
+  AND COL_LENGTH(N'dbo.SalesQuotePriceRequests', N'SalesQuoteNo') IS NOT NULL
+  AND COL_LENGTH(N'dbo.SalesQuotePriceRequests', N'ServiceOrderNo') IS NOT NULL
+BEGIN
+  ALTER TABLE dbo.SalesQuotePriceRequests
+  DROP COLUMN ServiceOrderNo;
+
+  PRINT 'Dropped obsolete ServiceOrderNo column from dbo.SalesQuotePriceRequests.';
+END
+GO
+
+IF OBJECT_ID(N'dbo.SalesQuotePriceRequests', N'U') IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE object_id = OBJECT_ID(N'dbo.SalesQuotePriceRequests')
+      AND name = N'IX_SalesQuotePriceRequests_SalesQuoteNo'
+  )
+BEGIN
+  CREATE INDEX IX_SalesQuotePriceRequests_SalesQuoteNo
+  ON dbo.SalesQuotePriceRequests(SalesQuoteNo);
+
+  PRINT 'Created IX_SalesQuotePriceRequests_SalesQuoteNo.';
 END
 GO
 

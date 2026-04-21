@@ -153,9 +153,11 @@ function detectLocalRole() {
   const roles = authState.user.roles || [];
   const isExecutive = roles.includes('PriceListExecutive');
   const isSalesDirector = roles.includes('PriceListSalesDirector');
+  const isGeneralOfficer = roles.includes('PriceListGeneralOfficer');
   const isSales = roles.includes('PriceListSales');
   if (isExecutive) return ROLE.EXECUTIVE;
   if (isSalesDirector) return ROLE.SALES_DIRECTOR;
+  if (isGeneralOfficer) return ROLE.GENERAL_OFFICER;
   if (isSales) return ROLE.SALES;
   return ROLE.NO_ROLE; // Default to NoRole for unassigned users
 }
