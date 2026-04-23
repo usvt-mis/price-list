@@ -119,10 +119,11 @@ const PRINT_META_TABLE_HEIGHT_MM = 40.5;
 const PRINT_LINE_TABLE_MARGIN_TOP_MM = 3.3;
 const PRINT_LINE_TABLE_HEADER_HEIGHT_MM = 8.9;
 const PRINT_LINE_TABLE_SAFETY_MARGIN_MM = 0.25;
-const PRINT_FIRST_PAGE_EXTRA_LINE_ROOM_MM = 4;
+const PRINT_PAGE_LINE_ROOM_ALLOWANCE_MM = 8;
 const LINE_TABLE_DESCRIPTION_WIDTH_RATIO = 0.385;
 const LINE_TABLE_CHILD_DESCRIPTION_INDENT_MM = 8;
 const CSS_PX_TO_MM = 25.4 / 96;
+const SIGNATURE_BLOCK_BASE_NUDGE_Y_MM = 2;
 const DEFAULT_PRINT_LAYOUT_SETTINGS = Object.freeze({
   baseFontSize: 11.4,
   companyThaiFontSize: 15.5,
@@ -1115,9 +1116,9 @@ function calculateAvailablePageHeights(hasMetaTable = true) {
     - PRINT_LINE_TABLE_SAFETY_MARGIN_MM;
 
   return {
-    firstPage: Math.max(20, availableWithFullFooter + PRINT_FIRST_PAGE_EXTRA_LINE_ROOM_MM),
-    middlePage: Math.max(20, availableWithFullFooter),
-    lastPage: Math.max(20, availableWithFullFooter)
+    firstPage: Math.max(20, availableWithFullFooter + PRINT_PAGE_LINE_ROOM_ALLOWANCE_MM),
+    middlePage: Math.max(20, availableWithFullFooter + PRINT_PAGE_LINE_ROOM_ALLOWANCE_MM),
+    lastPage: Math.max(20, availableWithFullFooter + PRINT_PAGE_LINE_ROOM_ALLOWANCE_MM)
   };
 }
 
@@ -1823,7 +1824,7 @@ function buildMultiPageHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTING
     .job-row { margin-top: 1.2mm; }
     .job-value { font-weight: 400; }
     .signature-block {
-      transform: translate(${settings.signatureBlockOffsetXMm}mm, ${settings.signatureBlockOffsetYMm}mm);
+      transform: translate(${settings.signatureBlockOffsetXMm}mm, ${settings.signatureBlockOffsetYMm + SIGNATURE_BLOCK_BASE_NUDGE_Y_MM}mm);
       transform-origin: top left;
     }
     .signature-grid {
@@ -2136,7 +2137,7 @@ function buildPrintHtml(model, layoutSettings = DEFAULT_PRINT_LAYOUT_SETTINGS) {
     .job-row { margin-top: 1.2mm; }
     .job-value { font-weight: 400; }
     .signature-block {
-      transform: translate(${settings.signatureBlockOffsetXMm}mm, ${settings.signatureBlockOffsetYMm}mm);
+      transform: translate(${settings.signatureBlockOffsetXMm}mm, ${settings.signatureBlockOffsetYMm + SIGNATURE_BLOCK_BASE_NUDGE_Y_MM}mm);
       transform-origin: top left;
     }
     .signature-grid {

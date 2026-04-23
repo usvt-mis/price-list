@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>"/>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2242%22 fill=%22%23f8fafc%22 stroke=%22%232b6777%22 stroke-width=%228%22/%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%224%22 fill=%22%232b6777%22/%3E%3Cpath d=%22M50 24v26l18 12%22 fill=%22none%22 stroke=%22%232b6777%22 stroke-width=%228%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E"/>
   <link rel="stylesheet" href="/css/output.css">
   <style>
     :root {
@@ -308,6 +308,10 @@
     .calm-table tbody tr.timeboard-delayed-row td.col-sticky-expected {
       background: var(--timeboard-delayed-column-bg, #fef2f2);
       border-bottom-color: #fecaca;
+    }
+
+    .calm-table tbody tr.sq-group-continued.timeboard-delayed-row td {
+      border-bottom-color: transparent;
     }
 
     .calm-table tbody tr.timeboard-delayed-row:hover td,
@@ -5718,7 +5722,7 @@
             ${renderTableCell('prComplete', 'col-date', renderDate(timeline.prComplete, { className: slaOverdueClasses.prComplete }))}
             ${renderTableCell('po', 'col-merged-doc', renderMergedDocCell(purchaseLine?.po, purchaseLine?.poCreated, { className: slaOverdueClasses.poCreated }))}
             ${renderTableCell('poComplete', 'col-date', renderDate(state.useMockTimeline ? (timeline.poComplete || purchaseLine?.poApproved) : purchaseLine?.poApproved, { className: slaOverdueClasses.poApproved }))}
-            ${renderTableCell('goodsReceipt', 'col-date', renderSvSummaryOnlyDate(timeline.goodsReceipt, { className: slaOverdueClasses.goodsReceipt }))}
+            ${renderTableCell('goodsReceipt', 'col-date', renderSvTimelineDate(timeline.goodsReceipt, { className: slaOverdueClasses.goodsReceipt }))}
             ${renderTableCell('factoryProcedure', 'col-date', renderSvSummaryOnlyDate(timeline.factoryProcedure))}
             ${renderTableCell('shRecord', 'col-merged-doc', showSvDependentDocs ? renderMergedDocCell(rowItem.shNumber, applyDefaultTimeToDateValue(rowItem.shCreated, 17, 0)) : '')}
             ${renderTableCell('st', 'col-merged-doc', showSvDependentDocs ? renderMergedDocCell(stNumber, rowItem.stCreated) : '')}

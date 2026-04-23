@@ -176,3 +176,72 @@ test('searched quote shows paymentTermsCode directly from BC payload without cus
   await expect(page.locator('#quoteEditorModeTitle')).toContainText(`Editing Sales Quote ${QUOTE_NUMBER}`);
   await expect(page.locator('#paymentTermsCode')).toHaveValue('45D');
 });
+
+test('searched quote displays past requested delivery date returned by BC', async ({ page }) => {
+  await mockCommonRoutes(page);
+
+  await page.route('**/api/business-central/gateway/sales-quotes/from-number?**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          id: 'quote-past-requested-delivery-1',
+          number: QUOTE_NUMBER,
+          paymentTermsCode: '30D',
+          sellToCustomerName: 'ACME Industries',
+          sellToCustomerNo: 'C0001',
+          salespersonCode: 'SP001',
+          assignedUserId: 'sales@example.com',
+          branch: 'URY',
+          branchCode: 'URY',
+          locationCode: 'URY',
+          responsibilityCenter: 'URY',
+          NavWordReportXmlPart: {
+            Sales_Header: {
+              DocNo_SaleHeader: QUOTE_NUMBER,
+              Name: 'ACME Industries',
+              BilltoCustomerNo_SalesHeader: 'C0001',
+              OrderDate_SaleHeader: '2026-04-09',
+              RequestedDeliveryDate_SalesHeader: '2000-01-01',
+              responsibilityCenter: 'URY',
+              salespersonCode: 'SP001',
+              assignedUserId: 'sales@example.com'
+            },
+            Integer: [
+              {
+                Type: 'Item',
+                ItemNo_SaleLine: 'ITEM-001',
+                Description_SaleLine: 'Visible line',
+                Qty_SaleLine: 1,
+                Unit_Price: 1000,
+                Line_Amount: 1000,
+                USVT_Group_No_: '1',
+                USVT_Show_in_Document: true
+              }
+            ]
+          }
+        }
+      })
+    });
+  });
+
+  await page.goto(`${BASE_URL}/salesquotes.html`);
+  await page.waitForFunction(() => Boolean((window as Window & { SalesQuotesApp?: unknown }).SalesQuotesApp));
+  await page.waitForFunction(() => {
+    const input = document.querySelector('#requestedDeliveryDate') as HTMLInputElement & { _flatpickr?: unknown };
+    return Boolean(input?._flatpickr);
+  });
+
+  const createModeHasRequestedDeliveryMinDate = await page.locator('#requestedDeliveryDate').evaluate((input) => {
+    return Boolean((input as HTMLInputElement & { _flatpickr?: { config?: { minDate?: Date } } })._flatpickr?.config?.minDate);
+  });
+  expect(createModeHasRequestedDeliveryMinDate).toBe(true);
+
+  await page.click('#tabSearch');
+  await page.fill('#searchSalesQuoteNumber', QUOTE_NUMBER);
+  await page.click('#searchSalesQuoteBtn');
+
+  await expect(page.locator('#quoteEditorModeTitle')).toContainText(`Editing Sales Quote ${QUOTE_NUMBER}`);
+  await expect(page.locator('#requestedDeliveryDate')).toHaveValue('2000-01-01');
+});

@@ -8,7 +8,7 @@ import { bcClient } from './bc-api-client.js';
 import { GATEWAY_API } from './config.js';
 import { validateQuote, validateAndUpdate, sanitizeQuoteData, validateQuoteLineData, sanitizeDiscountInput } from './validations.js';
 import { showLoading, hideLoading, showSaving, hideSaving, showSuccess, showError, clearToasts, showQuoteCreatedSuccess, showQuoteUpdatedSuccess, showQuoteSendFailure, normalizeQuoteFailureMessage } from './ui.js';
-import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, showBranchMismatchModal, isApprovedWorkStatusOnlyMode, syncVatControls, getBcApprovalStatusAlert, setSerActionButtonState } from './ui.js';
+import { el, formatCurrency, renderQuoteLines, renderTotals, displaySelectedCustomer, clearCustomerSelection, hideCustomerDropdown, hideItemDropdown, openAddLineModal, closeAddLineModal, updateLineTotalPreview, displayValidationErrors, clearValidationErrors, getQuoteFormData, populateQuoteForm, clearQuoteForm, setupRequiredAsteriskHandlers, setupEditModalAsteriskHandlers, updateRequiredAsterisk, initDateFields, showConfirmClearQuoteModal, hideConfirmClearQuoteModal, updateFullscreenTable, showToast, switchTab, updateQuoteEditorModeUi, setFieldValue, getQuoteEditLockMessage, isQuoteEditable, isCurrentUserApprovalOwner, getBranchCode, generateLocationCode, showBranchMismatchModal, isApprovedWorkStatusOnlyMode, syncVatControls, getBcApprovalStatusAlert, setSerActionButtonState } from './ui.js';
 import { fetchWithAuth } from '../core/utils.js';
 import { cacheCustomers, cacheItems, searchCachedCustomers, searchCachedItems } from './state.js';
 import { getUserInfo } from '../auth/ui.js';
@@ -1951,31 +1951,54 @@ function closeOpenQuoteModals() {
   hideConfirmClearQuoteModal();
 }
 
-function restoreDefaultBranchFields() {
-  const {
-    branch = '',
-    locationCode = '',
-    responsibilityCenter = ''
-  } = state.ui.branchDefaults || {};
+function setBranchFields({
+  branch = '',
+  locationCode = '',
+  responsibilityCenter = '',
+  persistDefaults = false
+} = {}) {
+  const normalizedBranch = normalizeBranchCode(branch);
+  const resolvedLocationCode = locationCode || generateLocationCode(normalizedBranch);
+  const resolvedResponsibilityCenter = responsibilityCenter || normalizedBranch;
 
   if (el('branch')) {
-    el('branch').value = branch;
+    el('branch').value = normalizedBranch;
   }
   if (el('locationCode')) {
-    el('locationCode').value = locationCode;
+    el('locationCode').value = resolvedLocationCode;
   }
   if (el('responsibilityCenter')) {
-    el('responsibilityCenter').value = responsibilityCenter;
+    el('responsibilityCenter').value = resolvedResponsibilityCenter;
   }
 
-  state.quote.branch = branch;
-  state.quote.locationCode = locationCode;
-  state.quote.responsibilityCenter = responsibilityCenter;
+  if (persistDefaults) {
+    state.ui.branchDefaults.branch = normalizedBranch;
+    state.ui.branchDefaults.locationCode = resolvedLocationCode;
+    state.ui.branchDefaults.responsibilityCenter = resolvedResponsibilityCenter;
+  }
+
+  state.quote.branch = normalizedBranch;
+  state.quote.locationCode = resolvedLocationCode;
+  state.quote.responsibilityCenter = resolvedResponsibilityCenter;
 
   const branchAsterisk = el('branch-asterisk');
   if (branchAsterisk) {
-    branchAsterisk.classList.toggle('hidden', Boolean(branch));
+    branchAsterisk.classList.toggle('hidden', Boolean(normalizedBranch));
   }
+}
+
+function restoreDefaultBranchFields() {
+  const {
+    branch = '',
+    locationCode = generateLocationCode(branch),
+    responsibilityCenter = ''
+  } = state.ui.branchDefaults || {};
+
+  setBranchFields({
+    branch,
+    locationCode,
+    responsibilityCenter: responsibilityCenter || branch
+  });
 }
 
 function resetQuoteEditorToCreateMode({ showFeedback = true } = {}) {
@@ -2029,7 +2052,9 @@ async function buildEditableQuoteFromSearchResponse(payload) {
     || state.ui.branchDefaults.branch
     || '';
   const responsibilityCenter = pickSourceValueFromSources(headerSources, ['responsibilityCenter', 'branch', 'branchCode', 'shortcutDimension1Code'], branchCode);
-  const locationCode = pickSourceValueFromSources(headerSources, ['locationCode'], '');
+  const locationCode = pickSourceValueFromSources(headerSources, ['locationCode'], '')
+    || state.ui.branchDefaults.locationCode
+    || generateLocationCode(branchCode);
   const reportContext = buildSearchQuoteReportContext(data, salespersonName, sourceContext);
   const customerName = reportContext.customerName
     || pickSourceValueFromSources(headerSources, ['customerName', 'billToName'], '')
@@ -4653,41 +4678,33 @@ async function sendApprovalRequestFromModule(quoteData) {
  * Shows No Branch modal if user has no branch assigned
  */
 export async function initializeBranchFields() {
-  let userEmail = '';
+  let userEmail = authState.user?.email?.trim?.()
+    || authState.user?.name?.trim?.()
+    || '';
 
   try {
-    // Get user info from auth
-    const userInfo = await getUserInfo();
-    userEmail = userInfo?.clientPrincipal?.userDetails?.trim?.()
-      || userInfo?.clientPrincipal?.email?.trim?.()
-      || userInfo?.email?.trim?.()
-      || '';
+    let userInfo = null;
+    let branchId = authState.user?.branchId ?? null;
 
-    console.log('[BRANCH-INIT] userInfo:', userInfo);
+    if (branchId === null || branchId === undefined || branchId === '') {
+      userInfo = await getUserInfo();
+      userEmail = userEmail
+        || userInfo?.clientPrincipal?.userDetails?.trim?.()
+        || userInfo?.clientPrincipal?.email?.trim?.()
+        || userInfo?.email?.trim?.()
+        || '';
+      branchId = userInfo?.clientPrincipal?.branchId ?? userInfo?.branchId ?? null;
+      console.log('[BRANCH-INIT] userInfo fallback:', userInfo);
+    }
 
-    if (!userInfo || !userInfo.clientPrincipal) {
-      console.warn('[BRANCH-INIT] No user info available for branch initialization');
+    if (branchId === null || branchId === undefined || branchId === '') {
+      console.warn('[BRANCH-INIT] No branchId available for branch initialization');
       const { showNoBranchModal } = await import('./ui.js');
       await showNoBranchModal(userEmail);
       return;
     }
 
-    const clientPrincipal = userInfo.clientPrincipal;
-    console.log('[BRANCH-INIT] clientPrincipal:', clientPrincipal);
-
-    const branchId = clientPrincipal.branchId;
     console.log('[BRANCH-INIT] branchId:', branchId, '(type:', typeof branchId, ')');
-
-    if (!branchId && branchId !== 0) {  // Check for null/undefined, but allow 0
-      console.error('[BRANCH-INIT] No branchId found in user info - showing No Branch modal');
-      console.log('[BRANCH-INIT] Full clientPrincipal data for debugging:', JSON.stringify(clientPrincipal));
-      const { showNoBranchModal } = await import('./ui.js');
-      await showNoBranchModal(userEmail);
-      return;
-    }
-
-    // Import utility functions
-    const { getBranchCode, generateLocationCode } = await import('./ui.js');
 
     // Generate branch code and location code
     const branchCode = getBranchCode(branchId);
@@ -4704,33 +4721,12 @@ export async function initializeBranchFields() {
     const locationCode = generateLocationCode(branchCode);
     console.log('[BRANCH-INIT] locationCode:', locationCode);
 
-    // Set field values
-    if (el('branch')) {
-      el('branch').value = branchCode;
-    }
-
-    if (el('locationCode')) {
-      el('locationCode').value = locationCode;
-    }
-
-    // Set Responsibility Center (equals BRANCH)
-    if (el('responsibilityCenter')) {
-      el('responsibilityCenter').value = branchCode;
-    }
-
-    // Store in state
-    state.ui.branchDefaults.branch = branchCode;
-    state.ui.branchDefaults.locationCode = locationCode;
-    state.ui.branchDefaults.responsibilityCenter = branchCode;
-    state.quote.branch = branchCode;
-    state.quote.locationCode = locationCode;
-    state.quote.responsibilityCenter = branchCode;
-
-    // Update asterisk for BRANCH field (hide since it's now populated)
-    const branchAsterisk = el('branch-asterisk');
-    if (branchAsterisk && branchCode) {
-      branchAsterisk.classList.add('hidden');
-    }
+    setBranchFields({
+      branch: branchCode,
+      locationCode,
+      responsibilityCenter: branchCode,
+      persistDefaults: true
+    });
 
     updateQuoteEditorModeUi();
     console.log(`[BRANCH-INIT] SUCCESS: Branch fields initialized: ${branchCode} -> ${locationCode}`);

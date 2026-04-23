@@ -8,6 +8,9 @@ import { authState, setCurrentUserRole, isViewOnly } from '../state.js';
 import { extractInitials, setStatus } from '../core/utils.js';
 import { initializeModeFromRole } from './mode-detection.js';
 
+let cachedUserInfo = null;
+let pendingUserInfoRequest = null;
+
 /**
  * Fetch user info from the backend auth endpoint.
  * In local dev, the backend already returns the configured mock user,
@@ -16,21 +19,39 @@ import { initializeModeFromRole } from './mode-detection.js';
  */
 export async function getUserInfo() {
   console.log('[AUTH-USERINFO-1] getUserInfo: STARTED');
-  try {
-    console.log('[AUTH-USERINFO-2] Fetching from /api/auth/me...');
-    const response = await fetch('/api/auth/me');
-    console.log('[AUTH-USERINFO-3] Response status:', response.status);
-    if (!response.ok) {
-      console.log('[AUTH-USERINFO-4] Response not OK, returning null');
-      return null;
-    }
-    const data = await response.json();
-    console.log('[AUTH-USERINFO-5] Data received:', data);
-    return data; // Return full response including clientPrincipal AND effectiveRole
-  } catch (e) {
-    console.error('[AUTH-USERINFO-ERROR] Failed to fetch user info:', e);
-    return null;
+
+  if (cachedUserInfo) {
+    console.log('[AUTH-USERINFO-CACHE] Returning cached user info');
+    return cachedUserInfo;
   }
+
+  if (pendingUserInfoRequest) {
+    console.log('[AUTH-USERINFO-CACHE] Reusing pending /api/auth/me request');
+    return pendingUserInfoRequest;
+  }
+
+  pendingUserInfoRequest = (async () => {
+    try {
+      console.log('[AUTH-USERINFO-2] Fetching from /api/auth/me...');
+      const response = await fetch('/api/auth/me');
+      console.log('[AUTH-USERINFO-3] Response status:', response.status);
+      if (!response.ok) {
+        console.log('[AUTH-USERINFO-4] Response not OK, returning null');
+        return null;
+      }
+      const data = await response.json();
+      console.log('[AUTH-USERINFO-5] Data received:', data);
+      cachedUserInfo = data;
+      return data; // Return full response including clientPrincipal AND effectiveRole
+    } catch (e) {
+      console.error('[AUTH-USERINFO-ERROR] Failed to fetch user info:', e);
+      return null;
+    } finally {
+      pendingUserInfoRequest = null;
+    }
+  })();
+
+  return pendingUserInfoRequest;
 }
 
 /**
@@ -60,7 +81,7 @@ export async function renderAuthSection() {
       initials: extractInitials(clientPrincipal.userDetails),
       roles: clientPrincipal.userRoles || [],
       effectiveRole: userInfo.effectiveRole, // Use effectiveRole from backend
-      branchId: clientPrincipal.branchId || null // Store branch ID from user
+      branchId: clientPrincipal.branchId ?? null // Store branch ID from user
     };
     console.log('[AUTH-RENDER-7] authState.user set:', authState.user);
 

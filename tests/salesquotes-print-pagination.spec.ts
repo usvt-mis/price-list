@@ -258,10 +258,11 @@ test('searched quote print pagination keeps short rows on earlier pages', async 
         const rows = [...printPage.querySelectorAll('.line-table tbody tr')];
         const lastRowRect = rows.at(-1)?.getBoundingClientRect();
         const footerRect = printPage.querySelector('.footer-stack')?.getBoundingClientRect();
+        const footerDividerRect = printPage.querySelector('.footer-divider')?.getBoundingClientRect();
 
         return {
           rowCount: rows.length,
-          gapLastRowToFooterMm: Number(pxToMm((footerRect && lastRowRect) ? footerRect.top - lastRowRect.bottom : 0).toFixed(2)),
+          gapLastRowToFooterDividerMm: Number(pxToMm((footerDividerRect && lastRowRect) ? footerDividerRect.top - lastRowRect.bottom : 0).toFixed(2)),
           footerBottomMm: Number(pxToMm(footerRect ? footerRect.bottom - pageRect.top : 0).toFixed(2)),
           pageHeightMm: Number(pxToMm(pageRect.height).toFixed(2))
         };
@@ -270,11 +271,9 @@ test('searched quote print pagination keeps short rows on earlier pages', async 
   });
 
   expect(metrics.totalRows).toBe(46);
-  expect(metrics.pageCount).toBeGreaterThanOrEqual(3);
-  expect(metrics.pageCount).toBeLessThanOrEqual(4);
-  expect(metrics.pages[0].rowCount).toBeGreaterThanOrEqual(14);
-  expect(metrics.pages.every(printPage => printPage.rowCount !== 11)).toBe(true);
-  expect(metrics.pages.every(printPage => printPage.gapLastRowToFooterMm >= 0)).toBe(true);
+  expect(metrics.pageCount).toBe(3);
+  expect(metrics.pages.map(printPage => printPage.rowCount)).toEqual([16, 19, 11]);
+  expect(metrics.pages.every(printPage => printPage.gapLastRowToFooterDividerMm >= 0)).toBe(true);
   expect(metrics.pages.every(printPage => printPage.footerBottomMm <= printPage.pageHeightMm)).toBe(true);
   expect(consoleLines.some(line => line.includes('[Chunk Debug]') || line.includes('[Multi-Page Debug]'))).toBe(false);
 });

@@ -1980,6 +1980,16 @@ export function initFlatpickr(inputId, options = {}) {
  * Maps branch ID (1-6) to branch code
  */
 export function getBranchCode(branchId) {
+  const normalizedBranchId = typeof branchId === 'string' ? branchId.trim() : branchId;
+  if (normalizedBranchId === '' || normalizedBranchId === null || normalizedBranchId === undefined) {
+    return '';
+  }
+
+  const numericBranchId = Number(normalizedBranchId);
+  if (!Number.isInteger(numericBranchId)) {
+    return '';
+  }
+
   const branchMapping = {
     1: 'URY',
     2: 'USB',
@@ -1988,7 +1998,7 @@ export function getBranchCode(branchId) {
     5: 'UPB',
     6: 'UCB'
   };
-  return branchMapping[branchId] || '';
+  return branchMapping[numericBranchId] || '';
 }
 
 /**
@@ -1996,10 +2006,17 @@ export function getBranchCode(branchId) {
  * Takes last 2 characters of branch code and appends "01"
  */
 export function generateLocationCode(branchCode) {
-  if (!branchCode || branchCode.length < 2) {
+  const normalizedBranchCode = String(branchCode || '').trim().toUpperCase();
+  if (!normalizedBranchCode || normalizedBranchCode.length < 2) {
     return '';
   }
-  return branchCode.slice(-2) + '01';
+  return normalizedBranchCode.slice(-2) + '01';
+}
+
+function resolveLocationCodeFallback(branchCode = '') {
+  return generateLocationCode(branchCode)
+    || state.ui.branchDefaults.locationCode
+    || generateLocationCode(state.ui.branchDefaults.branch || '');
 }
 
 /**
@@ -2010,6 +2027,15 @@ export function getQuoteFormData() {
     enabled: el('vatEnabledToggle')?.checked,
     vatRate: el('vatRate')?.value
   });
+  const branch = el('branch')?.value || state.quote.branch || state.ui.branchDefaults.branch || '';
+  const locationCode = el('locationCode')?.value
+    || state.quote.locationCode
+    || state.ui.branchDefaults.locationCode
+    || generateLocationCode(branch);
+  const responsibilityCenter = el('responsibilityCenter')?.value
+    || state.quote.responsibilityCenter
+    || state.ui.branchDefaults.responsibilityCenter
+    || branch;
 
   return {
     quoteId: state.quote.id,
@@ -2038,9 +2064,9 @@ export function getQuoteFormData() {
     assignedUserId: state.quote.assignedUserId || '',
     serviceOrderType: el('serviceOrderType')?.value || '',
     division: el('division')?.value || 'MS1029',
-    branch: el('branch')?.value || '',
-    locationCode: el('locationCode')?.value || '',
-    responsibilityCenter: el('responsibilityCenter')?.value || '',
+    branch,
+    locationCode,
+    responsibilityCenter,
     invoiceDiscount: parseFloat(el('invoiceDiscount')?.value || 0) || 0,
     invoiceDiscountPercent: parseFloat(el('invoiceDiscountPercent')?.value || 0) || 0,
     vatEnabled: vatState.enabled,
@@ -2062,6 +2088,10 @@ export function getQuoteFormData() {
  * Populate form with quote data
  */
 export function populateQuoteForm(quote) {
+  const branch = quote.branch || state.ui.branchDefaults.branch || '';
+  const locationCode = quote.locationCode || resolveLocationCodeFallback(branch);
+  const responsibilityCenter = quote.responsibilityCenter || branch || state.ui.branchDefaults.responsibilityCenter || '';
+
   if (el('customerNoSearch')) el('customerNoSearch').value = quote.customerNo || '';
   if (el('customerName')) el('customerName').value = quote.customerName || '';
   setSelectValuePreservingUnknown(el('paymentTermsCode'), quote.paymentTermsCode || quote.reportContext?.paymentTermsCode || '');
@@ -2087,9 +2117,9 @@ export function populateQuoteForm(quote) {
   if (el('division')) el('division').value = quote.division || 'MS1029';
 
   // Branch fields
-  if (el('branch')) el('branch').value = quote.branch || '';
-  if (el('locationCode')) el('locationCode').value = quote.locationCode || '';
-  if (el('responsibilityCenter')) el('responsibilityCenter').value = quote.responsibilityCenter || '';
+  if (el('branch')) el('branch').value = branch;
+  if (el('locationCode')) el('locationCode').value = locationCode;
+  if (el('responsibilityCenter')) el('responsibilityCenter').value = responsibilityCenter;
 
   setFieldValue('sellToAddress', quote.sellTo?.address || '');
   setFieldValue('sellToAddress2', quote.sellTo?.address2 || '');
@@ -2126,10 +2156,15 @@ export function populateQuoteForm(quote) {
     preserveFreeText: true,
   });
 
-  initFlatpickr('requestedDeliveryDate', {
+  const requestedDeliveryDateOptions = {
     defaultDate: quote.requestedDeliveryDate || '',
-    minDate: 'today',
-  });
+  };
+
+  if (!(quote.mode === 'edit' && quote.loadedFromBc === true)) {
+    requestedDeliveryDateOptions.minDate = 'today';
+  }
+
+  initFlatpickr('requestedDeliveryDate', requestedDeliveryDateOptions);
 
   renderTotals();
   updateQuoteEditorModeUi();

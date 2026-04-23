@@ -4,7 +4,7 @@
  * Wires together all modules and initializes the application
  */
 
-import { initAuth, renderAuthSection } from '../auth/index.js';
+import { getUserInfo, initAuth, renderAuthSection } from '../auth/index.js';
 import { state, initState, setCurrentView, STORAGE_KEYS } from './state.js';
 import { el, show, hide, showToast, initializeQuoteLinePersonalization } from './ui.js';
 import { loadInitialData, setupEventListeners } from './create-quote.js';
@@ -58,13 +58,13 @@ async function checkSalesQuotesAccess() {
       return true;
     }
 
-    // Fetch user info from auth endpoint
-    const response = await fetch('/api/auth/me');
-    if (!response.ok) {
+    // Fetch user info through the shared auth helper so concurrent init paths
+    // reuse the same /api/auth/me response for this page load.
+    const userData = await getUserInfo();
+    if (!userData) {
       return false;
     }
 
-    const userData = await response.json();
     const userRole = normalizeSalesQuotesRole(userData.effectiveRole);
 
     // Check if user has one of the allowed roles
@@ -124,12 +124,13 @@ function showAwaitingAssignmentScreen() {
   topbar?.after(awaitingScreen);
 
   // Try to fetch and display user email
-  fetch('/api/auth/me')
-    .then(res => res.json())
+  getUserInfo()
     .then(data => {
       const emailSpan = document.getElementById('awaitingEmail');
-      if (emailSpan && data.clientPrincipal?.userDetails) {
+      if (emailSpan && data?.clientPrincipal?.userDetails) {
         emailSpan.textContent = data.clientPrincipal.userDetails;
+      } else if (emailSpan) {
+        emailSpan.textContent = 'Unknown';
       }
     })
     .catch(() => {
@@ -164,7 +165,7 @@ async function initApp() {
     if (!hasAccess) {
       console.log('Access denied - showing awaiting assignment screen');
       // Render minimal auth section for logout
-      renderAuthSection();
+      await renderAuthSection();
       // Show awaiting assignment screen
       showAwaitingAssignmentScreen();
       finishInitialLoadingNotice();
@@ -175,43 +176,39 @@ async function initApp() {
     await initAuth();
     console.log('Auth initialized');
 
-    // 2. Render auth section in header
-    renderAuthSection();
-    console.log('Auth section rendered');
-
-    // 3. Clear any old state to start fresh
+    // 2. Clear any old state to start fresh
     sessionStorage.removeItem(STORAGE_KEYS.STATE);
     console.log('Old state cleared');
 
-    // 4. Initialize state
+    // 3. Initialize state
     initState();
     console.log('State initialized');
 
-    // 5. Preload modals FIRST (before loading data - noBranchModal may be needed)
+    // 4. Preload modals FIRST (before loading data - noBranchModal may be needed)
     await preloadAllModals();
     console.log('Modals preloaded');
 
-    // 6. Initialize quote line personalization after modals are ready
+    // 5. Initialize quote line personalization after modals are ready
     await initializeQuoteLinePersonalization();
     console.log('Quote line personalization initialized');
 
-    // 7. Load initial data from BC (customers, items)
+    // 6. Load initial data from BC (customers, items)
     await loadInitialData();
     console.log('Initial data loaded');
 
-    // 8. Setup event listeners
+    // 7. Setup event listeners
     setupEventListeners();
     console.log('Event listeners setup');
 
-    // 9. Setup record view event listeners
+    // 8. Setup record view event listeners
     setupQuoteSubmissionRecordEventListeners();
     console.log('Record event listeners setup');
 
-    // 10. Initialize approvals tab (checks role visibility)
+    // 9. Initialize approvals tab (checks role visibility)
     await initializeApprovalsTab();
     console.log('Approvals tab initialized');
 
-    // 11. Initialize asterisk state for any default values
+    // 10. Initialize asterisk state for any default values
     setTimeout(() => {
       ['customerNoSearch', 'orderDate', 'requestedDeliveryDate', 'deliveryDate'].forEach(id => {
         const field = el(id);
