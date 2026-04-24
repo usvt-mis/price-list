@@ -4,10 +4,11 @@
  *
  * This middleware provides:
  * - requireAzureAuth(): Validates Azure AD identity only (no role check)
- * - requireBackofficeSession(): Validates Azure AD and restricts access to it@uservices-thailand.com
+ * - requireBackofficeSession(): Validates Azure AD and restricts access to the configured backoffice email
  */
 
 const logger = require('../utils/logger');
+const DEFAULT_BACKOFFICE_EMAIL = process.env.BACKOFFICE_ALLOWED_EMAIL || 'it@user.co.th';
 
 /**
  * Check if the request is from local development
@@ -100,7 +101,7 @@ async function requireAzureAuth(req) {
 /**
  * requireBackofficeSession - Validates Azure AD authentication and restricts access
  * Returns admin user object with email from Azure AD
- * Access restricted to it@uservices-thailand.com only
+ * Access restricted to the configured backoffice email only
  * Throws 401 if not authenticated, 403 if email not authorized
  */
 async function requireBackofficeSession(req) {
@@ -118,8 +119,8 @@ async function requireBackofficeSession(req) {
 
   const email = user.userDetails;
 
-  // Restrict to it@uservices-thailand.com ONLY
-  const ALLOWED_EMAIL = 'it@uservices-thailand.com';
+  // Restrict to the configured backoffice email only
+  const ALLOWED_EMAIL = DEFAULT_BACKOFFICE_EMAIL;
   if (email !== ALLOWED_EMAIL) {
     logger.warn('AUTH', 'UnauthorizedUser', `Access denied for ${email}`, {
       userEmail: email,

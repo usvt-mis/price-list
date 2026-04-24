@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { extractUserEmail, isLocalRequest } = require('../../middleware/twoFactorAuthExpress');
 const logger = require('../../utils/logger');
+const DEFAULT_BACKOFFICE_EMAIL = process.env.BACKOFFICE_ALLOWED_EMAIL || 'it@user.co.th';
 
 /**
  * Helper to get client IP address for audit logging (Express format)
@@ -19,17 +20,17 @@ function getClientIP(req) {
 
 /**
  * POST /api/backoffice/login
- * Verify backoffice access (checks if email is it@uservices-thailand.com)
+ * Verify backoffice access (checks if email matches the configured backoffice email)
  *
  * Response (success):
  * {
  *   "message": "Login successful",
- *   "email": "it@uservices-thailand.com"
+ *   "email": "it@user.co.th"
  * }
  *
  * Response (error):
  * {
- *   "error": "Access restricted to it@uservices-thailand.com",
+ *   "error": "Access restricted to it@user.co.th",
  *   "code": "USER_RESTRICTED"
  * }
  */
@@ -38,7 +39,7 @@ router.post('/', async (req, res, next) => {
 
   // Local development bypass
   if (isLocalRequest(req)) {
-    const mockEmail = process.env.BACKOFFICE_MOCK_EMAIL || process.env.MOCK_USER_EMAIL || 'it@uservices-thailand.com';
+    const mockEmail = process.env.BACKOFFICE_MOCK_EMAIL || process.env.MOCK_USER_EMAIL || DEFAULT_BACKOFFICE_EMAIL;
     logger.info('AUTH', 'BackofficeLoginSuccess', `Local dev bypass - ${mockEmail}`, {
       userEmail: mockEmail,
       userRole: 'Backoffice',
@@ -84,8 +85,8 @@ router.post('/', async (req, res, next) => {
       });
     }
 
-    // Step 4: Validate email (only it@uservices-thailand.com allowed)
-    const ALLOWED_EMAIL = 'it@uservices-thailand.com';
+    // Step 4: Validate email against the configured backoffice email
+    const ALLOWED_EMAIL = DEFAULT_BACKOFFICE_EMAIL;
     if (email !== ALLOWED_EMAIL) {
       logger.warn('AUTH', 'AccessDenied', `Backoffice access denied for ${email}`, {
         serverContext: { clientIP, email, allowedEmail: ALLOWED_EMAIL }

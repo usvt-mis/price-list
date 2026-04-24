@@ -2287,10 +2287,12 @@ function renderQuotePreview(
               <p class="approval-preview-summary-label text-[11px] uppercase tracking-[0.08em]">Standard Price</p>
               <p class="approval-preview-summary-value text-base font-semibold">${formatPreviewMoney(pricingSummary.standardPrice)}</p>
             </div>
-            <div class="approval-preview-summary-item approval-preview-summary-commission">
-              <p class="approval-preview-summary-label text-[11px] uppercase tracking-[0.08em]">Commission</p>
-              <p class="approval-preview-summary-value text-base font-semibold">${formatPreviewMoney(pricingSummary.commissionAmount)}</p>
-            </div>
+            ${pricingSummary.hasCostBasis ? `
+              <div class="approval-preview-summary-item approval-preview-summary-commission">
+                <p class="approval-preview-summary-label text-[11px] uppercase tracking-[0.08em]">Commission</p>
+                <p class="approval-preview-summary-value text-base font-semibold">${formatPreviewMoney(pricingSummary.commissionAmount)}</p>
+              </div>
+            ` : ''}
             <div class="approval-preview-summary-item approval-preview-summary-count">
               <p class="approval-preview-summary-label text-[11px] uppercase tracking-[0.08em]">Lines</p>
               <p class="approval-preview-summary-value text-base font-semibold">${formatPreviewNumber(lines.length, 0)}</p>
@@ -2712,7 +2714,7 @@ function calculatePreviewPricingSummary(lines, amountExVat, serviceItemLaborMap 
 
     const quantity = toPreviewNumber(line?.quantity, 0);
     const material = materialPreviewMap?.[materialCode];
-    if (!material || !Number.isFinite(material.unitCost) || !Number.isFinite(quantity) || quantity <= 0) {
+    if (!material || !Number.isFinite(material.unitCost) || material.unitCost <= 0 || !Number.isFinite(quantity) || quantity <= 0) {
       unresolvedMaterialLines += 1;
       return;
     }
@@ -2728,17 +2730,23 @@ function calculatePreviewPricingSummary(lines, amountExVat, serviceItemLaborMap 
   });
 
   const standardPrice = standardLaborPrice + standardMaterialPrice;
-  const commissionPercent = getCommissionPercentForPreview(actualSellingPrice, standardPrice);
-  const commissionBase = standardPrice;
-  const commissionAmount = Number.isFinite(commissionBase) && commissionBase > 0
+  const hasCostBasis = standardLaborPrice > 0 || standardMaterialPrice > 0;
+  const commissionPercent = hasCostBasis
+    ? getCommissionPercentForPreview(actualSellingPrice, standardPrice)
+    : null;
+  const commissionBase = hasCostBasis && Number.isFinite(actualSellingPrice) && actualSellingPrice > 0
+    ? actualSellingPrice
+    : null;
+  const commissionAmount = hasCostBasis && Number.isFinite(commissionBase) && commissionBase > 0
     ? commissionBase * (commissionPercent / 100)
-    : 0;
-  const ratio = Number.isFinite(actualSellingPrice) && Number.isFinite(standardPrice) && standardPrice > 0
+    : null;
+  const ratio = hasCostBasis && Number.isFinite(actualSellingPrice) && Number.isFinite(standardPrice) && standardPrice > 0
     ? actualSellingPrice / standardPrice
-    : 0;
+    : null;
 
   return {
     actualSellingPrice,
+    hasCostBasis,
     standardPrice,
     standardLaborPrice,
     standardMaterialPrice,
@@ -2761,11 +2769,11 @@ function renderApprovalPricingSummary(summary) {
   }
 
   if (summary.pricedMaterialLines > 0) {
-    noteParts.push(`Matched material lines: ${formatPreviewNumber(summary.pricedMaterialLines, 0)}`);
+    noteParts.push(`Material lines with valid cost: ${formatPreviewNumber(summary.pricedMaterialLines, 0)}`);
   }
 
   if (summary.unresolvedMaterialLines > 0) {
-    noteParts.push(`Item lines without matched material cost: ${formatPreviewNumber(summary.unresolvedMaterialLines, 0)}`);
+    noteParts.push(`Item lines with missing material cost data (no match, blank, zero, or invalid cost): ${formatPreviewNumber(summary.unresolvedMaterialLines, 0)}`);
   }
 
   if (!Number.isFinite(summary.standardPrice) || summary.standardPrice <= 0) {
@@ -2779,11 +2787,13 @@ function renderApprovalPricingSummary(summary) {
         <div class="approval-preview-pricing-grid">
           <div class="approval-preview-actual-selling-price-group">
             ${renderApprovalMetaItem('Actual Selling Price', formatPreviewMoney(summary.actualSellingPrice), 'approval-preview-pricing-actual')}
-            <div class="approval-preview-actual-selling-price-breakdown">
-              ${renderApprovalMetaItem('Commission %', formatPreviewPercent(summary.commissionPercent), 'approval-preview-pricing-commission-rate')}
-              ${renderApprovalMetaItem('Commission Amount', formatPreviewMoney(summary.commissionAmount), 'approval-preview-pricing-commission-amount')}
-            </div>
-            <p class="approval-preview-commission-estimate-note">${escapeHtml(APPROVAL_PREVIEW_COMMISSION_ESTIMATE_NOTE)}</p>
+            ${summary.hasCostBasis ? `
+              <div class="approval-preview-actual-selling-price-breakdown">
+                ${renderApprovalMetaItem('Commission %', formatPreviewPercent(summary.commissionPercent), 'approval-preview-pricing-commission-rate')}
+                ${renderApprovalMetaItem('Commission Amount', formatPreviewMoney(summary.commissionAmount), 'approval-preview-pricing-commission-amount')}
+              </div>
+              <p class="approval-preview-commission-estimate-note">${escapeHtml(APPROVAL_PREVIEW_COMMISSION_ESTIMATE_NOTE)}</p>
+            ` : ''}
           </div>
           <div class="approval-preview-standard-price-group">
             ${renderApprovalMetaItem('Standard Price', formatPreviewMoney(summary.standardPrice), 'approval-preview-pricing-standard-total')}
@@ -2792,7 +2802,9 @@ function renderApprovalPricingSummary(summary) {
               ${renderApprovalMetaItem('Standard Materials', formatPreviewMoney(summary.standardMaterialPrice), 'approval-preview-pricing-standard-materials')}
             </div>
           </div>
-          ${renderApprovalMetaItem('SGT / Standard Ratio', formatPreviewNumber(summary.ratio, 4), 'approval-preview-pricing-ratio')}
+          ${summary.hasCostBasis
+            ? renderApprovalMetaItem('SGT / Standard Ratio', formatPreviewNumber(summary.ratio, 4), 'approval-preview-pricing-ratio')
+            : ''}
           ${renderApprovalMetaItem('Coverage', `${formatPreviewNumber(summary.pricedServiceItems, 0)} service item(s) • ${formatPreviewNumber(summary.pricedMaterialLines, 0)} material line(s)`, 'approval-preview-pricing-coverage')}
         </div>
         ${noteParts.length > 0 ? `

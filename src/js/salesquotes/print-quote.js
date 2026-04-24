@@ -219,7 +219,7 @@ export async function fetchSalesDirectorSignature() {
       signatureData: data.signatureData || null,
       fullName: data.fullName || 'Supachai Masphui',
       phoneNo: data.phoneNo || '08-6320-7404',
-      email: data.email || 'supachai@uservices-thailand.com'
+      email: data.email || 'supachai@user.co.th'
     };
   } catch (error) {
     console.warn('Unable to fetch Sales Director signature:', error);

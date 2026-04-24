@@ -4,10 +4,11 @@
  *
  * This middleware provides:
  * - requireAzureAuth(): Validates Azure AD identity only (no role check)
- * - requireBackofficeSession(): Validates Azure AD and restricts access to it@uservices-thailand.com
+ * - requireBackofficeSession(): Validates Azure AD and restricts access to the configured backoffice email
  */
 
 const logger = require('../utils/logger');
+const DEFAULT_BACKOFFICE_EMAIL = process.env.BACKOFFICE_ALLOWED_EMAIL || 'it@user.co.th';
 
 /**
  * Check if the request is from local development
@@ -155,13 +156,13 @@ async function requireAzureAuth(req, res, next) {
 
 /**
  * Express middleware for backoffice session validation
- * Validates Azure AD authentication and restricts access to it@uservices-thailand.com
+ * Validates Azure AD authentication and restricts access to the configured backoffice email
  * Attaches admin user object to req.session
  */
 async function requireBackofficeSession(req, res, next) {
   // Local development: use mock backoffice user (bypass Azure AD)
   if (isLocalRequest(req)) {
-    const mockEmail = process.env.BACKOFFICE_MOCK_EMAIL || process.env.MOCK_USER_EMAIL || 'it@uservices-thailand.com';
+    const mockEmail = process.env.BACKOFFICE_MOCK_EMAIL || process.env.MOCK_USER_EMAIL || DEFAULT_BACKOFFICE_EMAIL;
     logger.debug('AUTH', 'LocalDevBypass', 'Local development bypass for backoffice', {
       userEmail: mockEmail
     });
@@ -192,8 +193,8 @@ async function requireBackofficeSession(req, res, next) {
     return res.status(401).json({ error: 'Unauthorized: Unable to extract email from Azure AD token' });
   }
 
-  // Restrict to it@uservices-thailand.com ONLY
-  const ALLOWED_EMAIL = 'it@uservices-thailand.com';
+  // Restrict to the configured backoffice email only
+  const ALLOWED_EMAIL = DEFAULT_BACKOFFICE_EMAIL;
   if (email !== ALLOWED_EMAIL) {
     logger.warn('AUTH', 'UnauthorizedUser', `Access denied for ${email}`, {
       userEmail: email,

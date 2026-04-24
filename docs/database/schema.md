@@ -205,6 +205,10 @@ Permanent audit trail for workshop calculation deletions:
 - `database/migrations/update_delete_stored_procedures_for_audit.sql` - Updates DeleteOnsiteSavedCalculation and DeleteWorkshopSavedCalculation stored procedures to insert audit entries before soft delete
 - `database/diagnose_deletion_audit.sql` - Diagnostic script to verify audit tables, stored procedures, and sample entries
 
+### Email Domain Migration
+- `database/migrations/email_domain_migration.sql` - One-off domain rewrite for all text-like user-table values, including preflight inventory, collision checks, backups, transactional update, and post-check validation
+- `docs/database/email-domain-migration.md` - Runbook for staging and production execution of the email domain migration
+
 ### UTC Migration
 - `database/migrations/migrate_to_utc.sql` - Idempotent migration script to convert existing timestamps from local time to UTC
 

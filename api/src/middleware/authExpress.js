@@ -41,7 +41,7 @@ function isLocalRequest(req) {
  * Create mock user for local development
  */
 function createMockUser() {
-  const mockEmail = process.env.MOCK_USER_EMAIL || 'it@uservices-thailand.com';
+  const mockEmail = process.env.MOCK_USER_EMAIL || 'it@user.co.th';
   const mockRole = process.env.MOCK_USER_ROLE || 'PriceListSales';
   const mockBranchId = process.env.MOCK_USER_BRANCH_ID ? parseInt(process.env.MOCK_USER_BRANCH_ID) : 1; // Default to URY (BranchId=1)
   const dbLookupEnabled = process.env.LOCAL_DEV_DB_LOOKUP === 'true';
